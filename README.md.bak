@@ -1,15 +1,42 @@
 # LAMMPS Tools
+A postprocessing suite for the LAMMPS simulation package.
+[LAMMPS](https://lammps.sandia.gov/)
 
-A primitive collection of tools within a class framework which is capable of taking dump files from LAMMPS simulations and study a number of different properties. Currently this isn't functional and should not be used without serious review of the code as it is not generalizable to arbitray systems and is not optimized for speed which becomes problematic for some of the properties.
+This program takes the LAMMPS dump file and process it to calculate several properties of the systems often of interest in molecular dynamics simulations.
 
+## Installation
+Clone the repository and run the main.py script.
+```
+python main.py
+```
+This will bring up lists of analysis which may be performed on the system.
 ## Data Format
+This postprocessing suite will take a lammps file and will determine what properties are available for use in the analysis. It also support coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
 
-This code takes LAMMPS dump files of the form x y z vx vy vz fx fy fz. It will soon be extened to take arbitrary lammps dump inputs
+## Requirements
+Requirements.txt contains a full list of python packages required to use this suite but another list with links is given here.
+* Numpy [numpy](https://numpy.org/)
+* Scipy [scipy](https://www.scipy.org/)
+* MDAnalysis [mdanalysis](https://www.mdanalysis.org/)
 
-## Green Kubo
+## Analysis 
+This suite is capable of calcualting several properties both structrual and dynamic of a system. The following is a breakdown of the capabilitites of the program.
 
-This method with calculate the Green-Kubo diffusion coefficients by calcualting the integral of the velocity autocorrelation function. After the calculation of the diffusion coefficients the nersnt einstein condyuctivitiy is calculated along with the nernst einstein corrections.
+### Radial Distribution Functions
+Radial distribution functions are a good strating point for understanding the structure of a material. This program uses the MDAnalysis software to calcualte the RDF's for each eleemnt and elemtn cmbination within the system. It will produce .npy files containing the raw data for the rdf's as well as the plots. This raw data can be re-plotted using some of the post-analysis tools in the tools directory. 
+[rdfimage](Images/)
 
-## Einstein-Helfand
+### Coordination Numbers
+Coordination numbers provides additional data on the neighbour density of the atoms within a system. This allows one in particular to study effects of struture rduction under varying conditions wihtin a system.
+[cnimages](Images/)
 
-Method to calcualte the Einstein-GHelfan conductivity by taking he itegral over teh current autcorrelation fucntion calculated directly form velocities.
+### Self Diffusion Coefficients
+
+### Ionic Conductivity
+
+## Future Releases
+
+### Structure Factor
+
+### Viscosity
+
