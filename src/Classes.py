@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from itertools import combinations_with_replacement
 import Methods
 import Meta_Functions
+import pickle
 
 
 class Species_Properties:
@@ -33,7 +34,7 @@ class Species_Properties:
 
     """
 
-    def __init__(self, species, number_of_atoms, data, species_positions, properties, dimensions):
+    def __init__(self, species, number_of_atoms, data, species_positions, properties, dimensions, file_format):
         """ Standard class initialization """
 
         self.species = species
@@ -42,6 +43,7 @@ class Species_Properties:
         self.species_positions = species_positions
         self.properties = properties
         self.dimensions = dimensions
+        self.file_format = file_format
 
     def Generate_Property_Matrices(self):
         """ Create matrix of atom positions and save files
@@ -52,20 +54,10 @@ class Species_Properties:
 
         """
 
-        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
-        property_list = list(self.properties)
-        for i in range(len(property_groups)):
-            saved_property = property_groups[i]
-            temp = []
-            for index in self.species_positions:
-                temp.append(np.hstack([
-                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
-                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
-                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
-            np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
+        if self.file_format == 'lammps':
+            Methods.Species_Properties_Methods.Generate_LAMMPS_Property_Matrices(self)
+        else:
+            Methods.Species_Properties_Methods.Generate_EXTXYZ_Property_Matrices(self)
 
 
 class Trajectory(Methods.Trajectory_Methods):
@@ -82,12 +74,12 @@ class Trajectory(Methods.Trajectory_Methods):
             - Coordination Numbers
     """
 
-    def __init__(self, filename, analysis_name, temperature):
+    def __init__(self, analysis_name):
         """ Initialise with filename """
 
-        self.filename = filename
+        self.filename = None
         self.analysis_name = analysis_name
-        self.temperature = temperature
+        self.temperature = None
         self.volume = None
         self.species = None
         self.number_of_atoms = None
@@ -95,6 +87,43 @@ class Trajectory(Methods.Trajectory_Methods):
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
+
+    def From_User(self):
+        """ Get system specific inputs
+
+        If a new project is called, this function will gather extra data from the user
+        """
+
+        self.filename = input("File name: ")
+        self.temperature = float(input("Temperature: "))
+
+    def Save_Class(self):
+        """ Saves class instance
+
+        In order to keep properties of a class the state must be stored. This method will store the instance of the
+        class for later re-loading
+        """
+
+        save_file = open("{0}.txt".format(self.analysis_name), 'wb')
+        save_file.write(pickle.dumps(self.__dict__))
+        save_file.close()
+
+    def Load_Class(self):
+        """ Load class instance
+
+        A function to load a class instance given the project name.
+        """
+        os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
+
+        class_file = open('{0}.txt'.format(self.analysis_name), 'rb')
+        pickle_data = class_file.read()
+        class_file.close()
+
+        self.__dict__ = pickle.loads(pickle_data)
+
+        print(self.temperature)
+        print(self.box_array)
+        print(self.number_of_atoms)
 
     def Process_Input_File(self):
         """ Process the input file
@@ -126,6 +155,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
         if file_format == 'lammps':
             Methods.Trajectory_Methods.Get_LAMMPS_Properties(self, data_array)
+        else:
+            Methods.Trajectory_Methods.Get_EXTXYZ_Properties(self, data_array)
 
     def Build_Database(self):
         """ Build the 'database' for the analysis
@@ -133,6 +164,8 @@ class Trajectory(Methods.Trajectory_Methods):
         Within this function, all properties directly present in the data are extracted and saved as .npy arrays
         in the project directory.
         """
+
+        self.From_User() # Get additional information
 
         # Create new analysis directory and change into it
         create_directory = sp.Popen(['mkdir ../Project_Directories/{0}_Analysis'.format(self.analysis_name)],
@@ -150,16 +183,17 @@ class Trajectory(Methods.Trajectory_Methods):
         for i in range(len(self.species)):
             class_array.append(
                 Species_Properties(list(self.species)[i], self.number_of_atoms, data_array,
-                                   self.species[list(self.species)[i]], self.properties, self.dimensions))
+                                   self.species[list(self.species)[i]], self.properties, self.dimensions, file_format))
 
         # Generate the property matrices for each species
         for i in range(len(class_array)):
             class_array[i].Generate_Property_Matrices()
 
         del data_array
+        self.Save_Class()
         os.chdir('../')
 
-        print("\n ** Database has been Constructed, Proceeding with analysis for {0} ** \n".format(self.analysis_name))
+        print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
     def Unwrap_Coordinates(self):
         """ Unwrap coordinates of trajectory
@@ -168,8 +202,8 @@ class Trajectory(Methods.Trajectory_Methods):
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
         """
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
-        box_array = [32.65, 32.65, 32.65]
-        species_list = ['Na', 'Cl']
+        box_array = self.box_array
+        species_list = list(self.species)
         positions_matrix = []
         for species in species_list:
             positions_matrix.append(np.load('{0}_Positions.npy'.format(species)))
@@ -180,6 +214,7 @@ class Trajectory(Methods.Trajectory_Methods):
             for i in range(len(species_list)):
                 for j in range(len(positions_matrix[0])):
                     positions_matrix[i][j] -= (box_array[0] / 2)
+            print(positions_matrix)
 
         def Unwrap():
             """ Unwrap the coordinates """

@@ -116,7 +116,23 @@ def Extract_LAMMPS_Properties(properties_dict):
 
     return output_properties
 
+def Extract_extxyz_Properties(properties_dict):
+    """ Construct generalized property array
 
+    Takes the extxyz properties dictionary and constructs and array of properties which can be used by the species
+    class.
+    """
 
+    # Define Initial Properties and arrays
+    extxyz_properties = ['Positions', 'Forces']
+    output_properties = []
+    system_properties = list(properties_dict)
+
+    if 'pos' in system_properties:
+        output_properties.append(extxyz_properties[0])
+    if 'force' in system_properties:
+        output_properties.append(extxyz_properties[1])
+
+    return output_properties
 
 

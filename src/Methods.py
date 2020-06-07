@@ -5,6 +5,7 @@ Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Larger methods used in the Trajectory class
 """
 import Meta_Functions
+import numpy as np
 
 
 class Trajectory_Methods:
@@ -74,8 +75,62 @@ class Trajectory_Methods:
         # Define necessary properties and attributes
         species_summary = {}
         properties_summary = {}
-        extxyz_properties = {'pos', 'force'}
+        extxyz_properties_keywords = ['pos', 'force']
 
-        number_of_atoms = int(data_array[0])
+        number_of_atoms = int(data_array[0][0])
+        number_of_configurations = len(data_array) / (number_of_atoms + 2)
+        box = [float(data_array[1][0][9:]), float(data_array[1][4]), float(data_array[1][8][:-1])]
+
+        for i in range(2, number_of_atoms + 2):
+            if data_array[i][0] not in species_summary:
+                species_summary[data_array[i][0]] = []
+            species_summary[data_array[i][0]].append(i)
+
+        for i in range(len(extxyz_properties_keywords)):
+            if extxyz_properties_keywords[i] in data_array[1][9]:
+                properties_summary[extxyz_properties_keywords[i]] = 0
+
+        self.dimensions = Meta_Functions.Get_Dimensionality(box)
+        self.box_array = box
+        self.volume = box[0] * box[1] * box[2]
+        self.species = species_summary
+        self.number_of_atoms = number_of_atoms
+        self.properties = properties_summary
+        self.number_of_configurations = number_of_configurations
+
+
+class Species_Properties_Methods:
+
+    def Generate_LAMMPS_Property_Matrices(self):
+        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
+        property_list = list(self.properties)
+        for i in range(len(property_groups)):
+            saved_property = property_groups[i]
+            temp = []
+            for index in self.species_positions:
+                temp.append(np.hstack([
+                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
+                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
+                    np.array(self.data[index::3 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
+            np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
+
+    def Generate_EXTXYZ_Property_Matrices(self):
+        property_groups = Meta_Functions.Extract_extxyz_Properties(self.properties)
+        property_list = list(self.properties)
+        for i in range(len(property_groups)):
+            saved_property = property_groups[i]
+            temp = []
+            for index in self.species_positions:
+                temp.append(np.hstack([
+                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    1 + i*self.dimensions].astype(float)[:, None],
+                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    2 + i*self.dimensions].astype(float)[:, None],
+                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    3 + i*self.dimensions].astype(float)[:, None]]))
+            np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
 
 

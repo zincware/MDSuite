@@ -63,10 +63,7 @@ def Build_Class(project_name: str):
         project_name (str) -- Name of the project
     """
 
-    temperature = int(input(" What is the temperature of the system? \n"))
-    file = input("Enter a filepath to the input file: \n")
-
-    trajectory_class = Trajectory(file, project_name, temperature)
+    trajectory_class = Trajectory(project_name)
     print("\n Building database now, this will take some time \n")
     trajectory_class.Build_Database()
 
@@ -78,7 +75,9 @@ def Load_Class(project_name):
     args:
         project_name (str) -- Name of the project
     """
-    print("Not there yet")
+
+    trajectory_class = Trajectory(project_name) # Instantiate class from project name
+    trajectory_class.Load_Class()
 
 def Check_Directories(project_name):
     """ Check for project directory
@@ -134,3 +133,12 @@ def Check_Directories(project_name):
             print("\n Option is not recognized - Closing until you have made a decision \n")
 
     Process_Decision(Get_Input(), project_name)
+
+def Select_Analysis():
+    """ Begin the analysis of the system """
+
+    string_1 = "# Welcome to the LAMMPS analysis suite! " \
+        "\n# We have prepared your system for analysis and built a database " \
+        "# Choose the properties you wish to calculate from the list" \
+        "\n# [1] Diffusion Coefficiens " \
+
