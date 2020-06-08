@@ -125,11 +125,11 @@ class Species_Properties_Methods:
             temp = []
             for index in self.species_positions:
                 temp.append(np.hstack([
-                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
                     1 + i*self.dimensions].astype(float)[:, None],
-                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
                     2 + i*self.dimensions].astype(float)[:, None],
-                    np.array(self.data[index::3 * (self.number_of_atoms + 2)])[:,
+                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
                     3 + i*self.dimensions].astype(float)[:, None]]))
             np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
 

@@ -87,6 +87,8 @@ class Trajectory(Methods.Trajectory_Methods):
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
+        self.singular_diffusion_coefficients = None
+        self.distinct_diffusion_coefficients = None
 
     def From_User(self):
         """ Get system specific inputs
@@ -121,9 +123,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         self.__dict__ = pickle.loads(pickle_data)
 
-        print(self.temperature)
-        print(self.box_array)
-        print(self.number_of_atoms)
+        os.chdir('../../src')
 
     def Process_Input_File(self):
         """ Process the input file
@@ -214,7 +214,6 @@ class Trajectory(Methods.Trajectory_Methods):
             for i in range(len(species_list)):
                 for j in range(len(positions_matrix[0])):
                     positions_matrix[i][j] -= (box_array[0] / 2)
-            print(positions_matrix)
 
         def Unwrap():
             """ Unwrap the coordinates """
@@ -249,6 +248,7 @@ class Trajectory(Methods.Trajectory_Methods):
                                                                           box_array[2]
 
                 np.save('{0}_Unwrapped.npy'.format(species_list[i]), positions_matrix[i])
+                print(np.array(positions_matrix[0]) + 15.0)
 
         Unwrap()
         os.chdir('../')
@@ -265,7 +265,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change into analysis directory
 
-        species_list = ['Na', 'Cl']
+        species_list = list(self.species)
         positions_matrix = []
         for species in species_list:
             positions_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
@@ -283,7 +283,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 msd_y += abs(data[i][:, 1] - data[i][0][1])
                 msd_z += abs(data[i][:, 2] - data[i][0][2])
 
-            msd = (1 / 3) * (1 / len(data)) * (msd_x ** 2 + msd_y ** 2 + msd_z ** 2) * (1E-20)
+            msd = (1 / len(data)) * (msd_x ** 2 + msd_y ** 2 + msd_z ** 2) * (1E-20) * (1/3)
             x = (1E-12) * np.array([i for i in range(len(msd))]) * 0.002 * 3 * 100
 
             def func(x, a, b):
@@ -291,12 +291,6 @@ class Trajectory(Methods.Trajectory_Methods):
 
             popt, pcov = curve_fit(func, x, msd)
             print((popt[0] / 6))
-
-            plt.plot(x, msd)
-            plt.plot(x, func(x, *popt))
-            plt.show()
-            plt.loglog(x, msd)
-            plt.show()
 
         def Distinct_Diffusion_Coefficients(data):
             """ Calculate the Distinct Diffusion Coefficients """
@@ -308,15 +302,28 @@ class Trajectory(Methods.Trajectory_Methods):
 
             # Calculate the coefficients
             for i in range(len(correlations)):
-                species_a = np.sum(data[correlations[i][0]], axis=0)
-                species_b = np.sum(data[correlations[i][1]], axis=0)
+                species_a = (1/len(data[correlations[i][0]]))*np.sum(data[correlations[i][0]], axis=0)
+                species_b = (1/len(data[correlations[i][1]]))*np.sum(data[correlations[i][1]], axis=0)
 
-                msd_x = abs(species_a[:, 0] - species_b[0][0])
-                msd_y = abs(species_a[:, 1] - species_b[0][1])
-                msd_z = abs(species_a[:, 2] - species_b[0][2])
+                msd_x = []
+                msd_y = []
+                msd_z = []
 
-                msd = (1E-20) * (msd_x ** 2 + msd_y ** 2 + msd_z ** 2) * (1 / 3)
-                time = (1E-12) * 3 * 100 * np.array([i for i in range(len(msd))])
+                for j in range(len(species_a) - 1):
+                    msd_x.append(np.pad(abs(species_a[j:, 0] - species_a[j][0])*abs(species_b[j:, 0] - species_b[j][0]),
+                                        (0, j), constant_values=np.nan))
+                    msd_y.append(np.pad(abs(species_a[j:, 1] - species_a[j][1])*abs(species_b[j:, 1] - species_b[j][1]),
+                                        (0, j), constant_values=np.nan))
+                    msd_z.append(np.pad(abs(species_a[j:, 2] - species_a[j][2])*abs(species_b[j:, 2] - species_b[j][2]),
+                                        (0, j), constant_values=np.nan))
+
+                msd_x = np.nanmean(msd_x, axis=0)
+                msd_y = np.nanmean(msd_y, axis=0)
+                msd_z = np.nanmean(msd_z, axis=0)
+
+                msd = (1E-20) * (msd_x + msd_y + msd_z) * (1 / 3) * (len(data[correlations[i][0]]) +
+                                                                     len(data[correlations[i][1]]))
+                time = (1E-12) * 3 * 100 * np.array([i for i in range(len(msd))]) * 0.002
 
                 plt.plot(time, msd)
                 plt.show()
@@ -328,7 +335,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 coefficients.append((popt[0] / 6))
             print(coefficients)
 
-        Distinct_Diffusion_Coefficients(positions_matrix)
+        #Distinct_Diffusion_Coefficients(positions_matrix)
         Singular_Diffusion_Coefficients(positions_matrix[0])
         Singular_Diffusion_Coefficients(positions_matrix[1])
 
@@ -338,21 +345,11 @@ class Trajectory(Methods.Trajectory_Methods):
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
         autocorrelation function is integrated over and divided by 3. Autocorrelation is performed using the scipy
         fft correlate function in order to speed up the calculation.
-
-        Data is loaded from the working directory upon calling the function.
-
-        velocity[i][j][:, k][l]
-
-        i --> Atomic species
-        j --> atom j
-        k --> x, y or z
-        l --> time step l
-        Add class load functionality!!!!!!!!!!!!!
         """
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
 
-        species_list = ['Na', 'Cl']
+        species_list = list(self.species)
         velocity_matrix = []
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
@@ -430,9 +427,9 @@ class Trajectory(Methods.Trajectory_Methods):
                     signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 1], mode='full', method='fft') +
                     signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 2], mode='full', method='fft'))
 
-            vacf_a = 998 * (1 / (len(vacf_a))) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
-            vacf_b = 998 * (1 / (len(vacf_b))) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
-            vacf_c = 998 * (1 / (len(vacf_c))) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
+            vacf_a = self.number_of_atoms * (1 / (len(vacf_a))) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
+            vacf_b = self.number_of_atoms * (1 / (len(vacf_b))) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
+            vacf_c = self.number_of_atoms * (1 / (len(vacf_c))) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
 
             D_a = np.trapz(vacf_a, x=time) / 6
             D_b = np.trapz(vacf_b, x=time) / 6
@@ -454,16 +451,23 @@ class Trajectory(Methods.Trajectory_Methods):
     def Nernst_Einstein_Conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
 
-        Function to determine the Nernst-Einstein as well as the corrected Nernst-Einstein
+        A function to determine the Nernst-Einstein as well as the corrected Nernst-Einstein
         conductivity of a system.
         """
         pass
 
     def Green_Kubo_Conductivity(self):
+        """ Calculate Green-Kubo Conductivity
 
+        A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
+        system being studied.
+        """
+
+        q = 1.60217662E-19 # Define elementary charge
+        kb = 1.38064852E-23 # Define the Boltzmann constant
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
 
-        species_list = ['Na', 'Cl']
+        species_list = list(self.species)
         velocity_matrix = []
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
@@ -480,7 +484,7 @@ class Trajectory(Methods.Trajectory_Methods):
             velocity_a.append(np.sum(velocity_matrix[0][:, i], axis=0))
             velocity_b.append(np.sum(velocity_matrix[1][:, i], axis=0))
 
-        current = (1.60217662E-19) * (np.array(velocity_a) - np.array(velocity_b))
+        current = q * (np.array(velocity_a) - np.array(velocity_b))
 
         jacf = (signal.correlate(current[:, 0], current[:, 0], mode='full', method='fft') +
                 signal.correlate(current[:, 1], current[:, 1], mode='full', method='fft') +
@@ -488,10 +492,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
         jacf = 1 / (len(jacf)) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
 
-        sigma = (1 / (3 * (1300) * ((32.28E-10) ** 3) * (1.38064852E-23))) * np.trapz(jacf, x=time) / 100
+        sigma = (3 * self.temperature * (self.volume * kb)) * np.trapz(jacf, x=time) / 100
         print(sigma)
 
         plt.plot(time, jacf)
         plt.show()
-
-        os.chdir('../'.format(self.temperature))  # Change to correct directory

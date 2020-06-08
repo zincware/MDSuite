@@ -46,15 +46,20 @@ def Begin_Program():
         project_name = args.project_name
 
         if new_project == True:
-            Check_Directories(project_name)
+            trajectory_class = Check_Directories(project_name)
 
         elif old_project == True:
-            Load_Class(project_name)
+            trajectory_class = Load_Class(project_name)
 
         else:
             print("\n --- Error in file input, nothing to study --- \n")
+            trajectory_class = None
 
-    Process_Arguments()
+        return trajectory_class
+
+    trajectory_class = Process_Arguments()
+
+    return trajectory_class
 
 def Build_Class(project_name: str):
     """ Function to build the class
@@ -64,7 +69,6 @@ def Build_Class(project_name: str):
     """
 
     trajectory_class = Trajectory(project_name)
-    print("\n Building database now, this will take some time \n")
     trajectory_class.Build_Database()
 
     return trajectory_class
@@ -78,6 +82,8 @@ def Load_Class(project_name):
 
     trajectory_class = Trajectory(project_name) # Instantiate class from project name
     trajectory_class.Load_Class()
+
+    return trajectory_class
 
 def Check_Directories(project_name):
     """ Check for project directory
@@ -108,6 +114,8 @@ def Check_Directories(project_name):
                                        "\n   [1] Use data from this directory"
                                        "\n   [2] Overwrite data in this directory"
                                        "\n   [3] Rename this project\n\n".format(project_name))
+        else:
+            overwrite_decision = "4"
 
         return overwrite_decision
 
@@ -119,26 +127,39 @@ def Check_Directories(project_name):
             project_name (str) -- Name of project (Find out why this did not work without explicit declaration)
         """
         if decision == "1":
-            Load_Class(project_name)
+            trajectory_class = Load_Class(project_name)
 
         elif decision == "2":
             shutil.rmtree("../Project_Directories/{0}".format(project_name))
-            Build_Class(project_name)
+            trajectory_class = Build_Class(project_name)
 
         elif decision == "3":
             project_name = input("Enter the new project name:  \n")
-            Build_Class(project_name)
+            trajectory_class = Build_Class(project_name)
+
+        elif decision == "4":
+            trajectory_class = Build_Class(project_name)
 
         else:
             print("\n Option is not recognized - Closing until you have made a decision \n")
+            trajectory_class = None
 
-    Process_Decision(Get_Input(), project_name)
+        return trajectory_class
+
+    trajectory_class = Process_Decision(Get_Input(), project_name)
+
+    return trajectory_class
 
 def Select_Analysis():
     """ Begin the analysis of the system """
 
-    string_1 = "# Welcome to the LAMMPS analysis suite! " \
-        "\n# We have prepared your system for analysis and built a database " \
-        "# Choose the properties you wish to calculate from the list" \
-        "\n# [1] Diffusion Coefficiens " \
+    pass
+    #string_1 = "#####################################" \
+    #    "\n Welcome to the LAMMPS analysis suite! " \
+    #    "\n# We have prepared your system for analysis and built a database " \
+    ##    "\n# Choose the properties you wish to calculate from the list" \
+    #    "\n# [1] Diffusion Coefficients " \
+    #    "\n# [2] Ionic Conductivity " \
+    #    "\n# Type in a number to continue " \
+    #    "\n################################" \
 
