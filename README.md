@@ -21,9 +21,9 @@ analysis. It also supports coordinate unwrapping as well as trivial calculations
 ## Requirements
 Requirements.txt contains a full list of python packages required to use this suite but another list with links is given 
 here.
-* [Numpy](https://numpy.org/){target="_blank"}
-* [Scipy](https://www.scipy.org/){target="_blank"}
-* [MDAnalysis](https://www.mdanalysis.org/){target="_blank"}
+* [Numpy](https://numpy.org/){:target="_blank" rel="noopener"}
+* [Scipy](https://www.scipy.org/){:target="_blank" rel="noopener"}
+* [MDAnalysis](https://www.mdanalysis.org/){:target="_blank" rel="noopener"}
 
 ## Analysis 
 This suite is capable of calculating several properties both structural and dynamic of a system. The following is a 
