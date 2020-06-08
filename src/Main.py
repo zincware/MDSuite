@@ -16,8 +16,8 @@ def main():
     # Select_Analysis() # Choose the analysis to be run
     # Run_Analysis() # Run the desired analysis
     # Write_Summary # Write a summary of the analysis
-    trajectory_class.Unwrap_Coordinates()
-    #trajectory_class.Einstein_Diffusion_Coefficients()
+    #trajectory_class.Unwrap_Coordinates()
+    trajectory_class.Einstein_Diffusion_Coefficients()
 
 
 

@@ -248,9 +248,8 @@ class Trajectory(Methods.Trajectory_Methods):
                                                                           box_array[2]
 
                 np.save('{0}_Unwrapped.npy'.format(species_list[i]), positions_matrix[i])
-                print(np.array(positions_matrix[0]) + 15.0)
-
         Unwrap()
+        print("\n --- Finished unwrapping coordinates --- \n")
         os.chdir('../')
 
     def Einstein_Diffusion_Coefficients(self):
@@ -284,13 +283,15 @@ class Trajectory(Methods.Trajectory_Methods):
                 msd_z += abs(data[i][:, 2] - data[i][0][2])
 
             msd = (1 / len(data)) * (msd_x ** 2 + msd_y ** 2 + msd_z ** 2) * (1E-20) * (1/3)
-            x = (1E-12) * np.array([i for i in range(len(msd))]) * 0.002 * 3 * 100
+            time = (1E-12) * np.array([i for i in range(len(msd))]) * 0.002 * 3 * 100
 
-            def func(x, a, b):
-                return a * x + b
+            def func(time, a, b):
+                return a * time + b
 
-            popt, pcov = curve_fit(func, x, msd)
+            popt, pcov = curve_fit(func, time[2000:], msd[2000:])
             print((popt[0] / 6))
+            plt.plot(time, msd)
+            plt.show()
 
         def Distinct_Diffusion_Coefficients(data):
             """ Calculate the Distinct Diffusion Coefficients """
@@ -314,12 +315,12 @@ class Trajectory(Methods.Trajectory_Methods):
                                         (0, j), constant_values=np.nan))
                     msd_y.append(np.pad(abs(species_a[j:, 1] - species_a[j][1])*abs(species_b[j:, 1] - species_b[j][1]),
                                         (0, j), constant_values=np.nan))
-                    msd_z.append(np.pad(abs(species_a[j:, 2] - species_a[j][2])*abs(species_b[j:, 2] - species_b[j][2]),
+                    msd_z.append(np.pad(species_a[j:, 2] - species_a[j][2]*species_b[j:, 2] - species_b[j][2],
                                         (0, j), constant_values=np.nan))
 
-                msd_x = np.nanmean(msd_x, axis=0)
-                msd_y = np.nanmean(msd_y, axis=0)
-                msd_z = np.nanmean(msd_z, axis=0)
+                msd_x = np.nanmean(msd_x, axis=0)[:-100]
+                msd_y = np.nanmean(msd_y, axis=0)[:-100]
+                msd_z = np.nanmean(msd_z, axis=0)[:-100]
 
                 msd = (1E-20) * (msd_x + msd_y + msd_z) * (1 / 3) * (len(data[correlations[i][0]]) +
                                                                      len(data[correlations[i][1]]))
@@ -335,7 +336,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 coefficients.append((popt[0] / 6))
             print(coefficients)
 
-        #Distinct_Diffusion_Coefficients(positions_matrix)
+        Distinct_Diffusion_Coefficients(positions_matrix)
         Singular_Diffusion_Coefficients(positions_matrix[0])
         Singular_Diffusion_Coefficients(positions_matrix[1])
 

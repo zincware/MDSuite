@@ -154,12 +154,3 @@ def Select_Analysis():
     """ Begin the analysis of the system """
 
     pass
-    #string_1 = "#####################################" \
-    #    "\n Welcome to the LAMMPS analysis suite! " \
-    #    "\n# We have prepared your system for analysis and built a database " \
-    ##    "\n# Choose the properties you wish to calculate from the list" \
-    #    "\n# [1] Diffusion Coefficients " \
-    #    "\n# [2] Ionic Conductivity " \
-    #    "\n# Type in a number to continue " \
-    #    "\n################################" \
-
