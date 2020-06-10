@@ -264,81 +264,60 @@ class Trajectory(Methods.Trajectory_Methods):
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change into analysis directory
 
+        def fitting_function(x, a, b):
+            """ Function for use in fitting """
+            return a*x + b
+
         species_list = list(self.species)
         positions_matrix = []
         for species in species_list:
             positions_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
 
-        def Singular_Diffusion_Coefficients(data):
+        def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients """
 
-            # Define empty arrays
-            msd_x = [0.00 for i in range(len(data[0]))]
-            msd_y = [0.00 for i in range(len(data[0]))]
-            msd_z = [0.00 for i in range(len(data[0]))]
-
-            for i in range(len(positions_matrix[0])):
-                msd_x += abs(data[i][:, 0] - data[i][0][0])
-                msd_y += abs(data[i][:, 1] - data[i][0][1])
-                msd_z += abs(data[i][:, 2] - data[i][0][2])
-
-            msd = (1 / len(data)) * (msd_x ** 2 + msd_y ** 2 + msd_z ** 2) * (1E-20) * (1/3)
-            time = (1E-12) * np.array([i for i in range(len(msd))]) * 0.002 * 3 * 100
-
-            def func(time, a, b):
-                return a * time + b
-
-            popt, pcov = curve_fit(func, time[2000:], msd[2000:])
-            print((popt[0] / 6))
-            plt.plot(time, msd)
-            plt.show()
-
-        def Distinct_Diffusion_Coefficients(data):
-            """ Calculate the Distinct Diffusion Coefficients """
-
-            indices = [i for i in range(len(data))]
-            correlations = list(combinations_with_replacement(indices, 2))
-
-            coefficients = []  # Define empty coefficients list
-
-            # Calculate the coefficients
-            for i in range(len(correlations)):
-                species_a = (1/len(data[correlations[i][0]]))*np.sum(data[correlations[i][0]], axis=0)
-                species_b = (1/len(data[correlations[i][1]]))*np.sum(data[correlations[i][1]], axis=0)
-
+            diffusion_coefficients = {}
+            for i in range(len(positions_matrix)): # Loop over species
                 msd_x = []
                 msd_y = []
                 msd_z = []
+                for j in range(len(positions_matrix[i])): # Loop over number of atoms of species i
+                    msd_x.append((positions_matrix[i][j][:, 0] - positions_matrix[i][j][0][0])**2)
+                    msd_y.append((positions_matrix[i][j][:, 1] - positions_matrix[i][j][0][1])**2)
+                    msd_z.append((positions_matrix[i][j][:, 2] - positions_matrix[i][j][0][2])**2)
 
-                for j in range(len(species_a) - 1):
-                    msd_x.append(np.pad(abs(species_a[j:, 0] - species_a[j][0])*abs(species_b[j:, 0] - species_b[j][0]),
-                                        (0, j), constant_values=np.nan))
-                    msd_y.append(np.pad(abs(species_a[j:, 1] - species_a[j][1])*abs(species_b[j:, 1] - species_b[j][1]),
-                                        (0, j), constant_values=np.nan))
-                    msd_z.append(np.pad(species_a[j:, 2] - species_a[j][2]*species_b[j:, 2] - species_b[j][2],
-                                        (0, j), constant_values=np.nan))
+                # Take averages
+                msd_x = np.mean(msd_x, axis=0)
+                msd_y = np.mean(msd_y, axis=0)
+                msd_z = np.mean(msd_z, axis=0)
 
-                msd_x = np.nanmean(msd_x, axis=0)[:-100]
-                msd_y = np.nanmean(msd_y, axis=0)[:-100]
-                msd_z = np.nanmean(msd_z, axis=0)[:-100]
+                msd = (msd_x + msd_y + msd_z) # Calculate the total MSD
 
-                msd = (1E-20) * (msd_x + msd_y + msd_z) * (1 / 3) * (len(data[correlations[i][0]]) +
-                                                                     len(data[correlations[i][1]]))
-                time = (1E-12) * 3 * 100 * np.array([i for i in range(len(msd))]) * 0.002
+                # Perform unit conversions
+                msd = msd*(1E-16)
+                #time = 100*np.array([i for i in range(len(msd))])*(1E-12)*(0.002) # Need to solve this time problem.
+                time = np.linspace(0.0, 340, len(msd))*(1E-12)
 
+                np.save('{0}.npy'.format(i), msd)
+                popt, pcov = curve_fit(fitting_function, time, msd)
+                diffusion_coefficients[list(self.species)[i]] = popt[0]/6
+
+                plt.plot(time, fitting_function(time, *popt))
                 plt.plot(time, msd)
                 plt.show()
+                plt.loglog(time, msd)
+                plt.show()
+            return diffusion_coefficients
 
-                def func(x, a, b):
-                    return a * x + b
+        def Distinct_Diffusion_Coefficients():
+            """ Calculate the Distinct Diffusion Coefficients """
 
-                popt, pcov = curve_fit(func, time, msd)
-                coefficients.append((popt[0] / 6))
-            print(coefficients)
+            pass
 
-        Distinct_Diffusion_Coefficients(positions_matrix)
-        Singular_Diffusion_Coefficients(positions_matrix[0])
-        Singular_Diffusion_Coefficients(positions_matrix[1])
+        singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+
+        print(singular_diffusion_coefficients)
+        os.chdir('../../src'.format(self.analysis_name))
 
     def Green_Kubo_Diffusion_Coefficients(self):
         """ Calculate the Green_Kubo Diffusion coefficients
@@ -355,7 +334,7 @@ class Trajectory(Methods.Trajectory_Methods):
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
 
-        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.002) * 100 * 3
+        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.0005) * 3
 
         def Singular_Diffusion_Coefficients():
             vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
@@ -446,8 +425,8 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.show()
 
         _, _, _, _ = Singular_Diffusion_Coefficients()
-        # Distinct_Diffusion_Coefficients()
-        os.chdir('../'.format(self.temperature))  # Change to correct directory
+        Distinct_Diffusion_Coefficients()
+        os.chdir('../'.format(self.analysis_name))  # Change to correct directory
 
     def Nernst_Einstein_Conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
@@ -473,7 +452,7 @@ class Trajectory(Methods.Trajectory_Methods):
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
 
-        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.002) * 3
+        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.0005) * 3
 
         vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
         vacf_b = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
@@ -493,7 +472,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         jacf = 1 / (len(jacf)) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
 
-        sigma = (3 * self.temperature * (self.volume * kb)) * np.trapz(jacf, x=time) / 100
+        sigma = (1/(3 * self.temperature * ((self.volume*1E-30) * kb))) * np.trapz(jacf, x=time) / 100
         print(sigma)
 
         plt.plot(time, jacf)
