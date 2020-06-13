@@ -218,7 +218,7 @@ class Trajectory(Methods.Trajectory_Methods):
         def Unwrap():
             """ Unwrap the coordinates """
 
-            Center_Box()  # Unwrap the coordinates
+            Center_Box()  # Center the box at (0, 0, 0)
 
             print("\n --- Beginning to unwrap coordinates --- \n")
 
@@ -310,8 +310,6 @@ class Trajectory(Methods.Trajectory_Methods):
                 plt.plot(time, fitting_function(time, *popt))
                 plt.plot(time, msd)
                 plt.show()
-                plt.loglog(time, msd)
-                plt.show()
 
             return diffusion_coefficients
 
@@ -325,18 +323,34 @@ class Trajectory(Methods.Trajectory_Methods):
 
             distinct_diffusion_coefficients = {}
 
-            msd_x = (positions_matrix[0][0][:, 0] - positions_matrix[0][0][0][0])*\
-                    (positions_matrix[0][1][:, 0] - positions_matrix[0][1][:, 0])
-            msd_y = (positions_matrix[0][0][:, 1] - positions_matrix[0][0][0][1]) * \
-                    (positions_matrix[0][1][:, 1] - positions_matrix[0][1][:, 1])
-            msd_z = (positions_matrix[0][0][:, 2] - positions_matrix[0][0][0][2]) * \
-                    (positions_matrix[0][1][:, 2] - positions_matrix[0][1][:, 2])
-            msd = msd_x + msd_y + msd_z
+            msd_x = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
+            msd_y = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
+            msd_z = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
 
-            plt.plot([i for i in range(len(msd))], msd)
+            for i in range(len(positions_matrix[0])):
+                for j in range(len(positions_matrix[0])):
+                    if j == i:
+                        continue
+
+                    msd_x += (positions_matrix[0][i][:, 0] - positions_matrix[0][i][0][0])*\
+                            (positions_matrix[1][j][:, 0] - positions_matrix[1][j][0][0])
+                    msd_y += (positions_matrix[0][i][:, 1] - positions_matrix[0][i][0][1]) * \
+                            (positions_matrix[1][j][:, 1] - positions_matrix[1][j][0][1])
+                    msd_z += (positions_matrix[0][i][:, 2] - positions_matrix[0][i][0][2]) * \
+                            (positions_matrix[1][j][:, 2] - positions_matrix[1][j][0][2])
+
+            msd_x = msd_x
+            msd_y = msd_y
+            msd_z = msd_z
+
+            msd = (1E-20)*(len(positions_matrix[1]) + len(positions_matrix[0]))*(msd_x + msd_y + msd_z)/(len(positions_matrix[0])*(len(positions_matrix[0])-1))
+            time = np.linspace(0.0, 12808.2, len(positions_matrix[0][0]))
+
+            plt.plot(time, msd)
             plt.show()
 
         singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+        Distinct_Diffusion_Coefficients()
 
         print(singular_diffusion_coefficients)
         os.chdir('../../src'.format(self.analysis_name))

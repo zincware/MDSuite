@@ -64,19 +64,6 @@ def Get_Dimensionality(box):
 
     return dimensions
 
-def Process_Comment_Line(data_array):
-    """ Process extxyz comment line
-
-    This function will process the comment line in an extxyz input file so that important system properties may be
-    extracted for use.
-
-    args:
-        data_array (list) -- raw input data
-    """
-
-    comment_line = data_array[1]
-
-
 def Extract_LAMMPS_Properties(properties_dict):
     """ Construct generalized property array
 
