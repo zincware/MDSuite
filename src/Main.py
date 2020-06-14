@@ -5,6 +5,7 @@ Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Main functionality of the LAMMPS analysis suite
 """
 
+from sys import getsizeof
 from Routines import *
 from Classes import *
 from UI import *
@@ -13,13 +14,14 @@ def main():
     """ Main function to coordinate use of the program """
 
     trajectory_class = Begin_Program()  # Run the first initialization with input flags
+    print("class size: {0}".format(getsizeof(trajectory_class)))
 
     # Select_Analysis() # Choose the analysis to be run
     # Run_Analysis() # Run the desired analysis
     # Write_Summary # Write a summary of the analysis
 
     #trajectory_class.Unwrap_Coordinates()
-    trajectory_class.Einstein_Diffusion_Coefficients()
+    #trajectory_class.Einstein_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Conductivity()
 

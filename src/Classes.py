@@ -16,49 +16,7 @@ from itertools import combinations_with_replacement
 import Methods
 import Meta_Functions
 import pickle
-
-
-class Species_Properties:
-    """ Properties of a single species
-
-    This class will conatin all the information about a single molecule
-    present in the files being analyzed. Within this class there
-    are n matrices corresponding to the n properties saved in the dump
-    command from LAMMPS. For multi atom molecules, extra programming is required.
-
-    args:
-        species (str) -- molecule the class corresponds to
-        number_of_atoms (int) -- Number of molecules in each configuration
-        data (array) (list) -- Data array from which the information is taken
-        data_range (list) -- Indices of all the molecules in each configurations
-
-    """
-
-    def __init__(self, species, number_of_atoms, data, species_positions, properties, dimensions, file_format):
-        """ Standard class initialization """
-
-        self.species = species
-        self.number_of_atoms = number_of_atoms
-        self.data = data
-        self.species_positions = species_positions
-        self.properties = properties
-        self.dimensions = dimensions
-        self.file_format = file_format
-
-    def Generate_Property_Matrices(self):
-        """ Create matrix of atom positions and save files
-
-        mat = [[[atom_0_0(x,y,z)],[atom_0_1(x, y, z)], ..., [atom_0_i(x, y, z)]],
-              ..., ...,
-              [[atom_n_0(x,y,z)],[atom_n_1(x, y, z)], ..., [atom_n_i(x, y, z)]]]
-
-        """
-
-        if self.file_format == 'lammps':
-            Methods.Species_Properties_Methods.Generate_LAMMPS_Property_Matrices(self)
-        else:
-            Methods.Species_Properties_Methods.Generate_EXTXYZ_Property_Matrices(self)
-
+from sys import getsizeof
 
 class Trajectory(Methods.Trajectory_Methods):
     """ Trajectory from simulation
@@ -132,7 +90,9 @@ class Trajectory(Methods.Trajectory_Methods):
             data_array (list) -- Array containing the trajectory data
         """
 
+        global data_array
         data_array = []  # Initialize empty array for the data
+        print("Starting Process Input File")
 
         if self.filename[-6:] == 'extxyz':
             file_format = 'extxyz'
@@ -144,19 +104,59 @@ class Trajectory(Methods.Trajectory_Methods):
             for line in f:
                 data_array.append(line.split())
 
-        return data_array, file_format
+        print("Finishing process input file")
 
-    def Get_System_Properties(self, data_array, file_format):
+        return file_format
+
+    def Generate_LAMMPS_Property_Matrices(self, element):
+        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
+        property_list = list(self.properties)
+        for i in range(len(property_groups)):
+            saved_property = property_groups[i]
+            temp = []
+            for index in self.species[list(self.species)[element]]:
+                temp.append(np.hstack([
+                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
+                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
+                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
+            np.save('{0}_{1}.npy'.format(list(self.species)[element], saved_property), temp)
+            print("temp before del: {0}".format(getsizeof(temp)))
+            del temp
+
+    def Generate_EXTXYZ_Property_Matrices(self, element):
+        property_groups = Meta_Functions.Extract_extxyz_Properties(self.properties)
+        property_list = list(self.properties)
+        for i in range(len(property_groups)):
+            saved_property = property_groups[i]
+            temp = []
+            for index in self.species[list(self.species)[element]]:
+                temp.append(np.hstack([
+                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
+                    1 + i*self.dimensions].astype(float)[:, None],
+                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
+                    2 + i*self.dimensions].astype(float)[:, None],
+                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
+                    3 + i*self.dimensions].astype(float)[:, None]]))
+            print("temp before del: {0}".format(getsizeof(temp)))
+            np.save('{0}_{1}.npy'.format(list(self.species)[element], saved_property), temp)
+
+    def Get_System_Properties(self, file_format):
         """ Get the properties of the system
 
         args:
             data_array (list) -- Array containing trajectory data
         """
 
+        print("Beginning get system properties")
         if file_format == 'lammps':
             Methods.Trajectory_Methods.Get_LAMMPS_Properties(self, data_array)
         else:
             Methods.Trajectory_Methods.Get_EXTXYZ_Properties(self, data_array)
+
+        print("Ending get system properties")
 
     def Build_Database(self):
         """ Build the 'database' for the analysis
@@ -173,23 +173,16 @@ class Trajectory(Methods.Trajectory_Methods):
         create_directory.wait()
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
 
-        data_array, file_format = self.Process_Input_File()  # Collect data array
+        file_format = self.Process_Input_File()  # Collect data array
 
-        self.Get_System_Properties(data_array, file_format)  # Call function to analyse the system
+        self.Get_System_Properties(file_format)  # Call function to analyse the system
+        print("Beginning Build database")
+        for i in range(len(list(self.species))):
+            if file_format == 'lammps':
+                self.Generate_LAMMPS_Property_Matrices(i)
+            else:
+                Generate_EXTXYZ_Property_Matrices(i)
 
-        class_array = [] # Define empty array to store species classes
-
-        # Instantiate a species class for each species
-        for i in range(len(self.species)):
-            class_array.append(
-                Species_Properties(list(self.species)[i], self.number_of_atoms, data_array,
-                                   self.species[list(self.species)[i]], self.properties, self.dimensions, file_format))
-
-        # Generate the property matrices for each species
-        for i in range(len(class_array)):
-            class_array[i].Generate_Property_Matrices()
-
-        del data_array
         self.Save_Class()
         os.chdir('../')
 
