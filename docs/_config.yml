@@ -1,3 +1,6 @@
 theme: jekyll-theme-modernist
 title: Molecular Dynamics with Machine Learning
 description: Information and examples of machine learning and its applications to molecular dynamics simulations
+sidebar:
+        title: "Main Page"
+        nav: sidebar-sample
