@@ -10,7 +10,8 @@ Molecular dynamics (MD), or more specifically, molecular dynamics simulations, a
 * Discovery and modeling of new materials
 * Understanding complex materials
 * Discovering relationships between complex molecules or polymers
-* Designing catalysts, drugs, or simply processes for use in industrial or medical professions
+* Designing catalysts, drugs and other chemical solutions
+* Understanding industrial or medical processes
 
 # How do these fields relate?
 When performing MD simulations, you will have to decide on the accuracy of the simulation. Do you want to a full quantum mechanic treatment?, or do you want large scale dynamic behaviour? Depending on the answer to this question, you will either need some big computers to keep track of all your electrons, or, you will need to choose a mathematical model with which you can replicate the interatomic interactions. With the introduction of some a mathematical model, comes inaccuracy, often through approximations that are not always rooted in theory or experiment. In recent years, there has been increased interest in using machine learning methods to fit such a function, allowing for the atomistic scaled simulations at near quantum mechanical accuracy. This is of course just one way that machine learning is impacting the field. In this site, you will find information discussing many applications, with a sound theoretical background.
