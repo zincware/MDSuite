@@ -91,7 +91,7 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         global data_array
-        data_array = []  # Initialize empty array for the data
+        data_array = np.array([])  # Initialize empty array for the data
         print("Starting Process Input File")
 
         if self.filename[-6:] == 'extxyz':
@@ -102,7 +102,7 @@ class Trajectory(Methods.Trajectory_Methods):
         # Store the file data in an array
         with open(self.filename) as f:
             for line in f:
-                data_array.append(line.split())
+                data_array.append(data_array, line.split())
 
         print("Finishing process input file")
 
@@ -115,12 +115,13 @@ class Trajectory(Methods.Trajectory_Methods):
             saved_property = property_groups[i]
             temp = []
             for index in self.species[list(self.species)[element]]:
+                print(index)
                 temp.append(np.hstack([
-                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
                     self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
-                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
                     self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
-                    np.array(data_array[index::1 * (self.number_of_atoms + 9)])[:,
+                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
                     self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
             np.save('{0}_{1}.npy'.format(list(self.species)[element], saved_property), temp)
             print("temp before del: {0}".format(getsizeof(temp)))
@@ -294,7 +295,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 # Perform unit conversions
                 msd = msd*(1E-16)
                 #time = 100*np.array([i for i in range(len(msd))])*(1E-12)*(0.002) # Need to solve this time problem.
-                time = np.linspace(0.0, 340, len(msd))*(1E-12)
+                time = np.linspace(0.0, 240.0, len(msd))*(1E-12)
 
                 np.save('{0}.npy'.format(i), msd)
                 popt, pcov = curve_fit(fitting_function, time, msd)
@@ -343,7 +344,7 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.show()
 
         singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-        Distinct_Diffusion_Coefficients()
+        #Distinct_Diffusion_Coefficients()
 
         print(singular_diffusion_coefficients)
         os.chdir('../../src'.format(self.analysis_name))
@@ -363,7 +364,6 @@ class Trajectory(Methods.Trajectory_Methods):
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
 
-        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.0005) * 3
 
         def Singular_Diffusion_Coefficients():
             vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
@@ -387,8 +387,10 @@ class Trajectory(Methods.Trajectory_Methods):
 
             sub_a = vacf_a
             sub_b = vacf_b
-            vacf_a = (1 / len(vacf_a)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
-            vacf_b = (1 / len(vacf_b)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
+            vacf_a = (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
+            vacf_b = (1 / (2*len(vacf_b)-1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
+
+            time = np.linspace(0.0, 240.0, len(vacf_a)) * (1E-12)
 
             D_a = np.trapz(vacf_a, x=time) / 3
             D_b = np.trapz(vacf_b, x=time) / 3
@@ -454,8 +456,8 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.show()
 
         _, _, _, _ = Singular_Diffusion_Coefficients()
-        Distinct_Diffusion_Coefficients()
-        os.chdir('../'.format(self.analysis_name))  # Change to correct directory
+        #Distinct_Diffusion_Coefficients()
+        os.chdir('../../src')  # Change to correct directory
 
     def Nernst_Einstein_Conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
@@ -464,6 +466,64 @@ class Trajectory(Methods.Trajectory_Methods):
         conductivity of a system.
         """
         pass
+
+    def Einstein_Helfand_Conductivity(self):
+        """ Calculate the Einstein-Helfand Conductivity
+
+        A function to use the mean square displacement of the dipole moment of a system to extract the
+        ionic conductivity
+        """
+
+
+        def func(x, a, b):
+            return a*x + b
+
+        os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
+        q = 1.60217662E-19/(1E-12)
+        species_list = list(self.species)
+        position_matrix = []
+        for species in species_list:
+            position_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
+
+        positions_a = []
+        positions_b= []
+        for i in range(len(position_matrix[0][0])):
+            positions_a.append(np.sum(position_matrix[0][:, i], axis=0))
+            positions_b.append(np.sum(position_matrix[1][:, i], axis=0))
+
+        dipole_moment = q * (np.array(positions_a) + np.array(positions_b))
+
+        dipole_moment_msd_x = np.array([0.0 for i in range(len(dipole_moment))])
+        dipole_moment_msd_y = np.array([0.0 for i in range(len(dipole_moment))])
+        dipole_moment_msd_z = np.array([0.0 for i in range(len(dipole_moment))])
+
+        averaging = 20000
+
+        for i in range(averaging):
+            dipole_moment_msd_x += np.pad(dipole_moment[i:, 0] - dipole_moment[i][0], (0, i), constant_values=0.0)
+            dipole_moment_msd_y += np.pad(dipole_moment[i:, 1] - dipole_moment[i][1], (0, i), constant_values=0.0)
+            dipole_moment_msd_z += np.pad(dipole_moment[i:, 2] - dipole_moment[i][2], (0, i), constant_values=0.0)
+
+        dipole_moment_msd = ((dipole_moment_msd_x[:-averaging]/averaging)**2 + (dipole_moment_msd_y[:-averaging]/averaging)**2 +
+                             (dipole_moment_msd_z[:-averaging]/averaging)**2)*(1E-20)
+
+        time = np.linspace(0.0, 4813.1, len(dipole_moment_msd)) * (1E-12)
+        #time = np.linspace(0.0, 240.0, len(dipole_moment_msd)) * (1E-12)
+
+        popt, pcov = curve_fit(func, time[5000:], dipole_moment_msd[5000:])
+        print(self.temperature)
+        sigma = 1/(6*self.temperature*(self.volume*1E-30))*popt[0]
+
+        print(sigma)
+
+        plt.plot(time, dipole_moment_msd)
+        plt.plot(time, func(time, *popt))
+        plt.show()
+        plt.loglog(time, dipole_moment_msd)
+        plt.show()
+
+        os.chdir('../../src'.format(self.analysis_name))
+
 
     def Green_Kubo_Conductivity(self):
         """ Calculate Green-Kubo Conductivity
@@ -481,8 +541,6 @@ class Trajectory(Methods.Trajectory_Methods):
         for species in species_list:
             velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
 
-        time = (1E-12) * np.array([i for i in range(len(velocity_matrix[0][0]))]) * (0.0005) * 3
-
         vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
         vacf_b = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
         vacf_c = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
@@ -499,10 +557,15 @@ class Trajectory(Methods.Trajectory_Methods):
                 signal.correlate(current[:, 1], current[:, 1], mode='full', method='fft') +
                 signal.correlate(current[:, 2], current[:, 2], mode='full', method='fft'))
 
-        jacf = 1 / (len(jacf)) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
+        jacf = 1 / (2*len(jacf) - 1) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
+
+        #time = np.linspace(0.0, 12808.2, len(jacf)) * (1E-12)
+        time = np.linspace(0.0, 240.0, len(jacf)) * (1E-12)
 
         sigma = (1/(3 * self.temperature * ((self.volume*1E-30) * kb))) * np.trapz(jacf, x=time) / 100
         print(sigma)
 
         plt.plot(time, jacf)
         plt.show()
+
+        os.chdir('../../src'.format(self.analysis_name))

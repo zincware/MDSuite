@@ -2,9 +2,11 @@ import numpy as np
 from itertools import islice
 import os
 import timeit
+import dask.dataframe as da
 
-filename = "test_simulatin.xyz"
-#filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/10000Atoms/NaCl_Velocities.xyz"
+#filename = "test_simulatin.xyz"
+
+filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1300K/NaCl_Velocities.xyz"
 species_summary = {}
 dimensions = 3
 
@@ -29,22 +31,41 @@ def Get_System_Properties():
             species_summary[line.split()[2]].append(i)
             i += 1
 
+        #f.seek(0)
+        #initial_position = 9
+        #final_position = number_of_lines + 1 + 9
+
+
+        #data = list(islice(f, initial_position, final_position, number_of_atoms + 9))
+
+
+        #test = map(lambda str: str.split(), data)
+        #print(np.array(list(test))[:, 3])
+        #data = np.array([data[i].split() for i in range(len(data))])
+        #print(data[:, 3])
+        #for i in range(len(data)):
+        #    data[i] = data[i].split()
+        #print(np.shape(data))
+        #new_data = []
+        #for i in range(len(data)):
+            #new_data.append(data[i].split())
+
         f.seek(0)
-        
-        initial_position = 9
-        final_position = number_of_lines + 1 + 9
+        for i in range(len(list(species_summary))):
+            prop_x = []
+            print("i: {0}".format(i))
+            for index in species_summary[list(species_summary)[i]]:
+                print("index: {0}".format(index))
+                initial_position = 9 + index
+                final_position = number_of_lines + 1 + 9 + index
+                data = list(islice(f, initial_position, final_position, number_of_atoms + 9))
+                #data = f[initial_position, final_position, number_of_atoms + 9]
+                data = map(lambda str: str.split(), data)
+                prop_x.append(np.array(list(data))[:, 3])
+                f.seek(0)
 
-        data = np.array(list(islice(f, initial_position, final_position, number_of_atoms + 9)))
-        #test_line = np.array(data[0].split())
-        print(np.shape(data))
-        new_data = []
-        for i in range(len(data)):
-            new_data.append(data[i].split())
-
-        print(np.array(new_data)[:, 3])
 
 
-        
         
         # Generate the property matrices and save
         #for i in range(len(list(species_summary))):
