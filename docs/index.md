@@ -2,7 +2,7 @@
 In recent year, machine learning (ML) has seen remarkable success in a number of fields. One in particular, is that of molecular dynamics simulations. This website is dedicated to the cross-over of these fields, with sound theoretical background into topic within each fields, as well as current research into their relation. The authors of this website are all PhD students of physics, studying how machine learning can be introduced into computational methods in order to improve accuracy, performance, or to discover new, previously unknown relationships.
 
 # What is Machine Learning?
-Machine learning is an umbrella term describing computational methods wherein a computer uses some sort of *training* data to sort or make predictions on new data. These methods can come in many forms, perhaps the most well known method is the Neural Network, which uses a series of connected layers, made up of many neurons, or units, each with an assigned weight to approximate some function. In general, there are numerous kinds of machine learning, each with their ow strengths and weaknesses, and each in their own way, many of which are discussed here.
+Machine learning is an umbrella term describing computational methods wherein a computer uses some sort of *training* data to sort or make predictions on new data. These methods can come in many forms, perhaps the most well known method is the Neural Network, which uses a series of connected layers, made up of many neurons, or units, each with an assigned weight to approximate some function. In general, there are numerous kinds of machine learning, each with their ow strengths and weaknesses, many of which are discussed here.
 
 
 # What is Molecular Dynamics?
