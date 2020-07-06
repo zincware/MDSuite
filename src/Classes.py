@@ -91,7 +91,7 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         global data_array
-        data_array = np.array([])  # Initialize empty array for the data
+        data_array = []  # Initialize empty array for the data
         print("Starting Process Input File")
 
         if self.filename[-6:] == 'extxyz':
@@ -102,7 +102,7 @@ class Trajectory(Methods.Trajectory_Methods):
         # Store the file data in an array
         with open(self.filename) as f:
             for line in f:
-                data_array.append(data_array, line.split())
+                data_array.append(line.split())
 
         print("Finishing process input file")
 
@@ -293,15 +293,18 @@ class Trajectory(Methods.Trajectory_Methods):
                 msd = (msd_x + msd_y + msd_z) # Calculate the total MSD
 
                 # Perform unit conversions
-                msd = msd*(1E-16)
+                msd = msd*(1E-20)
                 #time = 100*np.array([i for i in range(len(msd))])*(1E-12)*(0.002) # Need to solve this time problem.
-                time = np.linspace(0.0, 240.0, len(msd))*(1E-12)
-
+                time = np.linspace(0.0, 15863.2, len(msd))*(1E-12)
+                
+                np.save('time.npy', time)
                 np.save('{0}.npy'.format(i), msd)
                 popt, pcov = curve_fit(fitting_function, time, msd)
                 diffusion_coefficients[list(self.species)[i]] = popt[0]/6
 
-                plt.plot(time, fitting_function(time, *popt))
+                #plt.loglog(time, fitting_function(time, *popt))
+                plt.loglog(time, msd)
+                plt.show()
                 plt.plot(time, msd)
                 plt.show()
 
@@ -390,7 +393,7 @@ class Trajectory(Methods.Trajectory_Methods):
             vacf_a = (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
             vacf_b = (1 / (2*len(vacf_b)-1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
 
-            time = np.linspace(0.0, 240.0, len(vacf_a)) * (1E-12)
+            time = np.linspace(0.0, 25704.2, len(vacf_a)) * (1E-12)
 
             D_a = np.trapz(vacf_a, x=time) / 3
             D_b = np.trapz(vacf_b, x=time) / 3
