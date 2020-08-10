@@ -98,10 +98,6 @@ class Trajectory_Methods:
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
 
-
-
-class Species_Properties_Methods:
-
     def Generate_LAMMPS_Property_Matrices(self):
         property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
         property_list = list(self.properties)
@@ -134,5 +130,4 @@ class Species_Properties_Methods:
                     np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
                     3 + i*self.dimensions].astype(float)[:, None]]))
             np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
-
 
