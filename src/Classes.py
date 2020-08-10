@@ -90,7 +90,6 @@ class Trajectory(Methods.Trajectory_Methods):
             data_array (list) -- Array containing the trajectory data
         """
 
-        global data_array
         data_array = []  # Initialize empty array for the data
         print("Starting Process Input File")
 
@@ -107,42 +106,6 @@ class Trajectory(Methods.Trajectory_Methods):
         print("Finishing process input file")
 
         return file_format
-
-    def Generate_LAMMPS_Property_Matrices(self, element):
-        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
-        property_list = list(self.properties)
-        for i in range(len(property_groups)):
-            saved_property = property_groups[i]
-            temp = []
-            for index in self.species[list(self.species)[element]]:
-                print(index)
-                temp.append(np.hstack([
-                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
-                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
-                    np.array(data_array[index::4 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
-            np.save('{0}_{1}.npy'.format(list(self.species)[element], saved_property), temp)
-            print("temp before del: {0}".format(getsizeof(temp)))
-            del temp
-
-    def Generate_EXTXYZ_Property_Matrices(self, element):
-        property_groups = Meta_Functions.Extract_extxyz_Properties(self.properties)
-        property_list = list(self.properties)
-        for i in range(len(property_groups)):
-            saved_property = property_groups[i]
-            temp = []
-            for index in self.species[list(self.species)[element]]:
-                temp.append(np.hstack([
-                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
-                    1 + i*self.dimensions].astype(float)[:, None],
-                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
-                    2 + i*self.dimensions].astype(float)[:, None],
-                    np.array(data_array[index::1 * (self.number_of_atoms + 2)])[:,
-                    3 + i*self.dimensions].astype(float)[:, None]]))
-            print("temp before del: {0}".format(getsizeof(temp)))
-            np.save('{0}_{1}.npy'.format(list(self.species)[element], saved_property), temp)
 
     def Get_System_Properties(self, file_format):
         """ Get the properties of the system
@@ -180,9 +143,9 @@ class Trajectory(Methods.Trajectory_Methods):
         print("Beginning Build database")
         for i in range(len(list(self.species))):
             if file_format == 'lammps':
-                self.Generate_LAMMPS_Property_Matrices(i)
+                Methods.Trajectory_Methods.Generate_LAMMPS_Property_Matrices(i)
             else:
-                Generate_EXTXYZ_Property_Matrices(i)
+                Methods.Trajectory_Methods.Generate_EXTXYZ_Property_Matrices(i)
 
         self.Save_Class()
         os.chdir('../')
@@ -295,7 +258,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 # Perform unit conversions
                 msd = msd*(1E-20)
                 #time = 100*np.array([i for i in range(len(msd))])*(1E-12)*(0.002) # Need to solve this time problem.
-                time = np.linspace(0.0, 15863.2, len(msd))*(1E-12)
+                time = np.linspace(0.0, 19151, len(msd))*(1E-12)
                 
                 np.save('time.npy', time)
                 np.save('{0}.npy'.format(i), msd)
@@ -341,7 +304,7 @@ class Trajectory(Methods.Trajectory_Methods):
             msd_z = msd_z
 
             msd = (1E-20)*(len(positions_matrix[1]) + len(positions_matrix[0]))*(msd_x + msd_y + msd_z)/(len(positions_matrix[0])*(len(positions_matrix[0])-1))
-            time = np.linspace(0.0, 12808.2, len(positions_matrix[0][0]))
+            time = np.linspace(0.0, 15863.2, len(msd)) * (1E-12)
 
             plt.plot(time, msd)
             plt.show()
@@ -393,7 +356,7 @@ class Trajectory(Methods.Trajectory_Methods):
             vacf_a = (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
             vacf_b = (1 / (2*len(vacf_b)-1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
 
-            time = np.linspace(0.0, 25704.2, len(vacf_a)) * (1E-12)
+            time = np.linspace(0.0, 19151, len(vacf_a)) * (1E-12)
 
             D_a = np.trapz(vacf_a, x=time) / 3
             D_b = np.trapz(vacf_b, x=time) / 3
@@ -481,9 +444,17 @@ class Trajectory(Methods.Trajectory_Methods):
         def func(x, a, b):
             return a*x + b
 
+        q = 1.60217662E-19
+        kb = 1.38064852E-23 # Define the Boltzmann constant
+
+        measurement_range = 70000 # 10ns
+
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
-        q = 1.60217662E-19/(1E-12)
+
+
         species_list = list(self.species)
+
+
         position_matrix = []
         for species in species_list:
             position_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
@@ -494,35 +465,32 @@ class Trajectory(Methods.Trajectory_Methods):
             positions_a.append(np.sum(position_matrix[0][:, i], axis=0))
             positions_b.append(np.sum(position_matrix[1][:, i], axis=0))
 
-        dipole_moment = q * (np.array(positions_a) + np.array(positions_b))
+        dipole_moment = q * (np.array(positions_a) - np.array(positions_b))
 
-        dipole_moment_msd_x = np.array([0.0 for i in range(len(dipole_moment))])
-        dipole_moment_msd_y = np.array([0.0 for i in range(len(dipole_moment))])
-        dipole_moment_msd_z = np.array([0.0 for i in range(len(dipole_moment))])
+        dipole_moment_msd_x = np.array([0.0 for i in range(measurement_range)])
+        dipole_moment_msd_y = np.array([0.0 for i in range(measurement_range)])
+        dipole_moment_msd_z = np.array([0.0 for i in range(measurement_range)])
 
-        averaging = 20000
+        for i in range(0, len(position_matrix[0][0]) - (measurement_range-1)):
+            dipole_moment_msd_x += dipole_moment[i:i+measurement_range, 0] - dipole_moment[i][0]
+            dipole_moment_msd_y += dipole_moment[i:i+measurement_range, 1] - dipole_moment[i][1]
+            dipole_moment_msd_z += dipole_moment[i:i+measurement_range, 2] - dipole_moment[i][2]
 
-        for i in range(averaging):
-            dipole_moment_msd_x += np.pad(dipole_moment[i:, 0] - dipole_moment[i][0], (0, i), constant_values=0.0)
-            dipole_moment_msd_y += np.pad(dipole_moment[i:, 1] - dipole_moment[i][1], (0, i), constant_values=0.0)
-            dipole_moment_msd_z += np.pad(dipole_moment[i:, 2] - dipole_moment[i][2], (0, i), constant_values=0.0)
+        dipole_msd = (1/measurement_range)*np.array(dipole_moment_msd_x**2 + dipole_moment_msd_y**2 + dipole_moment_msd_z**2)*(1E-20)
 
-        dipole_moment_msd = ((dipole_moment_msd_x[:-averaging]/averaging)**2 + (dipole_moment_msd_y[:-averaging]/averaging)**2 +
-                             (dipole_moment_msd_z[:-averaging]/averaging)**2)*(1E-20)
+        time = np.linspace(0.0, 14000, len(dipole_msd)) * (1E-12)
 
-        time = np.linspace(0.0, 4813.1, len(dipole_moment_msd)) * (1E-12)
-        #time = np.linspace(0.0, 240.0, len(dipole_moment_msd)) * (1E-12)
+        popt, pcov = curve_fit(func, time[25000:], dipole_msd[25000:])
 
-        popt, pcov = curve_fit(func, time[5000:], dipole_moment_msd[5000:])
-        print(self.temperature)
-        sigma = 1/(6*self.temperature*(self.volume*1E-30))*popt[0]
+        prefactor = (1/500)*(1/(6*self.temperature*(self.volume*1E-30)*kb))
+        sigma = popt[0]*prefactor
 
-        print(sigma)
+        print(sigma/100)
 
-        plt.plot(time, dipole_moment_msd)
+        plt.plot(time, dipole_msd)
         plt.plot(time, func(time, *popt))
         plt.show()
-        plt.loglog(time, dipole_moment_msd)
+        plt.loglog(time, dipole_msd)
         plt.show()
 
         os.chdir('../../src'.format(self.analysis_name))
@@ -560,13 +528,11 @@ class Trajectory(Methods.Trajectory_Methods):
                 signal.correlate(current[:, 1], current[:, 1], mode='full', method='fft') +
                 signal.correlate(current[:, 2], current[:, 2], mode='full', method='fft'))
 
-        jacf = 1 / (2*len(jacf) - 1) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
+        jacf = (1 / (2*len(jacf) - 1)) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
 
-        #time = np.linspace(0.0, 12808.2, len(jacf)) * (1E-12)
-        time = np.linspace(0.0, 240.0, len(jacf)) * (1E-12)
-
-        sigma = (1/(3 * self.temperature * ((self.volume*1E-30) * kb))) * np.trapz(jacf, x=time) / 100
-        print(sigma)
+        time = np.linspace(0.0, 15863.2, len(jacf)) * (1E-12)
+        sigma = (1/(3 * self.temperature * ((self.volume*1E-30) * kb))) * np.trapz(jacf, x=time)
+        print(sigma/100)
 
         plt.plot(time, jacf)
         plt.show()

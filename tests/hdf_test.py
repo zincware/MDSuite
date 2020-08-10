@@ -3,14 +3,18 @@ import os
 import h5py as hf
 import psutil as ps
 import Meta_Functions
+import time
+from itertools import islice
+from multiprocessing import Process, Value, Lock
+import multiprocessing as mp
+import pandas as pd
 
 #filename = "test_simulatin.xyz"
-filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/10000Atoms/NaCl_Velocities.xyz"
-#filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1400K/NaCl_Velocities.xyz"
-
-#database = hf.File('test_database.hdf5', 'w')
-
-p = ps.Process()
+#filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/10000Atoms/NaCl_Velocities.xyz"
+filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1400K/rerun/NaCl_Velocities.xyz"
+number_of_atoms = 1000
+number_of_configurations = 240001 #229 #240001 # 229
+labels = ['id', 'type', 'element', 'x', 'y', 'z', 'vx', 'vy', 'vz', 'fx', 'fy', 'fz']
 
 
 def Get_LAMMPS_Properties(data_array):
@@ -53,9 +57,10 @@ def Get_LAMMPS_Properties(data_array):
         species_summary[data_array[i][2]].append(i)
 
     # Find properties available for analysis
-    for i in range(len(data_array[8])):
-        if data_array[8][i] in LAMMPS_Properties_labels:
-            properties_summary[data_array[8][i]] = i - 2
+    labels = data_array[8][2:] # get the column labels in the data
+    for i in range(len(labels)):
+        if labels[i] in LAMMPS_Properties_labels:
+            properties_summary[labels[i]] = i - 2
 
     # Get the box size from the system
     box = [(float(data_array[5][1][:-10]) - float(data_array[5][0][:-10])) * 10,
@@ -63,7 +68,7 @@ def Get_LAMMPS_Properties(data_array):
            (float(data_array[7][1][:-10]) - float(data_array[7][0][:-10])) * 10]
 
     # Update class attributes with calculated data
-    return Meta_Functions.Get_Dimensionality(box), box, box[0] * box[1] * box[2], species_summary, number_of_atoms, properties_summary, number_of_configurations
+    return Meta_Functions.Get_Dimensionality(box), box, box[0] * box[1] * box[2], species_summary, number_of_atoms, properties_summary, number_of_configurations, labels
 
 
 def Build_Database_Skeleton():
@@ -76,7 +81,7 @@ def Build_Database_Skeleton():
     look into the documentation.
     """
 
-    database = hf.File('test_database.hdf5', 'w')
+    database = hf.File('test_database.hdf5', 'w', libver='latest')
 
     with open(filename) as f:
         head = [next(f).split() for i in range(9)] # Get the meta-data
@@ -85,20 +90,52 @@ def Build_Database_Skeleton():
         first_configuration = [next(f).split() for i in range(int(head[3][0]) + 9)] # Get first configuration
         f.seek(0) # Back to start of the file
 
-        dimension, box, volume, species_summary, number_of_atoms, properties_summary, number_of_configurations = Get_LAMMPS_Properties(first_configuration) # Process this configuration
+        (dimension, box, volume, species_summary, number_of_atoms,
+         properties_summary, number_of_configurations, labels) = Get_LAMMPS_Properties(first_configuration)
+        print(labels)
+
         property_groups = Meta_Functions.Extract_LAMMPS_Properties(properties_summary) # Get the property groups
 
-        # Build the database structure
+        number_of_configurations = 240001
+
+        #Build the database structure
         for item in list(species_summary.keys()):
             database.create_group(item)
             for property in property_groups:
                 database[item].create_group(property)
                 for index in species_summary[item]:
-                    database[item][property].create_dataset(str(index - 8), (dimension, number_of_configurations),
-                                                            compression="gzip")
+                    database[item][property].create_dataset(str(index - 8), (number_of_configurations, dimension),
+                                                            compression="gzip", compression_opts = 9)
+
+def process_line(line):
+    data = line.split()
+
+def Build_LAMMPS_Database():
+    """ Construct LAMMPS database from skeleton """
+
+    with hf.File('test_database.hdf5', 'r+') as database:
+
+        property_groups = ["Positions", "Forces", "Velocities"]
+
+        with open(filename) as f:
+            conf = [line.split for
 
 
 
-Build_Database_Skeleton()
+
+
+
+def Open_and_Read():
+
+    database = hf.File("test_database.hdf5", 'r')
+
+    print(list(database["F"]["Velocities"]["60"]))
+
+if __name__ == "__main__":
+    start = time.time()
+    Build_Database_Skeleton()
+    Build_LAMMPS_Database()
+    end = time.time()
+    print("Elapsed = %s" % (end - start))
 
 
