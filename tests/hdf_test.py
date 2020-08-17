@@ -9,17 +9,13 @@ from multiprocessing import Process, Value, Lock
 import multiprocessing as mp
 import pandas as pd
 
-filename = "test_simulatin.xyz"
+#filename = "test_simulatin.xyz"
 #filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/10000Atoms/NaCl_Velocities.xyz"
-#filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1400K/rerun/NaCl_Velocities.xyz"
-number_of_atoms = 100
-number_of_configurations = 228 #229 #240001 # 229
+filename = "/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1400K/rerun/NaCl_Velocities.xyz"
+number_of_atoms = 1000
+number_of_configurations = 500000 #228 #229 #240001 # 229
 labels = ['id', 'type', 'element', 'x', 'y', 'z', 'vx', 'vy', 'vz', 'fx', 'fy', 'fz']
-species_summary = {'Li': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
-                          26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
-                          49], 'F': [50, 51, 52, 53, 54, 55, 56,
- 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86
-    , 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]}
+species_summary = {'Na': [i for i in range(500)], 'Cl': [i for i in range(500, 1000)]}
 
 
 
@@ -103,7 +99,7 @@ def Build_Database_Skeleton():
 
         property_groups = Meta_Functions.Extract_LAMMPS_Properties(properties_summary) # Get the property groups
 
-        number_of_configurations = 229
+        number_of_configurations = 500000
 
 
         #Build the database structure
@@ -111,9 +107,12 @@ def Build_Database_Skeleton():
             database.create_group(item)
             for property in property_groups:
                 database[item].create_group(property)
-                database[item][property].create_dataset("x", (len(species_summary[item]), number_of_configurations))
-                database[item][property].create_dataset("y", (len(species_summary[item]), number_of_configurations))
-                database[item][property].create_dataset("z", (len(species_summary[item]), number_of_configurations))
+                database[item][property].create_dataset("x", (len(species_summary[item]), number_of_configurations),
+                                                        compression = "gzip", compression_opts=9)
+                database[item][property].create_dataset("y", (len(species_summary[item]), number_of_configurations),
+                                                        compression = "gzip", compression_opts=9)
+                database[item][property].create_dataset("z", (len(species_summary[item]), number_of_configurations),
+                                                        compression = "gzip", compression_opts=9)
 
 
 def Read_Configurations(N, f):
@@ -150,24 +149,25 @@ def Process_Configurations(data, database, counter):
     """
 
     # Re-calculate the number of available configurations for analysis
-    partitioned_configurations = len(data)/number_of_atoms
-
+    partitioned_configurations = int(len(data)/number_of_atoms)
+    
+    start = time.time()
     for item in species_summary:
-        for i in range(int(partitioned_configurations)):
-            positions = np.array(species_summary[item]) + i*number_of_atoms
+        positions = np.array([np.array(species_summary[item]) + i*number_of_atoms for i in range(int(partitioned_configurations))]).flatten()
+        #for i in range(int(partitioned_configurations)):
+        #positions = np.array(species_summary[item]) + i*number_of_atoms
 
-            database[item]["Positions"]["x"][:, counter + i] = data[positions][:, 3].astype(float)
-            database[item]["Positions"]["y"][:, counter + i] = data[positions][:, 4].astype(float)
-            database[item]["Positions"]["z"][:, counter + i] = data[positions][:, 5].astype(float)
+        database[item]["Positions"]["x"][:, counter:counter + partitioned_configurations] = data[positions][:, 3].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Positions"]["y"][:, counter:counter + partitioned_configurations] = data[positions][:, 4].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Positions"]["z"][:, counter:counter + partitioned_configurations] = data[positions][:, 5].astype(float).reshape((500, partitioned_configurations), order='F')
 
-            database[item]["Velocities"]["x"][:, counter + i] = data[positions][:, 6].astype(float)
-            database[item]["Velocities"]["y"][:, counter + i] = data[positions][:, 7].astype(float)
-            database[item]["Velocities"]["z"][:, counter + i] = data[positions][:, 8].astype(float)
+        database[item]["Velocities"]["x"][:, counter:counter + partitioned_configurations] = data[positions][:, 6].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Velocities"]["y"][:, counter:counter + partitioned_configurations] = data[positions][:, 7].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Velocities"]["z"][:, counter:counter + partitioned_configurations] = data[positions][:, 8].astype(float).reshape((500, partitioned_configurations), order='F')
 
-            database[item]["Forces"]["x"][:, counter + i] = data[positions][:, 9].astype(float)
-            database[item]["Forces"]["y"][:, counter + i] = data[positions][:, 10].astype(float)
-            database[item]["Forces"]["z"][:, counter + i] = data[positions][:, 11].astype(float)
-
+        database[item]["Forces"]["x"][:, counter:counter + partitioned_configurations] = data[positions][:, 9].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Forces"]["y"][:, counter:counter + partitioned_configurations] = data[positions][:, 10].astype(float).reshape((500, partitioned_configurations), order='F')
+        database[item]["Forces"]["z"][:, counter:counter + partitioned_configurations] = data[positions][:, 11].astype(float).reshape((500, partitioned_configurations), order='F')
 
 def Build_LAMMPS_Database():
     """ Construct LAMMPS database from skeleton """
@@ -177,19 +177,20 @@ def Build_LAMMPS_Database():
     with open(filename) as f:
 
         counter = 0
-        for i in range(int(number_of_configurations/2)):
-            test = Read_Configurations(2, f)
+        for i in range(int(number_of_configurations/1000)):
+            print("{0}% Complete".format(counter/number_of_configurations))
+            test = Read_Configurations(1000, f)
 
             Process_Configurations(test, database, counter)
 
-            counter += 2
+            counter += 1000
 
 
 def Open_and_Read():
 
     database = hf.File("test_database.hdf5", 'r')
 
-    print(len(database["F"]["Positions"]))
+    print(database["Na"]["Positions"]["x"])
 
 if __name__ == "__main__":
     start = time.time()
