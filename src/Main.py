@@ -26,7 +26,7 @@ def main():
     #trajectory_class.Einstein_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Conductivity()
-    trajectory_class.Einstein_Helfand_Conductivity()
+    #trajectory_class.Einstein_Helfand_Conductivity()
 
 
 

@@ -6,12 +6,13 @@ Purpose: Larger methods used in the Trajectory class
 """
 import Meta_Functions
 import numpy as np
+import h5py as hf
 
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """
 
-    def Get_LAMMPS_Properties(self, data_array):
+    def Get_LAMMPS_Properties(self):
         """ Get the properties of the system from a custom lammps dump file
 
             args:
@@ -39,9 +40,18 @@ class Trajectory_Methods:
                              'angmomx', 'angmomy', 'angmomz',
                              'tqx', 'tqy', 'tqz'}
 
+        with open(self.filename) as f:
+            head = [next(f).split() for i in range(9)]
+            f.seek(0)  # Go back to the start of the file
+
+            data_array = [next(f).split() for i in range(int(head[3][0]) + 9)]  # Get first configuration
+
+
         # Calculate the number of atoms and configurations in the system
         number_of_atoms = int(data_array[3][0])
-        number_of_configurations = int(len(data_array) / (number_of_atoms + 9))
+
+        number_of_lines = Meta_Functions.Line_Counter(self.filename)
+        number_of_configurations = int(number_of_lines / (number_of_atoms + 9))
 
         # Find the information regarding species in the system and construct a dictionary
         for i in range(9, number_of_atoms + 9):
@@ -98,36 +108,91 @@ class Trajectory_Methods:
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
 
-    def Generate_LAMMPS_Property_Matrices(self):
-        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)
-        property_list = list(self.properties)
-        for i in range(len(property_groups)):
-            saved_property = property_groups[i]
-            temp = []
-            for index in self.species_positions:
-                temp.append(np.hstack([
-                    np.array(self.data[index::1 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i]]].astype(float)[:, None],
-                    np.array(self.data[index::1 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 1]]].astype(float)[:, None],
-                    np.array(self.data[index::1 * (self.number_of_atoms + 9)])[:,
-                    self.properties[property_list[self.dimensions * i + 2]]].astype(float)[:, None]]))
-            np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
-            del temp
+    def Build_Database_Skeleton(self):
+        """ Build skeleton of the hdf5 database
 
-    def Generate_EXTXYZ_Property_Matrices(self):
-        property_groups = Meta_Functions.Extract_extxyz_Properties(self.properties)
-        property_list = list(self.properties)
-        for i in range(len(property_groups)):
-            saved_property = property_groups[i]
-            temp = []
-            for index in self.species_positions:
-                temp.append(np.hstack([
-                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
-                    1 + i*self.dimensions].astype(float)[:, None],
-                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
-                    2 + i*self.dimensions].astype(float)[:, None],
-                    np.array(self.data[index::1 * (self.number_of_atoms + 2)])[:,
-                    3 + i*self.dimensions].astype(float)[:, None]]))
-            np.save('{0}_{1}.npy'.format(self.species, saved_property), temp)
+        Gathers all of the properties of the system using the relevant functions. Following the gathering
+        of the system properties, this function will read through the first configuration of the dataset, and
+        generate the necessary database structure to allow for the following generation to take place. This will
+        include the separation of species, atoms, and properties. For a full description of the data structure,
+        look into the documentation.
+        """
+
+        database = hf.File('{0}.hdf5'.format(self.analysis_name), 'w', libver='latest')
+
+        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)  # Get the property groups
+        self.property_groups = property_groups
+
+        # Build the database structure
+        for item in list(self.species.keys()):
+            database.create_group(item)
+            for property in property_groups:
+                database[item].create_group(property)
+                database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations),
+                                                        compression="gzip", compression_opts=9)
+                database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations),
+                                                        compression="gzip", compression_opts=9)
+                database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations),
+                                                        compression="gzip", compression_opts=9)
+
+    def Read_Configurations(self, N, f):
+        """ Read in N configurations
+
+        This function will read in N configurations from the file that has been opened previously by the parent method.
+
+        args:
+
+            N (int) -- Number of configurations to read in. This will depend on memory availability and the size of each
+                        configuration. Automatic setting of this variable is not yet available and therefore, it will be set
+                        manually.
+            f (obj) --
+        """
+
+        data = []
+
+        for i in range(N):
+            # Skip header lines
+            for j in range(9):
+                f.readline()
+
+            for k in range(self.number_of_atoms):
+                data.append(f.readline().split())
+
+        return np.array(data)
+
+
+    def Process_Configurations(self, data, database, counter):
+        """ Process the available data
+
+        **ERROR -- 500 IN THE RESHAPE COMMAND IS HARDCODED HERE! FIX IMMEDIATELY!!!!
+
+        Called during the main database creation. This function will calculate the number of configurations within the
+        raw data and process it.
+
+        args:
+            data (numpy array) -- Array of the raw data for N configurations.
+            database (object) --
+            counter (int) --
+        """
+
+        # Re-calculate the number of available configurations for analysis
+        partitioned_configurations = int(len(data) / self.number_of_atoms)
+
+        for item in self.species:
+            positions = np.array([np.array(self.species[item]) + i * self.number_of_atoms - 9 for i in
+                                  range(int(partitioned_configurations))]).flatten()
+            for property in self.property_groups:
+                database[item][property]["x"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
+                        (500, partitioned_configurations),
+                        order='F')
+                database[item][property]["y"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
+                        (500, partitioned_configurations),
+                        order='F')
+                database[item][property]["z"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
+                        (500, partitioned_configurations),
+                        order='F')
+
 
