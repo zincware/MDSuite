@@ -7,29 +7,21 @@ Purpose: Class functionality of the program
 
 import numpy as np
 import os
-import pandas as pd
-import subprocess as sp
 from scipy import signal
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
-from itertools import combinations_with_replacement
 import Methods
-import Meta_Functions
 import pickle
-from sys import getsizeof
+import h5py as hf
+from alive_progress import alive_bar
 
 class Trajectory(Methods.Trajectory_Methods):
     """ Trajectory from simulation
 
-    Class to structure and analyze the dump files from a LAMMPS simulation.
-    Will calculate the following properties:
-            - Green-Kubo Diffusion Coefficients
-            - Nernst-Einstein Conductivity with corrections
-            - Einstein Helfand Conductivity
-            - Green Kubo Conductivity
-    Future support for:
-            - Radial Distribution Functions
-            - Coordination Numbers
+    Attributes:
+
+    Methods:
+
     """
 
     def __init__(self, analysis_name):
@@ -42,11 +34,13 @@ class Trajectory(Methods.Trajectory_Methods):
         self.species = None
         self.number_of_atoms = None
         self.properties = None
+        self.property_groups = None
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
         self.singular_diffusion_coefficients = None
         self.distinct_diffusion_coefficients = None
+        self.ionic_conductivity = None
 
     def From_User(self):
         """ Get system specific inputs
@@ -84,26 +78,12 @@ class Trajectory(Methods.Trajectory_Methods):
         os.chdir('../../src')
 
     def Process_Input_File(self):
-        """ Process the input file
-
-        returns:
-            data_array (list) -- Array containing the trajectory data
-        """
-
-        data_array = []  # Initialize empty array for the data
-        print("Starting Process Input File")
+        """ Process the input file """
 
         if self.filename[-6:] == 'extxyz':
             file_format = 'extxyz'
         else:
             file_format = 'lammps'
-
-        # Store the file data in an array
-        with open(self.filename) as f:
-            for line in f:
-                data_array.append(line.split())
-
-        print("Finishing process input file")
 
         return file_format
 
@@ -111,16 +91,12 @@ class Trajectory(Methods.Trajectory_Methods):
         """ Get the properties of the system
 
         args:
-            data_array (list) -- Array containing trajectory data
         """
 
-        print("Beginning get system properties")
         if file_format == 'lammps':
-            Methods.Trajectory_Methods.Get_LAMMPS_Properties(self, data_array)
+            Methods.Trajectory_Methods.Get_LAMMPS_Properties(self)
         else:
-            Methods.Trajectory_Methods.Get_EXTXYZ_Properties(self, data_array)
-
-        print("Ending get system properties")
+            Methods.Trajectory_Methods.Get_EXTXYZ_Properties(self)
 
     def Build_Database(self):
         """ Build the 'database' for the analysis
@@ -132,20 +108,27 @@ class Trajectory(Methods.Trajectory_Methods):
         self.From_User() # Get additional information
 
         # Create new analysis directory and change into it
-        create_directory = sp.Popen(['mkdir ../Project_Directories/{0}_Analysis'.format(self.analysis_name)],
-                                    shell=True)
-        create_directory.wait()
+        os.mkdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
 
         file_format = self.Process_Input_File()  # Collect data array
+        self.Get_System_Properties(file_format) # Update class attributes
+        Methods.Trajectory_Methods.Build_Database_Skeleton(self)
 
-        self.Get_System_Properties(file_format)  # Call function to analyse the system
         print("Beginning Build database")
-        for i in range(len(list(self.species))):
-            if file_format == 'lammps':
-                Methods.Trajectory_Methods.Generate_LAMMPS_Property_Matrices(i)
-            else:
-                Methods.Trajectory_Methods.Generate_EXTXYZ_Property_Matrices(i)
+
+        with hf.File("{0}.hdf5".format(self.analysis_name), "r+") as database:
+            with open(self.filename) as f:
+                counter = 0
+                with alive_bar(int(self.number_of_configurations/1000), bar = 'blocks', spinner = 'dots') as bar:
+                    for i in range(int(self.number_of_configurations / 1000)):
+                        test = Methods.Trajectory_Methods.Read_Configurations(self, 1000, f)
+
+                        Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
+
+                        counter += 1000
+                        bar()
+
 
         self.Save_Class()
         os.chdir('../')
