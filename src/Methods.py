@@ -128,11 +128,14 @@ class Trajectory_Methods:
             database.create_group(item)
             for property in property_groups:
                 database[item].create_group(property)
-                database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations),
+                database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations-
+                                                              self.number_of_configurations % 10),
                                                         compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations),
+                database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations-
+                                                              self.number_of_configurations % 10),
                                                         compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations),
+                database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations -
+                                                              self.number_of_configurations % 10),
                                                         compression="gzip", compression_opts=9)
 
     def Read_Configurations(self, N, f):
@@ -184,15 +187,15 @@ class Trajectory_Methods:
             for property in self.property_groups:
                 database[item][property]["x"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (500, partitioned_configurations),
+                        (50, partitioned_configurations),
                         order='F')
                 database[item][property]["y"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (500, partitioned_configurations),
+                    data[positions][:, self.property_groups[property][1]].astype(float).reshape(
+                        (50, partitioned_configurations),
                         order='F')
                 database[item][property]["z"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (500, partitioned_configurations),
+                    data[positions][:, self.property_groups[property][2]].astype(float).reshape(
+                        (50, partitioned_configurations),
                         order='F')
 
 

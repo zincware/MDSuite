@@ -14,6 +14,7 @@ import Methods
 import pickle
 import h5py as hf
 from alive_progress import alive_bar
+import time
 
 class Trajectory(Methods.Trajectory_Methods):
     """ Trajectory from simulation
@@ -78,7 +79,11 @@ class Trajectory(Methods.Trajectory_Methods):
         os.chdir('../../src')
 
     def Process_Input_File(self):
-        """ Process the input file """
+        """ Process the input file
+
+        A trivial function to get the format of the input file. Will probably become more useful when we add support
+        for more file formats.
+        """
 
         if self.filename[-6:] == 'extxyz':
             file_format = 'extxyz'
@@ -90,7 +95,11 @@ class Trajectory(Methods.Trajectory_Methods):
     def Get_System_Properties(self, file_format):
         """ Get the properties of the system
 
+        This method will call the Get_X_Properties depending on the file format. This function will update all of the
+        class attributes and is necessary for the operation of the Build database method.
+
         args:
+            file_format (str) -- Format of the file being read
         """
 
         if file_format == 'lammps':
@@ -101,8 +110,9 @@ class Trajectory(Methods.Trajectory_Methods):
     def Build_Database(self):
         """ Build the 'database' for the analysis
 
-        Within this function, all properties directly present in the data are extracted and saved as .npy arrays
-        in the project directory.
+        A method to build the database in the hdf5 format. Within this method, several other are called to develop the
+        database skeleton, get configurations, and process and store the configurations. The method is accompanied
+        by a loading bar which should be customized to make it more interesting.
         """
 
         self.From_User() # Get additional information
@@ -120,15 +130,14 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}.hdf5".format(self.analysis_name), "r+") as database:
             with open(self.filename) as f:
                 counter = 0
-                with alive_bar(int(self.number_of_configurations/1000), bar = 'blocks', spinner = 'dots') as bar:
-                    for i in range(int(self.number_of_configurations / 1000)):
-                        test = Methods.Trajectory_Methods.Read_Configurations(self, 1000, f)
+                with alive_bar(int(self.number_of_configurations/10), bar = 'blocks', spinner = 'dots') as bar:
+                    for i in range(int(self.number_of_configurations / 10)):
+                        test = Methods.Trajectory_Methods.Read_Configurations(self, 10, f)
 
                         Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
 
-                        counter += 1000
+                        counter += 10
                         bar()
-
 
         self.Save_Class()
         os.chdir('../')
@@ -142,29 +151,40 @@ class Trajectory(Methods.Trajectory_Methods):
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
         """
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
-        box_array = self.box_array
-        species_list = list(self.species)
-        positions_matrix = []
-        for species in species_list:
-            positions_matrix.append(np.load('{0}_Positions.npy'.format(species)))
 
-        def Center_Box():
-            """ Center atoms in box """
+        box_array = self.box_array # Get the static box array --  NEED A NEW METHOD FOR V NEQ CONST SYSTEMS E.G NPT
 
-            for i in range(len(species_list)):
-                for j in range(len(positions_matrix[0])):
-                    positions_matrix[i][j] -= (box_array[0] / 2)
+        def Center_Box(positions_matrix):
+            """ Center atoms in box
 
-        def Unwrap():
-            """ Unwrap the coordinates """
+            A function to center the coordinates in the box so that the unwrapping is performed equally in all
+            directions.
 
-            Center_Box()  # Center the box at (0, 0, 0)
+            args:
+                positions_matrix (array) -- array of positions to be unwrapped.
+            """
+
+            positions_matrix -= (box_array[0] / 2)
+
+        def Unwrap(database):
+            """ Unwrap the coordinates
+
+            Central function in the unwrapping method. This function will detect jumps across the box boundary and
+            shifts the position of the atoms accordingly.
+            """
 
             print("\n --- Beginning to unwrap coordinates --- \n")
 
-            for i in range(len(species_list)):
-                for j in range(len(positions_matrix[0])):
-                    difference = np.diff(positions_matrix[i][j], axis=0)  # Difference between all atoms in the array
+            for item in self.species:
+                # Construct the positions matrix -- Only temporary, we should make this memory safe
+                positions_matrix = np.dstack((database[item]["Positions"]['x'],
+                                             database[item]["Positions"]['y'],
+                                             database[item]["Positions"]['z']))
+
+                Center_Box(positions_matrix) # Center the box at (0, 0, 0)
+
+                for j in range(len(positions_matrix)):
+                    difference = np.diff(positions_matrix[j], axis=0)  # Difference between all atoms in the array
 
                     # Indices where the atoms jump in the original array
                     box_jump = [np.where(abs(difference[:, 0]) >= (box_array[0] / 2))[0],
@@ -178,17 +198,33 @@ class Trajectory(Methods.Trajectory_Methods):
                     box_cross[2] = box_cross[2]
 
                     for k in range(len(box_cross[0])):
-                        positions_matrix[i][j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
+                        positions_matrix[j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
                                                                           box_array[0]
                     for k in range(len(box_cross[1])):
-                        positions_matrix[i][j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
+                        positions_matrix[j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
                                                                           box_array[1]
                     for k in range(len(box_cross[2])):
-                        positions_matrix[i][j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
+                        positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
                                                                           box_array[2]
 
-                np.save('{0}_Unwrapped.npy'.format(species_list[i]), positions_matrix[i])
-        Unwrap()
+                print(np.array([positions_matrix[i][:, 2] for i in range(len(positions_matrix))]))
+
+                database[item].create_group("Unwrapped_Positions")
+                database[item]["Unwrapped_Positions"].create_dataset('x',
+                                                                     data = np.array([positions_matrix[i][:, 0] for i
+                                                                                      in range(len(positions_matrix))]))
+                database[item]["Unwrapped_Positions"].create_dataset('y',
+                                                                     data = np.array([positions_matrix[i][:, 1] for i
+                                                                                      in range(len(positions_matrix))]))
+                database[item]["Unwrapped_Positions"].create_dataset('z',
+                                                                     data = np.array([positions_matrix[i][:, 2] for i
+                                                                                      in range(len(positions_matrix))]))
+
+
+
+        with hf.File("{0}.hdf5".format(self.analysis_name), "r+") as database:
+            Unwrap(database)
+
         print("\n --- Finished unwrapping coordinates --- \n")
         os.chdir('../')
 
@@ -197,27 +233,31 @@ class Trajectory(Methods.Trajectory_Methods):
 
             A function to implement the Einstein method for the calculation of the self diffusion coefficients
             of a liquid. In this method, unwrapped trajectories are read in and the MSD of the positions calculated and
-            a gradient w.r.t time is calculated over several ranges to calculate and error measure.
+            a gradient w.r.t time is calculated over several ranges to calculate an error measure.
 
             Data is loaded from the working directory.
         """
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change into analysis directory
+        database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
 
         def fitting_function(x, a, b):
             """ Function for use in fitting """
             return a*x + b
 
-        species_list = list(self.species)
         positions_matrix = []
-        for species in species_list:
-            positions_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
+        for item in self.species:
+            positions_matrix.append(np.dstack((database[item]["Unwrapped_Positions"]['x'],
+                                             database[item]["Unwrapped_Positions"]['y'],
+                                             database[item]["Unwrapped_Positions"]['z'])))
+
+        print(positions_matrix[0][0])
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
 
             Implement the Einstein method for the calculation of the singular diffusion coefficient. This is performed
-            using unwrapped coordinates, generated by the unwrap command. From these values, the mean square displacement
+            using unwrapped coordinates, generated by the unwrap method. From these values, the mean square displacement
             of each atom is calculated and averaged over all the atoms in the system.
             """
 
@@ -307,12 +347,13 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
+        database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
 
-        species_list = list(self.species)
         velocity_matrix = []
-        for species in species_list:
-            velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
-
+        for item in self.species:
+            velocity_matrix.append(np.dstack((database[item]["Velocities"]['x'],
+                                             database[item]["Velocities"]['y'],
+                                             database[item]["Velocities"]['z'])))
 
         def Singular_Diffusion_Coefficients():
             vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
@@ -433,14 +474,13 @@ class Trajectory(Methods.Trajectory_Methods):
         measurement_range = 70000 # 10ns
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
-
-
-        species_list = list(self.species)
-
+        database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
 
         position_matrix = []
-        for species in species_list:
-            position_matrix.append(np.load('{0}_Unwrapped.npy'.format(species)))
+        for item in self.species:
+            position_matrix.append(np.dstack((database[item]["Unwrapped_Positions"]['x'],
+                                             database[item]["Unwrapped_Positions"]['y'],
+                                             database[item]["Unwrapped_Positions"]['z'])))
 
         positions_a = []
         positions_b= []
@@ -489,11 +529,13 @@ class Trajectory(Methods.Trajectory_Methods):
         q = 1.60217662E-19 # Define elementary charge
         kb = 1.38064852E-23 # Define the Boltzmann constant
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change to correct directory
+        database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
 
-        species_list = list(self.species)
         velocity_matrix = []
-        for species in species_list:
-            velocity_matrix.append(np.load('{0}_Velocities.npy'.format(species)))
+        for item in self.species:
+            velocity_matrix.append(np.dstack((database[item]["Velocities"]['x'],
+                                             database[item]["Velocities"]['y'],
+                                             database[item]["Velocities"]['z'])))
 
         vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
         vacf_b = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
