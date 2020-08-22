@@ -39,6 +39,8 @@ class Trajectory(Methods.Trajectory_Methods):
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
+        self.time_step = None
+        self.time_dimensions = None
         self.singular_diffusion_coefficients = None
         self.distinct_diffusion_coefficients = None
         self.ionic_conductivity = None
@@ -51,6 +53,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         self.filename = input("File name: ")
         self.temperature = float(input("Temperature: "))
+        self.time_step = float(input("Time Step: "))
 
     def Save_Class(self):
         """ Saves class instance
@@ -130,13 +133,13 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}.hdf5".format(self.analysis_name), "r+") as database:
             with open(self.filename) as f:
                 counter = 0
-                with alive_bar(int(self.number_of_configurations/10), bar = 'blocks', spinner = 'dots') as bar:
-                    for i in range(int(self.number_of_configurations / 10)):
-                        test = Methods.Trajectory_Methods.Read_Configurations(self, 10, f)
+                with alive_bar(int(self.number_of_configurations/1000), bar = 'blocks', spinner = 'dots') as bar:
+                    for i in range(int(self.number_of_configurations / 1000)):
+                        test = Methods.Trajectory_Methods.Read_Configurations(self, 1000, f)
 
                         Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
 
-                        counter += 10
+                        counter += 1000
                         bar()
 
         self.Save_Class()
@@ -240,7 +243,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))  # Change into analysis directory
         database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
-
+        print(self.time_dimensions)
         def fitting_function(x, a, b):
             """ Function for use in fitting """
             return a*x + b
@@ -251,7 +254,6 @@ class Trajectory(Methods.Trajectory_Methods):
                                              database[item]["Unwrapped_Positions"]['y'],
                                              database[item]["Unwrapped_Positions"]['z'])))
 
-        print(positions_matrix[0][0])
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
@@ -280,8 +282,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
                 # Perform unit conversions
                 msd = msd*(1E-20)
-                #time = 100*np.array([i for i in range(len(msd))])*(1E-12)*(0.002) # Need to solve this time problem.
-                time = np.linspace(0.0, 19151, len(msd))*(1E-12)
+                time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
                 
                 np.save('time.npy', time)
                 np.save('{0}.npy'.format(i), msd)
@@ -291,7 +292,9 @@ class Trajectory(Methods.Trajectory_Methods):
                 #plt.loglog(time, fitting_function(time, *popt))
                 plt.loglog(time, msd)
                 plt.show()
-                plt.plot(time, msd)
+                plt.plot(time, msd, label="MSD")
+                plt.plot(time, fitting_function(time, *popt), label="Fit")
+                plt.legend()
                 plt.show()
 
             return diffusion_coefficients
@@ -327,7 +330,7 @@ class Trajectory(Methods.Trajectory_Methods):
             msd_z = msd_z
 
             msd = (1E-20)*(len(positions_matrix[1]) + len(positions_matrix[0]))*(msd_x + msd_y + msd_z)/(len(positions_matrix[0])*(len(positions_matrix[0])-1))
-            time = np.linspace(0.0, 15863.2, len(msd)) * (1E-12)
+            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
             plt.plot(time, msd)
             plt.show()
@@ -335,7 +338,7 @@ class Trajectory(Methods.Trajectory_Methods):
         singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
         #Distinct_Diffusion_Coefficients()
 
-        print(singular_diffusion_coefficients)
+        print("Einstein Self-Diffusion Coefficients: {0}".format(singular_diffusion_coefficients))
         os.chdir('../../src'.format(self.analysis_name))
 
     def Green_Kubo_Diffusion_Coefficients(self):
@@ -380,12 +383,11 @@ class Trajectory(Methods.Trajectory_Methods):
             vacf_a = (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
             vacf_b = (1 / (2*len(vacf_b)-1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
 
-            time = np.linspace(0.0, 19151, len(vacf_a)) * (1E-12)
+            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a))
 
             D_a = np.trapz(vacf_a, x=time) / 3
             D_b = np.trapz(vacf_b, x=time) / 3
-            print(D_a)
-            print(D_b)
+            print("Green-Kubo Self-Diffusion of Na: {0} and Cl: {1}".format(D_a, D_b))
 
             plt.plot(time, vacf_a)
             plt.plot(time, vacf_b)
@@ -431,6 +433,8 @@ class Trajectory(Methods.Trajectory_Methods):
             vacf_a = self.number_of_atoms * (1 / (len(vacf_a))) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
             vacf_b = self.number_of_atoms * (1 / (len(vacf_b))) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
             vacf_c = self.number_of_atoms * (1 / (len(vacf_c))) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
+            
+            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a)) 
 
             D_a = np.trapz(vacf_a, x=time) / 6
             D_b = np.trapz(vacf_b, x=time) / 6
@@ -471,7 +475,7 @@ class Trajectory(Methods.Trajectory_Methods):
         q = 1.60217662E-19
         kb = 1.38064852E-23 # Define the Boltzmann constant
 
-        measurement_range = 70000 # 10ns
+        measurement_range = 100000
 
         os.chdir('../Project_Directories/{0}_Analysis'.format(self.analysis_name))
         database = hf.File("{0}.hdf5".format(self.analysis_name), "r")
@@ -499,16 +503,16 @@ class Trajectory(Methods.Trajectory_Methods):
             dipole_moment_msd_y += dipole_moment[i:i+measurement_range, 1] - dipole_moment[i][1]
             dipole_moment_msd_z += dipole_moment[i:i+measurement_range, 2] - dipole_moment[i][2]
 
-        dipole_msd = (1/measurement_range)*np.array(dipole_moment_msd_x**2 + dipole_moment_msd_y**2 + dipole_moment_msd_z**2)*(1E-20)
+        dipole_msd = (1/(len(position_matrix[0][0]) - measurement_range))*np.array(dipole_moment_msd_x**2 + dipole_moment_msd_y**2 + dipole_moment_msd_z**2)*(1E-20)
 
-        time = np.linspace(0.0, 14000, len(dipole_msd)) * (1E-12)
+        time = np.linspace(0.0, 20E-12, len(dipole_msd))
 
         popt, pcov = curve_fit(func, time[25000:], dipole_msd[25000:])
 
         prefactor = (1/500)*(1/(6*self.temperature*(self.volume*1E-30)*kb))
         sigma = popt[0]*prefactor
 
-        print(sigma/100)
+        print("Einstein-Helfand Conductivity: {0} S/cm^2".format(sigma/100))
 
         plt.plot(time, dipole_msd)
         plt.plot(time, func(time, *popt))
@@ -555,9 +559,9 @@ class Trajectory(Methods.Trajectory_Methods):
 
         jacf = (1 / (2*len(jacf) - 1)) * (jacf[int((len(jacf) / 2)):]) * ((1E-20) / (1E-24))
 
-        time = np.linspace(0.0, 15863.2, len(jacf)) * (1E-12)
+        time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(jacf))
         sigma = (1/(3 * self.temperature * ((self.volume*1E-30) * kb))) * np.trapz(jacf, x=time)
-        print(sigma/100)
+        print("Green-Kubo Ionic Conductivity: {0} S/cm^2".format(sigma/100))
 
         plt.plot(time, jacf)
         plt.show()

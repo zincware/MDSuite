@@ -22,11 +22,11 @@ def main():
     # Run_Analysis() # Run the desired analysis
     # Write_Summary # Write a summary of the analysis
 
-    trajectory_class.Unwrap_Coordinates()
+    #trajectory_class.Unwrap_Coordinates()
     #trajectory_class.Einstein_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Diffusion_Coefficients()
     #trajectory_class.Green_Kubo_Conductivity()
-    #trajectory_class.Einstein_Helfand_Conductivity()
+    trajectory_class.Einstein_Helfand_Conductivity()
 
 
 

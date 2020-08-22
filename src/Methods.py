@@ -45,13 +45,19 @@ class Trajectory_Methods:
             f.seek(0)  # Go back to the start of the file
 
             data_array = [next(f).split() for i in range(int(head[3][0]) + 9)]  # Get first configuration
+            second_configuration = [next(f).split() for i in range(int(head[3][0]) + 9)] # Get the second
 
-
+        
+        time_scale = 1E-12
         # Calculate the number of atoms and configurations in the system
         number_of_atoms = int(data_array[3][0])
 
         number_of_lines = Meta_Functions.Line_Counter(self.filename)
         number_of_configurations = int(number_of_lines / (number_of_atoms + 9))
+
+        time_0 = float(data_array[1][0])
+        time_1 = float(second_configuration[1][0])
+        time_N = (number_of_configurations - number_of_configurations % 1000)*(time_1 - time_0)
 
         # Find the information regarding species in the system and construct a dictionary
         for i in range(9, number_of_atoms + 9):
@@ -78,6 +84,7 @@ class Trajectory_Methods:
         self.number_of_atoms = number_of_atoms
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
+        self.time_dimensions = [time_0*self.time_step*time_scale, time_N*self.time_step*time_scale]
 
     def Get_EXTXYZ_Properties(self, data_array):
         """ Function to process extxyz input files """
@@ -129,13 +136,13 @@ class Trajectory_Methods:
             for property in property_groups:
                 database[item].create_group(property)
                 database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations-
-                                                              self.number_of_configurations % 10),
+                                                              self.number_of_configurations % 1000),
                                                         compression="gzip", compression_opts=9)
                 database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations-
-                                                              self.number_of_configurations % 10),
+                                                              self.number_of_configurations % 1000),
                                                         compression="gzip", compression_opts=9)
                 database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations -
-                                                              self.number_of_configurations % 10),
+                                                              self.number_of_configurations % 1000),
                                                         compression="gzip", compression_opts=9)
 
     def Read_Configurations(self, N, f):
@@ -167,8 +174,6 @@ class Trajectory_Methods:
     def Process_Configurations(self, data, database, counter):
         """ Process the available data
 
-        **ERROR -- 500 IN THE RESHAPE COMMAND IS HARDCODED HERE! FIX IMMEDIATELY!!!!
-
         Called during the main database creation. This function will calculate the number of configurations within the
         raw data and process it.
 
@@ -187,15 +192,15 @@ class Trajectory_Methods:
             for property in self.property_groups:
                 database[item][property]["x"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (50, partitioned_configurations),
+                        (len(self.species[item]), partitioned_configurations),
                         order='F')
                 database[item][property]["y"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][1]].astype(float).reshape(
-                        (50, partitioned_configurations),
+                        (len(self.species[item]), partitioned_configurations),
                         order='F')
                 database[item][property]["z"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][2]].astype(float).reshape(
-                        (50, partitioned_configurations),
+                        (len(self.species[item]), partitioned_configurations),
                         order='F')
 
 
