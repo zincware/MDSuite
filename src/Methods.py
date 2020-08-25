@@ -84,7 +84,7 @@ class Trajectory_Methods:
         self.number_of_atoms = number_of_atoms
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
-        self.time_dimensions = [time_0*self.time_step*time_scale, time_N*self.time_step*time_scale]
+        self.time_dimensions = [0.0, time_N*self.time_step*time_scale]
 
     def Get_EXTXYZ_Properties(self, data_array):
         """ Function to process extxyz input files """
@@ -125,7 +125,7 @@ class Trajectory_Methods:
         look into the documentation.
         """
 
-        database = hf.File('{0}.hdf5'.format(self.analysis_name), 'w', libver='latest')
+        database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
         property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)  # Get the property groups
         self.property_groups = property_groups
