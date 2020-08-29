@@ -12,7 +12,6 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import Methods
 import pickle
-import time
 import h5py as hf
 from alive_progress import alive_bar
 
@@ -22,17 +21,59 @@ class Trajectory(Methods.Trajectory_Methods):
 
     Attributes:
 
-    Methods:
+        filename (str) -- filename of the trajectory
 
+        analysis_name (str) -- name of the analysis being performed e.g. NaCl_1400K
+
+        new_project (bool) -- If the project has already been build, if so, the class state will be loaded
+
+        filepath (str) -- where to store the data (best to have  drive capable of storing large files)
+
+        temperature (float) -- temperature of the system
+
+        time_step (float) -- time step in the simulation e.g 0.002
+
+        time_unit (float) -- scaling factor for time, should result in the time being in SI units (seconds)
+                             e.g. 1e-12 for ps
+
+        volume (float) -- volume of the system
+
+        species (dict) -- dictionary of the species in the system and their indices in the trajectory. e.g.
+                          {'Na': [1, 3, 7, 9], 'Cl': [0, 2, 4, 5, 6, 8]}
+
+        number_of_atoms (int) -- number of atoms in the system
+
+        properties (dict) -- properties in the trajectory available for analysis, not important for understanding
+
+        property_groups (list) -- property groups, e.g ["Forces", "Positions", "Velocities", "Torques"]
+
+        dimensions (float) -- dimensionality of the system e.g. 3.0
+
+        box_array (list) -- box lengths, e.g [10.7, 10.7, 10.8]
+
+        number_of_configurations (int) -- number of configurations in the trajectory
+
+        time_dimensions (list) -- Time domain in the system, e.g, for a 1ns simulation, [0.0, 1e-9]
+
+        singular_diffusion_coefficient (dict) -- Dictionary of diffusion coefficients e.g. {'Na': 1e-8, 'Cl': 0.9e-8}
+
+        distinct_diffusion_coefficients (dict) -- Dictionary of distinct diffusion coefficients
+                                                  e.g. {'Na': 1, 'Cl': 0.5, 'NaCl': 0.9'}
+
+        ionic_conductivity (float) -- Ionic conductivity of the system e.g. 4.5 S/cm
     """
 
-    def __init__(self, analysis_name, filepath):
+    def __init__(self, analysis_name, new_project=False, storage_path=None,
+                 temperature=None, time_step=None, time_unit=None, filename=None):
         """ Initialise with filename """
 
-        self.filename = None
+        self.filename = filename
         self.analysis_name = analysis_name
-        self.filepath = filepath
-        self.temperature = None
+        self.new_project = new_project
+        self.filepath = storage_path
+        self.temperature = temperature
+        self.time_step = time_step
+        self.time_unit = time_unit
         self.volume = None
         self.species = None
         self.number_of_atoms = None
@@ -41,21 +82,15 @@ class Trajectory(Methods.Trajectory_Methods):
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
-        self.time_step = None
         self.time_dimensions = None
         self.singular_diffusion_coefficients = None
         self.distinct_diffusion_coefficients = None
         self.ionic_conductivity = None
 
-    def From_User(self):
-        """ Get system specific inputs
-
-        If a new project is called, this function will gather extra data from the user
-        """
-
-        self.filename = input("File name: ")
-        self.temperature = float(input("Temperature: "))
-        self.time_step = float(input("Time Step: "))
+        if self.new_project == False:
+            self.Load_Class()
+        else:
+            self.Build_Database()
 
     def Save_Class(self):
         """ Saves class instance

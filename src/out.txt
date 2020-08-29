@@ -36,3 +36,4 @@ Green-Kubo Self-Diffusion of Na: 1.4164623475885916e-08 and Cl: 9.92266444101731
 Green-Kubo Self-Diffusion of Na: 1.4618669908584294e-08 and Cl: 1.1285164346606316e-08
 Green-Kubo Self-Diffusion of Na: 1.5245433623575836e-08 and Cl: 1.216505759627495e-08
 Green-Kubo Self-Diffusion of Na: 1.6734245435354277e-08 and Cl: 1.3009549724945239e-08
+

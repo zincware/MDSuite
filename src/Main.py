@@ -13,13 +13,27 @@ from UI import *
 def main():
     """ Main function to coordinate use of the program """
 
-    trajectory_class, filepath = Begin_Program()  # Run the first initialization with input flags
-    #trajectory_class.Unwrap_Coordinates()
-    #trajectory_class.Einstein_Diffusion_Coefficients()
-    #trajectory_class.Green_Kubo_Diffusion_Coefficients()
-    trajectory_class.Green_Kubo_Conductivity(100000)
-    #trajectory_class.Einstein_Helfand_Conductivity()
-    #trajectory_class.Print_Class_Attributes()
+    NaCl_1300K = Trajectory(analysis_name = "1300K_VACF",
+                            storage_path = "/data/stovey",
+                            new_project = False)
+    NaCl_1300K.Green_Kubo_Conductivity(100000)
+
+    NaCl_1350K = Trajectory(analysis_name="1350K_VACF",
+                            storage_path="/data/stovey",
+                            new_project=False)
+    NaCl_1350K.Green_Kubo_Conductivity(100000)
+
+    NaCl_1400K = Trajectory(analysis_name="1400_VACF",
+                            storage_path="/data/stovey",
+                            new_project=False)
+    NaCl_1400K.Green_Kubo_Conductivity(100000)
+
+    NaCl_1450K = Trajectory(analysis_name="1450K_VACF",
+                            storage_path="/data/stovey",
+                            new_project=False)
+    NaCl_1450K.Green_Kubo_Conductivity(100000)
+
+
 
 if __name__ == "__main__":
     main()
