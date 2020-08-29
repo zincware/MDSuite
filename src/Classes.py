@@ -241,12 +241,30 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
-        print(self.time_dimensions)
 
         def fitting_function(x, a, b):
-            """ Function for use in fitting """
+            """ Function for use in fitting
+
+            In the Einstein diffusion calculation, we want to fit a linear function to the averaged MSD of the
+            particles. This function provides the mathematical form of this fitting function
+
+                            y = mx + b.
+
+            During the calculation, the scipy module is used to fit the values of m and b, m being the estimated
+            diffusion coefficient.
+
+            args:
+                x (list) -- The list of data to along the x axis
+                a (float) -- fitting parameter
+                b (float) -- fitting parameter
+
+            returns:
+                a * x + b (list) -- y values for the fitting function
+            """
+
             return a * x + b
 
+        # Generate the matrix of species positions
         positions_matrix = []
         for item in self.species:
             positions_matrix.append(np.dstack((database[item]["Unwrapped_Positions"]['x'],
@@ -327,6 +345,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             msd = (1E-20) * (len(positions_matrix[1]) + len(positions_matrix[0])) * (msd_x + msd_y + msd_z) / (
                         len(positions_matrix[0]) * (len(positions_matrix[0]) - 1))
+
             time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
             # plt.plot(time, msd)
@@ -354,29 +373,28 @@ class Trajectory(Methods.Trajectory_Methods):
                                               database[item]["Velocities"]['z'])))
 
         def Singular_Diffusion_Coefficients():
-            vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
-            vacf_b = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
+            vacf_a = np.zeros(len(velocity_matrix[0][0]))
+            vacf_b = np.zeros(len(velocity_matrix[0][0]))
 
             for i in range(len(velocity_matrix[0])):
-                vacf_a += (1 / len(velocity_matrix[0])) * np.array(
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_matrix[0][i][:, 0], mode='full',
+                vacf_a += np.array(
+                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_matrix[0][i][:, 0], mode='same',
                                      method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 1], velocity_matrix[0][i][:, 1], mode='full',
+                    signal.correlate(velocity_matrix[0][i][:, 1], velocity_matrix[0][i][:, 1], mode='same',
                                      method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 2], velocity_matrix[0][i][:, 2], mode='full',
+                    signal.correlate(velocity_matrix[0][i][:, 2], velocity_matrix[0][i][:, 2], mode='same',
                                      method='fft'))
-                vacf_b += (1 / len(velocity_matrix[1])) * np.array(
-                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_matrix[1][i][:, 0], mode='full',
+                vacf_b += np.array(
+                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_matrix[1][i][:, 0], mode='same',
                                      method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 1], velocity_matrix[1][i][:, 1], mode='full',
+                    signal.correlate(velocity_matrix[1][i][:, 1], velocity_matrix[1][i][:, 1], mode='same',
                                      method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 2], velocity_matrix[1][i][:, 2], mode='full',
+                    signal.correlate(velocity_matrix[1][i][:, 2], velocity_matrix[1][i][:, 2], mode='same',
                                      method='fft'))
 
-            sub_a = vacf_a
-            sub_b = vacf_b
-            vacf_a = (1 / (2 * len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))
-            vacf_b = (1 / (2 * len(vacf_b) - 1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))
+
+            vacf_a = (1 / (2 * len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))*(1/len(velocity_matrix[0]))
+            vacf_b = (1 / (2 * len(vacf_b) - 1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))*(1/len(velocity_matrix[1]))
 
             time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a))
 
@@ -388,7 +406,7 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.plot(time, vacf_b)
             plt.show()
 
-            return D_a, D_b, sub_a, sub_b
+            return D_a, D_b
 
         def Distinct_Diffusion_Coefficients():
 
@@ -425,9 +443,9 @@ class Trajectory(Methods.Trajectory_Methods):
                     signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 1], mode='full', method='fft') +
                     signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 2], mode='full', method='fft'))
 
-            vacf_a = self.number_of_atoms * (1 / (len(vacf_a))) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
-            vacf_b = self.number_of_atoms * (1 / (len(vacf_b))) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
-            vacf_c = self.number_of_atoms * (1 / (len(vacf_c))) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
+            vacf_a = self.number_of_atoms * (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
+            vacf_b = self.number_of_atoms * (1 / (2*len(vacf_b) - 1)) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
+            vacf_c = self.number_of_atoms * (1 / (2*len(vacf_c) - 1)) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
 
             time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a))
 
@@ -444,7 +462,7 @@ class Trajectory(Methods.Trajectory_Methods):
             # plt.plot(time, vacf_c)
             # plt.show()
 
-        _, _, _, _ = Singular_Diffusion_Coefficients()
+        _, _= Singular_Diffusion_Coefficients()
         # Distinct_Diffusion_Coefficients()
 
     def Nernst_Einstein_Conductivity(self):
@@ -468,7 +486,7 @@ class Trajectory(Methods.Trajectory_Methods):
         q = 1.60217662E-19
         kb = 1.38064852E-23  # Define the Boltzmann constant
 
-        measurement_range = 50000
+        measurement_range = 75000
 
         position_matrix = []
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
@@ -497,11 +515,11 @@ class Trajectory(Methods.Trajectory_Methods):
         dipole_msd = np.array(dipole_moment_msd_x + dipole_moment_msd_y + dipole_moment_msd_z)/\
                      (len(position_matrix[0][0] - (measurement_range - 1)))
 
-        time = np.linspace(0.0, 10, len(dipole_msd))
+        time = np.linspace(0.0, 15, len(dipole_msd))
 
         sigma_array = []
         for i in range(1000):
-            start = np.random.randint(int(0.1*len(dipole_msd)), int(len(dipole_msd) - 2000))
+            start = np.random.randint(int(0.2*len(dipole_msd)), int(len(dipole_msd) - 2000))
             stop = np.random.randint(int(start + 1000), int(len(dipole_msd)))
 
             popt, pcov = curve_fit(func, time[start:stop], dipole_msd[start:stop])
@@ -517,7 +535,8 @@ class Trajectory(Methods.Trajectory_Methods):
         sigma = prefactor*np.mean(sigma_array)
         sigma_error = prefactor*np.sqrt(np.var(sigma_array))
 
-        print("Einstein-Helfand Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, sigma / 100, sigma_error / 100))
+        print("Einstein-Helfand Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, sigma / 100,
+                                                                                sigma_error / 100))
 
         plt.plot(time, dipole_msd)
         plt.plot(time, func(time, *popt))
@@ -525,18 +544,19 @@ class Trajectory(Methods.Trajectory_Methods):
         plt.loglog(time, dipole_msd)
         plt.show()
 
-    def Green_Kubo_Conductivity(self):
+    def Green_Kubo_Conductivity(self, data_range):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
         system being studied.
+
+        args:
+            data_range (int) -- number of data points with which to calculate the conductivity
         """
 
         q = 1.60217662E-19  # Define elementary charge
         kb = 1.38064852E-23  # Define the Boltzmann constant
         database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
-
-        data_range = 10000 # 20ps = 10000
 
         velocity_matrix = []
         for item in self.species:
@@ -544,31 +564,39 @@ class Trajectory(Methods.Trajectory_Methods):
                                               database[item]["Velocities"]['y'],
                                               database[item]["Velocities"]['z'])))
 
-        velocity_a = []
-        velocity_b = []
-        for i in range(data_range):
-            velocity_a.append(np.sum(velocity_matrix[0][:, i], axis=0))
-            velocity_b.append(np.sum(velocity_matrix[1][:, i], axis=0))
+        summed_velocity = []
+        jacf = np.zeros(data_range)
 
-        current = (np.array(velocity_a) - np.array(velocity_b))
+        for i in range(len(list(self.species))):
+            summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
 
-        jacf = (signal.correlate(current[:, 0], current[:, 0], mode='full', method='fft') +
-                signal.correlate(current[:, 1], current[:, 1], mode='full', method='fft') +
-                signal.correlate(current[:, 2], current[:, 2], mode='full', method='fft'))
+        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))
 
+        for i in range(len(current) - data_range - 1):
+
+            jacf += (signal.correlate(current[:, 0][i:i + data_range],
+                                      current[:, 0][i:i + data_range],
+                                      mode='same', method='fft') +
+                    signal.correlate(current[:, 1][i:i + data_range],
+                                     current[:, 1][i:i + data_range],
+                                     mode='same', method='fft') +
+                    signal.correlate(current[:, 2][i:i + data_range],
+                                     current[:, 2][i:i + data_range],
+                                     mode='same', method='fft'))
+
+        # Two-step avergaing procedure
         jacf = (jacf[int((len(jacf) / 2)):]) / (2 * len(jacf) - 1)
+        jacf /= (len(current) - data_range - 1)
 
-        time = np.linspace(0, 20, len(jacf))
+        time = np.linspace(0, 200, len(jacf))
 
         numerator = (q**2)*(1e-20)
-        denominator = (1e-24)*kb*self.temperature*(self.volume*(1e-30))*3
+        denominator = 3*kb*self.temperature*(self.volume*(1e-30))*(1e-12)
         prefactor = numerator / denominator
 
-        sigma = []
-        for i in range(1, len(jacf)):
-            sigma.append(prefactor * np.trapz(jacf[0:i], x=time[0:i]))
 
-        #print("Green-Kubo Ionic Conductivity: {0} S/cm^2".format(sigma / 100))
+        #plt.plot(time, jacf)
+        #plt.show()
+        sigma = prefactor * np.trapz(jacf, x=time)
 
-        plt.plot([i for i in range(len(sigma))], sigma)
-        plt.show()
+        print("Green-Kubo Ionic Conductivity at {0}K: {1} S/cm^2".format(self.temperature, sigma / 100))
