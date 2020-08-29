@@ -1,0 +1,38 @@
+###########################################################################################
+10 ns
+
+Einstein-Helfand Conductivity at 1300.0K: 2.247025184739924 +- 0.29162921372959666 S/cm^2
+Einstein-Helfand Conductivity at 1350.0K: 3.4009560311924685 +- 0.5181029340114173 S/cm^2
+Einstein-Helfand Conductivity at 1400.0K: 3.8390275619950325 +- 0.8925311397794176 S/cm^2
+Einstein-Helfand Conductivity at 1450.0K: 1.9438387264338903 +- 0.5369203706664145 S/cm^2
+
+
+##########################################################################################
+20 ns
+
+Einstein-Helfand Conductivity at 1300.0K: 1.9922066308591129 +- 0.5559182876508307 S/cm^2
+Einstein-Helfand Conductivity at 1350.0K: 3.223915835193566 +- 0.6382393179900085 S/cm^2
+Einstein-Helfand Conductivity at 1400.0K: 1.3962080485522503 +- 1.120400479685175 S/cm^2
+Einstein-Helfand Conductivity at 1450.0K: 2.0697388931785956 +- 0.3042436666166973 S/cm^2
+
+##########################################################################################
+15 ns
+
+Einstein-Helfand Conductivity at 1300.0K: 2.271817929434664 +- 0.28328089716131416 S/cm^2
+Einstein-Helfand Conductivity at 1350.0K: 4.095876849585075 +- 1.0024579671043938 S/cm^2
+Einstein-Helfand Conductivity at 1400.0K: 2.0584359872339446 +- 1.4851755370431265 S/cm^2
+Einstein-Helfand Conductivity at 1450.0K: 2.1435324851857778 +- 0.3719157905228153 S/cm^2
+
+###########################################################################################
+200 ps
+
+
+Green-Kubo Ionic Conductivity at 1300.0K: 1.7279157670915748 S/cm^2
+Green-Kubo Ionic Conductivity at 1350.0K: 0.7995862638061635 S/cm^2
+Green-Kubo Ionic Conductivity at 1400.0K: 0.7582115699292031 S/cm^2
+Green-Kubo Ionic Conductivity at 1450.0K: 1.1048905081672642 S/cm^2
+
+Green-Kubo Self-Diffusion of Na: 1.4164623475885916e-08 and Cl: 9.92266444101731e-09
+Green-Kubo Self-Diffusion of Na: 1.4618669908584294e-08 and Cl: 1.1285164346606316e-08
+Green-Kubo Self-Diffusion of Na: 1.5245433623575836e-08 and Cl: 1.216505759627495e-08
+Green-Kubo Self-Diffusion of Na: 1.6734245435354277e-08 and Cl: 1.3009549724945239e-08
