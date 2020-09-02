@@ -16,24 +16,16 @@ def main():
     NaCl_1300K = Trajectory(analysis_name = "1300K_VACF",
                             storage_path = "/data/stovey",
                             new_project = False)
-    NaCl_1300K.Green_Kubo_Conductivity(1250, plot=True)
+    test = Trajectory(analysis_name="test_Analysis",
+                      storage_path="/tikhome/stovey/work/Repositories/MDSuite/tests",
+                      new_project=False,
+                      temperature=1400.0,
+                      time_step=0.002,
+                      time_unit=1e-12,
+                      filename="/tikhome/stovey/work/Repositories/MDSuite/tests/LiF_sample.xyz")
 
-    #NaCl_1350K = Trajectory(analysis_name="1350K_VACF",
-    #                        storage_path="/data/stovey",
-    #                        new_project=False)
-    #NaCl_1350K.Green_Kubo_Conductivity(1250, plot=True)
-
-    #NaCl_1400K = Trajectory(analysis_name="1400_VACF",
-    #                        storage_path="/data/stovey",
-    #                        new_project=False)
-    #NaCl_1400K.Green_Kubo_Conductivity(1250, plot=True)
-
-    #NaCl_1450K = Trajectory(analysis_name="1450K_VACF",
-     #                       storage_path="/data/stovey",
-     #                       new_project=False)
-    #NaCl_1450K.Green_Kubo_Conductivity(1250, plot=True)
-
-
+    #NaCl_1300K.Green_Kubo_Conductivity(1250, plot=True)
+    test.Green_Kubo_Diffusion_Coefficients()
 
 if __name__ == "__main__":
     main()
