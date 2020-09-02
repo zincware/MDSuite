@@ -16,6 +16,7 @@ import h5py as hf
 from alive_progress import alive_bar
 import Constants
 import Meta_Functions
+import itertools
 
 
 class Trajectory(Methods.Trajectory_Methods):
@@ -158,8 +159,6 @@ class Trajectory(Methods.Trajectory_Methods):
         database skeleton, get configurations, and process and store the configurations. The method is accompanied
         by a loading bar which should be customized to make it more interesting.
         """
-
-        self.From_User()  # Get additional information
 
         # Create new analysis directory and change into it
         os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
@@ -352,6 +351,7 @@ class Trajectory(Methods.Trajectory_Methods):
         velocity_matrix = self.Load_Matrix("Velocities")
 
         def Singular_Diffusion_Coefficients():
+            """ Calculate the singular diffusion coefficients """
 
             diffusion_coefficients = {} # define empty dictionary for diffusion coefficients
 
@@ -383,15 +383,30 @@ class Trajectory(Methods.Trajectory_Methods):
             return diffusion_coefficients
 
         def Distinct_Diffusion_Coefficients():
-            pass
+            """ Calculate the distinct diffusion coefficients """
 
-        singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-        # Distinct_Diffusion_Coefficients(
+            diffusion_coefficients = {} # define empty dictionary for the coefficients
 
-        for item in singular_diffusion_coefficients:
-            print("Self-Diffusion Coefficient for {0} at {1}K: {2} m^2/s".format(item,
-                                                                                 self.temperature,
-                                                                                 singular_diffusion_coefficients[item]))
+            species = list(self.species.keys())
+            combinations = ['-'.join(tup) for tup in list(itertools.combinations_with_replacement(species, 2))]
+            index_list = [i for i in range(len(velocity_matrix))]
+
+            # Update the dictionary with relevent combinations
+            for item in combinations:
+                diffusion_coefficients[item] = {}
+
+
+
+
+
+
+        #singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+        Distinct_Diffusion_Coefficients()
+
+        #for item in singular_diffusion_coefficients:
+        #    print("Self-Diffusion Coefficient for {0} at {1}K: {2} m^2/s".format(item,
+        #                                                                         self.temperature,
+        #                                                                         singular_diffusion_coefficients[item]))
 
     def Nernst_Einstein_Conductivity(self, diffusion_coefficients, label):
         """ Calculate Nernst-Einstein Conductivity
@@ -480,10 +495,10 @@ class Trajectory(Methods.Trajectory_Methods):
 
         summed_velocity = [] # Define array for the summed velocities
         jacf = np.zeros(data_range) # Define the empty JACF array
-        time = np.linspace(0, 2.5, int(0.5*len(jacf) - 1))  # define the time
+        time = np.linspace(0, 2.5, int(0.5*len(jacf)))  # define the time
 
         if plot == True:
-            averaged_jacf = np.zeros(int(0.5*data_range - 1))
+            averaged_jacf = np.zeros(int(0.5*data_range))
 
         for i in range(len(list(self.species))):
             summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
@@ -517,7 +532,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         if plot == True:
             averaged_jacf /= max(averaged_jacf)
-            Methods.Trajectory_Methods.Plot_Investigation([time, averaged_jacf], 'Green_Kubo_Conductivity')
+            Methods.Trajectory_Methods.Plot_Investigation(self, [time, averaged_jacf], observable='Green_Kubo_Conductivity')
 
         print("Green-Kubo Ionic Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, np.mean(sigma) / 100,
                                                                                 (np.std(sigma)/(np.sqrt(len(sigma))))/100))

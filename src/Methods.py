@@ -7,7 +7,9 @@ Purpose: Larger methods used in the Trajectory class
 import Meta_Functions
 import numpy as np
 import h5py as hf
+import matplotlib.pyplot as plt
 import seaborn as sns
+sns.set()
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """
@@ -212,9 +214,10 @@ class Trajectory_Methods:
         def Green_Kubo_Conductivity():
             """ Plot the GK autocorrelation function """
 
-            ax = sns.lineplot(x=data[0], y=data[1])
-            ax.set(xlabel = 'Time', ylabel = 'Normalized current autocorrelation function')
-            ax.show()
+            plt.plot(data[0], data[1])
+            plt.xlabel('Time')
+            plt.ylabel('Normalized current autocorrelation function')
+            plt.show()
 
         def Einstein_Diffusion():
             pass
@@ -229,3 +232,8 @@ class Trajectory_Methods:
             return function
 
         Choose_Plot(observable)
+
+    def Print_Data_Structrure(self):
+        """ Print the data structure of the hdf5 dataset """
+
+        database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
