@@ -16,16 +16,25 @@ def main():
     NaCl_1300K = Trajectory(analysis_name = "1300K_VACF",
                             storage_path = "/data/stovey",
                             new_project = False)
+
+    NaCl_1074K = Trajectory(analysis_name="1074K_VACF",
+                      storage_path="/data/stovey",
+                      new_project=True,
+                      temperature=1074.0,
+                      time_step=0.002,
+                      time_unit=1e-12,
+                      filename="/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1074K/VACF/NaCl_Velocities.xyz")
+
     test = Trajectory(analysis_name="test_Analysis",
                       storage_path="/tikhome/stovey/work/Repositories/MDSuite/tests",
-                      new_project=False,
+                      new_project=True,
                       temperature=1400.0,
                       time_step=0.002,
                       time_unit=1e-12,
                       filename="/tikhome/stovey/work/Repositories/MDSuite/tests/LiF_sample.xyz")
 
-    #NaCl_1300K.Green_Kubo_Conductivity(1250, plot=True)
-    test.Green_Kubo_Diffusion_Coefficients()
+    #NaCl_1300K.Green_Kubo_Diffusion_Coefficients()
+    #test.Green_Kubo_Diffusion_Coefficients()
 
 if __name__ == "__main__":
     main()

@@ -77,6 +77,7 @@ class Trajectory(Methods.Trajectory_Methods):
         self.temperature = temperature
         self.time_step = time_step
         self.time_unit = time_unit
+        self.batch_size = None
         self.volume = None
         self.species = None
         self.number_of_atoms = None
@@ -172,14 +173,13 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             with open(self.filename) as f:
                 counter = 0
-                print(counter)
-                with alive_bar(int(self.number_of_configurations / 1000), bar='blocks', spinner='dots') as bar:
-                    for i in range(int(self.number_of_configurations / 1000)):
-                        test = Methods.Trajectory_Methods.Read_Configurations(self, 1000, f)
+                with alive_bar(int(self.number_of_configurations / self.batch_size), bar='blocks', spinner='dots') as bar:
+                    for i in range(int(self.number_of_configurations / self.batch_size)):
+                        test = Methods.Trajectory_Methods.Read_Configurations(self, self.batch_size, f)
 
                         Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
 
-                        counter += 1000
+                        counter += self.batch_size
                         bar()
 
         self.Save_Class()
@@ -390,18 +390,48 @@ class Trajectory(Methods.Trajectory_Methods):
             species = list(self.species.keys())
             combinations = ['-'.join(tup) for tup in list(itertools.combinations_with_replacement(species, 2))]
             index_list = [i for i in range(len(velocity_matrix))]
+            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(velocity_matrix[0][0]))
 
             # Update the dictionary with relevent combinations
             for item in combinations:
                 diffusion_coefficients[item] = {}
+            pairs = 0
+            for tups in itertools.combinations_with_replacement(index_list, 2):
 
+                # Define the multiplicative factor
+                numerator = self.number_of_atoms*1e-20
+                denominator = len(velocity_matrix[tups[0]])*len(velocity_matrix[tups[1]])*3*1e-24
+                prefactor = numerator/denominator
 
+                diff_array = []
 
+                # Loop over reference atoms
+                for i in range(len(velocity_matrix[tups[0]])):
+                    # Loop over test atoms
+                    vacf = np.zeros(len(velocity_matrix[tups[0]][i])) # initialize the vacf array
+                    for j in range(len(velocity_matrix[tups[1]])):
+                        # Add conditional statement to avoid i=j and alpha=beta
+                        if tups[0] == tups[1] and j == i:
+                            continue
 
+                        vacf += np.array(
+                            signal.correlate(velocity_matrix[tups[0]][i][:, 0], velocity_matrix[tups[1]][j][:, 0],
+                                             mode='same', method='fft') +
+                            signal.correlate(velocity_matrix[tups[0]][i][:, 1], velocity_matrix[tups[1]][j][:, 1],
+                                             mode='same', method='fft') +
+                            signal.correlate(velocity_matrix[tups[0]][i][:, 2], velocity_matrix[tups[1]][j][:, 2],
+                                             mode='same', method='fft'))
 
+                    diff_array.append(np.trapz(vacf, x=time))
+
+                diffusion_coefficients[combinations[pairs]] = [prefactor*np.mean(diff_array),
+                                                               prefactor*np.std(diff_array)/np.sqrt(len(diff_array))]
+                pairs += 1
+            return diffusion_coefficients
 
         #singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-        Distinct_Diffusion_Coefficients()
+        a = Distinct_Diffusion_Coefficients()
+        print(a)
 
         #for item in singular_diffusion_coefficients:
         #    print("Self-Diffusion Coefficient for {0} at {1}K: {2} m^2/s".format(item,
@@ -536,3 +566,12 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("Green-Kubo Ionic Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, np.mean(sigma) / 100,
                                                                                 (np.std(sigma)/(np.sqrt(len(sigma))))/100))
+
+    def Green_Kubo_Viscosity(self):
+        """ Calculate the shear viscosity of the system using Green Kubo
+
+        Use a Green Kubo relation to calculate the shear viscosity of the system. This involves the calculation
+        of the autocorrelation for the stress tensor of the sysetem.
+        """
+        pass
+
