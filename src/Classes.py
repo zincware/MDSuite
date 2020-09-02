@@ -14,6 +14,8 @@ import Methods
 import pickle
 import h5py as hf
 from alive_progress import alive_bar
+import Constants
+import Meta_Functions
 
 
 class Trajectory(Methods.Trajectory_Methods):
@@ -265,6 +267,26 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("\n --- Finished unwrapping coordinates --- \n")
 
+    def Load_Matrix(self, identifier):
+        """ Load a desired property matrix
+
+        args:
+            identifier (str) -- Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
+
+        returns:
+            Matrix of the property
+        """
+
+        property_matrix = [] # Define an empty list for the properties to fill
+
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
+            for item in self.species:
+                property_matrix.append(np.dstack((database[item][identifier]['x'],
+                                                   database[item][identifier]['y'],
+                                                   database[item][identifier]['z'])))
+
+        return property_matrix
+
     def Einstein_Diffusion_Coefficients(self):
         """ Calculate the Einstein self diffusion coefficients
 
@@ -275,36 +297,8 @@ class Trajectory(Methods.Trajectory_Methods):
             Data is loaded from the working directory.
         """
 
-        database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
-
-        def fitting_function(x, a, b):
-            """ Function for use in fitting
-
-            In the Einstein diffusion calculation, we want to fit a linear function to the averaged MSD of the
-            particles. This function provides the mathematical form of this fitting function
-
-                            y = mx + b.
-
-            During the calculation, the scipy module is used to fit the values of m and b, m being the estimated
-            diffusion coefficient.
-
-            args:
-                x (list) -- The list of data to along the x axis
-                a (float) -- fitting parameter
-                b (float) -- fitting parameter
-
-            returns:
-                a * x + b (list) -- y values for the fitting function
-            """
-
-            return a * x + b
-
-        # Generate the matrix of species positions
-        positions_matrix = []
-        for item in self.species:
-            positions_matrix.append(np.dstack((database[item]["Unwrapped_Positions"]['x'],
-                                               database[item]["Unwrapped_Positions"]['y'],
-                                               database[item]["Unwrapped_Positions"]['z'])))
+        # Load the matrix of species positions
+        positions_matrix = self.Load_Matrix("Unwrapped_Positions")
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
@@ -314,37 +308,21 @@ class Trajectory(Methods.Trajectory_Methods):
             of each atom is calculated and averaged over all the atoms in the system.
             """
 
-            diffusion_coefficients = {}
-            for i in range(len(positions_matrix)):  # Loop over species
-                msd_x = []
-                msd_y = []
-                msd_z = []
+            diffusion_coefficients = {} # Define an empty dictionary to store the coefficients
+
+            # Loop over each atomic specie to calculate self-diffusion
+            for i in range(len(list(self.species))):
+                msd = [[], [], []]
                 for j in range(len(positions_matrix[i])):  # Loop over number of atoms of species i
-                    msd_x.append((positions_matrix[i][j][:, 0] - positions_matrix[i][j][0][0]) ** 2)
-                    msd_y.append((positions_matrix[i][j][:, 1] - positions_matrix[i][j][0][1]) ** 2)
-                    msd_z.append((positions_matrix[i][j][:, 2] - positions_matrix[i][j][0][2]) ** 2)
+                    for k in range(3):
+                        msd[k].append((positions_matrix[i][j][:, k] - positions_matrix[i][j][0][k]) ** 2)
 
-                # Take averages
-                msd_x = np.mean(msd_x, axis=0)
-                msd_y = np.mean(msd_y, axis=0)
-                msd_z = np.mean(msd_z, axis=0)
+                msd = (1e-20)*np.sum([np.mean(msd[j], axis=0) for j in range(3)]) # Calculate the summed average of MSD
 
-                msd = (msd_x + msd_y + msd_z)  # Calculate the total MSD
-
-                # Perform unit conversions
-                msd = msd * (1E-20)
                 time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
-                popt, pcov = curve_fit(fitting_function, time, msd)
+                popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time, msd)
                 diffusion_coefficients[list(self.species)[i]] = popt[0] / 6
-
-                plt.loglog(time, fitting_function(time, *popt))
-                plt.loglog(time, msd)
-                plt.show()
-                plt.plot(time, msd, label="MSD")
-                plt.plot(time, fitting_function(time, *popt), label="Fit")
-                plt.legend()
-                plt.show()
 
             return diffusion_coefficients
 
@@ -355,36 +333,7 @@ class Trajectory(Methods.Trajectory_Methods):
             square displacement, as calculated from different atoms. This value is averaged over all the possible
             combinations of atoms for the best fit.
             """
-
-            distinct_diffusion_coefficients = {}
-
-            msd_x = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
-            msd_y = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
-            msd_z = np.array([0.0 for i in range(len(positions_matrix[0][0]))])
-
-            for i in range(len(positions_matrix[0])):
-                for j in range(len(positions_matrix[0])):
-                    if j == i:
-                        continue
-
-                    msd_x += (positions_matrix[0][i][:, 0] - positions_matrix[0][i][0][0]) * \
-                             (positions_matrix[1][j][:, 0] - positions_matrix[1][j][0][0])
-                    msd_y += (positions_matrix[0][i][:, 1] - positions_matrix[0][i][0][1]) * \
-                             (positions_matrix[1][j][:, 1] - positions_matrix[1][j][0][1])
-                    msd_z += (positions_matrix[0][i][:, 2] - positions_matrix[0][i][0][2]) * \
-                             (positions_matrix[1][j][:, 2] - positions_matrix[1][j][0][2])
-
-            msd_x = msd_x
-            msd_y = msd_y
-            msd_z = msd_z
-
-            msd = (1E-20) * (len(positions_matrix[1]) + len(positions_matrix[0])) * (msd_x + msd_y + msd_z) / (
-                        len(positions_matrix[0]) * (len(positions_matrix[0]) - 1))
-
-            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
-
-            # plt.plot(time, msd)
-            # plt.show()
+            pass
 
         singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
         # Distinct_Diffusion_Coefficients()
@@ -399,187 +348,124 @@ class Trajectory(Methods.Trajectory_Methods):
         fft correlate function in order to speed up the calculation.
         """
 
-        database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
-
-        velocity_matrix = []
-        for item in self.species:
-            velocity_matrix.append(np.dstack((database[item]["Velocities"]['x'],
-                                              database[item]["Velocities"]['y'],
-                                              database[item]["Velocities"]['z'])))
+        # load the velocity matrix
+        velocity_matrix = self.Load_Matrix("Velocities")
 
         def Singular_Diffusion_Coefficients():
-            vacf_a = np.zeros(len(velocity_matrix[0][0]))
-            vacf_b = np.zeros(len(velocity_matrix[0][0]))
 
-            for i in range(len(velocity_matrix[0])):
-                vacf_a += np.array(
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_matrix[0][i][:, 0], mode='same',
-                                     method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 1], velocity_matrix[0][i][:, 1], mode='same',
-                                     method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 2], velocity_matrix[0][i][:, 2], mode='same',
-                                     method='fft'))
-                vacf_b += np.array(
-                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_matrix[1][i][:, 0], mode='same',
-                                     method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 1], velocity_matrix[1][i][:, 1], mode='same',
-                                     method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 2], velocity_matrix[1][i][:, 2], mode='same',
-                                     method='fft'))
+            diffusion_coefficients = {} # define empty dictionary for diffusion coefficients
 
+            # Define time array - CHANGE to an input (you don't need all the time)
+            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(velocity_matrix[0][0]))
 
-            vacf_a = (1 / (2 * len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * ((1E-20) / (1E-24))*(1/len(velocity_matrix[0]))
-            vacf_b = (1 / (2 * len(vacf_b) - 1)) * vacf_b[int(len(vacf_b) / 2):] * ((1E-20) / (1E-24))*(1/len(velocity_matrix[1]))
+            numerator = 1e-20
+            denominator = 3*1e-24*(2*len(time)-1)
+            prefactor = numerator/denominator
 
-            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a))
+            # Loop over the species in the system
+            for i in range(len(list(self.species.keys()))):
+                vacf = np.zeros(len(velocity_matrix[i][0])) # Define vacf array
 
-            D_a = np.trapz(vacf_a, x=time) / 3
-            D_b = np.trapz(vacf_b, x=time) / 3
-            print("Green-Kubo Self-Diffusion of Na: {0} and Cl: {1}".format(D_a, D_b))
+                # Loop over the atoms of species i to get the average
+                for j in range(len(velocity_matrix[i])):
+                    vacf += np.array(
+                        signal.correlate(velocity_matrix[i][j][:, 0], velocity_matrix[i][j][:, 0], mode='same',
+                                         method='fft') +
+                        signal.correlate(velocity_matrix[i][j][:, 1], velocity_matrix[i][j][:, 1], mode='same',
+                                         method='fft') +
+                        signal.correlate(velocity_matrix[i][j][:, 2], velocity_matrix[i][j][:, 2], mode='same',
+                                         method='fft'))
 
-            plt.plot(time, vacf_a)
-            plt.plot(time, vacf_b)
-            plt.show()
+                # Calculate the self-diffusion coefficient for the species with the update prefactor
+                prefactor /= len(velocity_matrix[i])
+                diffusion_coefficients[list(self.species)[i]] = prefactor * np.trapz(vacf[int(len(vacf) / 2):], x=time)
 
-            return D_a, D_b
+            return diffusion_coefficients
 
         def Distinct_Diffusion_Coefficients():
+            pass
 
-            vacf_a = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
-            vacf_b = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
-            vacf_c = np.zeros(2 * len(velocity_matrix[0][0]) - 1)
+        singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+        # Distinct_Diffusion_Coefficients(
 
-            velocity_a = []
-            velocity_b = []
-            for i in range(len(velocity_matrix[0][0])):
-                velocity_a.append(np.sum(velocity_matrix[0][:, i], axis=0))
-                velocity_b.append(np.sum(velocity_matrix[1][:, i], axis=0))
+        for item in singular_diffusion_coefficients:
+            print("Self-Diffusion Coefficient for {0} at {1}K: {2} m^2/s".format(item,
+                                                                                 self.temperature,
+                                                                                 singular_diffusion_coefficients[item]))
 
-            velocity_a = np.array(velocity_a)
-            velocity_b = np.array(velocity_b)
-
-            for i in range(len(velocity_matrix[0])):
-                vacf_a += (1 / (499 * 498)) * np.array(
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_a[:, 0] - velocity_matrix[0][i][0][0],
-                                     mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_a[:, 1] - velocity_matrix[0][i][1][0],
-                                     mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_a[:, 2] - velocity_matrix[0][i][2][0],
-                                     mode='full', method='fft'))
-                vacf_b += (1 / (499 * 498)) * np.array(
-                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_b[:, 0] - velocity_matrix[1][i][0][0],
-                                     mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_b[:, 1] - velocity_matrix[1][i][1][0],
-                                     mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[1][i][:, 0], velocity_b[:, 2] - velocity_matrix[1][i][2][0],
-                                     mode='full', method='fft'))
-                vacf_c += (1 / (500 * 500)) * np.array(
-                    signal.correlate(velocity_b[:, 0], velocity_b[:, 0], mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 1], mode='full', method='fft') +
-                    signal.correlate(velocity_matrix[0][i][:, 0], velocity_b[:, 2], mode='full', method='fft'))
-
-            vacf_a = self.number_of_atoms * (1 / (2*len(vacf_a) - 1)) * vacf_a[int(len(vacf_a) / 2):] * (1E-20) / (1E-24)
-            vacf_b = self.number_of_atoms * (1 / (2*len(vacf_b) - 1)) * vacf_b[int(len(vacf_b) / 2):] * (1E-20) / (1E-24)
-            vacf_c = self.number_of_atoms * (1 / (2*len(vacf_c) - 1)) * vacf_c[int(len(vacf_c) / 2):] * (1E-20) / (1E-24)
-
-            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(vacf_a))
-
-            D_a = np.trapz(vacf_a, x=time) / 6
-            D_b = np.trapz(vacf_b, x=time) / 6
-            D_c = np.trapz(vacf_c, x=time) / 6
-
-            print(D_a)
-            print(D_b)
-            print(D_c)
-
-            # plt.plot(time, vacf_a)
-            # plt.plot(time, vacf_b)
-            # plt.plot(time, vacf_c)
-            # plt.show()
-
-        _, _= Singular_Diffusion_Coefficients()
-        # Distinct_Diffusion_Coefficients()
-
-    def Nernst_Einstein_Conductivity(self):
+    def Nernst_Einstein_Conductivity(self, diffusion_coefficients, label):
         """ Calculate Nernst-Einstein Conductivity
 
         A function to determine the Nernst-Einstein as well as the corrected Nernst-Einstein
         conductivity of a system.
+
+        args:
+            diffusion_coefficients (dict) -- A dictionary of self and distinct diffusion coefficients
+            label (str) -- A lable to identify whether the coefficients are from GK or Einstein methods
+
+        returns:
+            ionic_conductivity (dict) -- A dictionary of the ionic conductivity, corrected and uncorrected, with errors
         """
         pass
 
-    def Einstein_Helfand_Conductivity(self):
+    def Einstein_Helfand_Conductivity(self, measurement_range):
         """ Calculate the Einstein-Helfand Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
         ionic conductivity
+
+        args:
+            measurement_range (int) -- time range over which the measurement should be performed
         """
 
-        def func(x, a, b):
-            return a * x + b
+        position_matrix = self.Load_Matrix("Unwrapped_Positions")
+        summed_positions = [[] for i in range(len(list(self.species)))]
 
-        q = 1.60217662E-19
-        kb = 1.38064852E-23  # Define the Boltzmann constant
-
-        measurement_range = 75000
-
-        position_matrix = []
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
-            for item in self.species:
-                position_matrix.append(np.dstack((database[item]["Unwrapped_Positions"]['x'],
-                                                  database[item]["Unwrapped_Positions"]['y'],
-                                                  database[item]["Unwrapped_Positions"]['z'])))
-
-        positions_a = []
-        positions_b = []
+        # Sum up positions and calculate the dipole moment
         for i in range(len(position_matrix[0][0])):
-            positions_a.append(np.sum(position_matrix[0][:, i], axis=0))
-            positions_b.append(np.sum(position_matrix[1][:, i], axis=0))
+            for j in range(len(summed_positions)):
+                summed_positions[j].append(np.sum(position_matrix[j][:, i], axis=0))
 
-        dipole_moment = (np.array(positions_a) - np.array(positions_b))
+        dipole_moment = (np.array(summed_positions[0]) - np.array(summed_positions[1]))
+        dipole_moment_msd = [[], [], []] # Initialize empty dipole moment msd matrix
 
-        dipole_moment_msd_x = np.zeros(measurement_range)
-        dipole_moment_msd_y = np.zeros(measurement_range)
-        dipole_moment_msd_z = np.zeros(measurement_range)
+        loop_range = len(position_matrix[0][0]) - (measurement_range - 1) # Define the loop range
 
-        for i in range(0, len(position_matrix[0][0]) - (measurement_range - 1)):
-            dipole_moment_msd_x += (dipole_moment[i:i + measurement_range, 0] - dipole_moment[i][0])**2
-            dipole_moment_msd_y += (dipole_moment[i:i + measurement_range, 1] - dipole_moment[i][1])**2
-            dipole_moment_msd_z += (dipole_moment[i:i + measurement_range, 2] - dipole_moment[i][2])**2
+        # Fill the dipole moment msd matrix
+        for i in range(loop_range):
+            for j in range(3):
+                dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j])**2
 
-        dipole_msd = np.array(dipole_moment_msd_x + dipole_moment_msd_y + dipole_moment_msd_z)/\
-                     (len(position_matrix[0][0] - (measurement_range - 1)))
+        dipole_msd = np.array(np.sum(dipole_moment_msd)) # Calculate the net msd
 
-        time = np.linspace(0.0, 15, len(dipole_msd))
+        time = np.linspace(0.0, 15, len(dipole_msd)) # Initialize the time
 
-        sigma_array = []
+        sigma_array = [] # Initialize and array for the conductivity calculations
+
+        # Loop over different fit ranges to generate an array of conductivities, from which a mean and error can be
+        # calculated
         for i in range(1000):
+            # Create the measurment range
             start = np.random.randint(int(0.2*len(dipole_msd)), int(len(dipole_msd) - 2000))
             stop = np.random.randint(int(start + 1000), int(len(dipole_msd)))
-
+            
+            # Calculate the value and append the array
             popt, pcov = curve_fit(func, time[start:stop], dipole_msd[start:stop])
             sigma_array.append(popt[0])
 
-
-        popt, pcov = curve_fit(func, time, dipole_msd)
-
-        denominator = (6 * self.temperature * (self.volume * 1E-30) * kb)*(1e-9)
-        numerator = (1e-20)*(q**2)
+        # Define the multiplicative prefactor of the calculation
+        denominator = (6 * self.temperature * (self.volume * 1E-30) * Constants.boltzmann_constant)*(1e-9)*loop_range
+        numerator = (1e-20)*(Constants.elementary_charge**2)
         prefactor = numerator/denominator
 
         sigma = prefactor*np.mean(sigma_array)
         sigma_error = prefactor*np.sqrt(np.var(sigma_array))
 
-        print("Einstein-Helfand Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, sigma / 100,
+        print("Einstein-Helfand Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature,
+                                                                                sigma / 100,
                                                                                 sigma_error / 100))
 
-        plt.plot(time, dipole_msd)
-        plt.plot(time, func(time, *popt))
-        plt.show()
-        plt.loglog(time, dipole_msd)
-        plt.show()
-
-    def Green_Kubo_Conductivity(self, data_range):
+    def Green_Kubo_Conductivity(self, data_range, plot=False):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
@@ -587,28 +473,26 @@ class Trajectory(Methods.Trajectory_Methods):
 
         args:
             data_range (int) -- number of data points with which to calculate the conductivity
+            plot (bool) -- Decision to plot the normalized acf
         """
 
-        q = 1.60217662E-19  # Define elementary charge
-        kb = 1.38064852E-23  # Define the Boltzmann constant
-        database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
+        velocity_matrix = self.Load_Matrix("Velocities")
 
-        velocity_matrix = []
-        for item in self.species:
-            velocity_matrix.append(np.dstack((database[item]["Velocities"]['x'],
-                                              database[item]["Velocities"]['y'],
-                                              database[item]["Velocities"]['z'])))
+        summed_velocity = [] # Define array for the summed velocities
+        jacf = np.zeros(data_range) # Define the empty JACF array
+        time = np.linspace(0, 2.5, int(0.5*len(jacf) - 1))  # define the time
 
-        summed_velocity = []
-        jacf = np.zeros(data_range)
+        if plot == True:
+            averaged_jacf = np.zeros(int(0.5*data_range - 1))
 
         for i in range(len(list(self.species))):
             summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
 
-        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))
-
-        for i in range(len(current) - data_range - 1):
-
+        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1])) # We need to fix these things
+        loop_range = len(current) - data_range - 1 # Define the loop range
+        sigma = []
+        for i in range(loop_range):
+            jacf = np.zeros(data_range)  # Define the empty JACF array
             jacf += (signal.correlate(current[:, 0][i:i + data_range],
                                       current[:, 0][i:i + data_range],
                                       mode='same', method='fft') +
@@ -619,19 +503,21 @@ class Trajectory(Methods.Trajectory_Methods):
                                      current[:, 2][i:i + data_range],
                                      mode='same', method='fft'))
 
-        # Two-step avergaing procedure
-        jacf = (jacf[int((len(jacf) / 2)):]) / (2 * len(jacf) - 1)
-        jacf /= (len(current) - data_range - 1)
+            # Cut off the second half of the acf
+            jacf = jacf[int((len(jacf) / 2)):]
+            if plot == True:
+                averaged_jacf += jacf
 
-        time = np.linspace(0, 500, len(jacf))
+            numerator = (Constants.elementary_charge**2)*(1e-20)
+            denominator = 3*Constants.boltzmann_constant*self.temperature*(self.volume*(1e-30))*(1e-12)*\
+                          (2 * len(jacf) - 1)*2
+            prefactor = numerator / denominator
 
-        numerator = (q**2)*(1e-20)
-        denominator = 3*kb*self.temperature*(self.volume*(1e-30))*(1e-12)
-        prefactor = numerator / denominator
+            sigma.append(prefactor * np.trapz(jacf, x=time))
 
+        if plot == True:
+            averaged_jacf /= max(averaged_jacf)
+            Methods.Trajectory_Methods.Plot_Investigation([time, averaged_jacf], 'Green_Kubo_Conductivity')
 
-        plt.plot(time, jacf)
-        plt.show()
-        sigma = prefactor * np.trapz(jacf, x=time)
-
-        print("Green-Kubo Ionic Conductivity at {0}K: {1} S/cm^2".format(self.temperature, sigma / 100))
+        print("Green-Kubo Ionic Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, np.mean(sigma) / 100,
+                                                                                (np.std(sigma)/(np.sqrt(len(sigma))))/100))

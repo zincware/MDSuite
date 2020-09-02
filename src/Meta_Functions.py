@@ -152,7 +152,6 @@ def Extract_extxyz_Properties(properties_dict):
 
     return output_properties
 
-
 def Line_Counter(filename):
     f = open(filename, 'rb')
     lines = 0
