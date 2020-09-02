@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: MDSuite
-Version: 0.0.1
+Version: 0.0.2
 Summary: A postprocessing tool for molecular dynamics simulations targeting the machine learning community
 Home-page: https://github.com/SamTov/MDSuite
 Author: Samuel Tovey

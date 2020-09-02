@@ -50,16 +50,16 @@ class Trajectory_Methods:
             second_configuration = [next(f).split() for i in range(int(head[3][0]) + 9)] # Get the second
 
         
-        time_scale = 1E-12
         # Calculate the number of atoms and configurations in the system
         number_of_atoms = int(data_array[3][0])
 
         number_of_lines = Meta_Functions.Line_Counter(self.filename)
         number_of_configurations = int(number_of_lines / (number_of_atoms + 9))
+        batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
 
         time_0 = float(data_array[1][0])
         time_1 = float(second_configuration[1][0])
-        time_N = (number_of_configurations - number_of_configurations % 1000)*(time_1 - time_0)
+        time_N = (number_of_configurations - number_of_configurations % batch_size)*(time_1 - time_0)
 
         # Find the information regarding species in the system and construct a dictionary
         for i in range(9, number_of_atoms + 9):
@@ -79,6 +79,7 @@ class Trajectory_Methods:
                (float(data_array[7][1][:-10]) - float(data_array[7][0][:-10])) * 10]
 
         # Update class attributes with calculated data
+        self.batch_size = batch_size
         self.dimensions = Meta_Functions.Get_Dimensionality(box)
         self.box_array = box
         self.volume = box[0] * box[1] * box[2]
@@ -86,7 +87,7 @@ class Trajectory_Methods:
         self.number_of_atoms = number_of_atoms
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
-        self.time_dimensions = [0.0, time_N*self.time_step*time_scale]
+        self.time_dimensions = [0.0, time_N*self.time_step*self.time_unit]
 
     def Get_EXTXYZ_Properties(self, data_array):
         """ Function to process extxyz input files """
@@ -138,13 +139,13 @@ class Trajectory_Methods:
             for property in property_groups:
                 database[item].create_group(property)
                 database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations-
-                                                              self.number_of_configurations % 1000),
+                                                              self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
                 database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations-
-                                                              self.number_of_configurations % 1000),
+                                                              self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
                 database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations -
-                                                              self.number_of_configurations % 1000),
+                                                              self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
 
     def Read_Configurations(self, N, f):

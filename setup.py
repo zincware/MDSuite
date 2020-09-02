@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="MDSuite",
-    version="0.0.1",
+    version="0.0.2",
     author="Samuel Tovey",
     author_email="tovey.samuel@gmail.com",
     description="A postprocessing tool for molecular dynamics simulations targeting the machine learning community",

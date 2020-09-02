@@ -6,6 +6,9 @@ Purpose: This file contains arbitrary functions used in several different proces
          smaller purposes in order to clean up code in more important parts of the program.
 """
 
+import os
+import psutil
+
 def Write_XYZ(data):
     """ Write an xyz file from data arrays
 
@@ -164,5 +167,49 @@ def Line_Counter(filename):
         buf = read_f(buf_size)
 
     return lines
+
+def Optimize_Batch_Size(filepath, number_of_configurations):
+    """ Optimize the size of batches during initial processing
+
+    During the database construction a batch size must be chosen in order to process the trajectories with the
+    least RAM but reasonable performance.
+    """
+
+    file_size = os.path.getsize(filepath) # Get the size of the file
+    available_memory = psutil.virtual_memory().available
+    memory_per_configuration = file_size / number_of_configurations # get the memory per configuration
+    database_memory = 0.1*available_memory # We take 20% of the available memory
+    initial_batch_number = int(database_memory / memory_per_configuration) # trivial batch allocation
+
+    if file_size < database_memory:
+        batch_number = number_of_configurations
+    else:
+        remainder = 1000000000
+        for i in range(10):
+            r_temp = number_of_configurations % (initial_batch_number - i)
+            if r_temp <= remainder:
+                batch_number = initial_batch_number - i
+
+        if batch_number > 1000:
+            batch_number = 1000
+
+    return batch_number
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
