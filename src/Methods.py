@@ -7,7 +7,7 @@ Purpose: Larger methods used in the Trajectory class
 import Meta_Functions
 import numpy as np
 import h5py as hf
-
+import seaborn as sns
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """
@@ -170,7 +170,6 @@ class Trajectory_Methods:
 
         return np.array(data)
 
-
     def Process_Configurations(self, data, database, counter):
         """ Process the available data
 
@@ -203,4 +202,30 @@ class Trajectory_Methods:
                         (len(self.species[item]), partitioned_configurations),
                         order='F')
 
+    def Plot_Investigation(self, data, observable):
+        """ Construct a linear plot of data
 
+        Will construct a specialised plot depending on what property is being studied. Currently operational for:
+            1.) GK Conductivity
+        """
+
+        def Green_Kubo_Conductivity():
+            """ Plot the GK autocorrelation function """
+
+            ax = sns.lineplot(x=data[0], y=data[1])
+            ax.set(xlabel = 'Time', ylabel = 'Normalized current autocorrelation function')
+            ax.show()
+
+        def Einstein_Diffusion():
+            pass
+
+        def Choose_Plot(observable):
+            switcher = {
+                1: Green_Kubo_Conductivity(),
+                2: Einstein_Diffusion()
+            }
+            function = switcher.get(observable, lambda : "Plot function does not exist")
+
+            return function
+
+        Choose_Plot(observable)

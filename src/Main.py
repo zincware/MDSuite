@@ -16,22 +16,22 @@ def main():
     NaCl_1300K = Trajectory(analysis_name = "1300K_VACF",
                             storage_path = "/data/stovey",
                             new_project = False)
-    NaCl_1300K.Green_Kubo_Conductivity(250000)
+    NaCl_1300K.Green_Kubo_Conductivity(1250, plot=True)
 
     #NaCl_1350K = Trajectory(analysis_name="1350K_VACF",
     #                        storage_path="/data/stovey",
     #                        new_project=False)
-    #NaCl_1350K.Green_Kubo_Conductivity(5000)
+    #NaCl_1350K.Green_Kubo_Conductivity(1250, plot=True)
 
     #NaCl_1400K = Trajectory(analysis_name="1400_VACF",
     #                        storage_path="/data/stovey",
     #                        new_project=False)
-    #NaCl_1400K.Green_Kubo_Conductivity(5000)
+    #NaCl_1400K.Green_Kubo_Conductivity(1250, plot=True)
 
     #NaCl_1450K = Trajectory(analysis_name="1450K_VACF",
-    #                        storage_path="/data/stovey",
-    #                        new_project=False)
-    #NaCl_1450K.Green_Kubo_Conductivity(5000)
+     #                       storage_path="/data/stovey",
+     #                       new_project=False)
+    #NaCl_1450K.Green_Kubo_Conductivity(1250, plot=True)
 
 
 
