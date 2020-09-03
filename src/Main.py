@@ -19,22 +19,27 @@ def main():
 
     NaCl_1074K = Trajectory(analysis_name="1074K_VACF",
                       storage_path="/data/stovey",
-                      new_project=True,
+                      new_project=False,
                       temperature=1074.0,
                       time_step=0.002,
                       time_unit=1e-12,
                       filename="/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1074K/VACF/NaCl_Velocities.xyz")
 
-    test = Trajectory(analysis_name="test_Analysis",
-                      storage_path="/tikhome/stovey/work/Repositories/MDSuite/tests",
+    NaCl_1148K = Trajectory(analysis_name="1148K_VACF",
+                      storage_path="/data/stovey",
                       new_project=True,
-                      temperature=1400.0,
+                      temperature=1148.0,
                       time_step=0.002,
                       time_unit=1e-12,
-                      filename="/tikhome/stovey/work/Repositories/MDSuite/tests/LiF_sample.xyz")
+                      filename="/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1148K/VACF/NaCl_Velocities.xyz")
 
-    #NaCl_1300K.Green_Kubo_Diffusion_Coefficients()
-    #test.Green_Kubo_Diffusion_Coefficients()
+    NaCl_1174K = Trajectory(analysis_name="1174K_VACF",
+                      storage_path="/data/stovey",
+                      new_project=True,
+                      temperature=1174.0,
+                      time_step=0.002,
+                      time_unit=1e-12,
+                      filename="/beegfs/work/stovey/LAMMPSSims/NaCl/scaledSim/Thesis_Sims/1174K/VACF/NaCl_Velocities.xyz")
 
 if __name__ == "__main__":
     main()
