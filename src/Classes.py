@@ -77,6 +77,7 @@ class Trajectory(Methods.Trajectory_Methods):
         self.temperature = temperature
         self.time_step = time_step
         self.time_unit = time_unit
+        self.sample_rate = None
         self.batch_size = None
         self.volume = None
         self.species = None
@@ -525,7 +526,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         summed_velocity = [] # Define array for the summed velocities
         jacf = np.zeros(data_range) # Define the empty JACF array
-        time = np.linspace(0, 2.5, int(0.5*len(jacf)))  # define the time
+        time = np.linspace(0, self.sample_rate*self.time_step*data_range, int(0.5*len(jacf)))  # define the time
 
         if plot == True:
             averaged_jacf = np.zeros(int(0.5*data_range))
@@ -566,6 +567,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("Green-Kubo Ionic Conductivity at {0}K: {1} +- {2} S/cm^2".format(self.temperature, np.mean(sigma) / 100,
                                                                                 (np.std(sigma)/(np.sqrt(len(sigma))))/100))
+        return np.mean(sigma)
 
     def Green_Kubo_Viscosity(self):
         """ Calculate the shear viscosity of the system using Green Kubo
@@ -574,4 +576,40 @@ class Trajectory(Methods.Trajectory_Methods):
         of the autocorrelation for the stress tensor of the sysetem.
         """
         pass
+
+    def Radial_Distribution_Function(self, bins=1000, cutoff=None):
+        """ Calculate the radial distribtion function
+
+        This function will calculate the radial distribution function for all pairs available in the system.
+
+        kwargs:
+            bins (int) -- Number of bins to use in the histogram when building the distribution function
+        """
+
+        # Define cutoff to half a box vector if none other is specified
+        if cutoff == None:
+            cutoff = self.box_array[0] / 2
+
+        positions_matrix = self.Load_Matrix("Positions") # Load the positions
+        bin_width = cutoff / bins # Calculate the bin_width
+
+    def Kirkwood_Buff_Integrals(self):
+        """ Calculate the Kirkwood-Buff integrals for the system
+
+        Function to calculate all possible kirkwood buff integrals in the trajectory data
+        """
+        pass
+
+    def Structure_Factor(self):
+        """ Calculate the structure factors in the system
+
+        Function to calculate the possible structure factors for the system
+        """
+        pass
+
+    def Angular_Distribution_Function(self):
+        """ Calculate angular distribution functions
+
+        Function to caluclate the possible angular distribution functions for the system
+        """
 

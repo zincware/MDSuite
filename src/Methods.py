@@ -59,7 +59,8 @@ class Trajectory_Methods:
 
         time_0 = float(data_array[1][0])
         time_1 = float(second_configuration[1][0])
-        time_N = (number_of_configurations - number_of_configurations % batch_size)*(time_1 - time_0)
+        sample_rate = time_1 - time_0
+        time_N = (number_of_configurations - number_of_configurations % batch_size)*sample_rate
 
         # Find the information regarding species in the system and construct a dictionary
         for i in range(9, number_of_atoms + 9):
@@ -88,6 +89,7 @@ class Trajectory_Methods:
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
         self.time_dimensions = [0.0, time_N*self.time_step*self.time_unit]
+        self.sample_rate = sample_rate
 
     def Get_EXTXYZ_Properties(self, data_array):
         """ Function to process extxyz input files """
