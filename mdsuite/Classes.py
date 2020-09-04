@@ -474,7 +474,7 @@ class Trajectory(Methods.Trajectory_Methods):
         """
         print("Sorry, this functionality is currently unavailable - Check back in soon!")
 
-    def Einstein_Helfand_Conductivity(self, measurement_range):
+    def Einstein_Helfand_Conductivity(self, measurement_range, plot=False):
         """ Calculate the Einstein-Helfand Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
@@ -482,6 +482,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         args:
             measurement_range (int) -- time range over which the measurement should be performed
+            plot(bool=False) -- If True, will plot the MSD over time
         """
 
         position_matrix = self.Load_Matrix("Unwrapped_Positions")
@@ -508,8 +509,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         sigma_array = [] # Initialize and array for the conductivity calculations
 
-        # Loop over different fit ranges to generate an array of conductivities, from which a mean and error can be
-        # calculated
+        # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
         for i in range(1000):
             # Create the measurement range
             start = np.random.randint(int(0.2*len(dipole_msd)), int(len(dipole_msd) - 2000))
@@ -528,7 +528,12 @@ class Trajectory(Methods.Trajectory_Methods):
         sigma = prefactor*np.mean(sigma_array)
         sigma_error = prefactor*np.sqrt(np.var(sigma_array))
 
-        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm^2")
+        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm")
+
+        if plot == True:
+            plt.plot(time, dipole_msd)
+            plt.xlabel("Time")
+            plt.ylabel("Dipole Mean Square Displacement")
 
     def Green_Kubo_Conductivity(self, data_range, plot=False):
         """ Calculate Green-Kubo Conductivity
