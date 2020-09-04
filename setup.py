@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.2",
     author="Samuel Tovey",
     author_email="tovey.samuel@gmail.com",
-    description="A postprocessing tool for molecular dynamics simulations targeting the machine learning community",
+    description="A postprocessing tool for molecular dynamics simulations targeting the machine learning community.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/SamTov/MDSuite",
@@ -18,4 +18,11 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',)
+    python_requires='>=3.6',
+    install_requires=['seaborn',
+                      'h5py',
+                      'numpy',
+                      'matplotlib',
+                      'scipy',
+                      'alive_progress',
+                      'psutil'])
