@@ -7,23 +7,17 @@ in molecular dynamics simulations. Upon finishing the desired analysis, binary f
 ## Installation
 Clone the repository with the following
 ```
-git clone https://github.com/SamTov/LAMMPS-Analysis.git
+git clone https://github.com/SamTov/MDSuite.git
+cd MDSuite
+pip install .
 ```
-Navigate into the created directory and then from there, into the src directory. From here, run
+For an overview of the program functionality, run the module directly with `-h` as an input flag.
 ```
-python Main.py -h
+python -m mdsuite -h
 ```
-For an overview of the program functionality. 
 ## Data Format
 This post-processing suite will take a LAMMPS file and will determine what properties are available for use in the 
 analysis. It also supports coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
-
-## Requirements
-Requirements.txt contains a full list of python packages required to use this suite but another list with links is given 
-here.
-* [Numpy](https://numpy.org/)
-* [Scipy](https://www.scipy.org/)
-* [MDAnalysis](https://www.mdanalysis.org/)
 
 ## Analysis 
 This suite is capable of calculating several properties both structural and dynamic of a system. The following is a 

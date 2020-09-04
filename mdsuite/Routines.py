@@ -6,8 +6,7 @@ Purpose: Routines required for the methods to run
 """
 
 import numpy as np
-import os
-from Meta_Functions import *
+from .Meta_Functions import *
 
 
 def Analysis_Initialization():

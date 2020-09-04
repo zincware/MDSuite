@@ -4,12 +4,13 @@ Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Larger methods used in the Trajectory class
 """
-import Meta_Functions
+import mdsuite.Meta_Functions as Meta_Functions
 import numpy as np
 import h5py as hf
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set()
+
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """

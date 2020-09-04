@@ -6,12 +6,9 @@ Purpose: Functions for the user interface of the LAMMPS analysis suite
 """
 
 import argparse as ap
-import os
-import numpy
-import subprocess as sp
 import glob
 import shutil
-from Classes import Trajectory
+from .Classes import Trajectory
 
 
 def Begin_Program():
