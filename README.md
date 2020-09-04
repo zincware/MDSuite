@@ -19,13 +19,6 @@ python -m mdsuite -h
 This post-processing suite will take a LAMMPS file and will determine what properties are available for use in the 
 analysis. It also supports coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
 
-## Requirements
-Requirements.txt contains a full list of python packages required to use this suite but another list with links is given 
-here.
-* [Numpy](https://numpy.org/)
-* [Scipy](https://www.scipy.org/)
-* [MDAnalysis](https://www.mdanalysis.org/)
-
 ## Analysis 
 This suite is capable of calculating several properties both structural and dynamic of a system. The following is a 
 breakdown of the capabilities of the program.
