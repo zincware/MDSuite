@@ -9,13 +9,12 @@ import numpy as np
 import os
 from scipy import signal
 from scipy.optimize import curve_fit
-import matplotlib.pyplot as plt
-import Methods
+import mdsuite.Methods as Methods
 import pickle
 import h5py as hf
 from alive_progress import alive_bar
-import Constants
-import Meta_Functions
+import mdsuite.Constants as Constants
+import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 
 

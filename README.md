@@ -7,7 +7,9 @@ in molecular dynamics simulations. Upon finishing the desired analysis, binary f
 ## Installation
 Clone the repository with the following
 ```
-git clone https://github.com/SamTov/LAMMPS-Analysis.git
+git clone https://github.com/SamTov/MDSuite.git
+cd MDSuite
+pip install .
 ```
 Navigate into the created directory and then from there, into the src directory. From here, run
 ```
