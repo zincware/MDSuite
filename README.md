@@ -11,11 +11,10 @@ git clone https://github.com/SamTov/MDSuite.git
 cd MDSuite
 pip install .
 ```
-Navigate into the created directory and then from there, into the src directory. From here, run
+For an overview of the program functionality, run the module directly with `-h` as an input flag.
 ```
-python Main.py -h
+python -m mdsuite -h
 ```
-For an overview of the program functionality. 
 ## Data Format
 This post-processing suite will take a LAMMPS file and will determine what properties are available for use in the 
 analysis. It also supports coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
