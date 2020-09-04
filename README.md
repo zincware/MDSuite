@@ -4,6 +4,13 @@ A post-processing suite for the [LAMMPS](https://lammps.sandia.gov/) simulation 
 This program takes the LAMMPS dump file and process it to calculate several properties of the systems often of interest 
 in molecular dynamics simulations. Upon finishing the desired analysis, binary files of the available data are stored in a new directory for reload purposes if further analysis is required. The calculated properties are stored and appended to a .txt file in this new directory.
 
+## Disclaimer
+
+Currently this project in in development. It is likely that the methods in the Trajectory class will be changed in the 
+next months and so it is important to update the repository before using. 
+
+Furthermore, we make no assurances as to the accuracy of the results. It is your own responsibility to ensure you are
+comfortable with returned values before publishing.  
 ## Installation
 Clone the repository with the following
 ```
