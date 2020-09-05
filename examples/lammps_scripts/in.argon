@@ -54,7 +54,7 @@ fix             myThermostat all nvt temp 85 85 $(50*dt)
 #### Define dump files ###
 ##########################
 
-dump            myDump1 all custom 20 Ar_80K.dump id type x y z vx vy vz fx fy fz
+dump            myDump1 all custom 20 Ar_80K.dump id type element x y z vx vy vz fx fy fz
 dump_modify     myDump1 sort id
 dump_modify     myDump1 append yes
 
