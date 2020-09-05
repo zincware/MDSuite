@@ -1,3 +1,7 @@
+# Important Note
+
+Package not yet ready for release. Expected initialty release September 7th 2020
+
 # LAMMPS Tools
 A post-processing suite for the [LAMMPS](https://lammps.sandia.gov/) simulation package.
 
