@@ -17,6 +17,7 @@ import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 import matplotlib.pyplot as plt
+import seaborn as sns
 sns.set()
 
 
@@ -305,7 +306,7 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         # Load the matrix of species positions
-        positions_matrix = self.Load_Matrix("Unwrapped_Positions")
+        positions_matrix = [self.Load_Matrix("Unwrapped_Positions")]
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
@@ -322,7 +323,8 @@ class Trajectory(Methods.Trajectory_Methods):
                 msd = [[], [], []]
                 for j in range(len(positions_matrix[i])):  # Loop over number of atoms of species i
                     for k in range(3):
-                        msd[k].append((positions_matrix[i][j][:, k] - positions_matrix[i][j][0][k]) ** 2)
+                        msd[k].append(np.array((np.array(positions_matrix[i][j][0][:, k]) -
+                                       np.array(positions_matrix[i][j][0][0][k])) ** 2))
 
                 # Calculate the summed average of MSD
                 msd = (self.length_unit**2)*np.sum([np.mean(msd[j], axis=0) for j in range(3)])
