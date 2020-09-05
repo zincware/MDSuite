@@ -17,6 +17,7 @@ import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 import matplotlib.pyplot as plt
+import seaborn as sns
 sns.set()
 
 
@@ -271,27 +272,31 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("\n --- Finished unwrapping coordinates --- \n")
 
-    def Load_Matrix(self, identifier):
+    def Load_Matrix(self, identifier, species=None):
         """ Load a desired property matrix
 
         args:
             identifier (str) -- Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
+            species (list) -- List of species to be loaded
 
         returns:
             Matrix of the property
         """
 
+        if species == None:
+            species = list(self.species.keys())
         property_matrix = [] # Define an empty list for the properties to fill
 
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
-            for item in self.species:
+            print(self.species.keys())
+            for item in list(species):
                 property_matrix.append(np.dstack((database[item][identifier]['x'],
                                                    database[item][identifier]['y'],
                                                    database[item][identifier]['z'])))
 
         return property_matrix
 
-    def Einstein_Diffusion_Coefficients(self, plot=False, Singular = True, Distinct = False):
+    def Einstein_Diffusion_Coefficients(self, plot=False, Singular = True, Distinct = False, species=None):
         """ Calculate the Einstein self diffusion coefficients
 
             A function to implement the Einstein method for the calculation of the self diffusion coefficients
@@ -304,8 +309,8 @@ class Trajectory(Methods.Trajectory_Methods):
                 Distinct (bool = False) -- If True, will calculate the distinct diffusion coefficients
         """
 
-        # Load the matrix of species positions
-        positions_matrix = self.Load_Matrix("Unwrapped_Positions")
+        if species == None:
+            species_list = list(self.species.keys())
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
@@ -318,11 +323,14 @@ class Trajectory(Methods.Trajectory_Methods):
             diffusion_coefficients = {} # Define an empty dictionary to store the coefficients
 
             # Loop over each atomic specie to calculate self-diffusion
-            for i in range(len(list(self.species))):
+            for item in list(species):
+                positions_matrix = self.Load_Matrix("Unwrapped_Positions", [item])
+                print(positions_matrix)
                 msd = [[], [], []]
-                for j in range(len(positions_matrix[i])):  # Loop over number of atoms of species i
+                for j in range(len(self.species[item])):  # Loop over number of atoms of species i
                     for k in range(3):
-                        msd[k].append((positions_matrix[i][j][:, k] - positions_matrix[i][j][0][k]) ** 2)
+                        msd[k].append(np.array((np.array(positions_matrix[i][j][0][:, k]) -
+                                       np.array(positions_matrix[i][j][0][0][k])) ** 2))
 
                 # Calculate the summed average of MSD
                 msd = (self.length_unit**2)*np.sum([np.mean(msd[j], axis=0) for j in range(3)])
