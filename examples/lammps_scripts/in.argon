@@ -23,8 +23,9 @@ create_box 	1 myRegion
 ##############################################################
 
 read_dump 	Ar.xyz 0 x y z box no add yes format xyz
-set 		region myRegion type 1
-mass		*  39.948
+set 		atom 1*108 type 1
+mass		1  39.948
+group		Ar type 1
 velocity	all create 85 174782
 
 ########################################
@@ -54,7 +55,8 @@ fix             myThermostat all nvt temp 85 85 $(50*dt)
 #### Define dump files ###
 ##########################
 
-dump            myDump1 all custom 20 Ar_80K.dump id type x y z vx vy vz fx fy fz
+dump            myDump1 all custom 20 Ar_85K.dump id type element x y z vx vy vz fx fy fz
+dump_modify	myDump1 element Ar
 dump_modify     myDump1 sort id
 dump_modify     myDump1 append yes
 
