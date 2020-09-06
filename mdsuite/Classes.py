@@ -590,11 +590,10 @@ class Trajectory(Methods.Trajectory_Methods):
         velocity_matrix = self.Load_Matrix("Velocities")
 
         summed_velocity = [] # Define array for the summed velocities
-        jacf = np.zeros(data_range) # Define the empty JACF array
-        time = np.linspace(0, self.sample_rate*self.time_step*data_range, int(0.5*len(jacf)))  # define the time
+        time = np.linspace(0, self.sample_rate*self.time_step*data_range, data_range)  # define the time
 
         if plot == True:
-            averaged_jacf = np.zeros(int(0.5*data_range))
+            averaged_jacf = np.zeros(data_range)
 
         for i in range(len(list(self.species))):
             summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
@@ -603,16 +602,16 @@ class Trajectory(Methods.Trajectory_Methods):
         loop_range = len(current) - data_range - 1 # Define the loop range
         sigma = []
         for i in range(loop_range):
-            jacf = np.zeros(data_range)  # Define the empty JACF array
+            jacf = np.zeros(2*data_range - 1)  # Define the empty JACF array
             jacf += (signal.correlate(current[:, 0][i:i + data_range],
                                       current[:, 0][i:i + data_range],
-                                      mode='same', method='fft') +
+                                      mode='full', method='fft') +
                     signal.correlate(current[:, 1][i:i + data_range],
                                      current[:, 1][i:i + data_range],
-                                     mode='same', method='fft') +
+                                     mode='full', method='fft') +
                     signal.correlate(current[:, 2][i:i + data_range],
                                      current[:, 2][i:i + data_range],
-                                     mode='same', method='fft'))
+                                     mode='full', method='fft'))
 
             # Cut off the second half of the acf
             jacf = jacf[int((len(jacf) / 2)):]
@@ -621,7 +620,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             numerator = (Constants.elementary_charge**2)*(self.length_unit**2)
             denominator = 3*Constants.boltzmann_constant*self.temperature*(self.volume*(self.length_unit**3))*\
-                          self.time_unit*(2 * len(jacf) - 1)*2
+                          self.time_unit*(2 * len(jacf) - 1)
             prefactor = numerator / denominator
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
