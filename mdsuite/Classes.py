@@ -624,9 +624,9 @@ class Trajectory(Methods.Trajectory_Methods):
             if plot == True:
                 averaged_jacf += jacf
 
-            numerator = (Constants.elementary_charge**2)*(self.length_unit**2)
+            numerator = 2*(Constants.elementary_charge**2)*(self.length_unit**2)
             denominator = 3*Constants.boltzmann_constant*self.temperature*(self.volume*(self.length_unit**3))*\
-                          self.time_unit*(2 * len(jacf) - 1)*2
+                          self.time_unit*(2 * len(jacf) - 1)
             prefactor = numerator / denominator
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
