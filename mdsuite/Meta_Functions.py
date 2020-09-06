@@ -195,7 +195,18 @@ def Optimize_Batch_Size(filepath, number_of_configurations):
 
     return batch_number
 
+def Linear_Fitting_Function(x, a, b):
+    """ Linear function for line fitting
 
+    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some data. This function
+    is called by the scipy curve_fit module as the model to fit to.
+
+    args:
+        x (list) -- x data for fitting
+        a (float) -- fitting parameter of the gradient
+        b (float) -- fitting parameter for the y intercept
+    """
+    return a*x + b
 
 
 

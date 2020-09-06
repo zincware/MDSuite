@@ -288,7 +288,6 @@ class Trajectory(Methods.Trajectory_Methods):
         property_matrix = [] # Define an empty list for the properties to fill
 
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
-            print(self.species.keys())
             for item in list(species):
                 property_matrix.append(np.dstack((database[item][identifier]['x'],
                                                    database[item][identifier]['y'],
@@ -296,7 +295,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         return property_matrix
 
-    def Einstein_Diffusion_Coefficients(self, plot=False, Singular = True, Distinct = False, species=None):
+    def Einstein_Diffusion_Coefficients(self, plot=False, singular = True, distinct = False, species=None):
         """ Calculate the Einstein self diffusion coefficients
 
             A function to implement the Einstein method for the calculation of the self diffusion coefficients
@@ -307,10 +306,11 @@ class Trajectory(Methods.Trajectory_Methods):
                 plot (bool = False) -- If True, a plot of the msd will be displayed
                 Singular (bool = True) -- If True, will calculate the singular diffusion coefficients
                 Distinct (bool = False) -- If True, will calculate the distinct diffusion coefficients
+                species (list) -- List of species to analyze
         """
 
         if species == None:
-            species_list = list(self.species.keys())
+            species = list(self.species.keys())
 
         def Singular_Diffusion_Coefficients():
             """ Calculate singular diffusion coefficients
@@ -325,23 +325,27 @@ class Trajectory(Methods.Trajectory_Methods):
             # Loop over each atomic specie to calculate self-diffusion
             for item in list(species):
                 positions_matrix = self.Load_Matrix("Unwrapped_Positions", [item])
-                print(positions_matrix)
-                msd = [[], [], []]
+                msd = [[np.zeros(self.number_of_configurations)],
+                       [np.zeros(self.number_of_configurations)],
+                       [np.zeros(self.number_of_configurations)]]
+
+                numerator = self.length_unit**2
+                denominator = (len(self.species[item]))*6
+                prefactor = numerator/denominator
                 for j in range(len(self.species[item])):  # Loop over number of atoms of species i
                     for k in range(3):
-                        msd[k].append(np.array((np.array(positions_matrix[i][j][0][:, k]) -
-                                       np.array(positions_matrix[i][j][0][0][k])) ** 2))
+                        msd[k] += (positions_matrix[0][j][:, k] -
+                                            positions_matrix[0][j][0][k]) ** 2
 
                 # Calculate the summed average of MSD
-                msd = (self.length_unit**2)*np.sum([np.mean(msd[j], axis=0) for j in range(3)])
-
+                msd = prefactor*(msd[0][0] + msd[1][0] + msd[2][0])
                 time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
                 if plot == True:
-                    plt.plot(time, msd, label = list(self.species)[i])
+                    plt.plot(time, msd, label = item)
 
                 popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time, msd)
-                diffusion_coefficients[list(self.species)[i]] = popt[0] / 6
+                diffusion_coefficients[item] = popt[0]
 
             if plot == True:
                 plt.legend()
@@ -358,14 +362,16 @@ class Trajectory(Methods.Trajectory_Methods):
             """
             print("Sorry, distinct diffusion from Einstein is not yet available - Check back soon!")
 
-        if Singular == True:
+        if singular == True:
             singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-            print(f"Einstein Self-Diffusion Coefficients: {singular_diffusion_coefficients}")
+            print("Einstein Self-Diffusion Coefficients:\n")
+            for item in singular_diffusion_coefficients:
+                print(f"{item}: {singular_diffusion_coefficients[item]}\n")
 
-        if Distinct == True:
+        if distinct == True:
             Distinct_Diffusion_Coefficients()
 
-    def Green_Kubo_Diffusion_Coefficients(self):
+    def Green_Kubo_Diffusion_Coefficients(self, data_range, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
@@ -373,8 +379,9 @@ class Trajectory(Methods.Trajectory_Methods):
         fft correlate function in order to speed up the calculation.
         """
 
-        # load the velocity matrix
-        velocity_matrix = self.Load_Matrix("Velocities")
+        # Load all the species if none are specified
+        if species == None:
+            species = list(self.species.keys())
 
         def Singular_Diffusion_Coefficients():
             """ Calculate the singular diffusion coefficients """
@@ -382,34 +389,59 @@ class Trajectory(Methods.Trajectory_Methods):
             diffusion_coefficients = {} # define empty dictionary for diffusion coefficients
 
             # Define time array - CHANGE to an input (you don't need all the time)
-            time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(velocity_matrix[0][0]))
+            time = np.linspace(0.0, data_range*self.time_step*self.sample_rate, data_range)
 
-            numerator = self.length_unit**2
-            denominator = 3*(self.time_unit**2)*(2*len(time)-1)
+            numerator = 2*self.length_unit**2
+            denominator = 3*(self.time_unit)*(2*len(time)-1)
             prefactor = numerator/denominator
 
             # Loop over the species in the system
-            for i in range(len(list(self.species.keys()))):
-                vacf = np.zeros(len(velocity_matrix[i][0])) # Define vacf array
+            for item in species:
+                velocity_matrix = self.Load_Matrix("Velocities", [item])
 
-                # Loop over the atoms of species i to get the average
-                for j in range(len(velocity_matrix[i])):
-                    vacf += np.array(
-                        signal.correlate(velocity_matrix[i][j][:, 0], velocity_matrix[i][j][:, 0], mode='same',
-                                         method='fft') +
-                        signal.correlate(velocity_matrix[i][j][:, 1], velocity_matrix[i][j][:, 1], mode='same',
-                                         method='fft') +
-                        signal.correlate(velocity_matrix[i][j][:, 2], velocity_matrix[i][j][:, 2], mode='same',
-                                         method='fft'))
+                loop_range = self.number_of_configurations - data_range - 1
+                coefficient_array = []
 
-                # Calculate the self-diffusion coefficient for the species with the update prefactor
-                prefactor /= len(velocity_matrix[i])
-                diffusion_coefficients[list(self.species)[i]] = prefactor * np.trapz(vacf[int(len(vacf) / 2):], x=time)
+                if plot == True:
+                    parsed_vacf = np.zeros(int(data_range))
+
+                for i in range(loop_range):
+                    vacf = np.zeros(int(2*data_range - 1)) # Define vacf array
+                    # Loop over the atoms of species to get the average
+                    for j in range(len(self.species[item])):
+                        vacf += np.array(
+                            signal.correlate(velocity_matrix[0][j][i:i + data_range, 0],
+                                             velocity_matrix[0][j][i:i + data_range, 0],
+                                             mode='full', method='fft') +
+                            signal.correlate(velocity_matrix[0][j][i:i + data_range, 1],
+                                             velocity_matrix[0][j][i:i + data_range, 1],
+                                             mode='full', method='fft') +
+                            signal.correlate(velocity_matrix[0][j][i:i + data_range, 2],
+                                             velocity_matrix[0][j][i:i + data_range, 2],
+                                             mode='full', method='fft'))
+
+                    coefficient_array.append((prefactor/len(self.species[item])) * np.trapz(vacf[int(len(vacf) / 2):],
+                                                                                      x=time))
+
+                    if plot == True:
+                        parsed_vacf += vacf[int(len(vacf) / 2):]
+
+                diffusion_coefficients[item] = [np.mean(coefficient_array),
+                                                np.std(coefficient_array)/(np.sqrt(len(coefficient_array)))]
+
+                if plot == True:
+                    plt.plot(time, (parsed_vacf/loop_range)/max(parsed_vacf), label=item)
+
+            if plot == True:
+                plt.legend()
+                plt.show()
 
             return diffusion_coefficients
 
         def Distinct_Diffusion_Coefficients():
             """ Calculate the distinct diffusion coefficients """
+
+            print("Please note, distinct diffusion coefficients are not currently accurate")
 
             diffusion_coefficients = {} # define empty dictionary for the coefficients
 
@@ -455,17 +487,18 @@ class Trajectory(Methods.Trajectory_Methods):
                 pairs += 1
             return diffusion_coefficients
 
-        singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-        distinct_diffusion_coefficients = Distinct_Diffusion_Coefficients()
+        if singular == True:
+            singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+            for item in singular_diffusion_coefficients:
+                print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
+                      f"{singular_diffusion_coefficients[item][0]} +- "
+                      f"{singular_diffusion_coefficients[item][1]} m^2/s")
 
-        for item in singular_diffusion_coefficients:
-            print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
-                  f"{singular_diffusion_coefficients[item]} m^2/s")
-
-        print("Please note, distinct diffusion coefficients are not currently accurate")
-        for item in distinct_diffusion_coefficients:
-            print(f"Distinct-Diffusion Coefficient for {item} at {self.temperature}K: "
-                  f"{singular_diffusion_coefficients[item]} m^2/s")
+        if distinct == True:
+            distinct_diffusion_coefficients = Distinct_Diffusion_Coefficients()
+            for item in singular_diffusion_coefficients:
+                print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
+                      f"{singular_diffusion_coefficients[item]} m^2/s")
 
     def Nernst_Einstein_Conductivity(self, diffusion_coefficients, label):
         """ Calculate Nernst-Einstein Conductivity
@@ -543,7 +576,7 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.xlabel("Time")
             plt.ylabel("Dipole Mean Square Displacement")
 
-    def Green_Kubo_Conductivity(self, data_range, plot=False):
+    def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
