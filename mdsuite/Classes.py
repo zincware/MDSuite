@@ -515,7 +515,7 @@ class Trajectory(Methods.Trajectory_Methods):
         """
         print("Sorry, this functionality is currently unavailable - Check back in soon!")
 
-    def Einstein_Helfand_Conductivity(self, measurement_range, plot=False):
+    def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
@@ -535,7 +535,9 @@ class Trajectory(Methods.Trajectory_Methods):
                 summed_positions[j].append(np.sum(position_matrix[j][:, i], axis=0))
 
         dipole_moment = (np.array(summed_positions[0]) - np.array(summed_positions[1]))
-        dipole_moment_msd = [[], [], []] # Initialize empty dipole moment msd matrix
+        dipole_moment_msd = [[np.zeros(measurement_range)],
+                             [np.zeros(measurement_range)],
+                             [np.zeros(measurement_range)]] # Initialize empty dipole moment msd matrix
 
         loop_range = len(position_matrix[0][0]) - (measurement_range - 1) # Define the loop range
 
@@ -544,20 +546,21 @@ class Trajectory(Methods.Trajectory_Methods):
             for j in range(3):
                 dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j])**2
 
-        dipole_msd = np.array(np.sum(dipole_moment_msd)) # Calculate the net msd
+        dipole_msd = np.array(np.array(dipole_moment_msd[0]) +
+                              np.array(dipole_moment_msd[1]) +
+                              np.array(dipole_moment_msd[2])) # Calculate the net msd
 
-        time = np.linspace(0.0, measurement_range*self.sample_rate*self.time_step, len(dipole_msd)) # Initialize the time
+        time = np.linspace(0.0, measurement_range*self.sample_rate*self.time_step, len(dipole_msd[0])) # Initialize the time
 
         sigma_array = [] # Initialize and array for the conductivity calculations
-
         # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
         for i in range(1000):
             # Create the measurement range
-            start = np.random.randint(int(0.2*len(dipole_msd)), int(len(dipole_msd) - 2000))
-            stop = np.random.randint(int(start + 1000), int(len(dipole_msd)))
+            start = np.random.randint(0, 20)
+            stop = np.random.randint(30, int(len(dipole_msd[0])))
             
             # Calculate the value and append the array
-            popt, pcov = curve_fit(func, time[start:stop], dipole_msd[start:stop])
+            popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time[start:stop], dipole_msd[0][start:stop])
             sigma_array.append(popt[0])
 
         # Define the multiplicative prefactor of the calculation
@@ -569,12 +572,15 @@ class Trajectory(Methods.Trajectory_Methods):
         sigma = prefactor*np.mean(sigma_array)
         sigma_error = prefactor*np.sqrt(np.var(sigma_array))
 
-        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm")
-
         if plot == True:
-            plt.plot(time, dipole_msd)
+            plt.plot(time, dipole_msd[0])
             plt.xlabel("Time")
             plt.ylabel("Dipole Mean Square Displacement")
+            plt.show()
+            plt.loglog(time, dipole_msd[0])
+            plt.show()
+
+        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm")
 
     def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
         """ Calculate Green-Kubo Conductivity
@@ -620,7 +626,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             numerator = (Constants.elementary_charge**2)*(self.length_unit**2)
             denominator = 3*Constants.boltzmann_constant*self.temperature*(self.volume*(self.length_unit**3))*\
-                          self.time_unit*(2 * len(jacf) - 1)
+                          self.time_unit*(2 * len(jacf) - 1)*2
             prefactor = numerator / denominator
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
