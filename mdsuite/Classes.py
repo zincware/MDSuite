@@ -634,8 +634,9 @@ class Trajectory(Methods.Trajectory_Methods):
         if plot == True:
             averaged_jacf /= max(averaged_jacf)
             plt.plot(time, averaged_jacf)
-            plt.xlabel("Time")
-            plt.ylabel("Averaged Current Autocorrelation Function")
+            plt.xlabel("Time (ps)")
+            plt.ylabel("Normalized Current Autocorrelation Function")
+            plt.savefig(f"GK_Cond_{self.temperature}.pdf", )
             plt.show()
 
         print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)/100} +- "
