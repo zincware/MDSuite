@@ -17,9 +17,7 @@ import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set()
-
+plt.style.use('bmh')
 
 class Trajectory(Methods.Trajectory_Methods):
     """ Trajectory from simulation
@@ -93,9 +91,12 @@ class Trajectory(Methods.Trajectory_Methods):
         self.box_array = None
         self.number_of_configurations = None
         self.time_dimensions = None
-        self.singular_diffusion_coefficients = None
-        self.distinct_diffusion_coefficients = None
-        self.ionic_conductivity = None
+        self.Diffusion_Coefficients = {"Einstein":{"Singular": {}, "Distinct": {}},
+                                       "Green-Kubo": {"Singular": {}, "Distinct": {}}}
+        self.Ionic_Conductivity = {"Einstein-Helfand": {},
+                                   "Green-Kubo": {},
+                                   "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
+                                   "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
 
         if self.new_project == False:
             self.Load_Class()
@@ -128,7 +129,13 @@ class Trajectory(Methods.Trajectory_Methods):
     def Print_Class_Attributes(self):
         """ Print all attributes of the class """
 
-        print(', '.join("%s: %s" % item for item in vars(self).items()))
+        attributes = []
+        for item in vars(self).items():
+            attributes.append(item)
+        for tuple in attributes:
+            print(f"{tuple[0]}: {tuple[1]}")
+
+        return attributes
 
     def Process_Input_File(self):
         """ Process the input file
@@ -319,14 +326,13 @@ class Trajectory(Methods.Trajectory_Methods):
             of each atom is calculated and averaged over all the atoms in the system.
             """
 
-            diffusion_coefficients = {} # Define an empty dictionary to store the coefficients
-
+            used_configurations = int(self.number_of_configurations- self.number_of_configurations % self.batch_size)
             # Loop over each atomic specie to calculate self-diffusion
             for item in list(species):
                 positions_matrix = self.Load_Matrix("Unwrapped_Positions", [item])
-                msd = [[np.zeros(self.number_of_configurations)],
-                       [np.zeros(self.number_of_configurations)],
-                       [np.zeros(self.number_of_configurations)]]
+                msd = [[np.zeros(used_configurations)],
+                       [np.zeros(used_configurations)],
+                       [np.zeros(used_configurations)]]
 
                 numerator = self.length_unit**2
                 denominator = (len(self.species[item]))*6
@@ -344,13 +350,11 @@ class Trajectory(Methods.Trajectory_Methods):
                     plt.plot(time, msd, label = item)
 
                 popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time, msd)
-                diffusion_coefficients[item] = popt[0]
+                self.Diffusion_Coefficients["Einstein"]["Singular"][item] = popt[0]
 
             if plot == True:
                 plt.legend()
                 plt.show()
-
-            return diffusion_coefficients
 
         def Distinct_Diffusion_Coefficients():
             """ Calculate the Distinct Diffusion Coefficients
@@ -362,10 +366,10 @@ class Trajectory(Methods.Trajectory_Methods):
             print("Sorry, distinct diffusion from Einstein is not yet available - Check back soon!")
 
         if singular == True:
-            singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
+            Singular_Diffusion_Coefficients()
             print("Einstein Self-Diffusion Coefficients:\n")
-            for item in singular_diffusion_coefficients:
-                print(f"{item}: {singular_diffusion_coefficients[item]}\n")
+            for item in self.Diffusion_Coefficients["Einstein"]['Singular']:
+                print(f"{item}: {self.Diffusion_Coefficients['Einstein']['Singular'][item]} m^2/s\n")
 
         if distinct == True:
             Distinct_Diffusion_Coefficients()
@@ -384,8 +388,6 @@ class Trajectory(Methods.Trajectory_Methods):
 
         def Singular_Diffusion_Coefficients():
             """ Calculate the singular diffusion coefficients """
-
-            diffusion_coefficients = {} # define empty dictionary for diffusion coefficients
 
             # Define time array - CHANGE to an input (you don't need all the time)
             time = np.linspace(0.0, data_range*self.time_step*self.sample_rate, data_range)
@@ -425,8 +427,7 @@ class Trajectory(Methods.Trajectory_Methods):
                     if plot == True:
                         parsed_vacf += vacf[int(len(vacf) / 2):]
 
-                diffusion_coefficients[item] = [np.mean(coefficient_array),
-                                                np.std(coefficient_array)/(np.sqrt(len(coefficient_array)))]
+                self.Diffusion_Coefficients["Green-Kubo"]["Singular"][item] = np.mean(coefficient_array)
 
                 if plot == True:
                     plt.plot(time, (parsed_vacf/loop_range)/max(parsed_vacf), label=item)
@@ -435,14 +436,10 @@ class Trajectory(Methods.Trajectory_Methods):
                 plt.legend()
                 plt.show()
 
-            return diffusion_coefficients
-
         def Distinct_Diffusion_Coefficients():
             """ Calculate the distinct diffusion coefficients """
 
             print("Please note, distinct diffusion coefficients are not currently accurate")
-
-            diffusion_coefficients = {} # define empty dictionary for the coefficients
 
             species = list(self.species.keys())
             combinations = ['-'.join(tup) for tup in list(itertools.combinations_with_replacement(species, 2))]
@@ -481,38 +478,114 @@ class Trajectory(Methods.Trajectory_Methods):
 
                     diff_array.append(np.trapz(vacf, x=time))
 
-                diffusion_coefficients[combinations[pairs]] = [prefactor*np.mean(diff_array),
-                                                               prefactor*np.std(diff_array)/np.sqrt(len(diff_array))]
+                self.Diffusion_Coefficients["Green-Kubo"]["Distinct"][combinations[pairs]] = \
+                    [prefactor*np.mean(diff_array), prefactor*np.std(diff_array)/np.sqrt(len(diff_array))]
+
                 pairs += 1
-            return diffusion_coefficients
 
         if singular == True:
-            singular_diffusion_coefficients = Singular_Diffusion_Coefficients()
-            for item in singular_diffusion_coefficients:
+            Singular_Diffusion_Coefficients()
+            for item in species:
                 print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
-                      f"{singular_diffusion_coefficients[item][0]} +- "
-                      f"{singular_diffusion_coefficients[item][1]} m^2/s")
+                      f"{self.Diffusion_Coefficients['Green-Kubo']['Singular'][item]} m^2/s")
 
         if distinct == True:
-            distinct_diffusion_coefficients = Distinct_Diffusion_Coefficients()
-            for item in singular_diffusion_coefficients:
-                print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
-                      f"{singular_diffusion_coefficients[item]} m^2/s")
+            Distinct_Diffusion_Coefficients()
+            for item in self.Diffusion_Coefficients["Green-Kubo"]["Distinct"]:
+                print(f"Distinct-Diffusion Coefficient for {item} at {self.temperature}K: "
+                      f"{self.Diffusion_Coefficients['Green-Kubo']['Distinct'][item]} m^2/s")
 
-    def Nernst_Einstein_Conductivity(self, diffusion_coefficients, label):
+    def Nernst_Einstein_Conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
 
-        A function to determine the Nernst-Einstein as well as the corrected Nernst-Einstein
+        A function to determine the Nernst-Einstein (NE) as well as the corrected Nernst-Einstein (CNE)
         conductivity of a system.
 
-        args:
-            diffusion_coefficients (dict) -- A dictionary of self and distinct diffusion coefficients
-            label (str) -- A lable to identify whether the coefficients are from GK or Einstein methods
-
-        returns:
-            ionic_conductivity (dict) -- A dictionary of the ionic conductivity, corrected and uncorrected, with errors
         """
-        print("Sorry, this functionality is currently unavailable - Check back in soon!")
+        truth_array = [[bool(self.Diffusion_Coefficients["Einstein"]["Singular"]),
+                        bool(self.Diffusion_Coefficients["Einstein"]["Distinct"])],
+                       [bool(self.Diffusion_Coefficients["Green-Kubo"]["Singular"]),
+                        bool(self.Diffusion_Coefficients["Green-Kubo"]["Distinct"])]]
+
+        def _NE_Conductivity(_diffusion_coefficients):
+            """ Calculate the standard Nernst-Einstein Conductivity for the system
+
+            args:
+                _diffusion_coefficients (dict) -- dictionary of diffusion coefficients
+            """
+
+            numerator = self.number_of_atoms*(Constants.elementary_charge**2)
+            denominator = Constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
+            prefactor = numerator / denominator
+
+            diffusion_array = []
+            for element in self.species:
+                diffusion_array.append(_diffusion_coefficients["Singular"][element]*
+                                       (len(self.species[element])/self.number_of_atoms))
+
+            return prefactor * np.sum(diffusion_array)
+
+        def _CNE_Conductivity(_singular_diffusion_coefficients, _distinct_diffusion_coefficients):
+            print("Sorry, this currently isn't available")
+            exit()
+
+            numerator = self.number_of_atoms * (Constants.elementary_charge ** 2)
+            denominator = Constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
+            prefactor = numerator / denominator
+
+            singular_diffusion_array = []
+            for element in self.species:
+                singular_diffusion_array.append(_singular_diffusion_coefficients[element]*
+                                       (len(self.species[element])/self.number_of_atoms))
+
+
+        if all(truth_array[0]) == True and all(truth_array[1]) == True:
+            "Update all NE and CNE cond"
+            pass
+
+        elif not any(truth_array[0]) == True and not any(truth_array[0]) == True:
+            "Run the diffusion analysis and then calc. all"
+            pass
+
+        elif all(truth_array[0]) == True and not any(truth_array[1]) == True:
+            """ Calc NE, CNE for Einstein """
+            pass
+
+        elif all(truth_array[1]) == True and not any(truth_array[0]) == True:
+            """ Calc all NE, CNE for GK """
+            pass
+
+        elif truth_array[0][0] == True and truth_array[1][0] == True:
+            """ Calc just NE for EIN and GK """
+
+            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _NE_Conductivity(
+                self.Diffusion_Coefficients["Einstein"])
+            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _NE_Conductivity(
+                self.Diffusion_Coefficients["Green-Kubo"])
+
+            print(f'Nernst-Einstein Conductivity from Einstein Diffusion: '
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/m\n'
+                  f'Nernst-Einstein Conductivity from Green-Kubo Diffusion: '
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"]} S/m')
+
+        elif truth_array[0][0] == True and not any(truth_array[1]) == True:
+            """ Calc just NE for EIN """
+            pass
+
+        elif truth_array[1][0] == True and not any(truth_array[0]) == True:
+            """ Calc just NE for GK """
+            pass
+
+        elif all(truth_array[0] == True) and truth_array[1][0] == True:
+            """ Calc CNE for EIN and just NE for GK"""
+            pass
+
+        elif all(truth_array[1] == True) and truth_array[0][0] == True:
+            """ Calc CNE for GK and just NE for EIN"""
+            pass
+        else:
+            print("This really should not be possible... something has gone horrifically wrong")
+            exit()
 
     def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
@@ -576,8 +649,6 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.xlabel("Time")
             plt.ylabel("Dipole Mean Square Displacement")
             plt.show()
-            plt.loglog(time, dipole_msd[0])
-            plt.show()
 
         print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm")
 
@@ -639,7 +710,7 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.show()
 
         print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)/100} +- "
-              f"{0.01*np.std(sigma)/np.sqrt(len(sigma))} S/cm^2")
+              f"{0.01*np.std(sigma)/np.sqrt(len(sigma))} S/cm")
 
         return np.mean(sigma)/100
 

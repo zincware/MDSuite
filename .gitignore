@@ -39,6 +39,8 @@ pip-delete-this-directory.txt
 # Large data files
 #examples/trajectory_files/*
 
+
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
