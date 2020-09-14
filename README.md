@@ -1,12 +1,7 @@
 # Important Note
 
-Package not yet ready for release. Expected initial release September 2020
-
-# LAMMPS Tools
-A post-processing suite for the [LAMMPS](https://lammps.sandia.gov/) simulation package.
-
-This program takes the LAMMPS dump file and process it to calculate several properties of the systems often of interest 
-in molecular dynamics simulations. Upon finishing the desired analysis, binary files of the available data are stored in a new directory for reload purposes if further analysis is required. The calculated properties are stored and appended to a .txt file in this new directory.
+Package not yet ready for release. Expected initial release September 2020. Feel free to use it as it is and leave
+issues in the github repository.
 
 ## Disclaimer
 
@@ -15,6 +10,14 @@ next months and so it is important to update the repository before using.
 
 Furthermore, we make no assurances as to the accuracy of the results. It is your own responsibility to ensure you are
 comfortable with returned values before publishing.  
+
+# LAMMPS Tools
+A post-processing suite for the [LAMMPS](https://lammps.sandia.gov/) simulation package.
+
+MDSuite is a molecular dynamics postprocessing tool, initially built specifically for the LAMMPS simulation package.
+The program will take a lammps dump file and build a HDF5 database from the raw data. The restructuring of the data
+makes the immediate calculation of several system properties fast and easy. 
+
 ## Installation
 Clone the repository with the following
 ```
@@ -26,13 +29,15 @@ For an overview of the program functionality, run the module directly with `-h` 
 ```
 python -m mdsuite -h
 ```
+
 ## Data Format
 This post-processing suite will take a LAMMPS file and will determine what properties are available for use in the 
 analysis. It also supports coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
+Currently, the only expectation from the lammps dump is that the group names are in the third column. This is a bug 
+and will be corrected in the near future.
 
 ## Analysis 
-This suite is capable of calculating several properties both structural and dynamic of a system. The following is a 
-breakdown of the capabilities of the program.
+Currently the program can perform the following analysis.
 
 ### Self Diffusion Coefficients
 Self diffusion coefficients describe the average rate at which atoms move through the bulk material and can provide 
@@ -45,15 +50,33 @@ reference times.
 #### Green-Kubo Diffusion Coefficients
 Another method used for the calculation of many dynamic quantities is the Green-Kubo relation for diffusion. In this 
 model, we calculate the velocity autocorrelation function for each atom, averaging over times and atoms, in order to 
-calculate the diffusion coefficients.
+calculate the diffusion coefficients. The Green-Kubo implementation has the added benefit of sampling over different
+trajectory ranges, thus allowing for a reasonable estimate of the error in the calculation. This will be adjusted in the
+future to allow for sampling over the data correlation time, thereby giving a better approximation for the error.
 
-Each of these modules will save images associated with the analysis as well as raw data files which can be 
-re-visualized using the tools provided in the package
 ### Ionic Conductivity
 Another useful property of many liquid systems is ionic conductivity through the bulk. By studying the ionic 
 conductivity one can learn not only about possible applications but also the ionic effect present in the system.
+Currently we offer two methods for the calculation of the ionic conductivity.
 #### Einstein-Helfand Relationships
+In the Einstein-Helfan relations, the mean-square-displacement of the system dipole is calculated and plotted against
+time. From this plot, the linear region is fit using a fitting function, and the gradient taken to be the ionic
+conductivity.
+
 #### Green-Kubo Ionic Conductivity
+This is an implementation of another Green-Kubo relation, wherein the current autocorrelation function is calculated 
+and integrated over, in order to calculate the ionic conductivity.
+
+## Tools
+### Trajectory Unwrapper
+Often when performing simulations it is helpful to store wrapped coordinates in order to calculate structures and 
+better understand the PBC effects. In order to calculate dynamics using MSD approaches, this must be undone. Therefore, 
+we have written a coordinate unwrapping method inside the Trajectory class which may be used to automatically accomplish
+this task.
+
+### XYZ writer
+In ths package we have also written a tool to print an xyz file from the data. This will allow you to visualize the 
+unwrapped coordinates for example.
 
 ## Future Releases
 In the near future we hope to provide functionality for the following properties. 
@@ -63,5 +86,4 @@ In the near future we hope to provide functionality for the following properties
 * Structure Factor
 * Viscosity
 * Phonon Spectrum
-* XYZ writer
 
