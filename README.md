@@ -33,8 +33,6 @@ python -m mdsuite -h
 ## Data Format
 This post-processing suite will take a LAMMPS file and will determine what properties are available for use in the 
 analysis. It also supports coordinate unwrapping as well as trivial calculations in order to minimize data requirements.
-Currently, the only expectation from the lammps dump is that the group names are in the third column. This is a bug 
-and will be corrected in the near future.
 
 ## Analysis 
 Currently the program can perform the following analysis.
