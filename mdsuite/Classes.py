@@ -254,7 +254,6 @@ class Trajectory(Methods.Trajectory_Methods):
                         positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
                                                                        box_array[2]
 
-                print(np.array([positions_matrix[i][:, 2] for i in range(len(positions_matrix))]))
 
                 database[item].create_group("Unwrapped_Positions")
                 database[item]["Unwrapped_Positions"].create_dataset('x',
