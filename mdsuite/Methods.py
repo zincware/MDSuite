@@ -8,8 +8,8 @@ import mdsuite.Meta_Functions as Meta_Functions
 import numpy as np
 import h5py as hf
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set()
+#import seaborn as sns
+#sns.set()
 
 
 class Trajectory_Methods:
@@ -64,9 +64,13 @@ class Trajectory_Methods:
         time_N = (number_of_configurations - number_of_configurations % batch_size)*sample_rate
 
         # Find the information regarding species in the system and construct a dictionary
+        for i in range(len(data_array[8])):
+            if data_array[8][i] == "element":
+                element_index = i - 2
+
         for i in range(9, number_of_atoms + 9):
-            if data_array[i][2] not in species_summary:
-                species_summary[data_array[i][2]] = []
+            if data_array[i][element_index] not in species_summary:
+                species_summary[data_array[i][element_index]] = []
 
             species_summary[data_array[i][2]].append(i)
 
