@@ -199,7 +199,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
-    def Unwrap_Coordinates(self):
+    def Unwrap_Coordinates(self, species=None):
         """ Unwrap coordinates of trajectory
 
         For a number of properties the input data must in the form of unwrapped coordinates. This function takes the
@@ -207,6 +207,9 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         box_array = self.box_array  # Get the static box array --  NEED A NEW METHOD FOR V NEQ CONST SYSTEMS E.G NPT
+
+        if species == None:
+            species = self.species()
 
         def Center_Box(positions_matrix):
             """ Center atoms in box
@@ -229,7 +232,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             print("\n --- Beginning to unwrap coordinates --- \n")
 
-            for item in self.species:
+            for item in species:
                 # Construct the positions matrix -- Only temporary, we should make this memory safe
                 positions_matrix = np.dstack((database[item]["Positions"]['x'],
                                               database[item]["Positions"]['y'],
@@ -274,9 +277,12 @@ class Trajectory(Methods.Trajectory_Methods):
                                                                                     in range(len(positions_matrix))]))
 
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
+            for item in species:
+                if "Unwrapped_Positions" in database[item].keys():
+                    print("The positions here are already unwrapped")
+                    break
             Unwrap(database)
-
-        print("\n --- Finished unwrapping coordinates --- \n")
+            print("\n --- Finished unwrapping coordinates --- \n")
 
     def Load_Matrix(self, identifier, species=None):
         """ Load a desired property matrix
@@ -293,8 +299,13 @@ class Trajectory(Methods.Trajectory_Methods):
             species = list(self.species.keys())
         property_matrix = [] # Define an empty list for the properties to fill
 
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r") as database:
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             for item in list(species):
+                # Unwrap the positions if they need to be unwrapped
+                if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
+                    print("We first have to unwrap the coordinates... Doing this now")
+                    self.Unwrap_Coordinates(species = [item])
+
                 property_matrix.append(np.dstack((database[item][identifier]['x'],
                                                    database[item][identifier]['y'],
                                                    database[item][identifier]['z'])))
