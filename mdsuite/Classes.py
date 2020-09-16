@@ -162,9 +162,9 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         if file_format == 'lammps':
-            Methods.Trajectory_Methods.Get_LAMMPS_Properties(self)
+            self.Get_LAMMPS_Properties()
         else:
-            Methods.Trajectory_Methods.Get_EXTXYZ_Properties(self)
+            self.Get_EXTXYZ_Properties()
 
     def Build_Database(self):
         """ Build the 'database' for the analysis
