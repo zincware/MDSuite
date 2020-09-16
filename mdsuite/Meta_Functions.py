@@ -9,43 +9,6 @@ Purpose: This file contains arbitrary functions used in several different proces
 import os
 import psutil
 
-def Write_XYZ(data):
-    """ Write an xyz file from data arrays
-
-    For some of the properties calculated it is beneficial to have an xyz file for analysis with other platforms.
-    This function will write an xyz file from a numpy array of some property. Can be used in the visualization of
-    trajectories.
-
-    args:
-        data (array) -- Array of property to be studied
-    """
-
-    number_of_configurations: int = int(len(data[0][0])) # Get number of configurations
-    species = ["Na", "Cl"]
-
-    # Calculate the number of atoms in the full system
-    number_of_atoms: int = 0
-    for i in range(len(data)):
-        number_of_atoms += len(data[i])
-
-    write_array = []
-
-    # Construct the write array
-    for i in range(number_of_configurations):
-        write_array.append(number_of_atoms)
-        write_array.append("Nothing to see here")
-        for j in range(len(data)):
-            for k in range(len(data[j])):
-                write_array.append("{0:<}    {1:>9.4f}    {2:>9.4f}    {3:>9.4f}".format(species[j],
-                                                                                    data[j][k][i][0],
-                                                                                    data[j][k][i][1],
-                                                                                    data[j][k][i][2]))
-
-    # Write the array to an output file
-    with open("output.xyz", "w") as f:
-        for line in write_array:
-            f.write("%s\n" % line)
-
 def Get_Dimensionality(box):
     """ Calculate the dimensionality of the system box
 

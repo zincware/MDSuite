@@ -7,6 +7,7 @@ Purpose: Class functionality of the program
 
 import numpy as np
 import os
+import sys
 from scipy import signal
 from scipy.optimize import curve_fit
 import mdsuite.Methods as Methods
@@ -17,7 +18,9 @@ import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 import matplotlib.pyplot as plt
+
 plt.style.use('bmh')
+
 
 class Trajectory(Methods.Trajectory_Methods):
     """ Trajectory from simulation
@@ -91,7 +94,7 @@ class Trajectory(Methods.Trajectory_Methods):
         self.box_array = None
         self.number_of_configurations = None
         self.time_dimensions = None
-        self.Diffusion_Coefficients = {"Einstein":{"Singular": {}, "Distinct": {}},
+        self.Diffusion_Coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.Ionic_Conductivity = {"Einstein-Helfand": {},
                                    "Green-Kubo": {},
@@ -186,7 +189,8 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             with open(self.filename) as f:
                 counter = 0
-                with alive_bar(int(self.number_of_configurations / self.batch_size), bar='blocks', spinner='dots') as bar:
+                with alive_bar(int(self.number_of_configurations / self.batch_size), bar='blocks',
+                               spinner='dots') as bar:
                     for i in range(int(self.number_of_configurations / self.batch_size)):
                         test = Methods.Trajectory_Methods.Read_Configurations(self, self.batch_size, f)
 
@@ -209,7 +213,7 @@ class Trajectory(Methods.Trajectory_Methods):
         box_array = self.box_array  # Get the static box array --  NEED A NEW METHOD FOR V NEQ CONST SYSTEMS E.G NPT
 
         if species == None:
-            species = self.species()
+            species = list(self.species.keys())
 
         def Center_Box(positions_matrix):
             """ Center atoms in box
@@ -250,9 +254,6 @@ class Trajectory(Methods.Trajectory_Methods):
 
                     # Indices of first box cross
                     box_cross = [box_jump[0] + 1, box_jump[1] + 1, box_jump[2] + 1]
-                    box_cross[0] = box_cross[0]
-                    box_cross[1] = box_cross[1]
-                    box_cross[2] = box_cross[2]
 
                     for k in range(len(box_cross[0])):
                         positions_matrix[j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
@@ -263,7 +264,6 @@ class Trajectory(Methods.Trajectory_Methods):
                     for k in range(len(box_cross[2])):
                         positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
                                                                        box_array[2]
-
 
                 database[item].create_group("Unwrapped_Positions")
                 database[item]["Unwrapped_Positions"].create_dataset('x',
@@ -279,8 +279,8 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             for item in species:
                 if "Unwrapped_Positions" in database[item].keys():
-                    print("The positions here are already unwrapped")
-                    break
+                    print(f"{item} already has an unwrapped positions dataset, we will use that instead")
+                    return
             Unwrap(database)
             print("\n --- Finished unwrapping coordinates --- \n")
 
@@ -297,22 +297,25 @@ class Trajectory(Methods.Trajectory_Methods):
 
         if species == None:
             species = list(self.species.keys())
-        property_matrix = [] # Define an empty list for the properties to fill
+        property_matrix = []  # Define an empty list for the properties to fill
 
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             for item in list(species):
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
                     print("We first have to unwrap the coordinates... Doing this now")
-                    self.Unwrap_Coordinates(species = [item])
+                    self.Unwrap_Coordinates(species=[item])
+                if identifier not in database[item]:
+                    print("This data was not found in the database. Was it included in your simulation input?")
+                    return
 
                 property_matrix.append(np.dstack((database[item][identifier]['x'],
-                                                   database[item][identifier]['y'],
-                                                   database[item][identifier]['z'])))
+                                                  database[item][identifier]['y'],
+                                                  database[item][identifier]['z'])))
 
         return property_matrix
 
-    def Einstein_Diffusion_Coefficients(self, plot=False, singular = True, distinct = False, species=None):
+    def Einstein_Diffusion_Coefficients(self, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Einstein self diffusion coefficients
 
             A function to implement the Einstein method for the calculation of the self diffusion coefficients
@@ -337,7 +340,7 @@ class Trajectory(Methods.Trajectory_Methods):
             of each atom is calculated and averaged over all the atoms in the system.
             """
 
-            used_configurations = int(self.number_of_configurations- self.number_of_configurations % self.batch_size)
+            used_configurations = int(self.number_of_configurations - self.number_of_configurations % self.batch_size)
             # Loop over each atomic specie to calculate self-diffusion
             for item in list(species):
                 positions_matrix = self.Load_Matrix("Unwrapped_Positions", [item])
@@ -345,20 +348,20 @@ class Trajectory(Methods.Trajectory_Methods):
                        [np.zeros(used_configurations)],
                        [np.zeros(used_configurations)]]
 
-                numerator = self.length_unit**2
-                denominator = (len(self.species[item]))*6
-                prefactor = numerator/denominator
+                numerator = self.length_unit ** 2
+                denominator = (len(self.species[item])) * 6
+                prefactor = numerator / denominator
                 for j in range(len(self.species[item])):  # Loop over number of atoms of species i
                     for k in range(3):
                         msd[k] += (positions_matrix[0][j][:, k] -
-                                            positions_matrix[0][j][0][k]) ** 2
+                                   positions_matrix[0][j][0][k]) ** 2
 
                 # Calculate the summed average of MSD
-                msd = prefactor*(msd[0][0] + msd[1][0] + msd[2][0])
+                msd = prefactor * (msd[0][0] + msd[1][0] + msd[2][0])
                 time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
                 if plot == True:
-                    plt.plot(time, msd, label = item)
+                    plt.plot(time, msd, label=item)
 
                 popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time, msd)
                 self.Diffusion_Coefficients["Einstein"]["Singular"][item] = popt[0]
@@ -401,11 +404,11 @@ class Trajectory(Methods.Trajectory_Methods):
             """ Calculate the singular diffusion coefficients """
 
             # Define time array - CHANGE to an input (you don't need all the time)
-            time = np.linspace(0.0, data_range*self.time_step*self.sample_rate, data_range)
+            time = np.linspace(0.0, data_range * self.time_step * self.sample_rate, data_range)
 
-            numerator = 2*self.length_unit**2
-            denominator = 3*(self.time_unit)*(2*len(time)-1)
-            prefactor = numerator/denominator
+            numerator = 2 * self.length_unit ** 2
+            denominator = 3 * (self.time_unit) * (2 * len(time) - 1)
+            prefactor = numerator / denominator
 
             # Loop over the species in the system
             for item in species:
@@ -418,7 +421,7 @@ class Trajectory(Methods.Trajectory_Methods):
                     parsed_vacf = np.zeros(int(data_range))
 
                 for i in range(loop_range):
-                    vacf = np.zeros(int(2*data_range - 1)) # Define vacf array
+                    vacf = np.zeros(int(2 * data_range - 1))  # Define vacf array
                     # Loop over the atoms of species to get the average
                     for j in range(len(self.species[item])):
                         vacf += np.array(
@@ -432,8 +435,8 @@ class Trajectory(Methods.Trajectory_Methods):
                                              velocity_matrix[0][j][i:i + data_range, 2],
                                              mode='full', method='fft'))
 
-                    coefficient_array.append((prefactor/len(self.species[item])) * np.trapz(vacf[int(len(vacf) / 2):],
-                                                                                      x=time))
+                    coefficient_array.append((prefactor / len(self.species[item])) * np.trapz(vacf[int(len(vacf) / 2):],
+                                                                                              x=time))
 
                     if plot == True:
                         parsed_vacf += vacf[int(len(vacf) / 2):]
@@ -441,7 +444,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 self.Diffusion_Coefficients["Green-Kubo"]["Singular"][item] = np.mean(coefficient_array)
 
                 if plot == True:
-                    plt.plot(time, (parsed_vacf/loop_range)/max(parsed_vacf), label=item)
+                    plt.plot(time, (parsed_vacf / loop_range) / max(parsed_vacf), label=item)
 
             if plot == True:
                 plt.legend()
@@ -464,16 +467,16 @@ class Trajectory(Methods.Trajectory_Methods):
             for tups in itertools.combinations_with_replacement(index_list, 2):
 
                 # Define the multiplicative factor
-                numerator = self.number_of_atoms*(self.length_unit**2)
-                denominator = len(velocity_matrix[tups[0]])*len(velocity_matrix[tups[1]])*3*(self.time_unit**2)
-                prefactor = numerator/denominator
+                numerator = self.number_of_atoms * (self.length_unit ** 2)
+                denominator = len(velocity_matrix[tups[0]]) * len(velocity_matrix[tups[1]]) * 3 * (self.time_unit ** 2)
+                prefactor = numerator / denominator
 
                 diff_array = []
 
                 # Loop over reference atoms
                 for i in range(len(velocity_matrix[tups[0]])):
                     # Loop over test atoms
-                    vacf = np.zeros(len(velocity_matrix[tups[0]][i])) # initialize the vacf array
+                    vacf = np.zeros(len(velocity_matrix[tups[0]][i]))  # initialize the vacf array
                     for j in range(len(velocity_matrix[tups[1]])):
                         # Add conditional statement to avoid i=j and alpha=beta
                         if tups[0] == tups[1] and j == i:
@@ -490,7 +493,7 @@ class Trajectory(Methods.Trajectory_Methods):
                     diff_array.append(np.trapz(vacf, x=time))
 
                 self.Diffusion_Coefficients["Green-Kubo"]["Distinct"][combinations[pairs]] = \
-                    [prefactor*np.mean(diff_array), prefactor*np.std(diff_array)/np.sqrt(len(diff_array))]
+                    [prefactor * np.mean(diff_array), prefactor * np.std(diff_array) / np.sqrt(len(diff_array))]
 
                 pairs += 1
 
@@ -525,20 +528,20 @@ class Trajectory(Methods.Trajectory_Methods):
                 _diffusion_coefficients (dict) -- dictionary of diffusion coefficients
             """
 
-            numerator = self.number_of_atoms*(Constants.elementary_charge**2)
+            numerator = self.number_of_atoms * (Constants.elementary_charge ** 2)
             denominator = Constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
             prefactor = numerator / denominator
 
             diffusion_array = []
             for element in self.species:
-                diffusion_array.append(_diffusion_coefficients["Singular"][element]*
-                                       (len(self.species[element])/self.number_of_atoms))
+                diffusion_array.append(_diffusion_coefficients["Singular"][element] *
+                                       (len(self.species[element]) / self.number_of_atoms))
 
             return prefactor * np.sum(diffusion_array)
 
         def _CNE_Conductivity(_singular_diffusion_coefficients, _distinct_diffusion_coefficients):
             print("Sorry, this currently isn't available")
-            exit()
+            return
 
             numerator = self.number_of_atoms * (Constants.elementary_charge ** 2)
             denominator = Constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
@@ -546,9 +549,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
             singular_diffusion_array = []
             for element in self.species:
-                singular_diffusion_array.append(_singular_diffusion_coefficients[element]*
-                                       (len(self.species[element])/self.number_of_atoms))
-
+                singular_diffusion_array.append(_singular_diffusion_coefficients[element] *
+                                                (len(self.species[element]) / self.number_of_atoms))
 
         if all(truth_array[0]) == True and all(truth_array[1]) == True:
             "Update all NE and CNE cond"
@@ -594,9 +596,10 @@ class Trajectory(Methods.Trajectory_Methods):
         elif all(truth_array[1] == True) and truth_array[0][0] == True:
             """ Calc CNE for GK and just NE for EIN"""
             pass
+
         else:
             print("This really should not be possible... something has gone horrifically wrong")
-            exit()
+            return
 
     def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
@@ -620,48 +623,50 @@ class Trajectory(Methods.Trajectory_Methods):
         dipole_moment = (np.array(summed_positions[0]) - np.array(summed_positions[1]))
         dipole_moment_msd = [[np.zeros(measurement_range)],
                              [np.zeros(measurement_range)],
-                             [np.zeros(measurement_range)]] # Initialize empty dipole moment msd matrix
+                             [np.zeros(measurement_range)]]  # Initialize empty dipole moment msd matrix
 
-        loop_range = len(position_matrix[0][0]) - (measurement_range - 1) # Define the loop range
+        loop_range = len(position_matrix[0][0]) - (measurement_range - 1)  # Define the loop range
 
         # Fill the dipole moment msd matrix
         for i in range(loop_range):
             for j in range(3):
-                dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j])**2
+                dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j]) ** 2
 
         dipole_msd = np.array(np.array(dipole_moment_msd[0]) +
                               np.array(dipole_moment_msd[1]) +
-                              np.array(dipole_moment_msd[2])) # Calculate the net msd
+                              np.array(dipole_moment_msd[2]))  # Calculate the net msd
 
-        time = np.linspace(0.0, measurement_range*self.sample_rate*self.time_step, len(dipole_msd[0])) # Initialize the time
+        # Initialize the time
+        time = np.linspace(0.0, measurement_range * self.sample_rate * self.time_step, len(dipole_msd[0]))
 
-        sigma_array = [] # Initialize and array for the conductivity calculations
+        sigma_array = []  # Initialize and array for the conductivity calculations
         # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
-        for i in range(1000):
+        for i in range(100):
             # Create the measurement range
-            start = np.random.randint(0, 20)
-            stop = np.random.randint(30, int(len(dipole_msd[0])))
-            
+            start = np.random.randint(int(0.1 * len(dipole_msd[0])), int(0.60 * len(dipole_msd[0])))
+            stop = np.random.randint(int(1.4 * start), int(1.65 * start))
+
             # Calculate the value and append the array
             popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time[start:stop], dipole_msd[0][start:stop])
             sigma_array.append(popt[0])
 
         # Define the multiplicative prefactor of the calculation
-        denominator = (6 * self.temperature * (self.volume * (self.length_unit)**3) * Constants.boltzmann_constant)*\
-                      (self.time_unit)*loop_range
-        numerator = (self.length_unit**2)*(Constants.elementary_charge**2)
-        prefactor = numerator/denominator
+        denominator = (6 * self.temperature * (self.volume * (self.length_unit) ** 3) * Constants.boltzmann_constant) * \
+                      (self.time_unit) * loop_range
+        numerator = (self.length_unit ** 2) * (Constants.elementary_charge ** 2)
+        prefactor = numerator / denominator
 
-        sigma = prefactor*np.mean(sigma_array)
-        sigma_error = prefactor*np.sqrt(np.var(sigma_array))
+        sigma = prefactor * np.mean(sigma_array)
+        sigma_error = prefactor * (np.sqrt(np.var(sigma_array)) / np.sqrt(len(sigma_array)))
 
         if plot == True:
             plt.plot(time, dipole_msd[0])
             plt.xlabel("Time")
             plt.ylabel("Dipole Mean Square Displacement")
+            plt.savefig(f"EHCond_{self.temperature}.pdf", format='pdf', dpi=600)
             plt.show()
 
-        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma/100} +- {sigma_error/100} S/cm")
+        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
 
     def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
         """ Calculate Green-Kubo Conductivity
@@ -671,13 +676,19 @@ class Trajectory(Methods.Trajectory_Methods):
 
         args:
             data_range (int) -- number of data points with which to calculate the conductivity
+
+        kwargs:
             plot (bool=False) -- If True, a plot of the current autocorrelation function will be generated
+
+        returns:
+            sigma (float) -- The ionic conductivity in units of S/cm
+
         """
 
         velocity_matrix = self.Load_Matrix("Velocities")
 
-        summed_velocity = [] # Define array for the summed velocities
-        time = np.linspace(0, self.sample_rate*self.time_step*data_range, data_range)  # define the time
+        summed_velocity = []  # Define array for the summed velocities
+        time = np.linspace(0, self.sample_rate * self.time_step * data_range, data_range)  # define the time
 
         if plot == True:
             averaged_jacf = np.zeros(data_range)
@@ -685,29 +696,30 @@ class Trajectory(Methods.Trajectory_Methods):
         for i in range(len(list(self.species))):
             summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
 
-        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1])) # We need to fix these things
-        loop_range = len(current) - data_range - 1 # Define the loop range
+        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))  # We need to fix these things
+        loop_range = len(current) - data_range - 1  # Define the loop range
         sigma = []
         for i in range(loop_range):
-            jacf = np.zeros(2*data_range - 1)  # Define the empty JACF array
+            jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
             jacf += (signal.correlate(current[:, 0][i:i + data_range],
                                       current[:, 0][i:i + data_range],
                                       mode='full', method='fft') +
-                    signal.correlate(current[:, 1][i:i + data_range],
-                                     current[:, 1][i:i + data_range],
-                                     mode='full', method='fft') +
-                    signal.correlate(current[:, 2][i:i + data_range],
-                                     current[:, 2][i:i + data_range],
-                                     mode='full', method='fft'))
+                     signal.correlate(current[:, 1][i:i + data_range],
+                                      current[:, 1][i:i + data_range],
+                                      mode='full', method='fft') +
+                     signal.correlate(current[:, 2][i:i + data_range],
+                                      current[:, 2][i:i + data_range],
+                                      mode='full', method='fft'))
 
             # Cut off the second half of the acf
             jacf = jacf[int((len(jacf) / 2)):]
             if plot == True:
                 averaged_jacf += jacf
 
-            numerator = 2*(Constants.elementary_charge**2)*(self.length_unit**2)
-            denominator = 3*Constants.boltzmann_constant*self.temperature*(self.volume*(self.length_unit**3))*\
-                          self.time_unit*(2 * len(jacf) - 1)
+            numerator = 2 * (Constants.elementary_charge ** 2) * (self.length_unit ** 2)
+            denominator = 3 * Constants.boltzmann_constant * self.temperature * (
+                        self.volume * (self.length_unit ** 3)) * \
+                          self.time_unit * (2 * len(jacf) - 1)
             prefactor = numerator / denominator
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
@@ -720,10 +732,10 @@ class Trajectory(Methods.Trajectory_Methods):
             plt.savefig(f"GK_Cond_{self.temperature}.pdf", )
             plt.show()
 
-        print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)/100} +- "
-              f"{0.01*np.std(sigma)/np.sqrt(len(sigma))} S/cm")
+        print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma) / 100} +- "
+              f"{0.01 * np.std(sigma) / np.sqrt(len(sigma))} S/cm")
 
-        return np.mean(sigma)/100
+        return np.mean(sigma) / 100
 
     def Green_Kubo_Viscosity(self):
         """ Calculate the shear viscosity of the system using Green Kubo
@@ -747,8 +759,8 @@ class Trajectory(Methods.Trajectory_Methods):
         if cutoff == None:
             cutoff = self.box_array[0] / 2
 
-        positions_matrix = self.Load_Matrix("Positions") # Load the positions
-        bin_width = cutoff / bins # Calculate the bin_width
+        positions_matrix = self.Load_Matrix("Positions")  # Load the positions
+        bin_width = cutoff / bins  # Calculate the bin_width
 
     def Kirkwood_Buff_Integrals(self):
         """ Calculate the Kirkwood-Buff integrals for the system
