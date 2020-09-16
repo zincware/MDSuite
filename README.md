@@ -56,8 +56,9 @@ future to allow for sampling over the data correlation time, thereby giving a be
 Another useful property of many liquid systems is ionic conductivity through the bulk. By studying the ionic 
 conductivity one can learn not only about possible applications but also the ionic effect present in the system.
 Currently we offer two methods for the calculation of the ionic conductivity.
+
 #### Einstein-Helfand Relationships
-In the Einstein-Helfan relations, the mean-square-displacement of the system dipole is calculated and plotted against
+In the Einstein-Helfand relations, the mean-square-displacement of the system dipole is calculated and plotted against
 time. From this plot, the linear region is fit using a fitting function, and the gradient taken to be the ionic
 conductivity.
 

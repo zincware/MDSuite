@@ -238,9 +238,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             for item in species:
                 # Construct the positions matrix -- Only temporary, we should make this memory safe
-                positions_matrix = np.dstack((database[item]["Positions"]['x'],
-                                              database[item]["Positions"]['y'],
-                                              database[item]["Positions"]['z']))
+                positions_matrix = self.Load_Matrix("Positions", [item])
 
                 Center_Box(positions_matrix)  # Center the box at (0, 0, 0)
 
@@ -299,7 +297,7 @@ class Trajectory(Methods.Trajectory_Methods):
             species = list(self.species.keys())
         property_matrix = []  # Define an empty list for the properties to fill
 
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
+        with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
             for item in list(species):
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
@@ -388,6 +386,8 @@ class Trajectory(Methods.Trajectory_Methods):
         if distinct == True:
             Distinct_Diffusion_Coefficients()
 
+        self.Save_Class() # Update class state
+
     def Green_Kubo_Diffusion_Coefficients(self, data_range, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
@@ -406,21 +406,24 @@ class Trajectory(Methods.Trajectory_Methods):
             # Define time array - CHANGE to an input (you don't need all the time)
             time = np.linspace(0.0, data_range * self.time_step * self.sample_rate, data_range)
 
-            numerator = 2 * self.length_unit ** 2
-            denominator = 3 * (self.time_unit) * (2 * len(time) - 1)
+            numerator = self.length_unit ** 2
+            denominator = 3 * (self.time_unit) * (len(time) - 1)
             prefactor = numerator / denominator
 
             # Loop over the species in the system
             for item in species:
                 velocity_matrix = self.Load_Matrix("Velocities", [item])
 
-                loop_range = self.number_of_configurations - data_range - 1
+                loop_values = np.linspace(0.1 * self.number_of_configurations,
+                                          self.number_of_configurations - data_range - 1,
+                                          100, dtype=int)
+                loop_range = len(loop_values)
                 coefficient_array = []
 
                 if plot == True:
                     parsed_vacf = np.zeros(int(data_range))
 
-                for i in range(loop_range):
+                for i in loop_values:
                     vacf = np.zeros(int(2 * data_range - 1))  # Define vacf array
                     # Loop over the atoms of species to get the average
                     for j in range(len(self.species[item])):
@@ -509,6 +512,8 @@ class Trajectory(Methods.Trajectory_Methods):
                 print(f"Distinct-Diffusion Coefficient for {item} at {self.temperature}K: "
                       f"{self.Diffusion_Coefficients['Green-Kubo']['Distinct'][item]} m^2/s")
 
+        self.Save_Class() # Update class state
+
     def Nernst_Einstein_Conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
 
@@ -537,7 +542,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 diffusion_array.append(_diffusion_coefficients["Singular"][element] *
                                        (len(self.species[element]) / self.number_of_atoms))
 
-            return prefactor * np.sum(diffusion_array)
+            return (prefactor * np.sum(diffusion_array)) / 100
 
         def _CNE_Conductivity(_singular_diffusion_coefficients, _distinct_diffusion_coefficients):
             print("Sorry, this currently isn't available")
@@ -552,23 +557,23 @@ class Trajectory(Methods.Trajectory_Methods):
                 singular_diffusion_array.append(_singular_diffusion_coefficients[element] *
                                                 (len(self.species[element]) / self.number_of_atoms))
 
-        if all(truth_array[0]) == True and all(truth_array[1]) == True:
+        if all(truth_array[0]) is True and all(truth_array[1]) is True:
             "Update all NE and CNE cond"
             pass
 
-        elif not any(truth_array[0]) == True and not any(truth_array[0]) == True:
+        elif not any(truth_array[0]) is True and not any(truth_array[1]) is True:
             "Run the diffusion analysis and then calc. all"
             pass
 
-        elif all(truth_array[0]) == True and not any(truth_array[1]) == True:
+        elif all(truth_array[0]) is True and not any(truth_array[1]) is True:
             """ Calc NE, CNE for Einstein """
             pass
 
-        elif all(truth_array[1]) == True and not any(truth_array[0]) == True:
+        elif all(truth_array[1]) is True and not any(truth_array[0]) is True:
             """ Calc all NE, CNE for GK """
             pass
 
-        elif truth_array[0][0] == True and truth_array[1][0] == True:
+        elif truth_array[0][0] is True and truth_array[1][0] is True:
             """ Calc just NE for EIN and GK """
 
             self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _NE_Conductivity(
@@ -577,29 +582,39 @@ class Trajectory(Methods.Trajectory_Methods):
                 self.Diffusion_Coefficients["Green-Kubo"])
 
             print(f'Nernst-Einstein Conductivity from Einstein Diffusion: '
-                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/m\n'
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/cm\n'
                   f'Nernst-Einstein Conductivity from Green-Kubo Diffusion: '
-                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"]} S/m')
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"]} S/cm')
 
-        elif truth_array[0][0] == True and not any(truth_array[1]) == True:
+        elif truth_array[0][0] is True and not any(truth_array[1]) is True:
             """ Calc just NE for EIN """
-            pass
 
-        elif truth_array[1][0] == True and not any(truth_array[0]) == True:
+            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _NE_Conductivity(
+                self.Diffusion_Coefficients["Einstein"])
+            print(f'Nernst-Einstein Conductivity from Einstein Diffusion: '
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/cm')
+
+        elif truth_array[1][0] is True and not any(truth_array[0]) is True:
             """ Calc just NE for GK """
-            pass
 
-        elif all(truth_array[0] == True) and truth_array[1][0] == True:
+            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _NE_Conductivity(
+                self.Diffusion_Coefficients["Green-Kubo"])
+            print(f'Nernst-Einstein Conductivity from Green-Kubo Diffusion: '
+                  f'{self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"]} S/cm')
+
+        elif all(truth_array[0]) is True and truth_array[1][0] is True:
             """ Calc CNE for EIN and just NE for GK"""
             pass
 
-        elif all(truth_array[1] == True) and truth_array[0][0] == True:
+        elif all(truth_array[1]) is True and truth_array[0][0] is True:
             """ Calc CNE for GK and just NE for EIN"""
             pass
 
         else:
             print("This really should not be possible... something has gone horrifically wrong")
             return
+
+        self.Save_Class() # Update class state
 
     def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
@@ -668,6 +683,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
 
+        self.Save_Class() # Update class state
+
     def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
         """ Calculate Green-Kubo Conductivity
 
@@ -718,7 +735,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             numerator = 2 * (Constants.elementary_charge ** 2) * (self.length_unit ** 2)
             denominator = 3 * Constants.boltzmann_constant * self.temperature * (
-                        self.volume * (self.length_unit ** 3)) * \
+                    self.volume * (self.length_unit ** 3)) * \
                           self.time_unit * (2 * len(jacf) - 1)
             prefactor = numerator / denominator
 
@@ -735,7 +752,7 @@ class Trajectory(Methods.Trajectory_Methods):
         print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma) / 100} +- "
               f"{0.01 * np.std(sigma) / np.sqrt(len(sigma))} S/cm")
 
-        return np.mean(sigma) / 100
+        self.Save_Class() # Update class state
 
     def Green_Kubo_Viscosity(self):
         """ Calculate the shear viscosity of the system using Green Kubo
@@ -744,6 +761,7 @@ class Trajectory(Methods.Trajectory_Methods):
         of the autocorrelation for the stress tensor of the sysetem.
         """
         print("Sorry, this functionality is currently unavailable - check back in soon!")
+        return
 
     def Radial_Distribution_Function(self, bins=1000, cutoff=None):
         """ Calculate the radial distribtion function
@@ -768,6 +786,7 @@ class Trajectory(Methods.Trajectory_Methods):
         Function to calculate all possible kirkwood buff integrals in the trajectory data
         """
         print("Sorry, this functionality is currently unavailable - check back in soon!")
+        return
 
     def Structure_Factor(self):
         """ Calculate the structure factors in the system
@@ -775,6 +794,7 @@ class Trajectory(Methods.Trajectory_Methods):
         Function to calculate the possible structure factors for the system
         """
         print("Sorry, this functionality is currently unavailable - check back in soon!")
+        return
 
     def Angular_Distribution_Function(self):
         """ Calculate angular distribution functions
@@ -782,3 +802,4 @@ class Trajectory(Methods.Trajectory_Methods):
         Function to caluclate the possible angular distribution functions for the system
         """
         print("Sorry, this functionality is currently unavailable - check back in soon!")
+        return
