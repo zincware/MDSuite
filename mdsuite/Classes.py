@@ -13,7 +13,6 @@ from scipy.optimize import curve_fit
 import mdsuite.Methods as Methods
 import pickle
 import h5py as hf
-from alive_progress import alive_bar
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import itertools
@@ -189,7 +188,7 @@ class Trajectory(Methods.Trajectory_Methods):
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             with open(self.filename) as f:
                 counter = 0
-                for i in range(int(self.number_of_configurations / self.batch_size)):
+                for i in tqdm(range(int(self.number_of_configurations / self.batch_size))):
                     test = Methods.Trajectory_Methods.Read_Configurations(self, self.batch_size, f)
 
                     Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
@@ -345,7 +344,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 numerator = self.length_unit ** 2
                 denominator = (len(self.species[item])) * 6
                 prefactor = numerator / denominator
-                for j in range(len(self.species[item])):  # Loop over number of atoms of species i
+                for j in tqdm(range(len(self.species[item]))):  # Loop over number of atoms of species i
                     for k in range(3):
                         msd[k] += (positions_matrix[0][j][:, k] -
                                    positions_matrix[0][j][0][k]) ** 2
@@ -419,7 +418,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 if plot == True:
                     parsed_vacf = np.zeros(int(data_range))
 
-                for i in loop_values:
+                for i in tqdm(loop_values):
                     vacf = np.zeros(int(2 * data_range - 1))  # Define vacf array
                     # Loop over the atoms of species to get the average
                     for j in range(len(self.species[item])):
@@ -639,7 +638,7 @@ class Trajectory(Methods.Trajectory_Methods):
         loop_range = len(position_matrix[0][0]) - (measurement_range - 1)  # Define the loop range
 
         # Fill the dipole moment msd matrix
-        for i in range(loop_range):
+        for i in tqdm(range(loop_range)):
             for j in range(3):
                 dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j]) ** 2
 
@@ -712,7 +711,7 @@ class Trajectory(Methods.Trajectory_Methods):
         current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))  # We need to fix these things
         loop_range = len(current) - data_range - 1  # Define the loop range
         sigma = []
-        for i in range(loop_range):
+        for i in tqdm(range(loop_range)):
             jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
             jacf += (signal.correlate(current[:, 0][i:i + data_range],
                                       current[:, 0][i:i + data_range],
