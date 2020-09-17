@@ -181,7 +181,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         file_format = self.Process_Input_File()  # Collect data array
         self.Get_System_Properties(file_format)  # Update class attributes
-        Methods.Trajectory_Methods.Build_Database_Skeleton(self)
+        self.Build_Database_Skeleton()
 
         print("Beginning Build database")
 
@@ -189,12 +189,13 @@ class Trajectory(Methods.Trajectory_Methods):
             with open(self.filename) as f:
                 counter = 0
                 for i in tqdm(range(int(self.number_of_configurations / self.batch_size))):
-                    test = Methods.Trajectory_Methods.Read_Configurations(self, self.batch_size, f)
+                    batch = self.Read_Configurations(self.batch_size, f)
 
-                    Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
+                    self.Process_Configurations(batch, database, counter)
 
                     counter += self.batch_size
 
+        self.Build_Species_Dictionary() # Beef up the species dictionary
         self.Save_Class()
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
@@ -342,9 +343,9 @@ class Trajectory(Methods.Trajectory_Methods):
                        [np.zeros(used_configurations)]]
 
                 numerator = self.length_unit ** 2
-                denominator = (len(self.species[item])) * 6
+                denominator = (len(self.species[item]['indices'])) * 6
                 prefactor = numerator / denominator
-                for j in tqdm(range(len(self.species[item]))):  # Loop over number of atoms of species i
+                for j in tqdm(range(len(self.species[item]['indices']))):  # Loop over number of atoms of species i
                     for k in range(3):
                         msd[k] += (positions_matrix[0][j][:, k] -
                                    positions_matrix[0][j][0][k]) ** 2
@@ -421,7 +422,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 for i in tqdm(loop_values):
                     vacf = np.zeros(int(2 * data_range - 1))  # Define vacf array
                     # Loop over the atoms of species to get the average
-                    for j in range(len(self.species[item])):
+                    for j in range(len(self.species[item]['indices'])):
                         vacf += np.array(
                             signal.correlate(velocity_matrix[0][j][i:i + data_range, 0],
                                              velocity_matrix[0][j][i:i + data_range, 0],
@@ -433,7 +434,7 @@ class Trajectory(Methods.Trajectory_Methods):
                                              velocity_matrix[0][j][i:i + data_range, 2],
                                              mode='full', method='fft'))
 
-                    coefficient_array.append((prefactor / len(self.species[item])) * np.trapz(vacf[int(len(vacf) / 2):],
+                    coefficient_array.append((prefactor / len(self.species[item]['indices'])) * np.trapz(vacf[int(len(vacf) / 2):],
                                                                                               x=time))
 
                     if plot == True:
@@ -535,7 +536,8 @@ class Trajectory(Methods.Trajectory_Methods):
             diffusion_array = []
             for element in self.species:
                 diffusion_array.append(_diffusion_coefficients["Singular"][element] *
-                                       (len(self.species[element]) / self.number_of_atoms))
+                                       abs(self.species[element]['charge'][0]) *
+                                       (len(self.species[element]['indices']) / self.number_of_atoms))
 
             return (prefactor * np.sum(diffusion_array)) / 100
 
@@ -550,7 +552,7 @@ class Trajectory(Methods.Trajectory_Methods):
             singular_diffusion_array = []
             for element in self.species:
                 singular_diffusion_array.append(_singular_diffusion_coefficients[element] *
-                                                (len(self.species[element]) / self.number_of_atoms))
+                                                (len(self.species[element]['indices']) / self.number_of_atoms))
 
         if all(truth_array[0]) is True and all(truth_array[1]) is True:
             "Update all NE and CNE cond"
@@ -611,14 +613,15 @@ class Trajectory(Methods.Trajectory_Methods):
 
         self.Save_Class() # Update class state
 
-    def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
+    def Einstein_Helfand_Conductivity(self, data_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
         ionic conductivity
 
         args:
-            measurement_range (int) -- time range over which the measurement should be performed
+            data_range (int) -- time range over which the measurement should be performed
+        kwargs:
             plot(bool=False) -- If True, will plot the MSD over time
         """
 
@@ -630,29 +633,35 @@ class Trajectory(Methods.Trajectory_Methods):
             for j in range(len(summed_positions)):
                 summed_positions[j].append(np.sum(position_matrix[j][:, i], axis=0))
 
-        dipole_moment = (np.array(summed_positions[0]) - np.array(summed_positions[1]))
-        dipole_moment_msd = [[np.zeros(measurement_range)],
-                             [np.zeros(measurement_range)],
-                             [np.zeros(measurement_range)]]  # Initialize empty dipole moment msd matrix
 
-        loop_range = len(position_matrix[0][0]) - (measurement_range - 1)  # Define the loop range
+        for i in range(len(summed_positions)):
+            if i == 0:
+                dipole_moment = np.array(summed_positions[i]) * (self.species[list(self.species)[i]]['charge'][0])
+            else:
+                dipole_moment += np.array(summed_positions[i]) * (self.species[list(self.species)[i]]['charge'][0])
+
+        dipole_moment_msd = [[np.zeros(data_range)],
+                             [np.zeros(data_range)],
+                             [np.zeros(data_range)]]  # Initialize empty dipole moment msd matrix
+
+        loop_range = len(position_matrix[0][0]) - (data_range - 1)  # Define the loop range
 
         # Fill the dipole moment msd matrix
         for i in tqdm(range(loop_range)):
             for j in range(3):
-                dipole_moment_msd[j] += (dipole_moment[i:i + measurement_range, j] - dipole_moment[i][j]) ** 2
+                dipole_moment_msd[j] += (dipole_moment[i:i + data_range, j] - dipole_moment[i][j]) ** 2
 
         dipole_msd = np.array(np.array(dipole_moment_msd[0]) +
                               np.array(dipole_moment_msd[1]) +
                               np.array(dipole_moment_msd[2]))  # Calculate the net msd
 
         # Initialize the time
-        time = np.linspace(0.0, measurement_range * self.sample_rate * self.time_step, len(dipole_msd[0]))
+        time = np.linspace(0.0, data_range * self.sample_rate * self.time_step, len(dipole_msd[0]))
 
         sigma_array = []  # Initialize and array for the conductivity calculations
         # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
         for i in range(100):
-            # Create the measurement range
+            # Create the data range
             start = np.random.randint(int(0.1 * len(dipole_msd[0])), int(0.60 * len(dipole_msd[0])))
             stop = np.random.randint(int(1.4 * start), int(1.65 * start))
 
@@ -708,7 +717,12 @@ class Trajectory(Methods.Trajectory_Methods):
         for i in range(len(list(self.species))):
             summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
 
-        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))  # We need to fix these things
+        for i in range(len(summed_velocity)):
+            if i == 0:
+                current = np.array(summed_velocity[i]) * (self.species[list(self.species)[i]]['charge'][0])
+            else:
+                current += np.array(summed_velocity[i]) * (self.species[list(self.species)[i]]['charge'][0])
+
         loop_range = len(current) - data_range - 1  # Define the loop range
         sigma = []
         for i in tqdm(range(loop_range)):
