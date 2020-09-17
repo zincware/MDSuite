@@ -189,9 +189,9 @@ class Trajectory(Methods.Trajectory_Methods):
             with open(self.filename) as f:
                 counter = 0
                 for i in tqdm(range(int(self.number_of_configurations / self.batch_size))):
-                    batch = self.Read_Configurations(self.batch_size, f)
+                    test = self.Read_Configurations(self.batch_size, f)
 
-                    self.Process_Configurations(batch, database, counter)
+                    self.Process_Configurations(test, database, counter)
 
                     counter += self.batch_size
 

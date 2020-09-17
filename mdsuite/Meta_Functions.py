@@ -141,7 +141,7 @@ def Optimize_Batch_Size(filepath, number_of_configurations):
     file_size = os.path.getsize(filepath) # Get the size of the file
     available_memory = psutil.virtual_memory().available
     memory_per_configuration = file_size / number_of_configurations # get the memory per configuration
-    database_memory = 0.1*available_memory # We take 20% of the available memory
+    database_memory = 0.1*available_memory # We take 10% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration) # trivial batch allocation
 
     if file_size < database_memory:
@@ -153,8 +153,8 @@ def Optimize_Batch_Size(filepath, number_of_configurations):
             if r_temp <= remainder:
                 batch_number = initial_batch_number - i
 
-        if batch_number > 1000:
-            batch_number = 1000
+    if batch_number > 1000:
+        batch_number = 1000
 
     return batch_number
 
