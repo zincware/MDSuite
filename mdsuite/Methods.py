@@ -7,15 +7,13 @@ Purpose: Larger methods used in the Trajectory class
 import mdsuite.Meta_Functions as Meta_Functions
 import numpy as np
 import h5py as hf
+import mendeleev
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """
 
     def Get_LAMMPS_Properties(self):
         """ Get the properties of the system from a custom lammps dump file
-
-            args:
-                data_array (list) -- Array containing trajectory data
 
             returns:
                 species_summary (dict) -- Dictionary containing all the species in the systems
@@ -59,16 +57,18 @@ class Trajectory_Methods:
         sample_rate = time_1 - time_0
         time_N = (number_of_configurations - number_of_configurations % batch_size)*sample_rate
 
-        # Find the information regarding species in the system and construct a dictionary
+        # Get the position of the element keyword so that any format can be given
         for i in range(len(data_array[8])):
             if data_array[8][i] == "element":
                 element_index = i - 2
 
+        # Find the information regarding species in the system and construct a dictionary
         for i in range(9, number_of_atoms + 9):
             if data_array[i][element_index] not in species_summary:
-                species_summary[data_array[i][element_index]] = []
+                species_summary[data_array[i][element_index]] = {}
+                species_summary[data_array[i][element_index]]['indices'] = []
 
-            species_summary[data_array[i][2]].append(i)
+            species_summary[data_array[i][element_index]]['indices'].append(i)
 
         # Find properties available for analysis
         for i in range(len(data_array[8])):
@@ -124,6 +124,39 @@ class Trajectory_Methods:
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
 
+    def Build_Species_Dictionary(self):
+        """ Add information to the species dictionary
+
+        A fundamental part of this package is species specific analysis. Therefore, the mendeleev python package is
+        used to add important species specific information to the class. This will include the charge of the ions which
+        will be used in conductivity calculations.
+
+        returns:
+            This method will update the class attributes in place and therefore, will not return anything explicitly.
+        """
+
+        for element in self.species:
+            temp = mendeleev.element(element)
+
+            charge = [] # Define empty charge array
+            for ir in temp.ionic_radii:
+                if ir.most_reliable is not True:
+                    continue
+                else:
+                    charge.append(ir.charge)
+
+            if len(charge) == 0:
+                self.species[element]['charge'] = [temp.ionic_radii[0].charge] # Case where most_reliabale is all False
+            elif all(elem == charge[0] for elem in charge) is True:
+                self.species[element]['charge'] = [charge[0]]
+            else:
+                self.species[element]['charge'] = charge
+
+            mass = []
+            for iso in temp.isotopes:
+                mass.append(iso.mass)
+            self.species[element]['mass'] = mass
+
     def Build_Database_Skeleton(self):
         """ Build skeleton of the hdf5 database
 
@@ -140,17 +173,17 @@ class Trajectory_Methods:
         self.property_groups = property_groups
 
         # Build the database structure
-        for item in list(self.species.keys()):
+        for item in self.species:
             database.create_group(item)
             for property in property_groups:
                 database[item].create_group(property)
-                database[item][property].create_dataset("x", (len(self.species[item]), self.number_of_configurations-
+                database[item][property].create_dataset("x", (len(self.species[item]['indices']), self.number_of_configurations-
                                                               self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("y", (len(self.species[item]), self.number_of_configurations-
+                database[item][property].create_dataset("y", (len(self.species[item]['indices']), self.number_of_configurations-
                                                               self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("z", (len(self.species[item]), self.number_of_configurations -
+                database[item][property].create_dataset("z", (len(self.species[item]['indices']), self.number_of_configurations -
                                                               self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
 
@@ -195,20 +228,20 @@ class Trajectory_Methods:
         partitioned_configurations = int(len(data) / self.number_of_atoms)
 
         for item in self.species:
-            positions = np.array([np.array(self.species[item]) + i * self.number_of_atoms - 9 for i in
+            positions = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms - 9 for i in
                                   range(int(partitioned_configurations))]).flatten()
             for property in self.property_groups:
                 database[item][property]["x"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (len(self.species[item]), partitioned_configurations),
+                        (len(self.species[item]['indices']), partitioned_configurations),
                         order='F')
                 database[item][property]["y"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][1]].astype(float).reshape(
-                        (len(self.species[item]), partitioned_configurations),
+                        (len(self.species[item]['indices']), partitioned_configurations),
                         order='F')
                 database[item][property]["z"][:, counter:counter + partitioned_configurations] = \
                     data[positions][:, self.property_groups[property][2]].astype(float).reshape(
-                        (len(self.species[item]), partitioned_configurations),
+                        (len(self.species[item]['indices']), partitioned_configurations),
                         order='F')
 
     def Print_Data_Structrure(self):
