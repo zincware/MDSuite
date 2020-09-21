@@ -93,51 +93,15 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         self.box_array = None
         self.number_of_configurations = None
         self.time_dimensions = None
-        self.Diffusion_Coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
-                                       "Green-Kubo": {"Singular": {}, "Distinct": {}}}
-        self.Ionic_Conductivity = {"Einstein-Helfand": {},
-                                   "Green-Kubo": {},
-                                   "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
-                                   "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
+        self.Thermal_Conductivity = {"Einstein-Helfand": {},
+                                   "Green-Kubo": {}}
 
         if self.new_project == False:
             self.Load_Class()
         else:
             self.Build_Database()
 
-    def Save_Class(self):
-        """ Saves class instance
 
-        In order to keep properties of a class the state must be stored. This method will store the instance of the
-        class for later re-loading
-        """
-
-        save_file = open("{0}/{1}/{1}.txt".format(self.filepath, self.analysis_name), 'wb')
-        save_file.write(pickle.dumps(self.__dict__))
-        save_file.close()
-
-    def Load_Class(self):
-        """ Load class instance
-
-        A function to load a class instance given the project name.
-        """
-
-        class_file = open('{0}/{1}/{1}.txt'.format(self.filepath, self.analysis_name), 'rb')
-        pickle_data = class_file.read()
-        class_file.close()
-
-        self.__dict__ = pickle.loads(pickle_data)
-
-    def Print_Class_Attributes(self):
-        """ Print all attributes of the class """
-
-        attributes = []
-        for item in vars(self).items():
-            attributes.append(item)
-        for tuple in attributes:
-            print(f"{tuple[0]}: {tuple[1]}")
-
-        return attributes
 
     def Process_Input_File(self):
         """ Process the input file

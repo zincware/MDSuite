@@ -4,6 +4,8 @@ Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Larger methods used in the Trajectory class
 """
+import pickle
+
 import mdsuite.Meta_Functions as Meta_Functions
 import numpy as np
 import h5py as hf
@@ -272,3 +274,37 @@ class Trajectory_Methods:
                 for j in range(len(species)):
                     for atom in data_matrix[j]:
                         f.write(f"{species[j]:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
+
+    def Save_Class(self):
+        """ Saves class instance
+
+        In order to keep properties of a class the state must be stored. This method will store the instance of the
+        class for later re-loading
+        """
+
+        save_file = open("{0}/{1}/{1}.txt".format(self.filepath, self.analysis_name), 'wb')
+        save_file.write(pickle.dumps(self.__dict__))
+        save_file.close()
+
+    def Load_Class(self):
+        """ Load class instance
+
+        A function to load a class instance given the project name.
+        """
+
+        class_file = open('{0}/{1}/{1}.txt'.format(self.filepath, self.analysis_name), 'rb')
+        pickle_data = class_file.read()
+        class_file.close()
+
+        self.__dict__ = pickle.loads(pickle_data)
+
+    def Print_Class_Attributes(self):
+        """ Print all attributes of the class """
+
+        attributes = []
+        for item in vars(self).items():
+            attributes.append(item)
+        for tuple in attributes:
+            print(f"{tuple[0]}: {tuple[1]}")
+
+        return attributes
