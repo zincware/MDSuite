@@ -37,19 +37,18 @@ class Trajectory_Methods:
                              'angmomx', 'angmomy', 'angmomz',
                              'tqx', 'tqy', 'tqz'}
 
+        nlines_header_block = 9
         with open(self.filename) as f:
-            head = [next(f).split() for i in range(9)]
+            head = [next(f).split() for i in range(nlines_header_block)]
             f.seek(0)  # Go back to the start of the file
-
-            data_array = [next(f).split() for i in range(int(head[3][0]) + 9)]  # Get first configuration
-            second_configuration = [next(f).split() for i in range(int(head[3][0]) + 9)] # Get the second
-
-        
-        # Calculate the number of atoms and configurations in the system
-        number_of_atoms = int(data_array[3][0])
+            # Calculate the number of atoms and configurations in the system
+            number_of_atoms = int(head[3][0])
+            # Get first configuration
+            data_array = [next(f).split() for i in range(number_of_atoms + nlines_header_block)]  # Get first configuration
+            second_configuration = [next(f).split() for i in range(number_of_atoms + nlines_header_block)] # Get the second
 
         number_of_lines = Meta_Functions.Line_Counter(self.filename)
-        number_of_configurations = int(number_of_lines / (number_of_atoms + 9))
+        number_of_configurations = int(number_of_lines / (number_of_atoms + nlines_header_block)) # n of timesteps
         batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
 
         time_0 = float(data_array[1][0])
