@@ -177,7 +177,10 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         # Create new analysis directory and change into it
-        os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
+        try:
+            os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
+        except FileExistsError:
+            pass
 
         file_format = self.Process_Input_File()  # Collect data array
         self.Get_System_Properties(file_format)  # Update class attributes
