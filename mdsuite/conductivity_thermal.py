@@ -18,6 +18,7 @@ import mdsuite.Meta_Functions as Meta_Functions
 import itertools
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+
 plt.style.use('bmh')
 
 
@@ -45,33 +46,26 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         volume (float) -- volume of the system
 
-        species (dict) -- dictionary of the species in the system and their indices in the trajectory. e.g.
-                          {'Na': [1, 3, 7, 9], 'Cl': [0, 2, 4, 5, 6, 8]}
-
         number_of_atoms (int) -- number of atoms in the system
 
         properties (dict) -- properties in the trajectory available for analysis, not important for understanding
 
-        property_groups (list) -- property groups, e.g ["Forces", "Positions", "Velocities", "Torques"]
+        property_groups (list) -- property groups, e.g ["Fluxes", "Positions", "Velocities", "Torques"]
 
         dimensions (float) -- dimensionality of the system e.g. 3.0
 
         box_array (list) -- box lengths, e.g [10.7, 10.7, 10.8]
 
-        number_of_configurations (int) -- number of configurations in the trajectory
+        number_of_configurations (int) -- number of configurations in the trajectory (timesteps)
 
         time_dimensions (list) -- Time domain in the system, e.g, for a 1ns simulation, [0.0, 1e-9]
 
-        singular_diffusion_coefficient (dict) -- Dictionary of diffusion coefficients e.g. {'Na': 1e-8, 'Cl': 0.9e-8}
-
-        distinct_diffusion_coefficients (dict) -- Dictionary of distinct diffusion coefficients
-                                                  e.g. {'Na': 1, 'Cl': 0.5, 'NaCl': 0.9'}
-
-        ionic_conductivity (float) -- Ionic conductivity of the system e.g. 4.5 S/cm
+        thermal_conductivity (float) -- Thermal conductivity of the system e.g. 4.5 W/m/K
     """
 
     def __init__(self, analysis_name, new_project=False, storage_path=None,
-                 temperature=None, time_step=None, time_unit=None, filename=None, length_unit=None):
+                 temperature=None, time_step=None, time_unit=None, filename=None, length_unit=None,
+                 number_of_atoms=None, volume=None):
         """ Initialise with filename """
 
         self.filename = filename
@@ -82,26 +76,26 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         self.time_step = time_step
         self.time_unit = time_unit
         self.length_unit = length_unit
+        self.number_of_atoms = number_of_atoms
+        self.volume = volume
+        self.time_0 = 0
         self.sample_rate = None
         self.batch_size = None
-        self.volume = None
         self.species = None
-        self.number_of_atoms = None
         self.properties = None
-        self.property_groups = None
         self.dimensions = None
         self.box_array = None
         self.number_of_configurations = None
+        self.number_of_blocks = None
         self.time_dimensions = None
+        self.n_lines_header = None
         self.Thermal_Conductivity = {"Einstein-Helfand": {},
-                                   "Green-Kubo": {}}
+                                     "Green-Kubo": {}}
 
         if self.new_project == False:
             self.Load_Class()
         else:
             self.Build_Database()
-
-
 
     def Process_Input_File(self):
         """ Process the input file
@@ -109,11 +103,8 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         A trivial function to get the format of the input file. Will probably become more useful when we add support
         for more file formats.
         """
-
-        if self.filename[-6:] == 'extxyz':
-            file_format = 'extxyz'
-        else:
-            file_format = 'lammps'
+        filename, file_extension = os.path.splitext(self.filename)
+        file_format = file_extension[1:]  # remove the dot.
 
         return file_format
 
@@ -126,18 +117,73 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         args:
             file_format (str) -- Format of the file being read
         """
+        supported_file_formats = {
+            'dat': self.Get_LAMMPS_flux_file,
+        }
 
-        if file_format == 'lammps':
-            self.Get_LAMMPS_Properties()
-        else:
-            self.Get_EXTXYZ_Properties()
+        # if the format is listed in the dict above, it will run
+        # otherwise, give not implemented error
+        supported_file_formats.get(file_format, self.Not_implemented)()
 
     def Get_LAMMPS_flux_file(self):
         """ Flux files are usually dumped with the fix print in lammps. Any global property can be printed there,
         important one for this case are the flux resulting from the compute
 
-        :return:
         """
+        properties_summary = {}
+        LAMMPS_Properties_labels = {'time', 'temp', 'c_flux[1]',
+                                    'c_flux[2]', 'c_flux[3]'}
+
+        self.n_lines_header = 0  # number of lines of header
+        with open(self.filename) as f:
+            header = []
+            for line in f:
+                self.n_lines_header += 1
+                if line.startswith("#"):
+                    header.append(line.split())
+                else:
+                    varibles_lammps = line.split()  # after the comments, we have the line with the variables
+                    break
+
+            line_variables = line.strip().split()
+
+        with open(self.filename) as f:
+            number_of_configurations = sum(1 for _ in f) - self.n_lines_header
+
+        # Find properties available for analysis
+        for position, variable in enumerate(varibles_lammps):
+            if variable in LAMMPS_Properties_labels:
+                properties_summary[variable] = position
+
+        batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
+
+        # get time related properties of the system
+        with open(self.filename) as f:
+            # skip the header
+            for _ in range(self.n_lines_header):
+                next(f)
+            time_0_line = f.readline().split()
+            time_0 = float(time_0_line[properties_summary['time']])
+            time_1_line = f.readline().split()
+            time_1 = float(time_1_line[properties_summary['time']])
+
+        sample_rate = (time_1 - time_0)/self.time_step
+        time_N = (number_of_configurations - number_of_configurations % batch_size) * sample_rate
+
+        ## Update class attributes with calculated data
+        self.batch_size = batch_size
+        self.properties = properties_summary
+        self.number_of_configurations = number_of_configurations
+        self.time_dimensions = [0.0, time_N * self.time_step * self.time_unit]
+        self.sample_rate = sample_rate
+        self.time_0 = time_0
+
+        # Get the number of atoms if not set in initialization
+        if self.number_of_atoms is None:
+            self.number_of_atoms = int(header[2][1])  # hopefully always in the same position
+        # Get the volume, if not set in initialization
+        if self.volume is None:
+            self.volume = float(header[4][7])  # hopefully always in the same position
 
     def Build_Database(self):
         """ Build the 'database' for the analysis
@@ -148,21 +194,31 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         """
 
         # Create new analysis directory and change into it
-        os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
+        try:
+            os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
+        except FileExistsError:
+            pass
 
         file_format = self.Process_Input_File()  # Collect data array
         self.Get_System_Properties(file_format)  # Update class attributes
-        Methods.Trajectory_Methods.Build_Database_Skeleton(self)
+        self.Build_Database_Skeleton()
 
         print("Beginning Build database")
 
+        self.number_of_blocks = int(self.number_of_configurations / self.batch_size)
+
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             with open(self.filename) as f:
-                counter = 0
-                for i in tqdm(range(int(self.number_of_configurations / self.batch_size))):
-                    test = Methods.Trajectory_Methods.Read_Configurations(self, self.batch_size, f)
+                # Skip header lines (this type of file has only header at the beginning)
+                for j in range(self.n_lines_header):
+                    f.readline()
 
-                    Methods.Trajectory_Methods.Process_Configurations(self, test, database, counter)
+                # start the counter
+                counter = 0
+                for i in tqdm(range(self.number_of_blocks)):
+                    test = self.Read_Configurations(self.batch_size, f)
+
+                    self.Process_Configurations(test, database, counter)
 
                     counter += self.batch_size
 
@@ -170,9 +226,54 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
+    def Build_Database_Skeleton(self):
+        database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
-    def Load_Matrix(self, identifier, species=None):
-        """ Load a desired property matrix
+        # Build the database structure
+        for property in self.properties:
+            database.create_dataset(property, (self.number_of_configurations -
+                                               self.number_of_configurations % self.batch_size,),
+                                    compression="gzip", compression_opts=9)
+
+    def Process_Configurations(self, data, database, counter):
+        for lammps_var, column_num in self.properties.items():
+            # grab the corresponding column and set it as numbers
+            column_data = data[:, column_num].astype(float)
+
+            # remove the time offset
+            if lammps_var == 'time':
+                column_data = column_data - self.time_0
+
+            # kCal2J = 4186.0 / Constants.avogardo_constant
+
+            # if 'c_flux' in lammps_var:
+            #     column_data = column_data*kCal2J/self.time_unit/self.length_unit**2 # IN SI units
+
+            # copy it to the database
+            database[lammps_var][counter: counter + self.batch_size] = column_data
+
+
+    def Read_Configurations(self, N, f):
+        """ Read in N configurations
+
+        This function will read in N configurations from the file that has been opened previously by the parent method.
+
+        args:
+
+            N (int) -- Number of configurations to read in. This will depend on memory availability and the size of each
+                        configuration. Automatic setting of this variable is not yet available and therefore, it will be set
+                        manually.
+            f (obj) --
+        """
+        data = []
+
+        for i in range(N):
+            data.append(f.readline().split())
+
+        return np.array(data)
+
+    def Load_Column(self, identifier):
+        """ Load a desired column from the hdf5
 
         args:
             identifier (str) -- Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
@@ -182,25 +283,33 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
             Matrix of the property
         """
 
-        if species == None:
-            species = list(self.species.keys())
-        property_matrix = []  # Define an empty list for the properties to fill
-
         with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
-            for item in list(species):
-                # Unwrap the positions if they need to be unwrapped
-                if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
-                    print("We first have to unwrap the coordinates... Doing this now")
-                    self.Unwrap_Coordinates(species=[item])
-                if identifier not in database[item]:
+                if identifier not in database:
                     print("This data was not found in the database. Was it included in your simulation input?")
                     return
 
-                property_matrix.append(np.dstack((database[item][identifier]['x'],
-                                                  database[item][identifier]['y'],
-                                                  database[item][identifier]['z'])))
+                column_data = np.array(database[identifier])
 
-        return property_matrix
+        return column_data
+
+    def Load_Flux_Matrix(self):
+        """ Load the flux matrix
+
+        returns:
+            Matrix of the property flux
+        """
+        identifiers = [f'c_flux[{i+1}]' for i in range(3)]
+        matrix_data = []
+        with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
+                for identifier in identifiers:
+                    if identifier not in database:
+                        print("This data was not found in the database. Was it included in your simulation input?")
+                        return
+
+                    matrix_data.append(np.array(database[identifier]))
+
+        matrix_data = np.array(matrix_data).T # transpose such that [timestep, dimension]
+        return matrix_data
 
     def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
@@ -215,8 +324,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         print("Sorry, this functionality is currently unavailable - check back in soon!")
         return
 
-
-    def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
+    def Green_Kubo_Conductivity_Thermal(self, data_range, plot=False):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
@@ -233,30 +341,35 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         """
 
-        velocity_matrix = self.Load_Matrix("Velocities")
+        fluxes = self.Load_Flux_Matrix()
 
-        summed_velocity = []  # Define array for the summed velocities
+        # time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit, data_range)  # define the time
         time = np.linspace(0, self.sample_rate * self.time_step * data_range, data_range)  # define the time
 
         if plot == True:
             averaged_jacf = np.zeros(data_range)
 
-        for i in range(len(list(self.species))):
-            summed_velocity.append(np.sum(velocity_matrix[i][:, 0:], axis=0))
+        # prepare the prefactor for the integral
+        # kCal2J = 4186.0/Constants.avogardo_constant
+        # conv_factor = kCal2J**2/self.time_unit/self.length_unit
 
-        current = (np.array(summed_velocity[0]) - np.array(summed_velocity[1]))  # We need to fix these things
-        loop_range = len(current) - data_range - 1  # Define the loop range
+        numerator =(4184/Constants.avogardo_constant)**2 * self.time_step
+        denominator = 1/3 * self.temperature**2 * Constants.boltzmann_constant * self.volume
+        prefactor = numerator/denominator * 1e21
+
+
+        loop_range = len(fluxes) - data_range - 1  # Define the loop range
         sigma = []
         for i in tqdm(range(loop_range)):
             jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
-            jacf += (signal.correlate(current[:, 0][i:i + data_range],
-                                      current[:, 0][i:i + data_range],
+            jacf += (signal.correlate(fluxes[:, 0][i:i + data_range],
+                                      fluxes[:, 0][i:i + data_range],
                                       mode='full', method='fft') +
-                     signal.correlate(current[:, 1][i:i + data_range],
-                                      current[:, 1][i:i + data_range],
+                     signal.correlate(fluxes[:, 1][i:i + data_range],
+                                      fluxes[:, 1][i:i + data_range],
                                       mode='full', method='fft') +
-                     signal.correlate(current[:, 2][i:i + data_range],
-                                      current[:, 2][i:i + data_range],
+                     signal.correlate(fluxes[:, 2][i:i + data_range],
+                                      fluxes[:, 2][i:i + data_range],
                                       mode='full', method='fft'))
 
             # Cut off the second half of the acf
@@ -264,24 +377,30 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
             if plot == True:
                 averaged_jacf += jacf
 
-            numerator = 2 * (Constants.elementary_charge ** 2) * (self.length_unit ** 2)
-            denominator = 3 * Constants.boltzmann_constant * self.temperature * (
-                    self.volume * (self.length_unit ** 3)) * \
-                          self.time_unit * (2 * len(jacf) - 1)
-            prefactor = numerator / denominator
-
             sigma.append(prefactor * np.trapz(jacf, x=time))
+
+        # for i in tqdm(range(loop_range)):
+        #     jacf = np.zeros((data_range, 3))
+        #     for d in range(3):
+        #         jacf[:, d] = acovf(fluxes[:, d], unbiased=True, fft=True)[:data_range]
+        #     jacf = np.mean(jacf, axis=1)  # average acf
+        #
+        #     sigma.append(prefactor * np.trapz(jacf, x=time))
+
+
 
         if plot == True:
             averaged_jacf /= max(averaged_jacf)
             plt.plot(time, averaged_jacf)
-            plt.xlabel("Time (ps)")
+            plt.xlabel("Time (s)")
             plt.ylabel("Normalized Current Autocorrelation Function")
             plt.savefig(f"GK_Cond_{self.temperature}.pdf", )
             plt.show()
 
-        print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma) / 100} +- "
-              f"{0.01 * np.std(sigma) / np.sqrt(len(sigma))} S/cm")
+        print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)} +- "
+              f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        self.Save_Class() # Update class state
+        self.Save_Class()  # Update class state
 
+    def Not_implemented(self):
+        raise NotImplementedError
