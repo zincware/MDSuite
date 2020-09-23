@@ -282,7 +282,7 @@ class Trajectory_Methods:
         class for later re-loading
         """
 
-        save_file = open("{0}/{1}/{1}.txt".format(self.filepath, self.analysis_name), 'wb')
+        save_file = open("{0}/{1}/{1}.bin".format(self.filepath, self.analysis_name), 'wb')
         save_file.write(pickle.dumps(self.__dict__))
         save_file.close()
 
@@ -292,7 +292,7 @@ class Trajectory_Methods:
         A function to load a class instance given the project name.
         """
 
-        class_file = open('{0}/{1}/{1}.txt'.format(self.filepath, self.analysis_name), 'rb')
+        class_file = open('{0}/{1}/{1}.bin'.format(self.filepath, self.analysis_name), 'rb')
         pickle_data = class_file.read()
         class_file.close()
 
