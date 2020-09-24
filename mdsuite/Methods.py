@@ -228,21 +228,22 @@ class Trajectory_Methods:
         partitioned_configurations = int(len(data) / self.number_of_atoms)
 
         for item in self.species:
+            # get the new indices for the positions
             positions = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms - 9 for i in
                                   range(int(partitioned_configurations))]).flatten()
-            for property in self.property_groups:
-                database[item][property]["x"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property][0]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations),
-                        order='F')
-                database[item][property]["y"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property][1]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations),
-                        order='F')
-                database[item][property]["z"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property][2]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations),
-                        order='F')
+            # Fill the database
+            for property_group in self.property_groups:
+                database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property_group][0]].astype(float).reshape(
+                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
+
+                database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property_group][1]].astype(float).reshape(
+                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
+
+                database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
+                    data[positions][:, self.property_groups[property_group][2]].astype(float).reshape(
+                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
 
     def Print_Data_Structrure(self):
         """ Print the data structure of the hdf5 dataset """
