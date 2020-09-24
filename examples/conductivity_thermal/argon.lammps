@@ -17,7 +17,7 @@ variable    fs2s equal 1.0e-15
 variable    convert equal ${kCal2J}*${kCal2J}/${fs2s}/${A2m}
 
 # setup problem
-variable    repetitions equal 5 # number of blocks repetitions in each direction
+variable    repetitions equal 2 # number of blocks repetitions in each direction
 
 dimension    3
 boundary     p p p
@@ -35,7 +35,7 @@ thermo       $d
 
 velocity     all create $T 102486 mom yes rot yes dist gaussian
 fix          NVT all nvt temp $T $T 10 drag 0.2
-run          50000
+run          8000
 
 # thermal conductivity calculation, switch to NVE if desired
 
@@ -52,7 +52,7 @@ variable     Jy equal c_flux[2]/vol
 variable     Jz equal c_flux[3]/vol
 fix          JJ all ave/correlate $s $p $d &
              c_flux[1] c_flux[2] c_flux[3] type auto file J0Jt.dat ave running
-fix print_data all print 1 "$(step) $(time) $(temp) $(c_flux[1]) $(c_flux[2]) $(c_flux[3]) $(v_Jx) $(v_Jy) $(v_Jz)" file flux.dat
+fix print_data all print 1 "$(step) $(time) $(temp) $(c_flux[1]) $(c_flux[2]) $(c_flux[3]) $(v_Jx) $(v_Jy) $(v_Jz)" file flux.dat screen no
 variable     scale equal ${convert}/${kB}/$T/$T/$V*$s*${dt}
 variable     k11 equal trap(f_JJ[3])*${scale}
 variable     k22 equal trap(f_JJ[4])*${scale}
@@ -63,7 +63,7 @@ variable     k33 equal trap(f_JJ[5])*${scale}
 
 thermo_style custom step temp v_Jx v_Jy v_Jz v_k11 v_k22 v_k33
 # run          500000
-run          50000
+run          10000
 variable     k equal (v_k11+v_k22+v_k33)/3.0
 variable     ndens equal count(all)/vol
 print        "the volume of the box is: $V"

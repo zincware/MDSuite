@@ -242,12 +242,17 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
             # remove the time offset
             if lammps_var == 'time':
-                column_data = column_data - self.time_0
+                column_data = (column_data - self.time_0)*self.time_unit
 
-            # kCal2J = 4186.0 / Constants.avogardo_constant
 
-            # if 'c_flux' in lammps_var:
-            #     column_data = column_data*kCal2J/self.time_unit/self.length_unit**2 # IN SI units
+            # LAMMPS uses a weird unit for the flux being in energy*velocity units
+            # This is done so that the user can then divide by the appropriate volume.
+            # The volume is considered in the method Green_Kubo_Conductivity_Thermal
+            # This is the required change for Real Units
+            kCal2J = 4186.0 / Constants.avogardo_constant
+
+            if 'c_flux' in lammps_var:
+                column_data = column_data*kCal2J*self.length_unit/self.time_unit
 
             # copy it to the database
             database[lammps_var][counter: counter + self.batch_size] = column_data
@@ -300,14 +305,10 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         """
         identifiers = [f'c_flux[{i+1}]' for i in range(3)]
         matrix_data = []
-        with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
-                for identifier in identifiers:
-                    if identifier not in database:
-                        print("This data was not found in the database. Was it included in your simulation input?")
-                        return
 
-                    matrix_data.append(np.array(database[identifier]))
-
+        for identifier in identifiers:
+            column_data = self.Load_Column(identifier)
+            matrix_data.append(column_data)
         matrix_data = np.array(matrix_data).T # transpose such that [timestep, dimension]
         return matrix_data
 
@@ -343,23 +344,21 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         fluxes = self.Load_Flux_Matrix()
 
-        # time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit, data_range)  # define the time
-        time = np.linspace(0, self.sample_rate * self.time_step * data_range, data_range)  # define the time
+        time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit, data_range)  # define the time
 
         if plot == True:
             averaged_jacf = np.zeros(data_range)
 
         # prepare the prefactor for the integral
-        # kCal2J = 4186.0/Constants.avogardo_constant
-        # conv_factor = kCal2J**2/self.time_unit/self.length_unit
-
-        numerator =(4184/Constants.avogardo_constant)**2 * self.time_step
-        denominator = 1/3 * self.temperature**2 * Constants.boltzmann_constant * self.volume
-        prefactor = numerator/denominator * 1e21
-
+        numerator = 1
+        denominator = 3 *(data_range/2-1)* self.temperature**2 * Constants.boltzmann_constant \
+                      * self.volume * self.length_unit**3 # not sure why I need the /2 in data range...
+        prefactor = numerator/denominator
 
         loop_range = len(fluxes) - data_range - 1  # Define the loop range
         sigma = []
+        integrals = []
+        # main loop for computation
         for i in tqdm(range(loop_range)):
             jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
             jacf += (signal.correlate(fluxes[:, 0][i:i + data_range],
@@ -377,17 +376,10 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
             if plot == True:
                 averaged_jacf += jacf
 
-            sigma.append(prefactor * np.trapz(jacf, x=time))
+            integral = np.trapz(jacf, x=time)
+            sigma.append(integral)
 
-        # for i in tqdm(range(loop_range)):
-        #     jacf = np.zeros((data_range, 3))
-        #     for d in range(3):
-        #         jacf[:, d] = acovf(fluxes[:, d], unbiased=True, fft=True)[:data_range]
-        #     jacf = np.mean(jacf, axis=1)  # average acf
-        #
-        #     sigma.append(prefactor * np.trapz(jacf, x=time))
-
-
+        sigma = prefactor * np.array(sigma)
 
         if plot == True:
             averaged_jacf /= max(averaged_jacf)
