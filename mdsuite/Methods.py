@@ -145,8 +145,10 @@ class Trajectory_Methods:
                 else:
                     charge.append(ir.charge)
 
-            if len(charge) == 0:
-                self.species[element]['charge'] = [temp.ionic_radii[0].charge] # Case where most_reliabale is all False
+            if not temp.ionic_radii is True:
+                self.species[element]['charge'] = 0
+            elif len(charge) == 0:
+                self.species[element]['charge'] = [temp.ionic_radii[0].charge] # Case where most_reliable is all False
             elif all(elem == charge[0] for elem in charge) is True:
                 self.species[element]['charge'] = [charge[0]]
             else:
