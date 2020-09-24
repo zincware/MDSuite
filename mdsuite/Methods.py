@@ -4,6 +4,8 @@ Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Larger methods used in the Trajectory class
 """
+import pickle
+
 import mdsuite.Meta_Functions as Meta_Functions
 import numpy as np
 import h5py as hf
@@ -37,19 +39,18 @@ class Trajectory_Methods:
                              'angmomx', 'angmomy', 'angmomz',
                              'tqx', 'tqy', 'tqz'}
 
+        nlines_header_block = 9
         with open(self.filename) as f:
-            head = [next(f).split() for i in range(9)]
+            head = [next(f).split() for i in range(nlines_header_block)]
             f.seek(0)  # Go back to the start of the file
-
-            data_array = [next(f).split() for i in range(int(head[3][0]) + 9)]  # Get first configuration
-            second_configuration = [next(f).split() for i in range(int(head[3][0]) + 9)] # Get the second
-
-        
-        # Calculate the number of atoms and configurations in the system
-        number_of_atoms = int(data_array[3][0])
+            # Calculate the number of atoms and configurations in the system
+            number_of_atoms = int(head[3][0])
+            # Get first configuration
+            data_array = [next(f).split() for i in range(number_of_atoms + nlines_header_block)]  # Get first configuration
+            second_configuration = [next(f).split() for i in range(number_of_atoms + nlines_header_block)] # Get the second
 
         number_of_lines = Meta_Functions.Line_Counter(self.filename)
-        number_of_configurations = int(number_of_lines / (number_of_atoms + 9))
+        number_of_configurations = int(number_of_lines / (number_of_atoms + nlines_header_block)) # n of timesteps
         batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
 
         time_0 = float(data_array[1][0])
@@ -276,3 +277,37 @@ class Trajectory_Methods:
                 for j in range(len(species)):
                     for atom in data_matrix[j]:
                         f.write(f"{species[j]:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
+
+    def Save_Class(self):
+        """ Saves class instance
+
+        In order to keep properties of a class the state must be stored. This method will store the instance of the
+        class for later re-loading
+        """
+
+        save_file = open("{0}/{1}/{1}.bin".format(self.filepath, self.analysis_name), 'wb')
+        save_file.write(pickle.dumps(self.__dict__))
+        save_file.close()
+
+    def Load_Class(self):
+        """ Load class instance
+
+        A function to load a class instance given the project name.
+        """
+
+        class_file = open('{0}/{1}/{1}.bin'.format(self.filepath, self.analysis_name), 'rb')
+        pickle_data = class_file.read()
+        class_file.close()
+
+        self.__dict__ = pickle.loads(pickle_data)
+
+    def Print_Class_Attributes(self):
+        """ Print all attributes of the class """
+
+        attributes = []
+        for item in vars(self).items():
+            attributes.append(item)
+        for tuple in attributes:
+            print(f"{tuple[0]}: {tuple[1]}")
+
+        return attributes
