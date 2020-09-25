@@ -7,9 +7,11 @@ Purpose: This file contains arbitrary functions used in several different proces
 """
 
 import os
+
 import psutil
 
-def Get_Dimensionality(box):
+
+def get_dimensionality(box):
     """ Calculate the dimensionality of the system box
 
     args:
@@ -30,7 +32,8 @@ def Get_Dimensionality(box):
 
     return dimensions
 
-def Extract_LAMMPS_Properties(properties_dict):
+
+def extract_lammps_properties(properties_dict):
     """ Construct generalized property array
 
     Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
@@ -46,60 +49,62 @@ def Extract_LAMMPS_Properties(properties_dict):
     """
 
     # Define Initial Properties and arrays
-    LAMMPS_Properties = ["Positions", "Scaled_Positions", "Unwrapped_Positions", "Scaled_Unwrapped_Positions",
-                         "Velocities", "Forces", "Box_Images", "Dipole_Orientation_Magnitude", "Angular_Velocity_Spherical",
+    lammps_properties = ["Positions", "Scaled_Positions", "Unwrapped_Positions", "Scaled_Unwrapped_Positions",
+                         "Velocities", "Forces", "Box_Images", "Dipole_Orientation_Magnitude",
+                         "Angular_Velocity_Spherical",
                          "Angular_Velocity_Non_Spherical", "Torque"]
     trajectory_properties = {}
     system_properties = list(properties_dict)
 
     if 'x' in system_properties:
-        trajectory_properties[LAMMPS_Properties[0]] = [properties_dict['x'],
-                                                   properties_dict['y'],
-                                                   properties_dict['z']]
+        trajectory_properties[lammps_properties[0]] = [properties_dict['x'],
+                                                       properties_dict['y'],
+                                                       properties_dict['z']]
     if 'xs' in system_properties:
-        trajectory_properties[LAMMPS_Properties[1]] = [properties_dict['xs'],
-                                                   properties_dict['ys'],
-                                                   properties_dict['zs']]
+        trajectory_properties[lammps_properties[1]] = [properties_dict['xs'],
+                                                       properties_dict['ys'],
+                                                       properties_dict['zs']]
     if 'xu' in system_properties:
-        trajectory_properties[LAMMPS_Properties[2]] = [properties_dict['xu'],
-                                                   properties_dict['yu'],
-                                                   properties_dict['zu']]
+        trajectory_properties[lammps_properties[2]] = [properties_dict['xu'],
+                                                       properties_dict['yu'],
+                                                       properties_dict['zu']]
     if 'xsu' in system_properties:
-        trajectory_properties[LAMMPS_Properties[3]] = [properties_dict['xsu'],
-                                                   properties_dict['ysu'],
-                                                   properties_dict['zsu']]
+        trajectory_properties[lammps_properties[3]] = [properties_dict['xsu'],
+                                                       properties_dict['ysu'],
+                                                       properties_dict['zsu']]
     if 'vx' in system_properties:
-        trajectory_properties[LAMMPS_Properties[4]] = [properties_dict['vx'],
-                                                   properties_dict['vy'],
-                                                   properties_dict['vz']]
+        trajectory_properties[lammps_properties[4]] = [properties_dict['vx'],
+                                                       properties_dict['vy'],
+                                                       properties_dict['vz']]
     if 'fx' in system_properties:
-        trajectory_properties[LAMMPS_Properties[5]] = [properties_dict['fx'],
-                                                   properties_dict['fy'],
-                                                   properties_dict['fz']]
+        trajectory_properties[lammps_properties[5]] = [properties_dict['fx'],
+                                                       properties_dict['fy'],
+                                                       properties_dict['fz']]
     if 'ix' in system_properties:
-        trajectory_properties[LAMMPS_Properties[6]] = [properties_dict['ix'],
-                                                   properties_dict['iy'],
-                                                   properties_dict['iz']]
+        trajectory_properties[lammps_properties[6]] = [properties_dict['ix'],
+                                                       properties_dict['iy'],
+                                                       properties_dict['iz']]
     if 'mux' in system_properties:
-        trajectory_properties[LAMMPS_Properties[7]] = [properties_dict['mux'],
-                                                   properties_dict['muy'],
-                                                   properties_dict['muz']]
+        trajectory_properties[lammps_properties[7]] = [properties_dict['mux'],
+                                                       properties_dict['muy'],
+                                                       properties_dict['muz']]
     if 'omegax' in system_properties:
-        trajectory_properties[LAMMPS_Properties[8]] = [properties_dict['omegax'],
-                                                   properties_dict['omegay'],
-                                                   properties_dict['omegaz']]
+        trajectory_properties[lammps_properties[8]] = [properties_dict['omegax'],
+                                                       properties_dict['omegay'],
+                                                       properties_dict['omegaz']]
     if 'angmomx' in system_properties:
-        trajectory_properties[LAMMPS_Properties[9]] = [properties_dict['angmomx'],
-                                                   properties_dict['angmomy'],
-                                                   properties_dict['angmomz']]
+        trajectory_properties[lammps_properties[9]] = [properties_dict['angmomx'],
+                                                       properties_dict['angmomy'],
+                                                       properties_dict['angmomz']]
     if 'tqx' in system_properties:
-        trajectory_properties[LAMMPS_Properties[10]] = [properties_dict['tqx'],
-                                                    properties_dict['tqy'],
-                                                    properties_dict['tqz']]
+        trajectory_properties[lammps_properties[10]] = [properties_dict['tqx'],
+                                                        properties_dict['tqy'],
+                                                        properties_dict['tqz']]
 
     return trajectory_properties
 
-def Extract_extxyz_Properties(properties_dict):
+
+def extract_extxyz_properties(properties_dict):
     """ Construct generalized property array
 
     Takes the extxyz properties dictionary and constructs and array of properties which can be used by the species
@@ -118,7 +123,8 @@ def Extract_extxyz_Properties(properties_dict):
 
     return output_properties
 
-def Line_Counter(filename):
+
+def line_counter(filename):
     f = open(filename, 'rb')
     lines = 0
     buf_size = 1024 * 1024
@@ -131,18 +137,19 @@ def Line_Counter(filename):
 
     return lines
 
-def Optimize_Batch_Size(filepath, number_of_configurations):
+
+def optimize_batch_size(filepath, number_of_configurations):
     """ Optimize the size of batches during initial processing
 
     During the database construction a batch size must be chosen in order to process the trajectories with the
     least RAM but reasonable performance.
     """
 
-    file_size = os.path.getsize(filepath) # Get the size of the file
+    file_size = os.path.getsize(filepath)  # Get the size of the file
     available_memory = psutil.virtual_memory().available
-    memory_per_configuration = file_size / number_of_configurations # get the memory per configuration
-    database_memory = 0.1*available_memory # We take 10% of the available memory
-    initial_batch_number = int(database_memory / memory_per_configuration) # trivial batch allocation
+    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
+    database_memory = 0.1 * available_memory  # We take 10% of the available memory
+    initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
     if file_size < database_memory:
         batch_number = number_of_configurations
@@ -158,7 +165,8 @@ def Optimize_Batch_Size(filepath, number_of_configurations):
 
     return batch_number
 
-def Linear_Fitting_Function(x, a, b):
+
+def linear_fitting_function(x, a, b):
     """ Linear function for line fitting
 
     In many cases, namely those involving an Einstein relation, a linear curve must be fit to some data. This function
@@ -170,20 +178,3 @@ def Linear_Fitting_Function(x, a, b):
         b (float) -- fitting parameter for the y intercept
     """
     return a*x + b
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
