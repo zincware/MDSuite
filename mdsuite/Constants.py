@@ -7,7 +7,7 @@ Collected by the author of the code.
 """
 
 standard_state_pressure = 100000 # Pa -- Standard state pressure
-avogardo_constant = 6.02214076e23 # mol^-1 -- Avogadro's constant
+avogadro_constant = 6.02214076e23 # mol^-1 -- Avogadro's constant
 elementary_charge = 1.602176634e-19 # C -- Elementary charge
 boltzmann_constant = 1.380649e-23 # J K^-1 --  Boltzmann constant
 hyperfine_transition_frequency = 9192631770 # Hz -- Hyperfine transition frequency of Cs-133

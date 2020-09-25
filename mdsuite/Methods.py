@@ -6,15 +6,18 @@ Purpose: Larger methods used in the Trajectory class
 """
 import pickle
 
-import mdsuite.Meta_Functions as Meta_Functions
-import numpy as np
 import h5py as hf
 import mendeleev
+import numpy as np
 
-class Trajectory_Methods:
+import mdsuite.Constants as Constants
+import mdsuite.Meta_Functions as Meta_Functions
+
+
+class TrajectoryMethods:
     """ Methods to be used in the Trajectory class """
 
-    def Get_LAMMPS_Properties(self):
+    def get_lammps_properties(self):
         """ Get the properties of the system from a custom lammps dump file
 
             returns:
@@ -27,17 +30,17 @@ class Trajectory_Methods:
         # Define necessary properties and attributes
         species_summary = {}
         properties_summary = {}
-        LAMMPS_Properties_labels = {'x', 'y', 'z',
-                             'xs', 'ys', 'zs',
-                             'xu', 'yu', 'zu',
-                             'xsu', 'ysu', 'zsu',
-                             'ix', 'iy', 'iz',
-                             'vx', 'vy', 'vz',
-                             'fx', 'fy', 'fz',
-                             'mux', 'muy', 'muz', 'mu',
-                             'omegax', 'omegay', 'omegaz',
-                             'angmomx', 'angmomy', 'angmomz',
-                             'tqx', 'tqy', 'tqz'}
+        lammps_properties_labels = {'x', 'y', 'z',
+                                    'xs', 'ys', 'zs',
+                                    'xu', 'yu', 'zu',
+                                    'xsu', 'ysu', 'zsu',
+                                    'ix', 'iy', 'iz',
+                                    'vx', 'vy', 'vz',
+                                    'fx', 'fy', 'fz',
+                                    'mux', 'muy', 'muz', 'mu',
+                                    'omegax', 'omegay', 'omegaz',
+                                    'angmomx', 'angmomy', 'angmomz',
+                                    'tqx', 'tqy', 'tqz'}
 
         nlines_header_block = 9
         with open(self.filename) as f:
@@ -49,9 +52,9 @@ class Trajectory_Methods:
             data_array = [next(f).split() for i in range(number_of_atoms + nlines_header_block)]  # Get first configuration
             second_configuration = [next(f).split() for i in range(number_of_atoms + nlines_header_block)] # Get the second
 
-        number_of_lines = Meta_Functions.Line_Counter(self.filename)
+        number_of_lines = Meta_Functions.line_counter(self.filename)
         number_of_configurations = int(number_of_lines / (number_of_atoms + nlines_header_block)) # n of timesteps
-        batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
+        batch_size = Meta_Functions.optimize_batch_size(self.filename, number_of_configurations)
 
         time_0 = float(data_array[1][0])
         time_1 = float(second_configuration[1][0])
@@ -73,7 +76,7 @@ class Trajectory_Methods:
 
         # Find properties available for analysis
         for i in range(len(data_array[8])):
-            if data_array[8][i] in LAMMPS_Properties_labels:
+            if data_array[8][i] in lammps_properties_labels:
                 properties_summary[data_array[8][i]] = i - 2
 
         # Get the box size from the system
@@ -83,7 +86,7 @@ class Trajectory_Methods:
 
         # Update class attributes with calculated data
         self.batch_size = batch_size
-        self.dimensions = Meta_Functions.Get_Dimensionality(box)
+        self.dimensions = Meta_Functions.get_dimensionality(box)
         self.box_array = box
         self.volume = box[0] * box[1] * box[2]
         self.species = species_summary
@@ -93,7 +96,7 @@ class Trajectory_Methods:
         self.time_dimensions = [0.0, time_N*self.time_step*self.time_unit]
         self.sample_rate = sample_rate
 
-    def Get_EXTXYZ_Properties(self, data_array):
+    def get_extxyz_properties(self, data_array):
         """ Function to process extxyz input files """
 
         print("This functionality does not currently work")
@@ -117,7 +120,7 @@ class Trajectory_Methods:
             if extxyz_properties_keywords[i] in data_array[1][9]:
                 properties_summary[extxyz_properties_keywords[i]] = 0
 
-        self.dimensions = Meta_Functions.Get_Dimensionality(box)
+        self.dimensions = Meta_Functions.get_dimensionality(box)
         self.box_array = box
         self.volume = box[0] * box[1] * box[2]
         self.species = species_summary
@@ -125,7 +128,7 @@ class Trajectory_Methods:
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
 
-    def Build_Species_Dictionary(self):
+    def build_species_dictionary(self):
         """ Add information to the species dictionary
 
         A fundamental part of this package is species specific analysis. Therefore, the mendeleev python package is
@@ -160,6 +163,7 @@ class Trajectory_Methods:
                 mass.append(iso.mass)
             self.species[element]['mass'] = mass
 
+
     def _build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
 
@@ -172,7 +176,7 @@ class Trajectory_Methods:
 
         database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
-        property_groups = Meta_Functions.Extract_LAMMPS_Properties(self.properties)  # Get the property groups
+        property_groups = Meta_Functions.extract_lammps_properties(self.properties)  # Get the property groups
         self.property_groups = property_groups
 
         # Build the database structure
@@ -190,7 +194,7 @@ class Trajectory_Methods:
                                                               self.number_of_configurations % self.batch_size),
                                                         compression="gzip", compression_opts=9)
 
-    def Read_Configurations(self, N, f):
+    def read_configurations(self, N, f):
         """ Read in N configurations
 
         This function will read in N configurations from the file that has been opened previously by the parent method.
@@ -215,7 +219,7 @@ class Trajectory_Methods:
 
         return np.array(data)
 
-    def Process_Configurations(self, data, database, counter):
+    def process_configurations(self, data, database, counter):
         """ Process the available data
 
         Called during the main database creation. This function will calculate the number of configurations within the
@@ -248,12 +252,12 @@ class Trajectory_Methods:
                     data[positions][:, self.property_groups[property_group][2]].astype(float).reshape(
                         (len(self.species[item]['indices']), partitioned_configurations), order='F')
 
-    def Print_Data_Structrure(self):
+    def print_data_structrure(self):
         """ Print the data structure of the hdf5 dataset """
 
         database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
 
-    def Write_XYZ(self, property="Positions", species=None):
+    def write_xyz(self, property="Positions", species=None):
         """ Write an xyz file from database array
 
         For some of the properties calculated it is beneficial to have an xyz file for analysis with other platforms.
@@ -268,7 +272,7 @@ class Trajectory_Methods:
         if species == None:
             species = list(self.species.keys())
 
-        data_matrix = self.Load_Matrix(property, species)
+        data_matrix = self.load_matrix(property, species)
 
         with open(f"{self.filepath}/{self.analysis_name}/{property}_{'_'.join(species)}.xyz", 'w') as f:
             for i in range(self.number_of_configurations):
@@ -278,7 +282,7 @@ class Trajectory_Methods:
                     for atom in data_matrix[j]:
                         f.write(f"{species[j]:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
 
-    def Save_Class(self):
+    def save_class(self):
         """ Saves class instance
 
         In order to keep properties of a class the state must be stored. This method will store the instance of the
@@ -289,7 +293,7 @@ class Trajectory_Methods:
         save_file.write(pickle.dumps(self.__dict__))
         save_file.close()
 
-    def Load_Class(self):
+    def load_class(self):
         """ Load class instance
 
         A function to load a class instance given the project name.
@@ -301,7 +305,7 @@ class Trajectory_Methods:
 
         self.__dict__ = pickle.loads(pickle_data)
 
-    def Print_Class_Attributes(self):
+    def print_class_attributes(self):
         """ Print all attributes of the class """
 
         attributes = []
@@ -311,3 +315,32 @@ class Trajectory_Methods:
             print(f"{tuple[0]}: {tuple[1]}")
 
         return attributes
+
+    @staticmethod
+    def units_to_si(units_system, dimension):
+        """ Passes the given dimension to SI units.
+
+        It is easier to work in SI units always, to avoid mistakes.
+
+        Parameters
+        ----------
+        units_system (str) -- current unit system
+        dimension (str) -- dimension you would like to change
+
+        Returns
+        -------
+        conv_factor (float) -- conversion factor to pass to SI
+
+        Examples
+        --------
+        Pass from metal units of time (ps) to SI
+
+        >>> units_to_si('metal', 'time')
+        1e-12
+        """
+        units = {
+            "metal": {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19},
+            "real": {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / Constants.avogadro_constant},
+        }
+
+        return units[units_system][dimension]
