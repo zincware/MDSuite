@@ -106,7 +106,8 @@ class Trajectory(Methods.TrajectoryMethods):
         else:
             self.build_database()
 
-    def process_input_file(self):
+
+    def _process_input_file(self):
         """ Process the input file
 
         A trivial function to get the format of the input file. Will probably become more useful when we add support
@@ -149,9 +150,10 @@ class Trajectory(Methods.TrajectoryMethods):
         except FileExistsError:
             pass
 
-        file_format = self.process_input_file()  # Collect data array
-        self.get_system_properties(file_format)  # Update class attributes
-        self.build_database_skeleton()
+
+        file_format = self._process_input_file()  # Collect data array
+        self.Get_System_Properties(file_format)  # Update class attributes
+        self._build_database_skeleton()
 
         print("Beginning Build database")
 

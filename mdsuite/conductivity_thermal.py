@@ -192,9 +192,10 @@ class TrajectoryThermal(Methods.TrajectoryMethods):
         except FileExistsError:
             pass
 
-        file_format = self.process_input_file()  # Collect data array
-        self.get_system_properties(file_format)  # Update class attributes
-        self.build_database_skeleton()
+
+        file_format = self.Process_Input_File()  # Collect data array
+        self.Get_System_Properties(file_format)  # Update class attributes
+        self._build_database_skeleton()
 
         print("Beginning Build database")
 
@@ -219,7 +220,8 @@ class TrajectoryThermal(Methods.TrajectoryMethods):
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
-    def build_database_skeleton(self):
+
+    def _build_database_skeleton(self):
         database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
         # Build the database structure
