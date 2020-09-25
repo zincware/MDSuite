@@ -14,3 +14,5 @@ argon.Save_Class()
 argon.Print_Class_Attributes()
 
 argon.Green_Kubo_Conductivity_Thermal(800, plot=True)
+argon.Print_Class_Attributes()
+
