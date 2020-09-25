@@ -201,7 +201,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         file_format = self.Process_Input_File()  # Collect data array
         self.Get_System_Properties(file_format)  # Update class attributes
-        self.Build_Database_Skeleton()
+        self._build_database_skeleton()
 
         print("Beginning Build database")
 
@@ -226,7 +226,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
-    def Build_Database_Skeleton(self):
+    def _build_database_skeleton(self):
         database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
         # Build the database structure
