@@ -1,5 +1,5 @@
 """
-Author: Samuel Tovey
+Author: Samuel Tovey ; Francisco Torres
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Larger methods used in the Trajectory class
