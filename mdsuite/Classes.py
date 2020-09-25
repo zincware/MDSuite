@@ -5,23 +5,24 @@ Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Class functionality of the program
 """
 
-import numpy as np
+import itertools
 import os
-import sys
+
+import h5py as hf
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy import signal
 from scipy.optimize import curve_fit
-import mdsuite.Methods as Methods
-import pickle
-import h5py as hf
+from tqdm import tqdm
+
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
-import itertools
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+import mdsuite.Methods as Methods
+
 plt.style.use('bmh')
 
 
-class Trajectory(Methods.Trajectory_Methods):
+class Trajectory(Methods.TrajectoryMethods):
     """ Trajectory from simulation
 
     Attributes:
@@ -93,19 +94,19 @@ class Trajectory(Methods.Trajectory_Methods):
         self.box_array = None
         self.number_of_configurations = None
         self.time_dimensions = None
-        self.Diffusion_Coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
+        self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.Ionic_Conductivity = {"Einstein-Helfand": {},
                                    "Green-Kubo": {},
                                    "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
 
-        if self.new_project == False:
-            self.Load_Class()
+        if not self.new_project:
+            self.load_class()
         else:
-            self.Build_Database()
+            self.build_database()
 
-    def Process_Input_File(self):
+    def process_input_file(self):
         """ Process the input file
 
         A trivial function to get the format of the input file. Will probably become more useful when we add support
@@ -119,7 +120,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         return file_format
 
-    def Get_System_Properties(self, file_format):
+    def get_system_properties(self, file_format):
         """ Get the properties of the system
 
         This method will call the Get_X_Properties depending on the file format. This function will update all of the
@@ -130,11 +131,11 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         if file_format == 'lammps':
-            self.Get_LAMMPS_Properties()
+            self.get_lammps_properties()
         else:
-            self.Get_EXTXYZ_Properties()
+            self.get_extxyz_properties()
 
-    def Build_Database(self):
+    def build_database(self):
         """ Build the 'database' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
@@ -148,9 +149,9 @@ class Trajectory(Methods.Trajectory_Methods):
         except FileExistsError:
             pass
 
-        file_format = self.Process_Input_File()  # Collect data array
-        self.Get_System_Properties(file_format)  # Update class attributes
-        self.Build_Database_Skeleton()
+        file_format = self.process_input_file()  # Collect data array
+        self.get_system_properties(file_format)  # Update class attributes
+        self.build_database_skeleton()
 
         print("Beginning Build database")
 
@@ -158,19 +159,19 @@ class Trajectory(Methods.Trajectory_Methods):
             with open(self.filename) as f:
                 counter = 0
                 for i in tqdm(range(int(self.number_of_configurations / self.batch_size))):
-                    test = self.Read_Configurations(self.batch_size, f)
+                    test = self.read_configurations(self.batch_size, f)
 
-                    self.Process_Configurations(test, database, counter)
+                    self.process_configurations(test, database, counter)
 
                     counter += self.batch_size
 
-        self.Build_Species_Dictionary() # Beef up the species dictionary
-        self.Save_Class()
+        self.build_species_dictionary()  # Beef up the species dictionary
+        self.save_class()
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
-    def Unwrap_Coordinates(self, species=None):
-        """ Unwrap coordinates of trajectory
+    def unwrap_coordinates(self, species=None):
+        """ unwrap coordinates of trajectory
 
         For a number of properties the input data must in the form of unwrapped coordinates. This function takes the
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
@@ -181,7 +182,7 @@ class Trajectory(Methods.Trajectory_Methods):
         if species == None:
             species = list(self.species.keys())
 
-        def Center_Box(positions_matrix):
+        def center_box(positions_matrix):
             """ Center atoms in box
 
             A function to center the coordinates in the box so that the unwrapping is performed equally in all
@@ -193,8 +194,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
             positions_matrix -= (box_array[0] / 2)
 
-        def Unwrap(database):
-            """ Unwrap the coordinates
+        def unwrap(database):
+            """ unwrap the coordinates
 
             Central function in the unwrapping method. This function will detect jumps across the box boundary and
             shifts the position of the atoms accordingly.
@@ -204,8 +205,8 @@ class Trajectory(Methods.Trajectory_Methods):
 
             for item in species:
                 # Construct the positions matrix -- Only temporary, we should make this memory safe
-                positions_matrix = self.Load_Matrix("Positions", [item])
-                Center_Box(positions_matrix[0])  # Center the box at (0, 0, 0)
+                positions_matrix = self.load_matrix("Positions", [item])
+                center_box(positions_matrix[0])  # Center the box at (0, 0, 0)
 
                 for j in range(len(positions_matrix[0])):
                     difference = np.diff(positions_matrix[0][j], axis=0)  # Difference between all atoms in the array
@@ -244,10 +245,10 @@ class Trajectory(Methods.Trajectory_Methods):
                 if "Unwrapped_Positions" in database[item].keys():
                     print(f"{item} already has an unwrapped positions dataset, we will use that instead")
                     return
-            Unwrap(database)
+            unwrap(database)
             print("\n --- Finished unwrapping coordinates --- \n")
 
-    def Load_Matrix(self, identifier, species=None):
+    def load_matrix(self, identifier, species=None):
         """ Load a desired property matrix
 
         args:
@@ -267,7 +268,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
                     print("We first have to unwrap the coordinates... Doing this now")
-                    self.Unwrap_Coordinates(species=[item])
+                    self.unwrap_coordinates(species=[item])
                 if identifier not in database[item]:
                     print("This data was not found in the database. Was it included in your simulation input?")
                     return
@@ -278,7 +279,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
         return property_matrix
 
-    def Einstein_Diffusion_Coefficients(self, plot=False, singular=True, distinct=False, species=None):
+    def einstein_diffusion_coefficients(self, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Einstein self diffusion coefficients
 
             A function to implement the Einstein method for the calculation of the self diffusion coefficients
@@ -292,10 +293,10 @@ class Trajectory(Methods.Trajectory_Methods):
                 species (list) -- List of species to analyze
         """
 
-        if species == None:
+        if species is None:
             species = list(self.species.keys())
 
-        def Singular_Diffusion_Coefficients():
+        def singular_diffusion_coefficients():
             """ Calculate singular diffusion coefficients
 
             Implement the Einstein method for the calculation of the singular diffusion coefficient. This is performed
@@ -306,7 +307,7 @@ class Trajectory(Methods.Trajectory_Methods):
             used_configurations = int(self.number_of_configurations - self.number_of_configurations % self.batch_size)
             # Loop over each atomic specie to calculate self-diffusion
             for item in list(species):
-                positions_matrix = self.Load_Matrix("Unwrapped_Positions", [item])
+                positions_matrix = self.load_matrix("Unwrapped_Positions", [item])
                 msd = [[np.zeros(used_configurations)],
                        [np.zeros(used_configurations)],
                        [np.zeros(used_configurations)]]
@@ -323,17 +324,17 @@ class Trajectory(Methods.Trajectory_Methods):
                 msd = prefactor * (msd[0][0] + msd[1][0] + msd[2][0])
                 time = np.linspace(self.time_dimensions[0], self.time_dimensions[1], len(msd))
 
-                if plot == True:
+                if plot:
                     plt.plot(time, msd, label=item)
 
-                popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time, msd)
-                self.Diffusion_Coefficients["Einstein"]["Singular"][item] = popt[0]
+                popt, pcov = curve_fit(Meta_Functions.linear_fitting_function, time, msd)
+                self.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
 
-            if plot == True:
+            if plot:
                 plt.legend()
                 plt.show()
 
-        def Distinct_Diffusion_Coefficients():
+        def distinct_diffusion_coefficients():
             """ Calculate the Distinct Diffusion Coefficients
 
             Use the Einstein method to calculate the distinct diffusion coefficients of the system from the mean
@@ -342,18 +343,18 @@ class Trajectory(Methods.Trajectory_Methods):
             """
             print("Sorry, distinct diffusion from Einstein is not yet available - Check back soon!")
 
-        if singular == True:
-            Singular_Diffusion_Coefficients()
+        if singular:
+            singular_diffusion_coefficients()
             print("Einstein Self-Diffusion Coefficients:\n")
-            for item in self.Diffusion_Coefficients["Einstein"]['Singular']:
-                print(f"{item}: {self.Diffusion_Coefficients['Einstein']['Singular'][item]} m^2/s\n")
+            for item in self.diffusion_coefficients["Einstein"]['Singular']:
+                print(f"{item}: {self.diffusion_coefficients['Einstein']['Singular'][item]} m^2/s\n")
 
-        if distinct == True:
-            Distinct_Diffusion_Coefficients()
+        if distinct:
+            distinct_diffusion_coefficients()
 
-        self.Save_Class() # Update class state
+        self.save_class()  # Update class state
 
-    def Green_Kubo_Diffusion_Coefficients(self, data_range, plot=False, singular=True, distinct=False, species=None):
+    def green_kubo_diffusion_coefficients(self, data_range, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
@@ -362,22 +363,22 @@ class Trajectory(Methods.Trajectory_Methods):
         """
 
         # Load all the species if none are specified
-        if species == None:
+        if species is None:
             species = list(self.species.keys())
 
-        def Singular_Diffusion_Coefficients():
+        def singular_diffusion_coefficients():
             """ Calculate the singular diffusion coefficients """
 
             # Define time array - CHANGE to an input (you don't need all the time)
             time = np.linspace(0.0, data_range * self.time_step * self.sample_rate, data_range)
 
             numerator = self.length_unit ** 2
-            denominator = 3 * (self.time_unit) * (len(time) - 1)
+            denominator = 3 * self.time_unit * (len(time) - 1)
             prefactor = numerator / denominator
 
             # Loop over the species in the system
-            for item in species:
-                velocity_matrix = self.Load_Matrix("Velocities", [item])
+            for element in species:
+                velocity_matrix = self.load_matrix("Velocities", [element])
 
                 loop_values = np.linspace(0.1 * self.number_of_configurations,
                                           self.number_of_configurations - data_range - 1,
@@ -391,7 +392,7 @@ class Trajectory(Methods.Trajectory_Methods):
                 for i in tqdm(loop_values):
                     vacf = np.zeros(int(2 * data_range - 1))  # Define vacf array
                     # Loop over the atoms of species to get the average
-                    for j in range(len(self.species[item]['indices'])):
+                    for j in range(len(self.species[element]['indices'])):
                         vacf += np.array(
                             signal.correlate(velocity_matrix[0][j][i:i + data_range, 0],
                                              velocity_matrix[0][j][i:i + data_range, 0],
@@ -403,22 +404,23 @@ class Trajectory(Methods.Trajectory_Methods):
                                              velocity_matrix[0][j][i:i + data_range, 2],
                                              mode='full', method='fft'))
 
-                    coefficient_array.append((prefactor / len(self.species[item]['indices'])) * np.trapz(vacf[int(len(vacf) / 2):],
-                                                                                              x=time))
+                    coefficient_array.append(
+                        (prefactor / len(self.species[element]['indices'])) * np.trapz(vacf[int(len(vacf) / 2):],
+                                                                                       x=time))
 
-                    if plot == True:
+                    if plot:
                         parsed_vacf += vacf[int(len(vacf) / 2):]
 
-                self.Diffusion_Coefficients["Green-Kubo"]["Singular"][item] = np.mean(coefficient_array)
+                self.diffusion_coefficients["Green-Kubo"]["Singular"][element] = np.mean(coefficient_array)
 
-                if plot == True:
-                    plt.plot(time, (parsed_vacf / loop_range) / max(parsed_vacf), label=item)
+                if plot:
+                    plt.plot(time, (parsed_vacf / loop_range) / max(parsed_vacf), label=element)
 
-            if plot == True:
+            if plot:
                 plt.legend()
                 plt.show()
 
-        def Distinct_Diffusion_Coefficients():
+        def distinct_diffusion_coefficients():
             """ Calculate the distinct diffusion coefficients """
 
             print("Please note, distinct diffusion coefficients are not currently accurate")
@@ -460,38 +462,38 @@ class Trajectory(Methods.Trajectory_Methods):
 
                     diff_array.append(np.trapz(vacf, x=time))
 
-                self.Diffusion_Coefficients["Green-Kubo"]["Distinct"][combinations[pairs]] = \
+                self.diffusion_coefficients["Green-Kubo"]["Distinct"][combinations[pairs]] = \
                     [prefactor * np.mean(diff_array), prefactor * np.std(diff_array) / np.sqrt(len(diff_array))]
 
                 pairs += 1
 
-        if singular == True:
-            Singular_Diffusion_Coefficients()
+        if singular:
+            singular_diffusion_coefficients()
             for item in species:
                 print(f"Self-Diffusion Coefficient for {item} at {self.temperature}K: "
-                      f"{self.Diffusion_Coefficients['Green-Kubo']['Singular'][item]} m^2/s")
+                      f"{self.diffusion_coefficients['Green-Kubo']['Singular'][item]} m^2/s")
 
-        if distinct == True:
-            Distinct_Diffusion_Coefficients()
-            for item in self.Diffusion_Coefficients["Green-Kubo"]["Distinct"]:
+        if distinct:
+            distinct_diffusion_coefficients()
+            for item in self.diffusion_coefficients["Green-Kubo"]["Distinct"]:
                 print(f"Distinct-Diffusion Coefficient for {item} at {self.temperature}K: "
-                      f"{self.Diffusion_Coefficients['Green-Kubo']['Distinct'][item]} m^2/s")
+                      f"{self.diffusion_coefficients['Green-Kubo']['Distinct'][item]} m^2/s")
 
-        self.Save_Class() # Update class state
+        self.save_class()  # Update class state
 
-    def Nernst_Einstein_Conductivity(self):
+    def nernst_einstein_conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
 
         A function to determine the Nernst-Einstein (NE) as well as the corrected Nernst-Einstein (CNE)
         conductivity of a system.
 
         """
-        truth_array = [[bool(self.Diffusion_Coefficients["Einstein"]["Singular"]),
-                        bool(self.Diffusion_Coefficients["Einstein"]["Distinct"])],
-                       [bool(self.Diffusion_Coefficients["Green-Kubo"]["Singular"]),
-                        bool(self.Diffusion_Coefficients["Green-Kubo"]["Distinct"])]]
+        truth_array = [[bool(self.diffusion_coefficients["Einstein"]["Singular"]),
+                        bool(self.diffusion_coefficients["Einstein"]["Distinct"])],
+                       [bool(self.diffusion_coefficients["Green-Kubo"]["Singular"]),
+                        bool(self.diffusion_coefficients["Green-Kubo"]["Distinct"])]]
 
-        def _NE_Conductivity(_diffusion_coefficients):
+        def _ne_conductivity(_diffusion_coefficients):
             """ Calculate the standard Nernst-Einstein Conductivity for the system
 
             args:
@@ -510,7 +512,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             return (prefactor * np.sum(diffusion_array)) / 100
 
-        def _CNE_Conductivity(_singular_diffusion_coefficients, _distinct_diffusion_coefficients):
+        def _cne_conductivity(_singular_diffusion_coefficients, _distinct_diffusion_coefficients):
             print("Sorry, this currently isn't available")
             return
 
@@ -542,10 +544,10 @@ class Trajectory(Methods.Trajectory_Methods):
         elif truth_array[0][0] is True and truth_array[1][0] is True:
             """ Calc just NE for EIN and GK """
 
-            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _NE_Conductivity(
-                self.Diffusion_Coefficients["Einstein"])
-            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _NE_Conductivity(
-                self.Diffusion_Coefficients["Green-Kubo"])
+            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _ne_conductivity(
+                self.diffusion_coefficients["Einstein"])
+            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _ne_conductivity(
+                self.diffusion_coefficients["Green-Kubo"])
 
             print(f'Nernst-Einstein Conductivity from Einstein Diffusion: '
                   f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/cm\n'
@@ -555,16 +557,16 @@ class Trajectory(Methods.Trajectory_Methods):
         elif truth_array[0][0] is True and not any(truth_array[1]) is True:
             """ Calc just NE for EIN """
 
-            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _NE_Conductivity(
-                self.Diffusion_Coefficients["Einstein"])
+            self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"] = _ne_conductivity(
+                self.diffusion_coefficients["Einstein"])
             print(f'Nernst-Einstein Conductivity from Einstein Diffusion: '
                   f'{self.Ionic_Conductivity["Nernst-Einstein"]["Einstein"]} S/cm')
 
         elif truth_array[1][0] is True and not any(truth_array[0]) is True:
             """ Calc just NE for GK """
 
-            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _NE_Conductivity(
-                self.Diffusion_Coefficients["Green-Kubo"])
+            self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"] = _ne_conductivity(
+                self.diffusion_coefficients["Green-Kubo"])
             print(f'Nernst-Einstein Conductivity from Green-Kubo Diffusion: '
                   f'{self.Ionic_Conductivity["Nernst-Einstein"]["Green-Kubo"]} S/cm')
 
@@ -580,9 +582,9 @@ class Trajectory(Methods.Trajectory_Methods):
             print("This really should not be possible... something has gone horrifically wrong")
             return
 
-        self.Save_Class() # Update class state
+        self.save_class()  # Update class state
 
-    def Einstein_Helfand_Conductivity(self, data_range, plot=False, species=None):
+    def einstein_helfand_conductivity(self, data_range, plot=False, species=None):
         """ Calculate the Einstein-Helfand Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
@@ -594,7 +596,7 @@ class Trajectory(Methods.Trajectory_Methods):
             plot(bool=False) -- If True, will plot the MSD over time
         """
 
-        position_matrix = self.Load_Matrix("Unwrapped_Positions")
+        position_matrix = self.load_matrix("Unwrapped_Positions")
         summed_positions = [[] for i in range(len(list(self.species)))]
 
         # Sum up positions and calculate the dipole moment
@@ -635,19 +637,19 @@ class Trajectory(Methods.Trajectory_Methods):
             stop = np.random.randint(int(1.4 * start), int(1.65 * start))
 
             # Calculate the value and append the array
-            popt, pcov = curve_fit(Meta_Functions.Linear_Fitting_Function, time[start:stop], dipole_msd[0][start:stop])
+            popt, pcov = curve_fit(Meta_Functions.linear_fitting_function, time[start:stop], dipole_msd[0][start:stop])
             sigma_array.append(popt[0])
 
         # Define the multiplicative prefactor of the calculation
         denominator = (6 * self.temperature * (self.volume * (self.length_unit) ** 3) * Constants.boltzmann_constant) * \
-                      (self.time_unit) * loop_range
+                      self.time_unit * loop_range
         numerator = (self.length_unit ** 2) * (Constants.elementary_charge ** 2)
         prefactor = numerator / denominator
 
         sigma = prefactor * np.mean(sigma_array)
         sigma_error = prefactor * (np.sqrt(np.var(sigma_array)) / np.sqrt(len(sigma_array)))
 
-        if plot == True:
+        if plot:
             plt.plot(time, dipole_msd[0])
             plt.xlabel("Time")
             plt.ylabel("Dipole Mean Square Displacement")
@@ -656,9 +658,9 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
 
-        self.Save_Class() # Update class state
+        self.save_class()  # Update class state
 
-    def Green_Kubo_Conductivity(self, data_range, plot=False, species=None):
+    def green_kubo_conductivity(self, data_range, plot=False, species=None):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
@@ -675,12 +677,12 @@ class Trajectory(Methods.Trajectory_Methods):
 
         """
 
-        velocity_matrix = self.Load_Matrix("Velocities")
+        velocity_matrix = self.load_matrix("Velocities")
 
         summed_velocity = []  # Define array for the summed velocities
         time = np.linspace(0, self.sample_rate * self.time_step * data_range, data_range)  # define the time
 
-        if plot == True:
+        if plot:
             averaged_jacf = np.zeros(data_range)
 
         for i in range(len(list(self.species))):
@@ -719,7 +721,7 @@ class Trajectory(Methods.Trajectory_Methods):
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
 
-        if plot == True:
+        if plot:
             averaged_jacf /= max(averaged_jacf)
             plt.plot(time, averaged_jacf)
             plt.xlabel("Time (ps)")
@@ -730,9 +732,9 @@ class Trajectory(Methods.Trajectory_Methods):
         print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma) / 100} +- "
               f"{0.01 * np.std(sigma) / np.sqrt(len(sigma))} S/cm")
 
-        self.Save_Class() # Update class state
+        self.save_class()  # Update class state
 
-    def Green_Kubo_Viscosity(self):
+    def green_kubo_viscosity(self):
         """ Calculate the shear viscosity of the system using Green Kubo
 
         Use a Green Kubo relation to calculate the shear viscosity of the system. This involves the calculation
@@ -741,7 +743,7 @@ class Trajectory(Methods.Trajectory_Methods):
         print("Sorry, this functionality is currently unavailable - check back in soon!")
         return
 
-    def Radial_Distribution_Function(self, bins=1000, cutoff=None):
+    def radial_distribution_function(self, bins=1000, cutoff=None):
         """ Calculate the radial distribtion function
 
         This function will calculate the radial distribution function for all pairs available in the system.
@@ -752,13 +754,13 @@ class Trajectory(Methods.Trajectory_Methods):
 
         print("Sorry, this functionality is currently unavailable - check back in soon!")
         # Define cutoff to half a box vector if none other is specified
-        if cutoff == None:
+        if cutoff is None:
             cutoff = self.box_array[0] / 2
 
-        positions_matrix = self.Load_Matrix("Positions")  # Load the positions
+        positions_matrix = self.load_matrix("Positions")  # Load the positions
         bin_width = cutoff / bins  # Calculate the bin_width
 
-    def Kirkwood_Buff_Integrals(self):
+    def kirkwood_buff_integrals(self):
         """ Calculate the Kirkwood-Buff integrals for the system
 
         Function to calculate all possible kirkwood buff integrals in the trajectory data
@@ -766,7 +768,7 @@ class Trajectory(Methods.Trajectory_Methods):
         print("Sorry, this functionality is currently unavailable - check back in soon!")
         return
 
-    def Structure_Factor(self):
+    def structure_factor(self):
         """ Calculate the structure factors in the system
 
         Function to calculate the possible structure factors for the system
@@ -774,7 +776,7 @@ class Trajectory(Methods.Trajectory_Methods):
         print("Sorry, this functionality is currently unavailable - check back in soon!")
         return
 
-    def Angular_Distribution_Function(self):
+    def angular_distribution_function(self):
         """ Calculate angular distribution functions
 
         Function to caluclate the possible angular distribution functions for the system

@@ -5,24 +5,22 @@ Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Class functionality of the program
 """
 
-import numpy as np
 import os
-import sys
-from scipy import signal
-from scipy.optimize import curve_fit
-import mdsuite.Methods as Methods
-import pickle
+
 import h5py as hf
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy import signal
+from tqdm import tqdm
+
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
-import itertools
-import matplotlib.pyplot as plt
-from tqdm import tqdm
+import mdsuite.Methods as Methods
 
 plt.style.use('bmh')
 
 
-class TrajectoryThermal(Methods.Trajectory_Methods):
+class TrajectoryThermal(Methods.TrajectoryMethods):
     """ Trajectory from simulation
 
     Attributes:
@@ -49,8 +47,6 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         number_of_atoms (int) -- number of atoms in the system
 
         properties (dict) -- properties in the trajectory available for analysis, not important for understanding
-
-        property_groups (list) -- property groups, e.g ["Fluxes", "Positions", "Velocities", "Torques"]
 
         dimensions (float) -- dimensionality of the system e.g. 3.0
 
@@ -89,15 +85,14 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         self.number_of_blocks = None
         self.time_dimensions = None
         self.n_lines_header = None
-        self.Thermal_Conductivity = {"Einstein-Helfand": {},
-                                     "Green-Kubo": {}}
+        self.thermal_conductivity = {"Green-Kubo": {}}
 
-        if self.new_project == False:
-            self.Load_Class()
+        if not self.new_project:
+            self.load_class()
         else:
-            self.Build_Database()
+            self.build_database()
 
-    def Process_Input_File(self):
+    def process_input_file(self):
         """ Process the input file
 
         A trivial function to get the format of the input file. Will probably become more useful when we add support
@@ -108,30 +103,30 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         return file_format
 
-    def Get_System_Properties(self, file_format):
+    def get_system_properties(self, file_format):
         """ Get the properties of the system
 
-        This method will call the Get_X_Properties depending on the file format. This function will update all of the
+        This method will call the get_X_groperties depending on the file format. This function will update all of the
         class attributes and is necessary for the operation of the Build database method.
 
         args:
             file_format (str) -- Format of the file being read
         """
         supported_file_formats = {
-            'dat': self.Get_LAMMPS_flux_file,
+            'dat': self.get_lammps_flux_file,
         }
 
         # if the format is listed in the dict above, it will run
         # otherwise, give not implemented error
-        supported_file_formats.get(file_format, self.Not_implemented)()
+        supported_file_formats.get(file_format, self.not_implemented)()
 
-    def Get_LAMMPS_flux_file(self):
+    def get_lammps_flux_file(self):
         """ Flux files are usually dumped with the fix print in lammps. Any global property can be printed there,
         important one for this case are the flux resulting from the compute
 
         """
         properties_summary = {}
-        LAMMPS_Properties_labels = {'time', 'temp', 'c_flux[1]',
+        lammps_properties_labels = {'time', 'temp', 'c_flux[1]',
                                     'c_flux[2]', 'c_flux[3]'}
 
         self.n_lines_header = 0  # number of lines of header
@@ -145,17 +140,15 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
                     varibles_lammps = line.split()  # after the comments, we have the line with the variables
                     break
 
-            line_variables = line.strip().split()
-
         with open(self.filename) as f:
             number_of_configurations = sum(1 for _ in f) - self.n_lines_header
 
         # Find properties available for analysis
         for position, variable in enumerate(varibles_lammps):
-            if variable in LAMMPS_Properties_labels:
+            if variable in lammps_properties_labels:
                 properties_summary[variable] = position
 
-        batch_size = Meta_Functions.Optimize_Batch_Size(self.filename, number_of_configurations)
+        batch_size = Meta_Functions.optimize_batch_size(self.filename, number_of_configurations)
 
         # get time related properties of the system
         with open(self.filename) as f:
@@ -167,14 +160,14 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
             time_1_line = f.readline().split()
             time_1 = float(time_1_line[properties_summary['time']])
 
-        sample_rate = (time_1 - time_0)/self.time_step
-        time_N = (number_of_configurations - number_of_configurations % batch_size) * sample_rate
+        sample_rate = (time_1 - time_0) / self.time_step
+        time_n = (number_of_configurations - number_of_configurations % batch_size) * sample_rate
 
-        ## Update class attributes with calculated data
+        # Update class attributes with calculated data
         self.batch_size = batch_size
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
-        self.time_dimensions = [0.0, time_N * self.time_step * self.time_unit]
+        self.time_dimensions = [0.0, time_n * self.time_step * self.time_unit]
         self.sample_rate = sample_rate
         self.time_0 = time_0
 
@@ -185,7 +178,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         if self.volume is None:
             self.volume = float(header[4][7])  # hopefully always in the same position
 
-    def Build_Database(self):
+    def build_database(self):
         """ Build the 'database' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
@@ -199,9 +192,9 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         except FileExistsError:
             pass
 
-        file_format = self.Process_Input_File()  # Collect data array
-        self.Get_System_Properties(file_format)  # Update class attributes
-        self.Build_Database_Skeleton()
+        file_format = self.process_input_file()  # Collect data array
+        self.get_system_properties(file_format)  # Update class attributes
+        self.build_database_skeleton()
 
         print("Beginning Build database")
 
@@ -215,69 +208,68 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
                 # start the counter
                 counter = 0
-                for i in tqdm(range(self.number_of_blocks)):
-                    test = self.Read_Configurations(self.batch_size, f)
+                for _ in tqdm(range(self.number_of_blocks)):
+                    test = self.read_configurations(self.batch_size, f)
 
-                    self.Process_Configurations(test, database, counter)
+                    self.process_configurations(test, database, counter)
 
                     counter += self.batch_size
 
-        self.Save_Class()
+        self.save_class()
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
-    def Build_Database_Skeleton(self):
+    def build_database_skeleton(self):
         database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
 
         # Build the database structure
-        for property in self.properties:
-            database.create_dataset(property, (self.number_of_configurations -
-                                               self.number_of_configurations % self.batch_size,),
+        for property_in in self.properties:
+            database.create_dataset(property_in, (self.number_of_configurations -
+                                                  self.number_of_configurations % self.batch_size,),
                                     compression="gzip", compression_opts=9)
 
-    def Process_Configurations(self, data, database, counter):
+    def process_configurations(self, data, database, counter):
         for lammps_var, column_num in self.properties.items():
             # grab the corresponding column and set it as numbers
             column_data = data[:, column_num].astype(float)
 
             # remove the time offset
             if lammps_var == 'time':
-                column_data = (column_data - self.time_0)*self.time_unit
-
+                column_data = (column_data - self.time_0) * self.time_unit
 
             # LAMMPS uses a weird unit for the flux being in energy*velocity units
             # This is done so that the user can then divide by the appropriate volume.
             # The volume is considered in the method Green_Kubo_Conductivity_Thermal
             # This is the required change for Real Units
-            kCal2J = 4186.0 / Constants.avogardo_constant
+            kcal2j = 4186.0 / Constants.avogadro_constant
 
             if 'c_flux' in lammps_var:
-                column_data = column_data*kCal2J*self.length_unit/self.time_unit
+                column_data = column_data * kcal2j * self.length_unit / self.time_unit
 
             # copy it to the database
             database[lammps_var][counter: counter + self.batch_size] = column_data
 
-
-    def Read_Configurations(self, N, f):
+    @staticmethod
+    def read_configurations(n_configurations, f):
         """ Read in N configurations
 
         This function will read in N configurations from the file that has been opened previously by the parent method.
 
         args:
 
-            N (int) -- Number of configurations to read in. This will depend on memory availability and the size of each
+            n_configurations (int) -- Number of configurations to read in. This will depend on memory availability and the size of each
                         configuration. Automatic setting of this variable is not yet available and therefore, it will be set
                         manually.
             f (obj) --
         """
         data = []
 
-        for i in range(N):
+        for i in range(n_configurations):
             data.append(f.readline().split())
 
         return np.array(data)
 
-    def Load_Column(self, identifier):
+    def load_column(self, identifier):
         """ Load a desired column from the hdf5
 
         args:
@@ -289,43 +281,30 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         """
 
         with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
-                if identifier not in database:
-                    print("This data was not found in the database. Was it included in your simulation input?")
-                    return
+            if identifier not in database:
+                print("This data was not found in the database. Was it included in your simulation input?")
+                return
 
-                column_data = np.array(database[identifier])
+            column_data = np.array(database[identifier])
 
         return column_data
 
-    def Load_Flux_Matrix(self):
+    def load_flux_matrix(self):
         """ Load the flux matrix
 
         returns:
             Matrix of the property flux
         """
-        identifiers = [f'c_flux[{i+1}]' for i in range(3)]
+        identifiers = [f'c_flux[{i + 1}]' for i in range(3)]
         matrix_data = []
 
         for identifier in identifiers:
-            column_data = self.Load_Column(identifier)
+            column_data = self.load_column(identifier)
             matrix_data.append(column_data)
-        matrix_data = np.array(matrix_data).T # transpose such that [timestep, dimension]
+        matrix_data = np.array(matrix_data).T  # transpose such that [timestep, dimension]
         return matrix_data
 
-    def Einstein_Helfand_Conductivity(self, measurement_range, plot=False, species=None):
-        """ Calculate the Einstein-Helfand Conductivity
-
-        A function to use the mean square displacement of the dipole moment of a system to extract the
-        ionic conductivity
-
-        args:
-            measurement_range (int) -- time range over which the measurement should be performed
-            plot(bool=False) -- If True, will plot the MSD over time
-        """
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        return
-
-    def Green_Kubo_Conductivity_Thermal(self, data_range, plot=False):
+    def green_kubo_conductivity_thermal(self, data_range, plot=False):
         """ Calculate Green-Kubo Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
@@ -342,22 +321,24 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         """
 
-        fluxes = self.Load_Flux_Matrix()
+        fluxes = self.load_flux_matrix()
 
-        time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit, data_range)  # define the time
+        time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit,
+                           data_range)  # define the time
 
         if plot == True:
             averaged_jacf = np.zeros(data_range)
 
         # prepare the prefactor for the integral
         numerator = 1
-        denominator = 3 *(data_range/2-1)* self.temperature**2 * Constants.boltzmann_constant \
-                      * self.volume * self.length_unit**3 # not sure why I need the /2 in data range...
-        prefactor = numerator/denominator
+        denominator = 3 * (data_range / 2 - 1) * self.temperature ** 2 * Constants.boltzmann_constant \
+                      * self.volume * self.length_unit ** 3
+        # not sure why I need the /2 in data range...
+        prefactor = numerator / denominator
 
         loop_range = len(fluxes) - data_range - 1  # Define the loop range
         sigma = []
-        integrals = []
+
         # main loop for computation
         for i in tqdm(range(loop_range)):
             jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
@@ -373,7 +354,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
             # Cut off the second half of the acf
             jacf = jacf[int((len(jacf) / 2)):]
-            if plot == True:
+            if plot:
                 averaged_jacf += jacf
 
             integral = np.trapz(jacf, x=time)
@@ -381,7 +362,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
 
         sigma = prefactor * np.array(sigma)
 
-        if plot == True:
+        if plot:
             averaged_jacf /= max(averaged_jacf)
             plt.plot(time, averaged_jacf)
             plt.xlabel("Time (s)")
@@ -392,7 +373,7 @@ class TrajectoryThermal(Methods.Trajectory_Methods):
         print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        self.Save_Class()  # Update class state
+        self.save_class()  # Update class state
 
-    def Not_implemented(self):
+    def not_implemented(self):
         raise NotImplementedError
