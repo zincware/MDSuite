@@ -6,10 +6,13 @@ Purpose: Larger methods used in the Trajectory class
 """
 import pickle
 
-import mdsuite.Meta_Functions as Meta_Functions
-import numpy as np
 import h5py as hf
 import mendeleev
+import numpy as np
+
+import mdsuite.Constants as Constants
+import mdsuite.Meta_Functions as Meta_Functions
+
 
 class Trajectory_Methods:
     """ Methods to be used in the Trajectory class """
@@ -311,3 +314,32 @@ class Trajectory_Methods:
             print(f"{tuple[0]}: {tuple[1]}")
 
         return attributes
+
+    @staticmethod
+    def units_to_SI(units_system, dimension):
+        """ Passes the given dimension to SI units.
+
+        It is easier to work in SI units always, to avoid mistakes.
+
+        Parameters
+        ----------
+        units_system (str) -- current unit system
+        dimension (str) -- dimension you would like to change
+
+        Returns
+        -------
+        conv_factor (float) -- conversion factor to pass to SI
+
+        Examples
+        --------
+        Pass from metal units of time (ps) to SI
+
+        >>> units_to_SI('metal', 'time')
+        1e-12
+        """
+        units = {
+            "metal": {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19},
+            "real": {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / Constants.avogardo_constant},
+        }
+
+        return units[units_system][dimension]
