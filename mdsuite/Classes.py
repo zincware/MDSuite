@@ -1,6 +1,6 @@
 """
-Author: Samuel Tovey
-Affiliation: Institute for Computational Physics, University of Stuttgart
+Authors: Samuel Tovey, Francisco Torres
+Affiliation: Institute for Computational Physics, University of Stuttgart ; 
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Class functionality of the program
 """
@@ -152,7 +152,7 @@ class Trajectory(Methods.TrajectoryMethods):
 
 
         file_format = self._process_input_file()  # Collect data array
-        self.Get_System_Properties(file_format)  # Update class attributes
+        self.get_system_properties(file_format)  # Update class attributes
         self._build_database_skeleton()
 
         print("Beginning Build database")
