@@ -146,21 +146,21 @@ class Trajectory_Methods:
                 else:
                     charge.append(ir.charge)
 
-            if not temp.ionic_radii is True:
-                self.species[element]['charge'] = 0
+            if not temp.ionic_radii:
+                self.species[element]['charge'] = [0]
             elif len(charge) == 0:
                 self.species[element]['charge'] = [temp.ionic_radii[0].charge] # Case where most_reliable is all False
             elif all(elem == charge[0] for elem in charge) is True:
                 self.species[element]['charge'] = [charge[0]]
             else:
-                self.species[element]['charge'] = charge
+                self.species[element]['charge'] = [charge]
 
             mass = []
             for iso in temp.isotopes:
                 mass.append(iso.mass)
             self.species[element]['mass'] = mass
 
-    def Build_Database_Skeleton(self):
+    def _build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
 
         Gathers all of the properties of the system using the relevant functions. Following the gathering

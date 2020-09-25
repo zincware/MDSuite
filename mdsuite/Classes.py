@@ -7,11 +7,9 @@ Purpose: Class functionality of the program
 
 import numpy as np
 import os
-import sys
 from scipy import signal
 from scipy.optimize import curve_fit
 import mdsuite.Methods as Methods
-import pickle
 import h5py as hf
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
@@ -105,7 +103,7 @@ class Trajectory(Methods.Trajectory_Methods):
         else:
             self.Build_Database()
 
-    def Process_Input_File(self):
+    def _process_input_file(self):
         """ Process the input file
 
         A trivial function to get the format of the input file. Will probably become more useful when we add support
@@ -148,9 +146,9 @@ class Trajectory(Methods.Trajectory_Methods):
         except FileExistsError:
             pass
 
-        file_format = self.Process_Input_File()  # Collect data array
+        file_format = self._process_input_file()  # Collect data array
         self.Get_System_Properties(file_format)  # Update class attributes
-        self.Build_Database_Skeleton()
+        self._build_database_skeleton()
 
         print("Beginning Build database")
 
