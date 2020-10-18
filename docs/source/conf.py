@@ -18,6 +18,7 @@ author = 'Samuel Tovey'
 # The full version, including alpha/beta/rc tags
 release = '2020'
 
+master_doc = 'contents'
 
 # -- General configuration ---------------------------------------------------
 
