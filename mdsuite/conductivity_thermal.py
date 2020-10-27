@@ -12,12 +12,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 from tqdm import tqdm
+import warnings
 
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import mdsuite.Methods as Methods
 
 plt.style.use('bmh')
+warnings.filterwarnings("ignore")
+tqdm.monitor_interval = 0
 
 
 class TrajectoryThermal(Methods.TrajectoryMethods):

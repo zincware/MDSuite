@@ -14,12 +14,17 @@ import numpy as np
 from scipy import signal
 from scipy.optimize import curve_fit
 from tqdm import tqdm
+import warnings
+
 
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import mdsuite.Methods as Methods
 
 plt.style.use('bmh')
+tqdm.monitor_interval = 0
+warnings.filterwarnings("ignore")
+
 
 
 class Trajectory(Methods.TrajectoryMethods):
@@ -473,7 +478,7 @@ class Trajectory(Methods.TrajectoryMethods):
                 # Define the multiplicative factor
                 numerator = self.number_of_atoms * (self.length_unit ** 2)
                 denominator = len(velocity_matrix[tuples[0]]) * len(velocity_matrix[tuples[1]]) * 3 * (
-                        self.time_unit) * (len(time))
+                        self.time_unit) * (len(time) - 1)
                 prefactor = numerator / denominator
 
                 diff_array = []
