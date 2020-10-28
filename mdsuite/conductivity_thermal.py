@@ -23,8 +23,8 @@ warnings.filterwarnings("ignore")
 tqdm.monitor_interval = 0
 
 
-class TrajectoryThermal(Methods.TrajectoryMethods):
-    """ Trajectory from simulation
+class ProjectThermal(Methods.ProjectMethods):
+    """ Project from simulation
 
     Attributes:
 

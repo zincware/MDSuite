@@ -16,7 +16,6 @@ from scipy.optimize import curve_fit
 from tqdm import tqdm
 import warnings
 
-
 import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 import mdsuite.Methods as Methods
@@ -26,9 +25,8 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-
-class Trajectory(Methods.TrajectoryMethods):
-    """ Trajectory from simulation
+class Project(Methods.ProjectMethods):
+    """ Project from simulation
 
     Attributes:
 
@@ -375,11 +373,6 @@ class Trajectory(Methods.TrajectoryMethods):
             """
             return
 
-
-
-
-
-
         if singular:
             singular_diffusion_coefficients()
             print("Einstein Self-Diffusion Coefficients:\n")
@@ -478,7 +471,7 @@ class Trajectory(Methods.TrajectoryMethods):
                 # Define the multiplicative factor
                 numerator = self.number_of_atoms * (self.length_unit ** 2)
                 denominator = len(velocity_matrix[tuples[0]]) * len(velocity_matrix[tuples[1]]) * 3 * (
-                        self.time_unit) * (len(time) - 1)
+                    self.time_unit) * (len(time) - 1)
                 prefactor = numerator / denominator
 
                 diff_array = []
@@ -765,9 +758,9 @@ class Trajectory(Methods.TrajectoryMethods):
             if plot:
                 averaged_jacf += jacf
 
-            numerator = 2 * (Constants.elementary_charge ** 2) * (self.length_unit ** 2)
+            numerator = (Constants.elementary_charge ** 2) * (self.length_unit ** 2)
             denominator = 3 * Constants.boltzmann_constant * self.temperature * \
-                          (self.volume * (self.length_unit ** 3)) * self.time_unit * (2 * len(jacf) - 1)
+                          (self.volume * (self.length_unit ** 3)) * self.time_unit * (len(jacf) - 1)
             prefactor = numerator / denominator
 
             sigma.append(prefactor * np.trapz(jacf, x=time))
