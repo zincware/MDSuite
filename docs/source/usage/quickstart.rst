@@ -28,7 +28,7 @@ to begin your first analysis. This can be done as follows.
         
         import mdsuite as mds
 
-        test_project = mds.Trajectory(analysis_name="this_is_a_test",
+        test_project = mds.Project(analysis_name="this_is_a_test",
                                       new_project=True,
                                       storage_path="/path/for/database/storage/",
                                       temperature=temperature_of_simulation,

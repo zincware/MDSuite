@@ -24,7 +24,7 @@ by:
 .. code-block:: python
         
         import mdsuite as mds
-        NaCl = mds.Trajectory(...)
+        NaCl = mds.Project(...)
         NaCl.unwrap_coordinates()
 
 Upon being called, this method store the unwrapped coordinates in the HDF5 database constructed

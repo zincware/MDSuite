@@ -2,7 +2,7 @@
 Author: Samuel Tovey ; Francisco Torres
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Larger methods used in the Trajectory class
+Purpose: Larger methods used in the Project class
 """
 import pickle
 
@@ -15,8 +15,8 @@ import mdsuite.Constants as Constants
 import mdsuite.Meta_Functions as Meta_Functions
 
 
-class TrajectoryMethods:
-    """ Methods to be used in the Trajectory class """
+class ProjectMethods:
+    """ Methods to be used in the Project class """
 
     def get_lammps_properties(self):
         """ Get the properties of the system from a custom lammps dump file

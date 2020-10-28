@@ -1,11 +1,10 @@
 # Important Note
 
-Package not yet ready for release. Expected initial release September 2020. Feel free to use it as it is and leave
-issues in the github repository.
+Package under heavy development.
 
 ## Disclaimer
 
-Currently this project in in development. It is likely that the methods in the Trajectory class will be changed in the 
+Currently this project in in development. It is likely that the methods in the Project class will be changed in the 
 next months and so it is important to update the repository before using. 
 
 Furthermore, we make no assurances as to the accuracy of the results. It is your own responsibility to ensure you are
