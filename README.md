@@ -1,7 +1,6 @@
 # Important Note
 
-Package not yet ready for release. Expected initial release September 2020. Feel free to use it as it is and leave
-issues in the github repository.
+Package under heavy development.
 
 ## Disclaimer
 
