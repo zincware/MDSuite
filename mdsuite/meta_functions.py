@@ -7,7 +7,6 @@ Purpose: This file contains arbitrary functions used in several different proces
 """
 
 import os
-
 import psutil
 
 
@@ -125,6 +124,12 @@ def extract_extxyz_properties(properties_dict):
 
 
 def line_counter(filename):
+    """
+    Count the number of lines in a file
+
+    :param filename: (str) name of file to read
+    :return: lines: (int) number of lines in the file
+    """
     f = open(filename, 'rb')
     lines = 0
     buf_size = 1024 * 1024
@@ -138,12 +143,8 @@ def line_counter(filename):
     return lines
 
 
-def optimize_batch_size(filepath, number_of_configurations):
-    """ Optimize the size of batches during initial processing
-
-    During the database construction a batch size must be chosen in order to process the trajectories with the
-    least RAM but reasonable performance.
-    """
+def _get_computational_properties(filepath, number_of_configurations):
+    """ get the properties of the computer being used """
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
     available_memory = psutil.virtual_memory().available
@@ -151,14 +152,28 @@ def optimize_batch_size(filepath, number_of_configurations):
     database_memory = 0.1 * available_memory  # We take 10% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
-    if file_size < database_memory:
+    return initial_batch_number, database_memory, file_size
+
+
+def optimize_batch_size(filepath, number_of_configurations):
+    """ Optimize the size of batches during initial processing
+
+    During the database construction a batch size must be chosen in order to process the trajectories with the
+    least RAM but reasonable performance.
+    """
+
+    computer_statistics = _get_computational_properties(filepath, number_of_configurations)  # Get computer statistics
+
+    batch_number = None  # Instantiate parameter for correct syntax
+
+    if computer_statistics[2] < computer_statistics[1]:
         batch_number = number_of_configurations
     else:
         remainder = 1000000000
         for i in range(10):
-            r_temp = number_of_configurations % (initial_batch_number - i)
+            r_temp = number_of_configurations % (computer_statistics[0] - i)
             if r_temp <= remainder:
-                batch_number = initial_batch_number - i
+                batch_number = computer_statistics[0] - i
 
     if batch_number > 1000:
         batch_number = 1000
@@ -177,4 +192,4 @@ def linear_fitting_function(x, a, b):
         a (float) -- fitting parameter of the gradient
         b (float) -- fitting parameter for the y intercept
     """
-    return a*x + b
+    return a * x + b

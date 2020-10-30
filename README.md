@@ -4,7 +4,7 @@ Package under heavy development.
 
 ## Disclaimer
 
-Currently this project in in development. It is likely that the methods in the Project class will be changed in the 
+Currently this project in in development. It is likely that the methods in the Experiment class will be changed in the 
 next months and so it is important to update the repository before using. 
 
 Furthermore, we make no assurances as to the accuracy of the results. It is your own responsibility to ensure you are

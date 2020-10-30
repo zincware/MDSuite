@@ -14,9 +14,9 @@ from scipy import signal
 from tqdm import tqdm
 import warnings
 
-import mdsuite.Constants as Constants
-import mdsuite.Meta_Functions as Meta_Functions
-import mdsuite.Methods as Methods
+import mdsuite.constants as Constants
+import mdsuite.meta_functions as Meta_Functions
+import mdsuite.methods as Methods
 
 plt.style.use('bmh')
 warnings.filterwarnings("ignore")
@@ -24,7 +24,7 @@ tqdm.monitor_interval = 0
 
 
 class ProjectThermal(Methods.ProjectMethods):
-    """ Project from simulation
+    """ Experiment from simulation
 
     Attributes:
 

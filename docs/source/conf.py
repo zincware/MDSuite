@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath('../mdsuite/'))
 import sphinx_rtd_theme
 
 
-# -- Project information -----------------------------------------------------
+# -- Experiment information -----------------------------------------------------
 
 project = 'MDSuite'
 copyright = '2020, Samuel Tovey'
