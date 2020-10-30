@@ -12605,7 +12605,7 @@ div#notebook {
 <div class="prompt input_prompt">In&nbsp;[2]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span> <span class="o">=</span> <span class="n">mds</span><span class="o">.</span><span class="n">Project</span><span class="p">(</span><span class="n">analysis_name</span><span class="o">=</span><span class="s2">&quot;NaCl_1074_15K_GK&quot;</span><span class="p">,</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span> <span class="o">=</span> <span class="n">mds</span><span class="o">.</span><span class="n">Experiment</span><span class="p">(</span><span class="n">analysis_name</span><span class="o">=</span><span class="s2">&quot;NaCl_1074_15K_GK&quot;</span><span class="p">,</span>
                         <span class="n">new_project</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">temperature</span><span class="o">=</span><span class="mf">1074.15</span><span class="p">,</span>
                         <span class="n">filename</span><span class="o">=</span><span class="s2">&quot;/beegfs/work/stovey/Masters_Simulations/NaCl/scaledSim/Thesis_Sims/1074K/VACF/NaCl_Velocities.xyz&quot;</span><span class="p">,</span>
@@ -12749,7 +12749,7 @@ Self-Diffusion Coefficient for Cl at 1074.15K: 5.854722206434094e-09 m^2/s
 <div class="prompt input_prompt">In&nbsp;[5]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span><span class="o">.</span><span class="n">einstein_helfand_conductivity</span><span class="p">(</span><span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_range</span><span class="o">=</span><span class="mi">2500</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span><span class="o">.</span><span class="n">einstein_helfand_ionic_conductivity</span><span class="p">(</span><span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_range</span><span class="o">=</span><span class="mi">2500</span><span class="p">)</span>
 </pre></div>
 
 </div>
@@ -12806,7 +12806,7 @@ Self-Diffusion Coefficient for Cl at 1074.15K: 5.854722206434094e-09 m^2/s
 <div class="prompt input_prompt">In&nbsp;[6]:</div>
 <div class="inner_cell">
     <div class="input_area">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span><span class="o">.</span><span class="n">green_kubo_conductivity</span><span class="p">(</span><span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_range</span><span class="o">=</span><span class="mi">2500</span><span class="p">)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="n">NaCl_1074_15K</span><span class="o">.</span><span class="n">green_kubo_ionic_conductivity</span><span class="p">(</span><span class="n">plot</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data_range</span><span class="o">=</span><span class="mi">2500</span><span class="p">)</span>
 </pre></div>
 
 </div>

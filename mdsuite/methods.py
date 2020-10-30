@@ -2,7 +2,7 @@
 Author: Samuel Tovey ; Francisco Torres
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Larger methods used in the Project class
+Purpose: Larger methods used in the Experiment class
 """
 import pickle
 
@@ -11,12 +11,12 @@ import mendeleev
 import numpy as np
 
 
-import mdsuite.Constants as Constants
-import mdsuite.Meta_Functions as Meta_Functions
+import mdsuite.constants as Constants
+import mdsuite.meta_functions as Meta_Functions
 
 
 class ProjectMethods:
-    """ Methods to be used in the Project class """
+    """ methods to be used in the Experiment class """
 
     def get_lammps_properties(self):
         """ Get the properties of the system from a custom lammps dump file
@@ -103,32 +103,6 @@ class ProjectMethods:
         print("This functionality does not currently work")
         return
 
-        # Define necessary properties and attributes
-        species_summary = {}
-        properties_summary = {}
-        extxyz_properties_keywords = ['pos', 'force']
-
-        number_of_atoms = int(data_array[0][0])
-        number_of_configurations = len(data_array) / (number_of_atoms + 2)
-        box = [float(data_array[1][0][9:]), float(data_array[1][4]), float(data_array[1][8][:-1])]
-
-        for i in range(2, number_of_atoms + 2):
-            if data_array[i][0] not in species_summary:
-                species_summary[data_array[i][0]] = []
-            species_summary[data_array[i][0]].append(i)
-
-        for i in range(len(extxyz_properties_keywords)):
-            if extxyz_properties_keywords[i] in data_array[1][9]:
-                properties_summary[extxyz_properties_keywords[i]] = 0
-
-        self.dimensions = Meta_Functions.get_dimensionality(box)
-        self.box_array = box
-        self.volume = box[0] * box[1] * box[2]
-        self.species = species_summary
-        self.number_of_atoms = number_of_atoms
-        self.properties = properties_summary
-        self.number_of_configurations = number_of_configurations
-
     def build_species_dictionary(self):
         """ Add information to the species dictionary
 
@@ -163,7 +137,6 @@ class ProjectMethods:
             for iso in temp.isotopes:
                 mass.append(iso.mass)
             self.species[element]['mass'] = mass
-
 
     def _build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
