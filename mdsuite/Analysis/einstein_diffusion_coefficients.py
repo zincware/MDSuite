@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 import numpy as np
 import warnings
-import torch
+import tensorflow as tf
 
 # Import user packages
 from tqdm import tqdm
@@ -67,7 +67,7 @@ class _EinsteinDiffusionCoefficients:
 
         # Loop over each atomic species to calculate self-diffusion
         for item in list(self.species):
-            positions_tensor = torch.from_numpy(np.array(self.parent.load_matrix("Unwrapped_Positions",
+            positions_tensor = tf.convert_to_tensor(np.array(self.parent.load_matrix("Unwrapped_Positions",
                                                                                  [item]))[:, 0:self.data_range])
 
             # Calculate the prefactor
@@ -76,8 +76,8 @@ class _EinsteinDiffusionCoefficients:
             prefactor = numerator / denominator
 
             # Calculate the msd
-            msd = (positions_tensor - (torch.unsqueeze(positions_tensor[:, 0], 1).repeat(1, self.data_range, 1))) ** 2
-            msd = prefactor * ((msd.sum(0)).sum(1))  # Sum over trajectory and then coordinates
+            msd = (positions_tensor - (tf.repeat(tf.expand_dims(positions_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
+            msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)  # Sum over trajectory and then coordinates
 
             if self.plot:
                 plt.plot(self.time, msd, label=item)
