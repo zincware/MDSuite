@@ -64,7 +64,7 @@ class ProjectMethods:
 
         # Get the position of the element keyword so that any format can be given
         for i in range(len(data_array[8])):
-            if data_array[8][i] == "element":
+            if data_array[8][i] == "id":
                 element_index = i - 2
 
         # Find the information regarding species in the system and construct a dictionary
@@ -115,7 +115,10 @@ class ProjectMethods:
         """
 
         for element in self.species:
-            temp = mendeleev.element(element)
+            try:
+                temp = mendeleev.element(element)
+            except:
+                self.species[element]['charge'] = [0]
 
             charge = [] # Define empty charge array
             for ir in temp.ionic_radii:
