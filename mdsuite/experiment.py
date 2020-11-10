@@ -180,7 +180,7 @@ class Experiment(methods.ProjectMethods):
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
         """
 
-        box_array = self.box_array  # Get the static box array --  NEED A NEW METHOD FOR V NEQ CONST SYSTEMS E.G NPT
+        box_array = self.box_array  # Get the static box array --  TODO: Implement changing box size
 
         if species is None:
             species = list(self.species.keys())
@@ -207,12 +207,12 @@ class Experiment(methods.ProjectMethods):
             print("\n --- Beginning to unwrap coordinates --- \n")
 
             for item in species:
-                # Construct the positions matrix -- Only temporary, we should make this memory safe
+                # Construct the positions matrix -- TODO: Make memory safe, perhaps using Dask
                 positions_matrix = self.load_matrix("Positions", [item])
-                center_box(positions_matrix[0])  # Center the box at (0, 0, 0)
+                center_box(positions_matrix)  # Center the box at (0, 0, 0)
 
-                for j in range(len(positions_matrix[0])):
-                    difference = np.diff(positions_matrix[0][j], axis=0)  # Difference between all atoms in the array
+                for j in range(len(positions_matrix)):
+                    difference = np.diff(positions_matrix[j], axis=0)  # Difference between all atoms in the array
 
                     # Indices where the atoms jump in the original array
                     box_jump = [np.where(abs(difference[:, 0]) >= (box_array[0] / 2))[0],
@@ -223,28 +223,28 @@ class Experiment(methods.ProjectMethods):
                     box_cross = [box_jump[0] + 1, box_jump[1] + 1, box_jump[2] + 1]
 
                     for k in range(len(box_cross[0])):
-                        positions_matrix[0][j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
+                        positions_matrix[j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
                                                                           box_array[0]
                     for k in range(len(box_cross[1])):
-                        positions_matrix[0][j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
+                        positions_matrix[j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
                                                                           box_array[1]
                     for k in range(len(box_cross[2])):
-                        positions_matrix[0][j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
+                        positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
                                                                           box_array[2]
 
                 database[item].create_group("Unwrapped_Positions")
                 database[item]["Unwrapped_Positions"].create_dataset('x',
-                                                                     data=np.array([positions_matrix[0][i][:, 0] for i
+                                                                     data=np.array([positions_matrix[i][:, 0] for i
                                                                                     in
-                                                                                    range(len(positions_matrix[0]))]))
+                                                                                    range(len(positions_matrix))]))
                 database[item]["Unwrapped_Positions"].create_dataset('y',
-                                                                     data=np.array([positions_matrix[0][i][:, 1] for i
+                                                                     data=np.array([positions_matrix[i][:, 1] for i
                                                                                     in
-                                                                                    range(len(positions_matrix[0]))]))
+                                                                                    range(len(positions_matrix))]))
                 database[item]["Unwrapped_Positions"].create_dataset('z',
-                                                                     data=np.array([positions_matrix[0][i][:, 2] for i
+                                                                     data=np.array([positions_matrix[i][:, 2] for i
                                                                                     in
-                                                                                    range(len(positions_matrix[0]))]))
+                                                                                    range(len(positions_matrix))]))
 
         with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
             for item in species:
