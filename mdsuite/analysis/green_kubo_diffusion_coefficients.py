@@ -61,8 +61,8 @@ class _GreenKuboDiffusionCoefficients:
         """ Calculate the singular diffusion coefficients """
 
         # Calculate the prefactor
-        numerator = self.parent.length_unit ** 2
-        denominator = 3 * self.parent.time_unit * (len(self.time) - 1)
+        numerator = self.parent.units['length'] ** 2
+        denominator = 3 * self.parent.units['time'] * (len(self.time) - 1)
         prefactor = numerator / denominator
 
         # Loop over the species in the system
@@ -123,9 +123,9 @@ class _GreenKuboDiffusionCoefficients:
         for tuples in itertools.combinations_with_replacement(index_list, 2):
 
             # Define the multiplicative factor
-            numerator = self.parent.number_of_atoms * (self.parent.length_unit ** 2)
+            numerator = self.parent.number_of_atoms * (self.parent.units['length'] ** 2)
             denominator = len(velocity_matrix[tuples[0]]) * len(velocity_matrix[tuples[1]]) * 3 * (
-                self.parent.time_unit) * (len(self.time) - 1)
+                self.parent.units['time']) * (len(self.time) - 1)
             prefactor = numerator / denominator
 
             diff_array = []

@@ -20,7 +20,7 @@ import tensorflow as tf
 from tqdm import tqdm
 
 # Import MDSuite packages
-import mdsuite.meta_functions as meta_functions
+import mdsuite.utils.meta_functions as meta_functions
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -71,8 +71,8 @@ class _EinsteinDiffusionCoefficients:
                                                                                  [item]))[:, 0:self.data_range])
 
             # Calculate the prefactor
-            numerator = self.parent.length_unit ** 2
-            denominator = (self.parent.time_unit*len(self.parent.species[item]['indices'])) * 6
+            numerator = self.parent.units['length'] ** 2
+            denominator = (self.parent.units['time']*len(self.parent.species[item]['indices'])) * 6
             prefactor = numerator / denominator
 
             # Calculate the msd
@@ -87,7 +87,7 @@ class _EinsteinDiffusionCoefficients:
 
         if self.plot:
             plt.xlabel("Time (s)")
-            plt.ylabel("MSD (m^2)")
+            plt.ylabel(r"MSD ($m^2$)")
             plt.legend()
             # plt.savefig(f"self.cwd/Images/einstein_diffusion_coefficients.eps", format='eps')
             plt.show()

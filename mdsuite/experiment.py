@@ -6,6 +6,7 @@ Purpose: Class functionality of the program
 """
 
 import os
+import sys
 
 import h5py as hf
 import matplotlib.pyplot as plt
@@ -13,13 +14,19 @@ import numpy as np
 from scipy.optimize import curve_fit
 from tqdm import tqdm
 import warnings
+from pathlib import Path
 
-import mdsuite.constants as constants
-import mdsuite.meta_functions as meta_functions
+import mdsuite.utils.constants as constants
+import mdsuite.utils.meta_functions as meta_functions
 import mdsuite.methods as methods
-from mdsuite.Analysis import einstein_diffusion_coefficients
-from mdsuite.Analysis import green_kubo_diffusion_coefficients
-from mdsuite.Analysis import green_kubo_ionic_conductivity
+
+# File readers
+from mdsuite.utils.lammps_files import LAMMPSFile
+
+# Analysis modules
+from mdsuite.analysis import einstein_diffusion_coefficients
+from mdsuite.analysis import green_kubo_diffusion_coefficients
+from mdsuite.analysis import green_kubo_ionic_conductivity
 
 
 plt.style.use('bmh')
@@ -32,13 +39,13 @@ class Experiment(methods.ProjectMethods):
 
     Attributes:
 
-        filename (str) -- filename of the trajectory
+        trajectory_file (str) -- trajectory_file of the trajectory
 
         analysis_name (str) -- name of the analysis being performed e.g. NaCl_1400K
 
         new_project (bool) -- If the project has already been build, if so, the class state will be loaded
 
-        filepath (str) -- where to store the data (best to have  drive capable of storing large files)
+        storage_path (str) -- where to store the data (best to have  drive capable of storing large files)
 
         temperature (float) -- temperature of the system
 
@@ -74,18 +81,15 @@ class Experiment(methods.ProjectMethods):
         ionic_conductivity (float) -- Ionic conductivity of the system e.g. 4.5 S/cm
     """
 
-    def __init__(self, analysis_name, new_project=False, storage_path=None,
-                 temperature=None, time_step=None, time_unit=None, filename=None, length_unit=None):
-        """ Initialise with filename """
+    def __init__(self, analysis_name, storage_path='./', data_file=None, trajectory_file=None):
+        """ Initialise with trajectory_file """
 
-        self.filename = filename
+        self.trajectory_file = trajectory_file
+        self.data_file = data_file
         self.analysis_name = analysis_name
-        self.new_project = new_project
-        self.filepath = storage_path
-        self.temperature = temperature
-        self.time_step = time_step
-        self.time_unit = time_unit
-        self.length_unit = length_unit
+        self.storage_path = storage_path
+        self.temperature = None
+        self.time_step = None
         self.sample_rate = None
         self.batch_size = None
         self.volume = None
@@ -95,8 +99,9 @@ class Experiment(methods.ProjectMethods):
         self.property_groups = None
         self.dimensions = None
         self.box_array = None
-        self.number_of_configurations = None
+        self.number_of_configurations = 0
         self.time_dimensions = None
+        self.units = None
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.ionic_conductivity = {"Einstein-Helfand": {},
@@ -104,10 +109,13 @@ class Experiment(methods.ProjectMethods):
                                    "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
 
-        if not self.new_project:
-            self.load_class()
+        test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
+        if test_dir.exists():
+            print("This model already exists, loading it now.")
+            self._load_class()
         else:
-            self.build_database()
+            print("Building a new model.")
+            self.build_model()
 
     def _process_input_file(self):
         """ Process the input file
@@ -116,14 +124,14 @@ class Experiment(methods.ProjectMethods):
         for more file formats.
         """
 
-        if self.filename[-6:] == 'extxyz':
+        if self.data_file[-6:] == 'extxyz':
             file_format = 'extxyz'
         else:
-            file_format = 'lammps'
+            file_format = 'lammps_traj'
 
         return file_format
 
-    def get_system_properties(self, file_format):
+    def get_system_properties(self):
         """ Get the properties of the system
 
         This method will call the Get_X_Properties depending on the file format. This function will update all of the
@@ -133,12 +141,23 @@ class Experiment(methods.ProjectMethods):
             file_format (str) -- Format of the file being read
         """
 
-        if file_format == 'lammps':
-            self.get_lammps_properties()
-        else:
-            return
+        file_format = self._process_input_file()  # Collect file format information
+        trajectory_reader = self._select_file_reader(file_format)
 
-    def build_database(self):
+        return trajectory_reader
+
+    def _select_file_reader(self, argument):
+        """ Switcher function to select relevant file reader """
+
+        switcher = {
+            'lammps_traj': LAMMPSFile
+        }
+
+        choice = switcher.get(argument, lambda: "Invalid filetype")
+
+        return choice(self, log_file=self.data_file)
+
+    def build_model(self):
         """ Build the 'database' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
@@ -148,30 +167,83 @@ class Experiment(methods.ProjectMethods):
 
         # Create new analysis directory and change into it
         try:
-            os.mkdir('{0}/{1}'.format(self.filepath, self.analysis_name))
+            os.mkdir('{0}/{1}'.format(self.storage_path, self.analysis_name))
         except FileExistsError:
             pass
 
-        file_format = self._process_input_file()  # Collect data array
-        self.get_system_properties(file_format)  # Update class attributes
-        self._build_database_skeleton()
+        file_format = self._process_input_file()  # Collect file format information
+        trajectory_reader = self._select_file_reader(file_format)
 
-        print("Beginning Build database")
+        trajectory_reader._process_log_file()  # Get simulation information from the data file
 
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
-            with open(self.filename) as f:
-                counter = 0
-                for _ in tqdm(range(int(self.number_of_configurations / self.batch_size))):
-                    test = self.read_configurations(self.batch_size, f)
+        self._save_class()
 
-                    self.process_configurations(test, database, counter)
+        print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
+
+    def _get_minimal_class_state(self):
+        """ Get a minimum umber of class properties for comparison """
+
+        return [self.number_of_atoms, list(self.species), self.box_array]
+
+    def _update_database(self):
+        """ Update a pre-existing database """
+
+        trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
+        # get properties of new trajectory
+        compare_data = trajectory_reader._process_trajectory_file(update_class=False)
+        class_state = self._get_minimal_class_state()
+
+        if compare_data[:-1] == class_state:
+            self.number_of_configurations += compare_data[3]
+
+            trajectory_reader._resize_database()  # resize the database to accomodate the new data
+
+            self._fill_database(trajectory_reader, counter = int(self.number_of_configurations - compare_data[3]))
+        else:
+            print(compare_data[:-1] == class_state)
+
+    def _fill_database(self, trajectory_reader, counter = 0):
+        """ Loads data into a hdf5 database """
+
+        loop_range = int((self.number_of_configurations - counter)/self.batch_size)
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
+            with open(self.trajectory_file) as f:
+                for _ in tqdm(range(loop_range)):
+                    batch_data = trajectory_reader._read_configurations(self.batch_size, f)
+
+                    trajectory_reader._process_configurations(batch_data, database, counter)
 
                     counter += self.batch_size
 
-        self.build_species_dictionary()  # Beef up the species dictionary
-        self.save_class()
+    def _build_new_database(self):
+        """ Build a new database """
 
-        print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
+        trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
+        trajectory_reader._process_trajectory_file()  # get properties of the trajectory and update the class
+        trajectory_reader._build_database_skeleton()  # Build the database skeleton
+
+        self._fill_database(trajectory_reader)
+
+        self.build_species_dictionary()  # Beef up the species dictionary
+        self._save_class()
+
+    def add_data(self, trajectory_file=None):
+        """ Add data to the database """
+
+        if trajectory_file is None:
+            print("No data has been given")
+            sys.exit()
+
+        self.trajectory_file = trajectory_file  # Update the current class trajectory file
+
+        # Check to see if a database exists
+        test_db = Path(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5")
+        if test_db.exists():
+            self._update_database()
+        else:
+            self._build_new_database()
+
+        self._save_class()
 
     def unwrap_coordinates(self, species=None):
         """ unwrap coordinates of trajectory
@@ -246,7 +318,7 @@ class Experiment(methods.ProjectMethods):
                                                                                     in
                                                                                     range(len(positions_matrix))]))
 
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r+") as database:
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
             for item in species:
                 if "Unwrapped_Positions" in database[item].keys():
                     print(f"{item} already has an unwrapped positions dataset, we will use that instead")
@@ -269,7 +341,7 @@ class Experiment(methods.ProjectMethods):
             species = list(self.species.keys())
         property_matrix = []  # Define an empty list for the properties to fill
 
-        with hf.File(f"{self.filepath}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
+        with hf.File(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
             for item in list(species):
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
@@ -314,7 +386,7 @@ class Experiment(methods.ProjectMethods):
 
         calculation_ed._single_diffusion_coefficients()
 
-        self.save_class()  # Update class state
+        self._save_class()  # Update class state
 
     def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
@@ -340,7 +412,7 @@ class Experiment(methods.ProjectMethods):
             calculation_gkd._distinct_diffusion_coefficients()
 
 
-        self.save_class()  # Update class state
+        self._save_class()  # Update class state
 
     def nernst_einstein_conductivity(self):
         """ Calculate Nernst-Einstein Conductivity
@@ -443,7 +515,7 @@ class Experiment(methods.ProjectMethods):
             print("This really should not be possible... something has gone horrifically wrong")
             return
 
-        self.save_class()  # Update class state
+        self._save_class()  # Update class state
 
     def einstein_helfand_ionic_conductivity(self, data_range, plot=False):
         """ Calculate the Einstein-Helfand Ionic Conductivity
@@ -499,7 +571,7 @@ class Experiment(methods.ProjectMethods):
 
         print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
 
-        self.save_class()  # Update class state
+        self._save_class()  # Update class state
 
     def green_kubo_ionic_conductivity(self, data_range, plot=False):
         """ Calculate Green-Kubo Ionic Conductivity
@@ -522,54 +594,14 @@ class Experiment(methods.ProjectMethods):
                                                                                      data_range=data_range)
         calculation_gkic._calculate_ionic_conductivity()
 
-        self.save_class()  # Update class state
+        self._save_class()  # Update class state
 
-    def green_kubo_viscosity(self):
-        """ Calculate the shear viscosity of the system using Green Kubo
+    # TODO def green_kubo_viscosity(self):
 
-        Use a Green Kubo relation to calculate the shear viscosity of the system. This involves the calculation
-        of the autocorrelation for the stress tensor of the sysetem.
-        """
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        return
+    # TODO def radial_distribution_function(self):
 
-    def radial_distribution_function(self, bins=1000, cutoff=None):
-        """ Calculate the radial distribtion function
+    # TODO def kirkwood_buff_integrals(self):
 
-        This function will calculate the radial distribution function for all pairs available in the system.
+    # TODO def structure_factor(self):
 
-        kwargs:
-            bins (int) -- Number of bins to use in the histogram when building the distribution function
-        """
-
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        # Define cutoff to half a box vector if none other is specified
-        if cutoff is None:
-            cutoff = self.box_array[0] / 2
-
-        positions_matrix = self.load_matrix("Positions")  # Load the positions
-        bin_width = cutoff / bins  # Calculate the bin_width
-
-    def kirkwood_buff_integrals(self):
-        """ Calculate the Kirkwood-Buff integrals for the system
-
-        Function to calculate all possible kirkwood buff integrals in the trajectory data
-        """
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        return
-
-    def structure_factor(self):
-        """ Calculate the structure factors in the system
-
-        Function to calculate the possible structure factors for the system
-        """
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        return
-
-    def angular_distribution_function(self):
-        """ Calculate angular distribution functions
-
-        Function to caluclate the possible angular distribution functions for the system
-        """
-        print("Sorry, this functionality is currently unavailable - check back in soon!")
-        return
+    # TODO def angular_distribution_function(self):
