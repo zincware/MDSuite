@@ -123,24 +123,15 @@ def extract_extxyz_properties(properties_dict):
     return output_properties
 
 
-def line_counter(filename):
+def _line_counter(filename):
     """
     Count the number of lines in a file
 
     :param filename: (str) name of file to read
     :return: lines: (int) number of lines in the file
     """
-    f = open(filename, 'rb')
-    lines = 0
-    buf_size = 1024 * 1024
-    read_f = f.raw.read
 
-    buf = read_f(buf_size)
-    while buf:
-        lines += buf.count(b'\n')
-        buf = read_f(buf_size)
-
-    return lines
+    return sum(1 for i in open(filename, 'rb'))
 
 
 def _get_computational_properties(filepath, number_of_configurations):
@@ -193,3 +184,18 @@ def linear_fitting_function(x, a, b):
         b (float) -- fitting parameter for the y intercept
     """
     return a * x + b
+
+
+def _simple_file_read(filename):
+    """ trivially read a file and load it into an array
+
+    There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
+    and dump data into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+    """
+
+    data_array = []
+    with open(filename, 'r+') as f:
+        for line in f:
+            data_array.append(line.split())
+
+    return data_array

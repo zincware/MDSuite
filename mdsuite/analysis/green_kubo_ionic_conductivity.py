@@ -19,7 +19,7 @@ import warnings
 from tqdm import tqdm
 
 # Import MDSuite modules
-import mdsuite.constants as constants
+import mdsuite.utils.constants as constants
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -70,9 +70,9 @@ class _GreenKuboIonicConductivity:
         system_current = self._calculate_system_current()  # get the ionic current
 
         # Calculate the prefactor
-        numerator = (constants.elementary_charge ** 2) * (self.parent.length_unit ** 2)
+        numerator = (constants.elementary_charge ** 2) * (self.parent.units['length'] ** 2)
         denominator = 3 * constants.boltzmann_constant * self.parent.temperature * self.parent.volume * \
-                      (self.parent.length_unit ** 3) * self.data_range * self.parent.time_unit
+                      (self.parent.length_unit ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
         sigma = []

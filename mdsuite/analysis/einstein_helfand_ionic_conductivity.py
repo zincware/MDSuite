@@ -11,7 +11,6 @@ calculations performed.
 
 # Python standard packages
 import matplotlib.pyplot as plt
-import numpy as np
 import warnings
 
 # Import user packages
@@ -19,7 +18,6 @@ from tqdm import tqdm
 import torch
 
 # Import MDSuite modules
-import mdsuite.constants as constants
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
