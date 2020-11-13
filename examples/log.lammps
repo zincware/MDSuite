@@ -1,0 +1,54 @@
+LAMMPS (20 Nov 2019)
+# LiF MD
+
+units           metal
+boundary        p p p
+atom_style      atomic
+
+region          myRegion block 0.0 13.1  0.0 13.1  0.0 13.1
+create_box      2 myRegion
+Created orthogonal box = (0 0 0) to (13.1 13.1 13.1)
+  1 by 2 by 2 MPI processor grid
+
+read_dump       input.xyz 0 x y z box no add yes format xyz
+  orthogonal box = (0 0 0) to (13.1 13.1 13.1)
+  0 atoms before read
+  64 atoms in snapshot
+  0 atoms purged
+  0 atoms replaced
+  0 atoms trimmed
+  64 atoms added
+  64 atoms after read
+set             atom 1*32 type 1
+  32 settings made for type
+set             atom 33*64 type 2
+  32 settings made for type
+mass            1  22.989
+mass            2  35.446
+group           Sodium type 1
+32 atoms in group Sodium
+group           Chlorine type 2
+32 atoms in group Chlorine
+
+#replicate       2 2 2
+
+
+velocity       all create 1400 83734
+
+pair_style      quip
+pair_coeff      * * SOAP.xml "Potential xml_label=GAP_2020_1_10_60_15_20_42_317" 11 17
+
+timestep        0.002
+
+fix             myThermostat all npt temp 1400.0 1400.0 $(100*dt)
+fix             myThermostat all nvt temp 1400.0 1400.0 0.2000000000000000111
+
+compute         myTemp all temp
+
+dump            myDump1 all custom 100 dump.NaCl_md id type element x y z vx vy vz
+dump_modify     myDump1 element Na Cl
+dump_modify     myDump1 sort id
+
+dump            myDump2 all xyz 100 NaCl_md.xyz
+dump_modify     myDump2 element Na Cl
+log             log.NaCl_md

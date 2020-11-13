@@ -7,7 +7,6 @@ Purpose: This file contains arbitrary functions used in several different proces
 """
 
 import os
-
 import psutil
 
 
@@ -124,18 +123,27 @@ def extract_extxyz_properties(properties_dict):
     return output_properties
 
 
-def line_counter(filename):
-    f = open(filename, 'rb')
-    lines = 0
-    buf_size = 1024 * 1024
-    read_f = f.raw.read
+def _line_counter(filename):
+    """
+    Count the number of lines in a file
 
-    buf = read_f(buf_size)
-    while buf:
-        lines += buf.count(b'\n')
-        buf = read_f(buf_size)
+    :param filename: (str) name of file to read
+    :return: lines: (int) number of lines in the file
+    """
 
-    return lines
+    return sum(1 for i in open(filename, 'rb'))
+
+
+def _get_computational_properties(filepath, number_of_configurations):
+    """ get the properties of the computer being used """
+
+    file_size = os.path.getsize(filepath)  # Get the size of the file
+    available_memory = psutil.virtual_memory().available
+    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
+    database_memory = 0.1 * available_memory  # We take 10% of the available memory
+    initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
+
+    return initial_batch_number, database_memory, file_size
 
 
 def optimize_batch_size(filepath, number_of_configurations):
@@ -145,20 +153,18 @@ def optimize_batch_size(filepath, number_of_configurations):
     least RAM but reasonable performance.
     """
 
-    file_size = os.path.getsize(filepath)  # Get the size of the file
-    available_memory = psutil.virtual_memory().available
-    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.1 * available_memory  # We take 10% of the available memory
-    initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
+    computer_statistics = _get_computational_properties(filepath, number_of_configurations)  # Get computer statistics
 
-    if file_size < database_memory:
+    batch_number = None  # Instantiate parameter for correct syntax
+
+    if computer_statistics[2] < computer_statistics[1]:
         batch_number = number_of_configurations
     else:
         remainder = 1000000000
         for i in range(10):
-            r_temp = number_of_configurations % (initial_batch_number - i)
+            r_temp = number_of_configurations % (computer_statistics[0] - i)
             if r_temp <= remainder:
-                batch_number = initial_batch_number - i
+                batch_number = computer_statistics[0] - i
 
     if batch_number > 1000:
         batch_number = 1000
@@ -177,4 +183,19 @@ def linear_fitting_function(x, a, b):
         a (float) -- fitting parameter of the gradient
         b (float) -- fitting parameter for the y intercept
     """
-    return a*x + b
+    return a * x + b
+
+
+def simple_file_read(filename):
+    """ trivially read a file and load it into an array
+
+    There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
+    and dump data into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+    """
+
+    data_array = []
+    with open(filename, 'r+') as f:
+        for line in f:
+            data_array.append(line.split())
+
+    return data_array
