@@ -1,24 +1,23 @@
-""" Module for reading lammps files"""
+""" Module for reading lammps trajectory files"""
 
-from mdsuite.utils.file_read import FileProcessor
+from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.constants import lammps_properties_labels
 from mdsuite.utils.constants import lammps_properties
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import _line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
-from mdsuite.utils.meta_functions import _simple_file_read
+from mdsuite.utils.meta_functions import simple_file_read
 from mdsuite.utils.meta_functions import get_dimensionality
 
 
-class LAMMPSFile(FileProcessor):
+class LAMMPSTrajectoryFile(FileProcessor):
     """ Child class for the lammps file reader """
 
-    def __init__(self, obj, header_lines=9, log_file=None, lammpstraj=None, dcd=None):
+    def __init__(self, obj, header_lines=9, log_file=None, lammpstraj=None):
         """ Python class constructor """
         super().__init__(obj, header_lines)
         self.log_file = log_file
         self.lammpstraj = lammpstraj
-        self.dcd = dcd
 
     def _get_units(self, log_data):
         """ get the units command from the log file """
@@ -30,13 +29,14 @@ class LAMMPSFile(FileProcessor):
     def _get_temperature(self, log_data):
         """ Get the temperature from the log file """
 
+        temperature = 300  # Set default value in case of no data
         for line in log_data:
             if "npt" in line and "temp" in line or "nvt" in line and "temp" in line:
                 t_index = line.index('temp')
                 try:
                     temperature = float(line[t_index + 2])
                     break
-                except:
+                except NoTempInData:
                     continue
 
         self.project.temperature = temperature
@@ -48,16 +48,16 @@ class LAMMPSFile(FileProcessor):
             if 'timestep' in line:
                 self.project.time_step = float(line[1])
 
-    def _process_log_file(self):
+    def process_log_file(self):
         """ Process the log file to get system properties """
 
-        log_data = _simple_file_read(self.log_file)  # Read in the data
+        log_data = simple_file_read(self.log_file)  # Read in the data
 
         self._get_units(log_data)  # determine the simulation units
         self._get_temperature(log_data)  # determine the simulation temperature
         self._get_timestep(log_data)  # determine the timestep of the simulation
 
-    def _process_trajectory_file(self, update_class=True):
+    def process_trajectory_file(self, update_class=True):
         """ Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
@@ -233,4 +233,3 @@ class LAMMPSFile(FileProcessor):
 
     def _read_lammpstrj(self):
         """ Process a lammps trajectory file """
-

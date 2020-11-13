@@ -14,7 +14,7 @@ class FileProcessor:
         self.project = obj
         self.header_lines = header_lines
 
-    def _read_configurations(self, number_of_configurations, file_object):
+    def read_configurations(self, number_of_configurations, file_object):
         """ Read in a configuration from a txt file"""
 
         configurations_data = []
@@ -34,17 +34,17 @@ class FileProcessor:
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
 
-    def _process_trajectory_file(self):
+    def process_trajectory_file(self):
         """ Get property groups from the trajectory """
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
 
-    def _process_log_file(self):
+    def process_log_file(self):
         """ Get property groups from the trajectory """
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
 
-    def _build_database_skeleton(self):
+    def build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
 
             Gathers all of the properties of the system using the relevant functions. Following the gathering
@@ -83,7 +83,7 @@ class FileProcessor:
                                                               len(self.project.species[item]['indices']), None),
                                                               scaleoffset=5)
 
-    def _resize_database(self):
+    def resize_database(self):
         """ Resize the database skeleton """
 
         resize_factor = self.project.number_of_configurations - self.project.number_of_configurations % self.project.batch_size
@@ -97,7 +97,7 @@ class FileProcessor:
                     database[species][observable]['y'].resize(resize_factor, 1)
                     database[species][observable]['z'].resize(resize_factor, 1)
 
-    def _process_configurations(self, data, database, counter):
+    def process_configurations(self, data, database, counter):
         """ Process the available data
 
                 Called during the main database creation. This function will calculate the number of configurations

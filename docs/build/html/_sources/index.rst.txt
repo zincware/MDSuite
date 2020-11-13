@@ -10,11 +10,11 @@ Welcome to MDSuite's documentation!
    :maxdepth: 1
    :caption: Contents:
 
-   usage/installation
-   usage/quickstart
-   usage/database_structure
-   usage/analysis_walkthrough
-   usage/tools
+   _usage/installation
+   _usage/quickstart
+   _theory/theory_introduction
+   _usage/tools
+
 
 
 

@@ -18,16 +18,16 @@ from pathlib import Path
 
 import mdsuite.utils.constants as constants
 import mdsuite.utils.meta_functions as meta_functions
-import mdsuite.methods as methods
+import mdsuite.experiment.experiment_methods as methods
 
 # File readers
-from mdsuite.utils.lammps_files import LAMMPSFile
+from mdsuite.file_io.lammps_trajectory_files import LAMMPSTrajectoryFile
 
 # Analysis modules
 from mdsuite.analysis import einstein_diffusion_coefficients
 from mdsuite.analysis import green_kubo_diffusion_coefficients
 from mdsuite.analysis import green_kubo_ionic_conductivity
-
+from mdsuite.analysis import einstein_helfand_ionic_conductivity
 
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
@@ -43,18 +43,11 @@ class Experiment(methods.ProjectMethods):
 
         analysis_name (str) -- name of the analysis being performed e.g. NaCl_1400K
 
-        new_project (bool) -- If the project has already been build, if so, the class state will be loaded
-
         storage_path (str) -- where to store the data (best to have  drive capable of storing large files)
 
         temperature (float) -- temperature of the system
 
         time_step (float) -- time step in the simulation e.g 0.002
-
-        time_unit (float) -- scaling factor for time, should result in the time being in SI units (seconds)
-                             e.g. 1e-12 for ps
-
-        length_unit (float) -- scaling factor for the lengths, should results in SI units (m), e.g. 1e-10 for angstroms
 
         volume (float) -- volume of the system
 
@@ -77,14 +70,15 @@ class Experiment(methods.ProjectMethods):
 
         diffusion_coefficients (dict) -- Dictionary of diffusion coefficients including from Einstein and Green-Kubo,
                                          and split again into singular and distinct coefficients.
-
-        ionic_conductivity (float) -- Ionic conductivity of the system e.g. 4.5 S/cm
+        ionic_conductivity (dict) -- Ionic conductivity of the system e.g. 4.5 S/cm
+        thermal_conductivity (dict) -- The thermal conductivity of the material. Can be calculated as a global or local
+                                       calculation and is therefore labelled as such.
     """
 
-    def __init__(self, analysis_name, storage_path='./', data_file=None, trajectory_file=None):
+    def __init__(self, analysis_name, storage_path='./', data_file=None):
         """ Initialise with trajectory_file """
 
-        self.trajectory_file = trajectory_file
+        self.trajectory_file = None  # will be set later
         self.data_file = data_file
         self.analysis_name = analysis_name
         self.storage_path = storage_path
@@ -108,6 +102,7 @@ class Experiment(methods.ProjectMethods):
                                    "Green-Kubo": {},
                                    "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
+        self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
@@ -150,7 +145,7 @@ class Experiment(methods.ProjectMethods):
         """ Switcher function to select relevant file reader """
 
         switcher = {
-            'lammps_traj': LAMMPSFile
+            'lammps_traj': LAMMPSTrajectoryFile
         }
 
         choice = switcher.get(argument, lambda: "Invalid filetype")
@@ -167,18 +162,19 @@ class Experiment(methods.ProjectMethods):
 
         # Create new analysis directory and change into it
         try:
-            os.mkdir('{0}/{1}'.format(self.storage_path, self.analysis_name))
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}')
         except FileExistsError:
             pass
 
         file_format = self._process_input_file()  # Collect file format information
         trajectory_reader = self._select_file_reader(file_format)
+        print()
 
-        trajectory_reader._process_log_file()  # Get simulation information from the data file
+        trajectory_reader.process_log_file()  # Get simulation information from the data file
 
         self._save_class()
 
-        print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
+        print(f"** Experiment has been constructed for {self.analysis_name} **")
 
     def _get_minimal_class_state(self):
         """ Get a minimum umber of class properties for comparison """
@@ -190,28 +186,28 @@ class Experiment(methods.ProjectMethods):
 
         trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
         # get properties of new trajectory
-        compare_data = trajectory_reader._process_trajectory_file(update_class=False)
+        compare_data = trajectory_reader.process_trajectory_file(update_class=False)
         class_state = self._get_minimal_class_state()
 
         if compare_data[:-1] == class_state:
             self.number_of_configurations += compare_data[3]
 
-            trajectory_reader._resize_database()  # resize the database to accomodate the new data
+            trajectory_reader.resize_database()  # resize the database to accommodate the new data
 
-            self._fill_database(trajectory_reader, counter = int(self.number_of_configurations - compare_data[3]))
+            self._fill_database(trajectory_reader, counter=int(self.number_of_configurations - compare_data[3]))
         else:
             print(compare_data[:-1] == class_state)
 
-    def _fill_database(self, trajectory_reader, counter = 0):
+    def _fill_database(self, trajectory_reader, counter=0):
         """ Loads data into a hdf5 database """
 
-        loop_range = int((self.number_of_configurations - counter)/self.batch_size)
+        loop_range = int((self.number_of_configurations - counter) / self.batch_size)
         with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
             with open(self.trajectory_file) as f:
                 for _ in tqdm(range(loop_range)):
-                    batch_data = trajectory_reader._read_configurations(self.batch_size, f)
+                    batch_data = trajectory_reader.read_configurations(self.batch_size, f)
 
-                    trajectory_reader._process_configurations(batch_data, database, counter)
+                    trajectory_reader.process_configurations(batch_data, database, counter)
 
                     counter += self.batch_size
 
@@ -219,8 +215,8 @@ class Experiment(methods.ProjectMethods):
         """ Build a new database """
 
         trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
-        trajectory_reader._process_trajectory_file()  # get properties of the trajectory and update the class
-        trajectory_reader._build_database_skeleton()  # Build the database skeleton
+        trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
+        trajectory_reader.build_database_skeleton()  # Build the database skeleton
 
         self._fill_database(trajectory_reader)
 
@@ -296,13 +292,13 @@ class Experiment(methods.ProjectMethods):
 
                     for k in range(len(box_cross[0])):
                         positions_matrix[j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
-                                                                          box_array[0]
+                                                                       box_array[0]
                     for k in range(len(box_cross[1])):
                         positions_matrix[j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
-                                                                          box_array[1]
+                                                                       box_array[1]
                     for k in range(len(box_cross[2])):
                         positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
-                                                                          box_array[2]
+                                                                       box_array[2]
 
                 database[item].create_group("Unwrapped_Positions")
                 database[item]["Unwrapped_Positions"].create_dataset('x',
@@ -379,16 +375,17 @@ class Experiment(methods.ProjectMethods):
             species = list(self.species.keys())
 
         calculation_ed = einstein_diffusion_coefficients._EinsteinDiffusionCoefficients(self, plot=plot,
-                                                        singular=singular,
-                                                        distinct=distinct,
-                                                        species=species,
-                                                        data_range=data_range)
+                                                                                        singular=singular,
+                                                                                        distinct=distinct,
+                                                                                        species=species,
+                                                                                        data_range=data_range)
 
         calculation_ed._single_diffusion_coefficients()
 
         self._save_class()  # Update class state
 
-    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None):
+    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False,
+                                          species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
@@ -410,7 +407,6 @@ class Experiment(methods.ProjectMethods):
             calculation_gkd._singular_diffusion_coefficients()
         if distinct:
             calculation_gkd._distinct_diffusion_coefficients()
-
 
         self._save_class()  # Update class state
 
@@ -529,49 +525,9 @@ class Experiment(methods.ProjectMethods):
             plot(bool=False) -- If True, will plot the MSD over time
         """
 
-
-        # Fill the dipole moment msd matrix
-        for i in tqdm(range(loop_range)):
-            for j in range(3):
-                dipole_moment_msd[j] += (dipole_moment[i:i + data_range, j] - dipole_moment[i][j]) ** 2
-
-        dipole_msd = np.array(np.array(dipole_moment_msd[0]) +
-                              np.array(dipole_moment_msd[1]) +
-                              np.array(dipole_moment_msd[2]))  # Calculate the net msd
-
-        # Initialize the time
-        time = np.linspace(0.0, data_range * self.sample_rate * self.time_step, len(dipole_msd[0]))
-
-        sigma_array = []  # Initialize and array for the conductivity calculations
-        # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
-        for i in range(100):
-            # Create the data range
-            start = np.random.randint(int(0.1 * len(dipole_msd[0])), int(0.60 * len(dipole_msd[0])))
-            stop = np.random.randint(int(1.4 * start), int(1.65 * start))
-
-            # Calculate the value and append the array
-            popt, pcov = curve_fit(meta_functions.linear_fitting_function, time[start:stop], dipole_msd[0][start:stop])
-            sigma_array.append(popt[0])
-
-        # Define the multiplicative prefactor of the calculation
-        denominator = (6 * self.temperature * (self.volume * self.length_unit ** 3) * constants.boltzmann_constant) * \
-                      self.time_unit * loop_range
-        numerator = (self.length_unit ** 2) * (constants.elementary_charge ** 2)
-        prefactor = numerator / denominator
-
-        sigma = prefactor * np.mean(sigma_array)
-        sigma_error = prefactor * (np.sqrt(np.var(sigma_array)) / np.sqrt(len(sigma_array)))
-
-        if plot:
-            plt.plot(time, dipole_msd[0])
-            plt.xlabel("Time")
-            plt.ylabel("Dipole Mean Square Displacement")
-            plt.savefig(f"EHCond_{self.temperature}.pdf", format='pdf', dpi=600)
-            plt.show()
-
-        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
-
-        self._save_class()  # Update class state
+        calculation_ehic = einstein_helfand_ionic_conductivity._EinsteinHelfandIonicConductivity(self, data_range, plot)
+        calculation_ehic._calculate_ionic_conductivity()
+        self._save_class
 
     def green_kubo_ionic_conductivity(self, data_range, plot=False):
         """ Calculate Green-Kubo Ionic Conductivity
