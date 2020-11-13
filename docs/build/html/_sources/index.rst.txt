@@ -6,6 +6,13 @@
 Welcome to MDSuite's documentation!
 ===================================
 
+Thank you for being here. At the moment, we are keeping the code
+private while it is in its alpha development stage. If you would
+like to test the code, or to look at it for your own work, please
+email me at stovey@icp.uni-stuttgart.de and I will arrange access.
+In the mean time, look through the documentation here to see what
+will be coming soon.
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
