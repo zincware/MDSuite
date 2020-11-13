@@ -3039,7 +3039,7 @@ rootjQuery = jQuery( document );
 
 var rparentsprev = /^(?:parents|prev(?:Until|All))/,
 
-	// methods guaranteed to produce a unique set when starting from a unique set
+	// Methods guaranteed to produce a unique set when starting from a unique set
 	guaranteedUnique = {
 		children: true,
 		contents: true,

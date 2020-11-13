@@ -1,0 +1,243 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Tools &mdash; MDSuite 2020 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="MDSuite Theory" href="../_theory/theory_introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> MDSuite
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_theory/theory_introduction.html">MDSuite Theory</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#coordinate-unwrapper">Coordinate Unwrapper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#xyz-file-writer">XYZ File Writer</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">MDSuite</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+      <li>Tools</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/_usage/tools.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="tools">
+<h1>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h1>
+<p>As well as being a useful program for the analysis of Molecular Dynamics (MD) simulations,
+MDSuite is shipped with several useful tools which can be used for various analysis. In this
+section, we look into some of these tools and how they might be used.</p>
+<div class="section" id="coordinate-unwrapper">
+<h2>Coordinate Unwrapper<a class="headerlink" href="#coordinate-unwrapper" title="Permalink to this headline">¶</a></h2>
+<p>In order to simulate the effects of a large bulk system, periodic boundary conditions will be
+applied to a simulation. This effectively states that we replicate the simulation box infinitely
+in all directions such that we are only studying the bulk of the system. In order to replicate
+this, when a particle moves through the side of the simulation box, we re-introduce this
+particle on the other side. Whilst this allows for accurate simulations of a bulk system, often
+we want to study how particles move through a larger bulk. For this, we must unwrap the
+coordinates of the simulation box, where rather than appearing on the other side of the box, the
+particles will simply continue on.</p>
+<p>In MDSuite, in order to calculate Einstein relations, we have implemented a coordinate Unwrapper.
+This functionality is included as a method within the trajectory class. It can be called simply
+by:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">mdsuite</span> <span class="k">as</span> <span class="nn">mds</span>
+<span class="n">NaCl</span> <span class="o">=</span> <span class="n">mds</span><span class="o">.</span><span class="n">Experiment</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">NaCl</span><span class="o">.</span><span class="n">unwrap_coordinates</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Upon being called, this method store the unwrapped coordinates in the HDF5 database constructed
+upon instantiating the NaCl class instance.</p>
+</div>
+<div class="section" id="xyz-file-writer">
+<h2>XYZ File Writer<a class="headerlink" href="#xyz-file-writer" title="Permalink to this headline">¶</a></h2>
+<p>Another closely related tool is the XYZ file writer. It is common in an MD simulation that we
+may wish to visualize the coordinates of a system, or simply have access to only certain
+information from a larger data file. In this case, one can simply call the XYZ file writer
+tool available, and print whatever data they choose. Using the configuration above, we could
+print the coordinates of the unwrapped positions by:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">NaCl</span><span class="o">.</span><span class="n">write_xyz</span><span class="p">(</span><span class="nb">property</span><span class="o">=</span><span class="s1">&#39;Unwrapped_Positions&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This call would save an xyz file in the working directory under the name NaCl_Unwrapped_Positions.xyz.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="../_theory/theory_introduction.html" class="btn btn-neutral float-left" title="MDSuite Theory" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2020, Samuel Tovey
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

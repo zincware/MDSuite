@@ -186,7 +186,7 @@ def linear_fitting_function(x, a, b):
     return a * x + b
 
 
-def _simple_file_read(filename):
+def simple_file_read(filename):
     """ trivially read a file and load it into an array
 
     There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
