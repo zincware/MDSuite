@@ -1,5 +1,4 @@
-import sys
-from mdsuite.conductivity_thermal import ProjectThermal
+from mdsuite.experiment.conductivity_thermal import ProjectThermal
 
 argon = ProjectThermal(analysis_name="Argon_70",
                        new_project=True,

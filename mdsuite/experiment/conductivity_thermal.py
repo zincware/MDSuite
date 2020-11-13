@@ -14,21 +14,17 @@ from scipy import signal
 from tqdm import tqdm
 import warnings
 
-import mdsuite.Constants as Constants
-import mdsuite.Meta_Functions as Meta_Functions
-import mdsuite.Methods as Methods
-
 plt.style.use('bmh')
 warnings.filterwarnings("ignore")
 tqdm.monitor_interval = 0
 
 
-class ProjectThermal(Methods.ProjectMethods):
-    """ Project from simulation
+class ProjectThermal(methods.ProjectMethods):
+    """ Experiment from simulation
 
     Attributes:
 
-        filename (str) -- filename of the trajectory
+        filename (str) -- trajectory_file of the trajectory
 
         analysis_name (str) -- name of the analysis being performed e.g. NaCl_1400K
 
@@ -65,7 +61,7 @@ class ProjectThermal(Methods.ProjectMethods):
     def __init__(self, analysis_name, new_project=False, storage_path=None,
                  temperature=None, time_step=None, time_unit=None, filename=None, length_unit=None,
                  number_of_atoms=None, volume=None):
-        """ Initialise with filename """
+        """ Initialise with trajectory_file """
 
         self.filename = filename
         self.analysis_name = analysis_name
@@ -91,7 +87,7 @@ class ProjectThermal(Methods.ProjectMethods):
         self.thermal_conductivity = {"Green-Kubo": {}}
 
         if not self.new_project:
-            self.load_class()
+            self._load_class()
         else:
             self.build_database()
 
@@ -151,7 +147,7 @@ class ProjectThermal(Methods.ProjectMethods):
             if variable in lammps_properties_labels:
                 properties_summary[variable] = position
 
-        batch_size = Meta_Functions.optimize_batch_size(self.filename, number_of_configurations)
+        batch_size = meta_functions.optimize_batch_size(self.filename, number_of_configurations)
 
         # get time related properties of the system
         with open(self.filename) as f:
@@ -219,7 +215,7 @@ class ProjectThermal(Methods.ProjectMethods):
 
                     counter += self.batch_size
 
-        self.save_class()
+        self._save_class()
 
         print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
 
@@ -246,7 +242,7 @@ class ProjectThermal(Methods.ProjectMethods):
             # This is done so that the user can then divide by the appropriate volume.
             # The volume is considered in the method Green_Kubo_Conductivity_Thermal
             # This is the required change for Real Units
-            kcal2j = 4186.0 / Constants.avogadro_constant
+            kcal2j = 4186.0 / constants.avogadro_constant
 
             if 'c_flux' in lammps_var:
                 column_data = column_data * kcal2j * self.length_unit / self.time_unit
@@ -308,77 +304,6 @@ class ProjectThermal(Methods.ProjectMethods):
             matrix_data.append(column_data)
         matrix_data = np.array(matrix_data).T  # transpose such that [timestep, dimension]
         return matrix_data
-
-    def green_kubo_conductivity_thermal(self, data_range, plot=False):
-        """ Calculate Green-Kubo Conductivity
-
-        A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
-        system being studied.
-
-        args:
-            data_range (int) -- number of data points with which to calculate the conductivity
-
-        kwargs:
-            plot (bool=False) -- If True, a plot of the current autocorrelation function will be generated
-
-        returns:
-            sigma (float) -- The ionic conductivity in units of S/cm
-
-        """
-
-        fluxes = self.load_flux_matrix()
-
-        time = np.linspace(0, self.sample_rate * self.time_step * data_range * self.time_unit,
-                           data_range)  # define the time
-
-        if plot == True:
-            averaged_jacf = np.zeros(data_range)
-
-        # prepare the prefactor for the integral
-        numerator = 1
-        denominator = 3 * (data_range / 2 - 1) * self.temperature ** 2 * Constants.boltzmann_constant \
-                      * self.volume * self.length_unit ** 3
-        # not sure why I need the /2 in data range...
-        prefactor = numerator / denominator
-
-        loop_range = len(fluxes) - data_range - 1  # Define the loop range
-        sigma = []
-
-        # main loop for computation
-        for i in tqdm(range(loop_range)):
-            jacf = np.zeros(2 * data_range - 1)  # Define the empty JACF array
-            jacf += (signal.correlate(fluxes[:, 0][i:i + data_range],
-                                      fluxes[:, 0][i:i + data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(fluxes[:, 1][i:i + data_range],
-                                      fluxes[:, 1][i:i + data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(fluxes[:, 2][i:i + data_range],
-                                      fluxes[:, 2][i:i + data_range],
-                                      mode='full', method='fft'))
-
-            # Cut off the second half of the acf
-            jacf = jacf[int((len(jacf) / 2)):]
-            if plot:
-                averaged_jacf += jacf
-
-            integral = np.trapz(jacf, x=time)
-            sigma.append(integral)
-
-        sigma = prefactor * np.array(sigma)
-
-        if plot:
-            averaged_jacf /= max(averaged_jacf)
-            plt.plot(time, averaged_jacf)
-            plt.xlabel("Time (s)")
-            plt.ylabel("Normalized Current Autocorrelation Function")
-            plt.savefig(f"GK_Cond_{self.temperature}.pdf", )
-            plt.show()
-
-        print(f"Green-Kubo Ionic Conductivity at {self.temperature}K: {np.mean(sigma)} +- "
-              f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
-
-        self.save_class()  # Update class state
 
     def not_implemented(self):
         raise NotImplementedError
