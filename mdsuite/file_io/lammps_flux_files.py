@@ -10,5 +10,3 @@ class LAMMPSTrajectoryFile(FileProcessor):
         """ Python class constructor """
         super().__init__(obj, header_lines)
         self.data_file = data_file
-
-    

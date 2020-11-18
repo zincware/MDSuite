@@ -28,6 +28,7 @@ from mdsuite.analysis import einstein_diffusion_coefficients
 from mdsuite.analysis import green_kubo_diffusion_coefficients
 from mdsuite.analysis import green_kubo_ionic_conductivity
 from mdsuite.analysis import einstein_helfand_ionic_conductivity
+from mdsuite.analysis import radial_distribution_function
 
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
@@ -75,15 +76,14 @@ class Experiment(methods.ProjectMethods):
                                        calculation and is therefore labelled as such.
     """
 
-    def __init__(self, analysis_name, storage_path='./', data_file=None):
+    def __init__(self, analysis_name, storage_path='./', timestep=1.0, temperature=0, units='real'):
         """ Initialise with trajectory_file """
 
         self.trajectory_file = None  # will be set later
-        self.data_file = data_file
         self.analysis_name = analysis_name
         self.storage_path = storage_path
-        self.temperature = None
-        self.time_step = None
+        self.temperature = temperature
+        self.time_step = timestep
         self.sample_rate = None
         self.batch_size = None
         self.volume = None
@@ -95,7 +95,7 @@ class Experiment(methods.ProjectMethods):
         self.box_array = None
         self.number_of_configurations = 0
         self.time_dimensions = None
-        self.units = None
+        self.units = self.units_to_si(units)
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.ionic_conductivity = {"Einstein-Helfand": {},
@@ -119,7 +119,7 @@ class Experiment(methods.ProjectMethods):
         for more file formats.
         """
 
-        if self.data_file[-6:] == 'extxyz':
+        if self.trajectory_file[-6:] == 'extxyz':
             file_format = 'extxyz'
         else:
             file_format = 'lammps_traj'
@@ -150,10 +150,10 @@ class Experiment(methods.ProjectMethods):
 
         choice = switcher.get(argument, lambda: "Invalid filetype")
 
-        return choice(self, log_file=self.data_file)
+        return choice(self)
 
     def build_model(self):
-        """ Build the 'database' for the analysis
+        """ Build the 'experiment' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
         database skeleton, get configurations, and process and store the configurations. The method is accompanied
@@ -166,11 +166,6 @@ class Experiment(methods.ProjectMethods):
         except FileExistsError:
             pass
 
-        file_format = self._process_input_file()  # Collect file format information
-        trajectory_reader = self._select_file_reader(file_format)
-        print()
-
-        trajectory_reader.process_log_file()  # Get simulation information from the data file
 
         self._save_class()
 
@@ -384,8 +379,7 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False,
-                                          species=None):
+    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
@@ -554,7 +548,13 @@ class Experiment(methods.ProjectMethods):
 
     # TODO def green_kubo_viscosity(self):
 
-    # TODO def radial_distribution_function(self):
+    def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
+        """ Calculate the radial distribution function """
+
+        calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,
+                                                                                  bins=bins,
+                                                                                  cutoff=cutoff)
+        calculation_rdf.perform_analysis()  # run the analysis
 
     # TODO def kirkwood_buff_integrals(self):
 
