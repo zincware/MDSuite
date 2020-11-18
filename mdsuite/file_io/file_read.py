@@ -39,11 +39,6 @@ class FileProcessor:
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
 
-    def process_log_file(self):
-        """ Get property groups from the trajectory """
-
-        raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
-
     def build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
 

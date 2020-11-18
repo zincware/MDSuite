@@ -13,49 +13,11 @@ from mdsuite.utils.meta_functions import get_dimensionality
 class LAMMPSTrajectoryFile(FileProcessor):
     """ Child class for the lammps file reader """
 
-    def __init__(self, obj, header_lines=9, log_file=None, lammpstraj=None):
+    def __init__(self, obj, header_lines=9, lammpstraj=None):
         """ Python class constructor """
+
         super().__init__(obj, header_lines)
-        self.log_file = log_file
         self.lammpstraj = lammpstraj
-
-    def _get_units(self, log_data):
-        """ get the units command from the log file """
-
-        for line in log_data:
-            if 'units' in line:
-                self.project.units = self.project.units_to_si(line[1])
-
-    def _get_temperature(self, log_data):
-        """ Get the temperature from the log file """
-
-        temperature = 300  # Set default value in case of no data
-        for line in log_data:
-            if "npt" in line and "temp" in line or "nvt" in line and "temp" in line:
-                t_index = line.index('temp')
-                try:
-                    temperature = float(line[t_index + 2])
-                    break
-                except NoTempInData:
-                    continue
-
-        self.project.temperature = temperature
-
-    def _get_timestep(self, log_data):
-        """ Get the timestep of the simulation """
-
-        for line in log_data:
-            if 'timestep' in line:
-                self.project.time_step = float(line[1])
-
-    def process_log_file(self):
-        """ Process the log file to get system properties """
-
-        log_data = simple_file_read(self.log_file)  # Read in the data
-
-        self._get_units(log_data)  # determine the simulation units
-        self._get_temperature(log_data)  # determine the simulation temperature
-        self._get_timestep(log_data)  # determine the timestep of the simulation
 
     def process_trajectory_file(self, update_class=True):
         """ Get additional information from the trajectory file
