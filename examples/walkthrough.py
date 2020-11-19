@@ -14,4 +14,3 @@ NaCl_1400K.unwrap_coordinates()
 #NaCl_1400K.einstein_diffusion_coefficients(plot=True, data_range=300)
 
 #NaCl_1400K.write_xyz(property="Unwrapped_Positions")
-
