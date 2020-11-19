@@ -270,6 +270,7 @@ class Experiment(methods.ProjectMethods):
             print("\n --- Beginning to unwrap coordinates --- \n")
 
             for item in species:
+                print(item)
                 # Construct the positions matrix -- TODO: Make memory safe, perhaps using Dask
                 positions_matrix = self.load_matrix("Positions", [item])
                 center_box(positions_matrix)  # Center the box at (0, 0, 0)
@@ -281,6 +282,7 @@ class Experiment(methods.ProjectMethods):
                     box_jump = [np.where(abs(difference[:, 0]) >= (box_array[0] / 2))[0],
                                 np.where(abs(difference[:, 1]) >= (box_array[1] / 2))[0],
                                 np.where(abs(difference[:, 2]) >= (box_array[2] / 2))[0]]
+                    print(box_jump)
 
                     # Indices of first box cross
                     box_cross = [box_jump[0] + 1, box_jump[1] + 1, box_jump[2] + 1]
