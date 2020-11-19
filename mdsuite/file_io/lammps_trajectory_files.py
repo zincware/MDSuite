@@ -103,9 +103,9 @@ class LAMMPSTrajectoryFile(FileProcessor):
             Get the box size from the first simulation cell
         """
         # TODO: Add this to the trajectory storing so that changing box sizes can be used
-        box = [(float(first_configuration[5][1][:-10]) - float(first_configuration[5][0][:-10])) * 10,
-               (float(first_configuration[6][1][:-10]) - float(first_configuration[6][0][:-10])) * 10,
-               (float(first_configuration[7][1][:-10]) - float(first_configuration[7][0][:-10])) * 10]
+        box = [(float(first_configuration[5][1]) - float(first_configuration[5][0])),
+               (float(first_configuration[6][1]) - float(first_configuration[6][0])),
+               (float(first_configuration[7][1]) - float(first_configuration[7][0]))]
 
         """
             Update the class properties with those calculated above. 
