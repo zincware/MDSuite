@@ -77,7 +77,7 @@ class _GreenKuboIonicConductivity:
 
         sigma = []
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
-        for i in tqdm(range(0, self.loop_range, self.correlation_time)):
+        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=10):
             jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
             # Calculate the current autocorrelation
             jacf += (signal.correlate(system_current[:, 0][i:i + self.data_range],
