@@ -132,7 +132,7 @@ class ProjectMethods:
         """
 
         if species is None:
-            species = list(self.species.keys())
+            species = list(self.species)
 
         data_matrix = self.load_matrix(property, species)
 
