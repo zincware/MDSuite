@@ -7,5 +7,7 @@ NaCl_1400K = mds.Experiment(analysis_name="NaCl_1400K", timestep=0.002, temperat
 
 #NaCl_1400K.add_data(trajectory_file='trajectory_files/NaCl_1400K.dump')
 
+NaCl_1400K.print_class_attributes()
+
 NaCl_1400K.einstein_diffusion_coefficients(plot=True, data_range=100)
 
