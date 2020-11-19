@@ -7,8 +7,7 @@ Purpose: Larger methods used in the Experiment class
 import pickle
 
 import h5py as hf
-import pubchempy as pcp
-import json
+import mendeleev
 import numpy as np
 
 import mdsuite.utils.constants as constants
@@ -26,27 +25,34 @@ class ProjectMethods:
         returns:
             This method will update the class attributes in place and therefore, will not return anything explicitly.
         """
-        with open('PubChemElements_all.json') as json_file:
-            PSE = json.load(json_file)
 
-            # Try to get the species data from the Periodic System of Elements file
         for element in self.species:
-            self.species[element]['charge'] = [0.0]
-            for entry in PSE:
-                if PSE[entry][1] == element:
-                    self.species[element]['mass'] = [float(PSE[entry][3])]
+            try:
+                temp = mendeleev.element(element)
+            except:
+                self.species[element]['charge'] = [0]
+                continue
 
-            # If gathering the data from the PSE file was not succesfull try to get it from Pubchem via pubchempy
-        for element in self.species:
-            if not 'mass' in self.species[element]:
-                try:
-                    temp = pcp.get_compounds(element, 'name')
-                    temp[0].to_dict(properties=['atoms', 'bonds', 'exact_mass', 'molecular_weight', 'elements'])
-                    self.species[element]['mass'] = temp[0].molecular_weight
-                    print(temp[0].exact_mass)
-                except:
-                    self.species[element]['mass'] = [0.0]
-                    print(f'WARNING element {element} has been assigned mass=0.0')
+            charge = []  # Define empty charge array
+            for ir in temp.ionic_radii:
+                if ir.most_reliable is not True:
+                    continue
+                else:
+                    charge.append(ir.charge)
+
+            if not temp.ionic_radii:
+                self.species[element]['charge'] = [0]
+            elif len(charge) == 0:
+                self.species[element]['charge'] = [temp.ionic_radii[0].charge]  # Case where most_reliable is all False
+            elif all(elem == charge[0] for elem in charge) is True:
+                self.species[element]['charge'] = [charge[0]]
+            else:
+                self.species[element]['charge'] = [charge]
+
+            mass = []
+            for iso in temp.isotopes:
+                mass.append(iso.mass)
+            self.species[element]['mass'] = mass
 
     def _build_database_skeleton(self):
         """ Build skeleton of the hdf5 database
