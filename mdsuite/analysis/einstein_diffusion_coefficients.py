@@ -48,6 +48,8 @@ class _EinsteinDiffusionCoefficients:
         self.data_range = data_range
         self.time = self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
                                             self.data_range)
+        self.loop_range = self.parent.number_of_configurations - data_range - 1
+        self.correlation_time = 100
 
     def _autocorrelation_time(self):
         """ Calculate postions autocorrelation time
@@ -68,21 +70,29 @@ class _EinsteinDiffusionCoefficients:
         # Loop over each atomic species to calculate self-diffusion
         for item in list(self.species):
             positions_tensor = tf.convert_to_tensor(np.array(self.parent.load_matrix("Unwrapped_Positions",
-                                                                                 [item]))[:, 0:self.data_range])
+                                                                                     [item])))
+            msd_array = np.zeros(self.data_range)  # define empty msd array
 
-            # Calculate the prefactor
-            numerator = self.parent.units['length'] ** 2
-            denominator = (self.parent.units['time']*len(self.parent.species[item]['indices'])) * 6
-            prefactor = numerator / denominator
+            for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=10):
+                window_tensor = positions_tensor[:, i:i + self.data_range]  # extract a window to analyze
 
-            # Calculate the msd
-            msd = (positions_tensor - (tf.repeat(tf.expand_dims(positions_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
-            msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)  # Sum over trajectory and then coordinates
+                # Calculate the prefactor
+                numerator = self.parent.units['length'] ** 2
+                denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
+                prefactor = numerator / denominator
+
+                # Calculate the msd
+                msd = (window_tensor - (
+                    tf.repeat(tf.expand_dims(window_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
+                msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0),
+                                                axis=1)  # Sum over trajectory and then coordinates
+
+                msd_array += np.array(msd)
 
             if self.plot:
-                plt.plot(self.time, msd, label=item)
+                plt.plot(self.time, msd_array, label=item)
 
-            popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd)
+            popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time[50:], msd_array[50:])
             self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
 
         if self.plot:
