@@ -6,14 +6,16 @@
 Welcome to MDSuite's documentation!
 ===================================
 
-Thank you for being here. At the moment, we are keeping the code
-private while it is in its alpha development stage. If you would
-like to test the code, or to look at it for your own work, please
-email me at stovey@icp.uni-stuttgart.de and I will arrange access.
-In the mean time, look through the documentation here to see what
-will be coming soon.
-
-.. toctree::
+This package was conceived out of the idea that scientists can
+perform computational experiments without filling their computers
+with mislabelled and arbitrary directories. Here you will find the
+documentation for the mdsuite python package, as well as significant
+amount of theoretical background on the different types of analysis being
+performed. If you have any questions feel free to get into contact with
+us whether it is about how to use to code, some questions about theory, or
+about what you might like to see in future releases, we are always happy to
+hear from our users.
+..    toctree::
    :maxdepth: 1
    :caption: Contents:
 
