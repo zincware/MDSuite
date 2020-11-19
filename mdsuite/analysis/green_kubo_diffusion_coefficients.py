@@ -72,7 +72,7 @@ class _GreenKuboDiffusionCoefficients:
             coefficient_array = []  # Define the empty coefficient array
             parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
-            for i in tqdm(self.loop_values):
+            for i in tqdm(self.loop_values, ncols=10):
                 vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
                 # Loop over the atoms of species to get the average
 
@@ -133,7 +133,7 @@ class _GreenKuboDiffusionCoefficients:
             plot_array = np.zeros(self.data_range)
 
             # Loop over reference atoms
-            for start in tqdm(self.loop_values):
+            for start in tqdm(self.loop_values, ncols=10):
                 vacf = np.zeros(int(2 * self.data_range - 1))  # initialize the vacf array
                 for i in range(len(velocity_matrix[tuples[0]])):
                     # Loop over test atoms
