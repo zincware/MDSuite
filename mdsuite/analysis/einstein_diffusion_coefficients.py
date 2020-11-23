@@ -92,7 +92,7 @@ class _EinsteinDiffusionCoefficients:
             if self.plot:
                 plt.plot(self.time, msd_array, label=item)
 
-            popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time[50:], msd_array[50:])
+            popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
             self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
 
         if self.plot:

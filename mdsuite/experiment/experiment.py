@@ -30,6 +30,9 @@ from mdsuite.analysis import green_kubo_ionic_conductivity
 from mdsuite.analysis import einstein_helfand_ionic_conductivity
 from mdsuite.analysis import radial_distribution_function
 
+# Transformation modules
+from mdsuite.transformations import unwrap_coordinates
+
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -236,88 +239,15 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()
 
-    def unwrap_coordinates(self, species=None):
+    def unwrap_coordinates(self, species=None, center_box=True):
         """ unwrap coordinates of trajectory
 
         For a number of properties the input data must in the form of unwrapped coordinates. This function takes the
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
         """
 
-        box_array = self.box_array  # Get the static box array --  TODO: Implement changing box size
-
-        if species is None:
-            species = list(self.species.keys())
-
-        def center_box(positions_matrix):
-            """ Center atoms in box
-
-            A function to center the coordinates in the box so that the unwrapping is performed equally in all
-            directions.
-
-            args:
-                positions_matrix (array) -- array of positions to be unwrapped.
-            """
-
-            positions_matrix -= (box_array[0] / 2)
-
-        def unwrap(database):
-            """ unwrap the coordinates
-
-            Central function in the unwrapping method. This function will detect jumps across the box boundary and
-            shifts the position of the atoms accordingly.
-            """
-
-            print("\n --- Beginning to unwrap coordinates --- \n")
-
-            for item in species:
-                print(item)
-                # Construct the positions matrix -- TODO: Make memory safe, perhaps using Dask
-                positions_matrix = self.load_matrix("Positions", [item])
-                center_box(positions_matrix)  # Center the box at (0, 0, 0)
-
-                for j in range(len(positions_matrix)):
-                    difference = np.diff(positions_matrix[j], axis=0)  # Difference between all atoms in the array
-
-                    # Indices where the atoms jump in the original array
-                    box_jump = [np.where(abs(difference[:, 0]) >= (box_array[0] / 2))[0],
-                                np.where(abs(difference[:, 1]) >= (box_array[1] / 2))[0],
-                                np.where(abs(difference[:, 2]) >= (box_array[2] / 2))[0]]
-                    print(box_jump)
-
-                    # Indices of first box cross
-                    box_cross = [box_jump[0] + 1, box_jump[1] + 1, box_jump[2] + 1]
-
-                    for k in range(len(box_cross[0])):
-                        positions_matrix[j][:, 0][box_cross[0][k]:] -= np.sign(difference[box_cross[0][k] - 1][0]) * \
-                                                                       box_array[0]
-                    for k in range(len(box_cross[1])):
-                        positions_matrix[j][:, 1][box_cross[1][k]:] -= np.sign(difference[box_cross[1][k] - 1][1]) * \
-                                                                       box_array[1]
-                    for k in range(len(box_cross[2])):
-                        positions_matrix[j][:, 2][box_cross[2][k]:] -= np.sign(difference[box_cross[2][k] - 1][2]) * \
-                                                                       box_array[2]
-
-                database[item].create_group("Unwrapped_Positions")
-                database[item]["Unwrapped_Positions"].create_dataset('x',
-                                                                     data=np.array([positions_matrix[i][:, 0] for i
-                                                                                    in
-                                                                                    range(len(positions_matrix))]))
-                database[item]["Unwrapped_Positions"].create_dataset('y',
-                                                                     data=np.array([positions_matrix[i][:, 1] for i
-                                                                                    in
-                                                                                    range(len(positions_matrix))]))
-                database[item]["Unwrapped_Positions"].create_dataset('z',
-                                                                     data=np.array([positions_matrix[i][:, 2] for i
-                                                                                    in
-                                                                                    range(len(positions_matrix))]))
-
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
-            for item in species:
-                if "Unwrapped_Positions" in database[item].keys():
-                    print(f"{item} already has an unwrapped positions dataset, we will use that instead")
-                    return
-            unwrap(database)
-            print("\n --- Finished unwrapping coordinates --- \n")
+        transformation_ufb = unwrap_coordinates.CoordinateUnwrapper(self, species, center_box)  # load the unwrapper
+        transformation_ufb.unwrap_particles()  # unwrap the coordinates
 
     def load_matrix(self, identifier, species=None):
         """ Load a desired property matrix
