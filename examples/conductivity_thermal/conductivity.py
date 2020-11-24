@@ -9,9 +9,9 @@ argon = ProjectThermal(analysis_name="Argon_70",
                        filename="flux.dat",
                        length_unit=1e-10)
 
-argon.Save_Class()
-argon.Print_Class_Attributes()
+argon._save_class()
+argon.print_class_attributes()
 
 argon.Green_Kubo_Conductivity_Thermal(800, plot=True)
-argon.Print_Class_Attributes()
+argon.print_class_attributes()
 
