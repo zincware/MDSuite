@@ -1,4 +1,6 @@
 import setuptools
+from distutils.core import setup, Extension
+from Cython.Build import cythonize
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -26,4 +28,6 @@ setuptools.setup(
                       'scipy',
                       'alive_progress',
                       'psutil',
-                      'mendeleev'])
+                      'mendeleev'],
+    ext_modules=cythonize("mdsuite/cython_extensions/convolution.pyx")
+)

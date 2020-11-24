@@ -8,7 +8,6 @@ Experiment class and instantiated when the user calls the ... method.
 The methods in class can then be called by the ... method and all necessary
 calculations performed.
 """
-
 import warnings
 
 # Python standard packages
@@ -16,7 +15,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 # Import user packages
 from tqdm import tqdm
-
+from mdsuite.cython_extensions.convolution import convolution
+from mdsuite.utils.meta_functions import timeit
 # MDSuite packages
 import mdsuite.utils.constants as constants
 
@@ -66,28 +66,30 @@ class _GreenKuboThermalConductivityFlux:
         flux = self.load_flux_matrix()
 
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
-        sigma = []
 
-        # main loop for computation
-        for i in tqdm(range(loop_range)):
-            jacf = np.zeros(2 * self.data_range - 1)  # Define the empty JACF array
-            jacf += (signal.correlate(flux[:, 0][i:i + self.data_range],
-                                      flux[:, 0][i:i + self.data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(flux[:, 1][i:i + self.data_range],
-                                      flux[:, 1][i:i + self.data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(flux[:, 2][i:i + self.data_range],
-                                      flux[:, 2][i:i + self.data_range],
-                                      mode='full', method='fft'))
 
-            # Cut off the second half of the acf
-            jacf = jacf[int((len(jacf) / 2)):]
-            if self.plot:
-                averaged_jacf += jacf
+        sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
 
-            integral = np.trapz(jacf, x=self.time)
-            sigma.append(integral)
+        # # main loop for computation
+        # for i in tqdm(range(loop_range)):
+        #     jacf = np.zeros(2 * self.data_range - 1)  # Define the empty JACF array
+        #     jacf += (signal.correlate(flux[:, 0][i:i + self.data_range],
+        #                               flux[:, 0][i:i + self.data_range],
+        #                               mode='full', method='fft') +
+        #              signal.correlate(flux[:, 1][i:i + self.data_range],
+        #                               flux[:, 1][i:i + self.data_range],
+        #                               mode='full', method='fft') +
+        #              signal.correlate(flux[:, 2][i:i + self.data_range],
+        #                               flux[:, 2][i:i + self.data_range],
+        #                               mode='full', method='fft'))
+        #
+        #     # Cut off the second half of the acf
+        #     jacf = jacf[int((len(jacf) / 2)):]
+        #     if self.plot:
+        #         averaged_jacf += jacf
+        #
+        #     integral = np.trapz(jacf, x=self.time)
+        #     sigma.append(integral)
 
         sigma = prefactor * np.array(sigma)
 
