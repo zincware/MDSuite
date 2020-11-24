@@ -5,9 +5,11 @@ Installation
 ------------
 
 With pip:
-.. code-block:: python
-$ cd MDSuite
-$ pip install . --user
+
+.. code-block:: console
+
+    $ cd MDSuite
+    $ pip install . --user
 
 Usage
 -----
