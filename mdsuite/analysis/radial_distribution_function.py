@@ -35,7 +35,7 @@ class RadialDistributionFunction(Analysis):
         self.parent = obj
         self.bins = bins
         self.cutoff = cutoff
-        self.correlation_time = 500
+        self.correlation_time = 100
         self.loop_range = obj.number_of_configurations - self.data_range - 1
         self.periodic = periodic  # whether or not to apply PBC
         self.images = images  # number of images to include
