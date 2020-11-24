@@ -28,7 +28,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _EinsteinDiffusionCoefficients:
+class _GreenKuboThermalConductivityFlux:
     """ Class for the Einstein diffusion coefficient implementation
 
     additional attrbs:
@@ -46,8 +46,6 @@ class _EinsteinDiffusionCoefficients:
         self.time = self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
                                             self.data_range)
 
-        raise NotImplementedError  # This code does not work yet
-
     def _calculate_correlation_time(self):
         """ Claculate the flux autocorrelation time to ensure correct sampling """
         raise NotImplementedError
@@ -62,10 +60,11 @@ class _EinsteinDiffusionCoefficients:
         numerator = 1
         denominator = 3 * (self.data_range / 2 - 1) * self.parent.temperature ** 2 * constants.boltzmann_constant \
                       * self.parent.volume * self.parent.units['length'] ** 3
+
         # not sure why I need the /2 in data range...
         prefactor = numerator / denominator
 
-        flux = self.parent.load_matrix()
+        flux = self.load_flux_matrix()
 
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
         sigma = []
@@ -101,7 +100,22 @@ class _EinsteinDiffusionCoefficients:
             plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
             plt.show()
 
-        print(f"Green-Kubo Ionic Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
+        print(f"Green-Kubo Thermal Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        self._save_class()  # Update class state
+        self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma)/100
+
+    def load_flux_matrix(self):
+        """ Load the flux matrix
+
+        returns:
+            Matrix of the property flux
+        """
+        identifiers = [f'c_flux_thermal[{i + 1}]' for i in range(3)]
+        matrix_data = []
+
+        for identifier in identifiers:
+            column_data = self.parent.load_column(identifier)
+            matrix_data.append(column_data)
+        matrix_data = np.array(matrix_data).T  # transpose such that [timestep, dimension]
+        return matrix_data
