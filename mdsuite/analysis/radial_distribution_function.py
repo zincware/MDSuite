@@ -15,21 +15,23 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import itertools
 
+from mdsuite.analysis.analysis import Analysis
 
-class RadialDistributionFunction:
+class RadialDistributionFunction(Analysis):
     """ Class for the calculation of the radial distribution function """
 
-    def __init__(self, obj, plot=False, bins=500, cutoff=None):
+    def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=500, x_label='r ($\AA$)',
+                 y_label='g(r)', analysis_name='radial_distribution_function'):
         """ Standard python constructor """
+        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
         self.parent = obj
-        self.plot = plot
         self.bins = bins
         self.cutoff = cutoff
 
         if self.cutoff is None:
             self.cutoff = self.parent.box_array[0]/2  # set cutoff to half box size if no set
 
-    def _get_autocorrelation_time(self):
+    def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
         raise NotImplementedError
 
@@ -85,7 +87,7 @@ class RadialDistributionFunction:
             bin_range = [0.0, 5.0]
         return tf.histogram_fixed_width(distance_tensor, bin_range, nbins)
 
-    def perform_analysis(self):
+    def run_analysis(self):
         """ Perform the rdf analysis """
 
         bin_range = [0, self.cutoff]  # set the bin range
@@ -93,18 +95,21 @@ class RadialDistributionFunction:
 
         index_list = [i for i in range(len(positions))]  # Get the indices of the species
 
-        for tuple in itertools.combinations_with_replacement(index_list, 2):
+        for tuples in itertools.combinations_with_replacement(index_list, 2):
 
-            reference_tensor = positions[tuple[0]]  # set the reference matrix
-            positions_tensor = positions[tuple[1]]  # set the measurement tensor
-            distance_tensor = self._build_distance_tensor(positions_tensor, reference_tensor)  # generate the distance tensor
+            reference_tensor = positions[tuples[0]]  # set the reference matrix
+            positions_tensor = positions[tuples[1]]  # set the measurement tensor
 
-            if tuple[0] == tuple[1]:
+            # generate the distance tensor
+            distance_tensor = self._build_distance_tensor(positions_tensor, reference_tensor)
+
+            if tuples[0] == tuples[1]:
                 distance_tensor = self._enforce_exclusion_block(distance_tensor)  # apply exclusion block
 
             distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)  # enforce cutoff
 
-            rdf = np.array(self._bin_data(distance_tensor, bin_range=bin_range, nbins=self.bins), dtype=float)  # generate the histogram
+            # generate the histogram
+            rdf = np.array(self._bin_data(distance_tensor, bin_range=bin_range, nbins=self.bins), dtype=float)
 
             # Calculate the prefactor the system being studied
             bin_width = self.cutoff/self.bins
@@ -118,5 +123,8 @@ class RadialDistributionFunction:
 
             plt.plot(np.linspace(0.0, self.cutoff, self.bins), rdf)
 
-        plt.show()
+            if self.save:
+                self._save_data(f'{tuples}_{self.analysis_name}', [np.linspace(0.0, self.cutoff, self.bins), rdf])
 
+        if self.plot:
+            self._plot_data()  # Plot the data if necessary

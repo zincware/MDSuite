@@ -106,6 +106,7 @@ class Experiment(methods.ProjectMethods):
                                    "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
         self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
+        self.radial_distribution_function_state = False  # Set true if this has been calculated
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
@@ -165,14 +166,16 @@ class Experiment(methods.ProjectMethods):
 
         # Create new analysis directory and change into it
         try:
-            os.mkdir(f'{self.storage_path}/{self.analysis_name}')
-        except FileExistsError:
-            pass
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}')  # Make the experiment directory
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}/Figures')  # Create a directory to save images
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}/data')  # Create a directory for data
 
+        except FileExistsError:
+            return
 
         self._save_class()
 
-        print(f"** Experiment has been constructed for {self.analysis_name} **")
+        print(f"** An experiment has been added entitled {self.analysis_name} **")
 
     def _get_minimal_class_state(self):
         """ Get a minimum umber of class properties for comparison """
@@ -478,15 +481,18 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    # TODO def green_kubo_viscosity(self):
-
     def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
         """ Calculate the radial distribution function """
 
         calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,
                                                                                   bins=bins,
                                                                                   cutoff=cutoff)
-        calculation_rdf.perform_analysis()  # run the analysis
+        calculation_rdf.run_analysis()  # run the analysis
+
+        self.radial_distribution_function_state = True  # update the analysis state
+        self._save_class()  # save the class state
+
+    # TODO def green_kubo_viscosity(self):
 
     # TODO def kirkwood_buff_integrals(self):
 

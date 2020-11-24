@@ -21,6 +21,7 @@ from tqdm import tqdm
 
 # Import MDSuite packages
 import mdsuite.utils.meta_functions as meta_functions
+from mdsuite.analysis.analysis import Analysis
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -28,7 +29,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _EinsteinDiffusionCoefficients:
+class _EinsteinDiffusionCoefficients(Analysis):
     """ Class for the Einstein diffusion coefficient implementation
 
     additional attrbs:
@@ -39,20 +40,22 @@ class _EinsteinDiffusionCoefficients:
         data_range
     """
 
-    def __init__(self, obj, plot=False, singular=True, distinct=False, species=None, data_range=500):
-        self.parent = obj
-        self.plot = plot
+    def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=500, save=True,
+                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients'):
+        """ Python constructor """
+
+        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+
         self.singular = singular
         self.distinct = distinct
         self.species = species
         self.data_range = data_range
-        self.time = self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
-                                            self.data_range)
+        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
         self.loop_range = self.parent.number_of_configurations - data_range - 1
         self.correlation_time = 100
 
     def _autocorrelation_time(self):
-        """ Calculate postions autocorrelation time
+        """ Calculate positions autocorrelation time
 
         When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
         system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
@@ -73,7 +76,7 @@ class _EinsteinDiffusionCoefficients:
                                                                                      [item])))
             msd_array = np.zeros(self.data_range)  # define empty msd array
 
-            for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=10):
+            for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
                 window_tensor = positions_tensor[:, i:i + self.data_range]  # extract a window to analyze
 
                 # Calculate the prefactor
@@ -89,18 +92,20 @@ class _EinsteinDiffusionCoefficients:
 
                 msd_array += np.array(msd)
 
-            if self.plot:
-                plt.plot(self.time, msd_array, label=item)
-
             popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
             self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
 
+            # Update the plot if required
+            if self.plot:
+                plt.plot(np.array(self.time) * self.parent.units['time'], msd_array, label=item)
+
+            # Save the array if required
+            if self.save:
+                self._save_data(f"{item}_{self.analysis_name}", [self.time, msd_array])
+
+        # Save a figure if required
         if self.plot:
-            plt.xlabel("Time (s)")
-            plt.ylabel(r"MSD ($m^2$)")
-            plt.legend()
-            # plt.savefig(f"self.cwd/Images/einstein_diffusion_coefficients.eps", format='eps')
-            plt.show()
+            self._plot_data()
 
     @staticmethod
     def _distinct_diffusion_coefficients():
@@ -137,7 +142,7 @@ class _EinsteinDiffusionCoefficients:
         """
         return
 
-    def _run_analysis(self):
+    def run_analysis(self):
         """ Run a diffusion coefficient analysis
 
         In order to full calculate diffusion coefficients from a simulation, one should perform a two-stage error
