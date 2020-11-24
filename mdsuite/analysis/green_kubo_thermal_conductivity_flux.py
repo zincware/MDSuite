@@ -48,7 +48,7 @@ class _EinsteinDiffusionCoefficients:
 
         raise NotImplementedError  # This code does not work yet
 
-    def _calculate_correlation_time(self):
+    def _autocorrelation_time(self):
         """ Claculate the flux autocorrelation time to ensure correct sampling """
         raise NotImplementedError
 

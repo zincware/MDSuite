@@ -19,13 +19,16 @@ import warnings
 from tqdm import tqdm
 import itertools
 
+# Import mdsuite packages
+from mdsuite.analysis.analysis import Analysis
+
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _GreenKuboDiffusionCoefficients:
+class _GreenKuboDiffusionCoefficients(Analysis):
     """ Class for the Green-Kubo diffusion coefficient implementation
 
     additional attrbs:
@@ -36,13 +39,13 @@ class _GreenKuboDiffusionCoefficients:
         data_range
     """
 
-    def __init__(self, obj, plot=False, singular=True, distinct=False, species=None, data_range=500):
-        self.parent = obj
-        self.plot = plot
+    def __init__(self, obj, plot=False, singular=True, distinct=False, species=None, data_range=500, save=True,
+                 x_label='Time $(s)$', y_label='VACF $(m^{2}/s^{2})$', analysis_name='Green_Kubo_Diffusion'):
+        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
+
         self.singular = singular
         self.distinct = distinct
         self.species = species
-        self.data_range = int(data_range)
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
         self.loop_values = np.linspace(0.1 * self.parent.number_of_configurations,
                                        self.parent.number_of_configurations - data_range - 1,
@@ -72,7 +75,7 @@ class _GreenKuboDiffusionCoefficients:
             coefficient_array = []  # Define the empty coefficient array
             parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
-            for i in tqdm(self.loop_values, ncols=10):
+            for i in tqdm(self.loop_values, ncols=100):
                 vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
                 # Loop over the atoms of species to get the average
 
@@ -94,16 +97,14 @@ class _GreenKuboDiffusionCoefficients:
                                                                                        x=self.time))
             plt.plot(self.time, parsed_vacf, label=item)
 
-            self.parent.diffusion_coefficients["Green-Kubo"]["Singular"][item] = np.mean(coefficient_array)
-            plt.plot(self.time, )
+            # Save data if desired
+            if self.save:
+                self._save_data(f'{item}_{self.analysis_name}', [self.time, parsed_vacf])
 
-        plt.xlabel('Time (ps)')
-        plt.ylabel(r'VACF $m^{s}/s^{2}$')
-        plt.legend()
-        # plt.savefig(f'{self.cwd}/Images/Green_Kubo_Singular_VACF.eps', format='eps')
+            self.parent.diffusion_coefficients["Green-Kubo"]["Singular"][item] = np.mean(coefficient_array)
 
         if self.plot:
-            plt.show()
+            self._plot_data()
 
     def _distinct_diffusion_coefficients(self):
         """ Calculate the Green-Kubo distinct diffusion coefficients """
@@ -133,7 +134,7 @@ class _GreenKuboDiffusionCoefficients:
             plot_array = np.zeros(self.data_range)
 
             # Loop over reference atoms
-            for start in tqdm(self.loop_values, ncols=10):
+            for start in tqdm(self.loop_values, ncols=100):
                 vacf = np.zeros(int(2 * self.data_range - 1))  # initialize the vacf array
                 for i in range(len(velocity_matrix[tuples[0]])):
                     # Loop over test atoms
@@ -163,9 +164,13 @@ class _GreenKuboDiffusionCoefficients:
             plt.plot(self.time, (plot_array / self.loop_range) / abs(min(plot_array / self.loop_range)), label=tuples)
             pairs += 1
 
-        plt.xlabel("Time (ps)")
-        plt.ylabel(r"VACF $m^{2}/s^{2}$")
-        plt.legend()
-        # plt.savefig("Green_Kubo_Distinct_VACF.eps", format='eps')
+            if self.save:
+                self._save_data(f'{tuples}_{self.analysis_name}', plot_array)
+
         if self.plot:
-            plt.show()
+            self._plot_data()  # plot the data if desired
+
+
+    def run_analysis(self):
+        """ Run the main analysis """
+        raise NotImplementedError

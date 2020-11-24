@@ -21,13 +21,15 @@ from tqdm import tqdm
 # Import MDSuite modules
 import mdsuite.utils.constants as constants
 
+from mdsuite.analysis.analysis import Analysis
+
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _GreenKuboIonicConductivity:
+class _GreenKuboIonicConductivity(Analysis):
     """ Class for the Green-Kubo ionic conductivity implementation
 
     additional attrbs:
@@ -38,15 +40,18 @@ class _GreenKuboIonicConductivity:
         data_range
     """
 
-    def __init__(self, obj, plot=False, data_range=500):
-        self.parent = obj
-        self.plot = plot
-        self.data_range = int(data_range)
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_axis='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
+                 save=True, analysis_name='green_kubo_ionic_conductivity'):
+        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
         self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
                                         self.parent.batch_size
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
         self.loop_range = self.number_of_configurations - data_range - 1
         self.correlation_time = 1
+
+    def _autocorrelation_time(self):
+        """ calculate the current autocorrelation time for correct sampling """
+        raise NotImplementedError
 
     def _calculate_system_current(self):
         """ Calculate the ionic current of the system
@@ -77,8 +82,9 @@ class _GreenKuboIonicConductivity:
 
         sigma = []
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
-        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=10):
+        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
             jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
+
             # Calculate the current autocorrelation
             jacf += (signal.correlate(system_current[:, 0][i:i + self.data_range],
                                       system_current[:, 0][i:i + self.data_range],
@@ -92,19 +98,15 @@ class _GreenKuboIonicConductivity:
 
             jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
             parsed_autocorrelation += jacf
-            sigma.append(prefactor*np.trapz(jacf, x=self.time))  # Update the conductivity array
+            sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
 
-        self.parent.ionic_conductivity["Green-Kubo"] = np.mean(sigma)/100
+        self.parent.ionic_conductivity["Green-Kubo"] = np.mean(sigma) / 100
+
+        plt.plot(self.time, parsed_autocorrelation)  # Add a plot
 
         parsed_autocorrelation /= max(parsed_autocorrelation)  # Get the normalized autocorrelation plot data
-        plt.plot(self.time, parsed_autocorrelation)
-        plt.xlabel("Time (ps)")
-        plt.ylabel("Normalize JACF")
-        #plt.savefig(f"{self.parent.cwd}/Images/Green_Kubo_Ionic_Conductivity.eps", format='eps')
+        if self.save:
+            self._save_data(f'{self.analysis_name}', [self.time, parsed_autocorrelation])
+
         if self.plot:
-            plt.show()
-
-
-
-
-
+            self._plot_data()  # Plot the data if necessary
