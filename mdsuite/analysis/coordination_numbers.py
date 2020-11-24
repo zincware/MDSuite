@@ -16,7 +16,6 @@ class _CoordinationNumbers(Analysis):
 
     def _autocorrelation_time(self):
         """ Not needed in this analysis """
-
         raise NotApplicableToAnalysis
 
     def _integrate_rdf(self):
@@ -30,4 +29,9 @@ class _CoordinationNumbers(Analysis):
     def run_analysis(self):
         """ Calculate the coordination numbers and perform error analysis
         """
-        pass
+        """
+        for rdf in rdf_list:
+            self._integrte_rdf()  # integrate the rdf
+            self._find_minimums()  # determine the CN's at the minimums
+            self._update_parent_class()  # update the parent class with the new information
+        """
