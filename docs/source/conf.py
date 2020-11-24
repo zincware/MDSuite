@@ -6,8 +6,9 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../mdsuite/'))
+html_theme = 'sphinx_rtd_theme'
 import sphinx_rtd_theme
-
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # -- Experiment information -----------------------------------------------------
 
@@ -25,8 +26,19 @@ master_doc = 'index'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx_rtd_theme"]
-
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.githubpages',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
+    'IPython.sphinxext.ipython_directive',
+    'IPython.sphinxext.ipython_console_highlighting',
+    'matplotlib.sphinxext.plot_directive',
+    'numpydoc',
+    'sphinx_copybutton',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
