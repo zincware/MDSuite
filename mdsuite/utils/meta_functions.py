@@ -199,3 +199,18 @@ def simple_file_read(filename):
             data_array.append(line.split())
 
     return data_array
+
+
+def timeit(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f'func:{f.__name__} took: {(te - ts)} sec')
+        return result
+
+    return wrap
+
+
+

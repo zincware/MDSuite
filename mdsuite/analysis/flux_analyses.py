@@ -14,7 +14,6 @@ import warnings
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
 # Import user packages
 from tqdm import tqdm
 
@@ -49,6 +48,7 @@ class _GreenKuboThermalConductivityFlux:
         """ Claculate the flux autocorrelation time to ensure correct sampling """
         raise NotImplementedError
 
+    @timeit
     def _compute_thermal_conductivity(self):
         """ Compute the thermal conductivity """
 
