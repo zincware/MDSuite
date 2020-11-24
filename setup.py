@@ -29,5 +29,5 @@ setuptools.setup(
                       'alive_progress',
                       'psutil',
                       'mendeleev'],
-    ext_modules=cythonize("mdsuite/cython_extensions/convolution.pyx")
+    #ext_modules=cythonize("mdsuite/cython_extensions/convolution.pyx")
 )

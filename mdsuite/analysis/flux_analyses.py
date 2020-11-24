@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 # Import user packages
 from tqdm import tqdm
-from mdsuite.cython_extensions.convolution import convolution
+from mdsuite.convolution_computation.convolution import convolution
 from mdsuite.utils.meta_functions import timeit
 # MDSuite packages
 import mdsuite.utils.constants as constants
@@ -66,7 +66,6 @@ class _GreenKuboThermalConductivityFlux:
         flux = self.load_flux_matrix()
 
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
-
 
         sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
 
