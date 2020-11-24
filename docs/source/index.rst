@@ -15,13 +15,15 @@ performed. If you have any questions feel free to get into contact with
 us whether it is about how to use to code, some questions about theory, or
 about what you might like to see in future releases, we are always happy to
 hear from our users.
-..    toctree::
+
+.. toctree::
    :maxdepth: 1
    :caption: Contents:
 
    _usage/installation
    _usage/quickstart
    _theory/theory_introduction
+   _theory/database_structure
    _usage/tools
 
 
