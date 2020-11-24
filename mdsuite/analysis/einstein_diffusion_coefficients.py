@@ -92,6 +92,8 @@ class _EinsteinDiffusionCoefficients(Analysis):
 
                 msd_array += np.array(msd)
 
+            msd_array /= int(self.loop_range/self.correlation_time)
+
             popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
             self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
 

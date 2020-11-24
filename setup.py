@@ -5,10 +5,10 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="MDSuite",
-    version="0.0.2",
+    version="0.0.1",
     author="Samuel Tovey",
     author_email="tovey.samuel@gmail.com",
-    description="A postprocessing tool for molecular dynamics simulations targeting the machine learning community.",
+    description="A postprocessing tool for molecular dynamics simulations.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/SamTov/MDSuite",
@@ -24,6 +24,7 @@ setuptools.setup(
                       'numpy',
                       'matplotlib',
                       'scipy',
-                      'alive_progress',
+                      'tqdm',
                       'psutil',
-                      'mendeleev'])
+                      'tensorflow',
+                      'numpy'])

@@ -481,7 +481,7 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
+    def radial_distribution_function(self, plot=True, bins=500, cutoff=None, data_range=500):
         """ Calculate the radial distribution function """
 
         calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,

@@ -65,7 +65,7 @@ class _GreenKuboDiffusionCoefficients(Analysis):
 
         # Calculate the prefactor
         numerator = self.parent.units['length'] ** 2
-        denominator = 3 * self.parent.units['time'] * (len(self.time) - 1)
+        denominator = 3 * self.parent.units['time'] * (self.data_range - 1)
         prefactor = numerator / denominator
 
         # Loop over the species in the system
@@ -95,7 +95,7 @@ class _GreenKuboDiffusionCoefficients(Analysis):
 
                 coefficient_array.append((prefactor / len(velocity_matrix)) * np.trapz(vacf[int(len(vacf) / 2):],
                                                                                        x=self.time))
-            plt.plot(self.time, parsed_vacf, label=item)
+            plt.plot(self.time*self.parent.units['time'], parsed_vacf, label=item)
 
             # Save data if desired
             if self.save:
