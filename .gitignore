@@ -144,3 +144,6 @@ cython_debug/
 
 # pycharm 
 .idea/
+
+# build documentation
+docs/build
