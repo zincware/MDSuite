@@ -15,7 +15,6 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
-
 # Import user packages
 from tqdm import tqdm
 
@@ -43,8 +42,8 @@ class _GreenKuboThermalConductivityFlux:
         self.parent = obj
         self.plot = plot
         self.data_range = data_range
-        self.time = self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
-                                            self.data_range)
+        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate
+                                * self.parent.units['time'], self.data_range)
 
     def _calculate_correlation_time(self):
         """ Claculate the flux autocorrelation time to ensure correct sampling """
@@ -103,7 +102,7 @@ class _GreenKuboThermalConductivityFlux:
         print(f"Green-Kubo Thermal Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma)/100
+        self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma) / 100
 
     def load_flux_matrix(self):
         """ Load the flux matrix
