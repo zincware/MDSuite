@@ -4,7 +4,7 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.constants import lammps_properties_labels
 from mdsuite.utils.constants import lammps_properties
 from mdsuite.utils.exceptions import *
-from mdsuite.utils.meta_functions import _line_counter
+from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import simple_file_read
 from mdsuite.utils.meta_functions import get_dimensionality
@@ -65,7 +65,7 @@ class LAMMPSTrajectoryFile(FileProcessor):
         """
             Calculate configuration and line properties of the simulation and determine the batch size
         """
-        number_of_lines = _line_counter(self.project.trajectory_file)
+        number_of_lines = line_counter(self.project.trajectory_file)
         number_of_configurations = int(number_of_lines / (number_of_atoms + n_lines_header_block))  # n of timesteps
         batch_size = optimize_batch_size(self.project.trajectory_file, number_of_configurations)
 

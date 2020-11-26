@@ -44,7 +44,7 @@ class _GreenKuboThermalConductivityFlux:
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate
                                 * self.parent.units['time'], self.data_range)
 
-    def _calculate_correlation_time(self):
+    def _autocorrelation_time(self):
         """ Claculate the flux autocorrelation time to ensure correct sampling """
         raise NotImplementedError
 

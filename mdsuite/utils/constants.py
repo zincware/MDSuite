@@ -17,6 +17,7 @@ reduced_planck_constant = 1.054571817e-34 # J s -- Reduced Planck constant
 speed_of_light = 299792458 # m s^-1 -- Speed of light in a vacuum
 gravity = 9.80665 # m s^-2 -- Standard acceleration due to gravity on earth
 atmosphere = 101325 # Pa -- Standard atmospheric pressure
+golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 
 lammps_properties_labels = {'x', 'y', 'z',
                                     'xs', 'ys', 'zs',
