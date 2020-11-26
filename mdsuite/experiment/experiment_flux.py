@@ -6,23 +6,22 @@ Purpose: Class functionality of the program
 """
 
 import os
+import warnings
 
 import h5py as hf
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import signal
 from tqdm import tqdm
-import warnings
 
 plt.style.use('bmh')
 warnings.filterwarnings("ignore")
 tqdm.monitor_interval = 0
 
 import mdsuite.utils.meta_functions as meta_functions
-import mdsuite.utils.constants as constants
 import mdsuite.experiment.experiment_methods as methods
+from mdsuite.analysis.flux_analyses import _GreenKuboThermalConductivityFlux
 
-class ProjectThermal(methods.ProjectMethods):
+class ProjectFlux(methods.ProjectMethods):
     """ Experiment from simulation
 
     Attributes:
@@ -62,8 +61,8 @@ class ProjectThermal(methods.ProjectMethods):
     """
 
     def __init__(self, analysis_name, new_project=False, storage_path=None,
-                 temperature=None, time_step=None, time_unit=None, filename=None, length_unit=None,
-                 number_of_atoms=None, volume=None):
+                 temperature=None, units=None, filename=None,
+                 number_of_atoms=None, volume=None, time_step=None):
         """ Initialise with trajectory_file """
 
         self.filename = filename
@@ -71,10 +70,8 @@ class ProjectThermal(methods.ProjectMethods):
         self.new_project = new_project
         self.storage_path = storage_path
         self.temperature = temperature
-        self.time_step = time_step
-        self.time_unit = time_unit
-        self.length_unit = length_unit
         self.number_of_atoms = number_of_atoms
+        self.time_step = time_step
         self.volume = volume
         self.time_0 = 0
         self.sample_rate = None
@@ -88,6 +85,7 @@ class ProjectThermal(methods.ProjectMethods):
         self.time_dimensions = None
         self.n_lines_header = None
         self.thermal_conductivity = {"Green-Kubo": {}}
+        self.units = self.units_to_si(units)
 
         if not self.new_project:
             self._load_class()
@@ -128,8 +126,7 @@ class ProjectThermal(methods.ProjectMethods):
 
         """
         properties_summary = {}
-        lammps_properties_labels = {'time', 'temp', 'c_flux[1]',
-                                    'c_flux[2]', 'c_flux[3]'}
+        lammps_properties_labels = {'time', 'temp', 'c_flux'}  # words to be searched in the file
 
         self.n_lines_header = 0  # number of lines of header
         with open(self.filename) as f:
@@ -147,7 +144,9 @@ class ProjectThermal(methods.ProjectMethods):
 
         # Find properties available for analysis
         for position, variable in enumerate(varibles_lammps):
-            if variable in lammps_properties_labels:
+            # Find which variables are provided. Accepts partial matches: c_flux_thermal[1] will be accepted for example
+            # new words can be added in the set lammps_properties_labels
+            if any(word in variable for word in lammps_properties_labels):
                 properties_summary[variable] = position
 
         batch_size = meta_functions.optimize_batch_size(self.filename, number_of_configurations)
@@ -169,19 +168,21 @@ class ProjectThermal(methods.ProjectMethods):
         self.batch_size = batch_size
         self.properties = properties_summary
         self.number_of_configurations = number_of_configurations
-        self.time_dimensions = [0.0, time_n * self.time_step * self.time_unit]
+        self.time_dimensions = [0.0, time_n * self.time_step * self.units['time']]
         self.sample_rate = sample_rate
         self.time_0 = time_0
 
         # Get the number of atoms if not set in initialization
         if self.number_of_atoms is None:
             self.number_of_atoms = int(header[2][1])  # hopefully always in the same position
+
         # Get the volume, if not set in initialization
         if self.volume is None:
             self.volume = float(header[4][7])  # hopefully always in the same position
 
     def build_database(self):
-        """ Build the 'database' for the analysis
+        """
+        Build the 'database' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
         database skeleton, get configurations, and process and store the configurations. The method is accompanied
@@ -193,7 +194,6 @@ class ProjectThermal(methods.ProjectMethods):
             os.mkdir('{0}/{1}'.format(self.storage_path, self.analysis_name))
         except FileExistsError:
             pass
-
 
         file_format = self.process_input_file()  # Collect data array
         self.get_system_properties(file_format)  # Update class attributes
@@ -220,10 +220,12 @@ class ProjectThermal(methods.ProjectMethods):
 
         self._save_class()
 
-        print("\n ** Database has been constructed and saved for {0} ** \n".format(self.analysis_name))
-
+        print(f"\n ** Database has been constructed and saved for {self.analysis_name}  ** \n")
 
     def _build_database_skeleton(self):
+        """
+        We need to override the method because the flux files have a different structure
+        """
         database = hf.File('{0}/{1}/{1}.hdf5'.format(self.storage_path, self.analysis_name), 'w', libver='latest')
 
         # Build the database structure
@@ -233,22 +235,39 @@ class ProjectThermal(methods.ProjectMethods):
                                     compression="gzip", compression_opts=9)
 
     def process_configurations(self, data, database, counter):
+        """
+        Processes the input data and converts units if needed.
+        TODO: add conversions for new types (viscosity, etc)
+
+        Parameters
+        ----------
+        data
+        database
+        counter
+        """
+
+        def _convert_time(time_array):
+            # removes the time offset and adjustes units
+            return (time_array - self.time_0) * self.units['time']
+
+        def _convert_heat_units(c_flux_thermal_array):
+            # adjustes units for heatflux
+            return c_flux_thermal_array * self.units['energy'] * self.units['length'] / self.units['time']
+
+        conversions_dict = {"c_flux_thermal": _convert_heat_units,
+                            "time": _convert_time}
+
         for lammps_var, column_num in self.properties.items():
             # grab the corresponding column and set it as numbers
             column_data = data[:, column_num].astype(float)
 
-            # remove the time offset
-            if lammps_var == 'time':
-                column_data = (column_data - self.time_0) * self.time_unit
+            try:
+                conversion_keyword = [word for word in conversions_dict.keys() if word in lammps_var][0]
+            except IndexError:
+                conversion_keyword = None
 
-            # LAMMPS uses a weird unit for the flux being in energy*velocity units
-            # This is done so that the user can then divide by the appropriate volume.
-            # The volume is considered in the method Green_Kubo_Conductivity_Thermal
-            # This is the required change for Real Units
-            kcal2j = 4186.0 / constants.avogadro_constant
-
-            if 'c_flux_thermal' in lammps_var:
-                column_data = column_data * kcal2j * self.length_unit / self.time_unit
+            if conversion_keyword:
+                column_data = conversions_dict[conversion_keyword](column_data)
 
             # copy it to the database
             database[lammps_var][counter: counter + self.batch_size] = column_data
@@ -293,20 +312,17 @@ class ProjectThermal(methods.ProjectMethods):
 
         return column_data
 
-    def load_flux_matrix(self):
-        """ Load the flux matrix
-
-        returns:
-            Matrix of the property flux
-        """
-        identifiers = [f'c_flux[{i + 1}]' for i in range(3)]
-        matrix_data = []
-
-        for identifier in identifiers:
-            column_data = self.load_column(identifier)
-            matrix_data.append(column_data)
-        matrix_data = np.array(matrix_data).T  # transpose such that [timestep, dimension]
-        return matrix_data
-
     def not_implemented(self):
         raise NotImplementedError
+
+    def green_kubo_thermal_conductivity(self, data_range, plot=False):
+        """ Calculate the thermal conductivity using Green-Kubo formalism
+
+        args:
+            data_range (int) -- time range over which the measurement should be performed
+        kwargs:
+        """
+        print(data_range)
+        calculation_ehic = _GreenKuboThermalConductivityFlux(self, data_range=data_range, plot=plot)
+        calculation_ehic._compute_thermal_conductivity()
+        self._save_class()

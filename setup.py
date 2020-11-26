@@ -1,4 +1,6 @@
 import setuptools
+from distutils.core import setup, Extension
+from Cython.Build import cythonize
 
 with open("README.md", "r") as fh:
     long_description = fh.read()

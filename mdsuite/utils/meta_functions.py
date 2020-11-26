@@ -7,6 +7,9 @@ Purpose: This file contains arbitrary functions used in several different proces
 """
 
 import os
+from functools import wraps
+from time import time
+
 import psutil
 import numpy as np
 from scipy.signal import savgol_filter
@@ -205,6 +208,17 @@ def simple_file_read(filename):
     return data_array
 
 
+def timeit(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print(f'func:{f.__name__} took: {(te - ts)} sec')
+        return result
+
+    return wrap
+
 def apply_savgol_filter(data):
     """ Apply a savgol filter for function smoothing """
 
@@ -257,5 +271,3 @@ def golden_section_search(data, a, b):
         return (a, d)
     else:
         return (c, b)
-
-
