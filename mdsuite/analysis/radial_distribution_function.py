@@ -25,13 +25,14 @@ plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
+
 class RadialDistributionFunction(Analysis):
     """ Class for the calculation of the radial distribution function """
 
-    def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label='r ($\AA$)',
+    def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
                  y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1):
         """ Standard python constructor """
-        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
         self.parent = obj
         self.bins = bins
         self.cutoff = cutoff
@@ -41,7 +42,7 @@ class RadialDistributionFunction(Analysis):
         self.images = images  # number of images to include
 
         if self.cutoff is None:
-            self.cutoff = self.parent.box_array[0]/2  # set cutoff to half box size if no set
+            self.cutoff = self.parent.box_array[0] / 2  # set cutoff to half box size if no set
 
     def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
@@ -93,7 +94,7 @@ class RadialDistributionFunction(Analysis):
 
         # remove repetitions, flatten, and scale to the correct box size
         permutations = np.repeat(np.unique(np.concatenate(permutations), axis=0),
-                                 atoms, axis=0)*np.array(self.parent.box_array)
+                                 atoms, axis=0) * np.array(self.parent.box_array)
 
         # Convert to tensor
         permutations = tf.expand_dims(tf.convert_to_tensor(permutations, dtype=tf.float64), axis=1)
@@ -104,12 +105,11 @@ class RadialDistributionFunction(Analysis):
         """ Apply pbc to the calculation
 
         :argument tensor (tf tensor) -- Tensor to expand by n images
-        :argument n_images (int) -- Number of images to add in each direction
         """
 
         scaling_tensor = self._construct_scaling_tensor(len(tensor))  # build the scaling tensor
 
-        scaling_factor = tf.constant([self.images*27, 1, 1], tf.int32)
+        scaling_factor = tf.constant([self.images * 27, 1, 1], tf.int32)
         expanded_tensor = tf.tile(tensor, scaling_factor)
 
         return tf.add(expanded_tensor, scaling_tensor)
@@ -136,6 +136,18 @@ class RadialDistributionFunction(Analysis):
             bin_range = [0.0, 5.0]
 
         return tf.histogram_fixed_width(distance_tensor, bin_range, nbins)
+
+    def _get_species_names(self, species_tuple):
+        """ Get the correct names of the species being studied
+
+        :argument species_tuple (tuple) -- The species tuple i.e (1, 2) corresponding to the rdf being calculated
+
+        :returns names (string) -- Prefix for the saved file
+        """
+
+        species = list(self.parent.species())  # load all of the species
+
+        return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
 
     def run_analysis(self):
         """ Perform the rdf analysis """
@@ -165,21 +177,22 @@ class RadialDistributionFunction(Analysis):
                 # generate the histogram
                 rdf += np.array(self._bin_data(distance_tensor, bin_range=bin_range, nbins=self.bins), dtype=float)
 
-
             # Calculate the prefactor the system being studied
-            bin_width = self.cutoff/self.bins
-            bin_edges = (np.linspace(0.0, self.cutoff, self.bins)**2)*4*np.pi*bin_width
-            rho = len(positions_tensor)/self.parent.volume
+            bin_width = self.cutoff / self.bins
+            bin_edges = (np.linspace(0.0, self.cutoff, self.bins) ** 2) * 4 * np.pi * bin_width
+            rho = len(positions_tensor) / self.parent.volume
             numerator = 1
-            denominator = len(reference_tensor[0])*rho*len(positions_tensor)*bin_edges*(int(self.loop_range/self.correlation_time))
-            prefactor = numerator/denominator
+            denominator = len(reference_tensor[0]) * rho * len(positions_tensor) * bin_edges * (
+                int(self.loop_range / self.correlation_time))
+            prefactor = numerator / denominator
 
             rdf *= prefactor  # Apply the prefactor
 
             plt.plot(np.linspace(0.0, self.cutoff, self.bins), rdf)
 
             if self.save:
-                self._save_data(f'{tuples}_{self.analysis_name}', [np.linspace(0.0, self.cutoff, self.bins), rdf])
+                names = self._get_species_names(tuples)  # get the species names
+                self._save_data(f'{names}_{self.analysis_name}', [np.linspace(0.0, self.cutoff, self.bins), rdf])
 
         if self.plot:
             self._plot_data()  # Plot the data if necessary
