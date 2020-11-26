@@ -6,7 +6,7 @@ argon = ProjectThermal(analysis_name="Argon_70",
                        temperature=70.0,
                        time_step=4,
                        time_unit=1e-15,
-                       filename="flux.dat",
+                       filename="../trajectory_files/flux.dat",
                        length_unit=1e-10)
 
 argon._save_class()

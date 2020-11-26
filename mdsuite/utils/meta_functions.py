@@ -11,6 +11,10 @@ from functools import wraps
 from time import time
 
 import psutil
+import numpy as np
+from scipy.signal import savgol_filter
+
+import mdsuite.utils.constants as constants
 
 
 def get_dimensionality(box):
@@ -126,7 +130,7 @@ def extract_extxyz_properties(properties_dict):
     return output_properties
 
 
-def _line_counter(filename):
+def line_counter(filename):
     """
     Count the number of lines in a file
 
@@ -137,7 +141,7 @@ def _line_counter(filename):
     return sum(1 for i in open(filename, 'rb'))
 
 
-def _get_computational_properties(filepath, number_of_configurations):
+def get_computational_properties(filepath, number_of_configurations):
     """ get the properties of the computer being used """
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
@@ -156,7 +160,7 @@ def optimize_batch_size(filepath, number_of_configurations):
     least RAM but reasonable performance.
     """
 
-    computer_statistics = _get_computational_properties(filepath, number_of_configurations)  # Get computer statistics
+    computer_statistics = get_computational_properties(filepath, number_of_configurations)  # Get computer statistics
 
     batch_number = None  # Instantiate parameter for correct syntax
 
@@ -214,3 +218,56 @@ def timeit(f):
         return result
 
     return wrap
+
+def apply_savgol_filter(data):
+    """ Apply a savgol filter for function smoothing """
+
+    return savgol_filter(data, 17, 2)
+
+
+def golden_section_search(data, a, b):
+    """ Perform a golden-section search for function minimums
+
+    The Golden-section search algorithm is one of the best min-finding algorithms available and is here used to
+    the minimums of functions during analysis. For example, in the evaluation of coordination numbers the minimum
+    values of the radial distribution functions must be calculated in order to define the coordination.
+
+    This implementation will return an interval in which the minimum should exists, and does so for all of the minimums
+    on the function.
+
+    :argument data (np.array) -- data on which to find minimums
+    """
+
+    # Define the golden ratio identities
+    phi_a = 1/constants.golden_ratio
+    phi_b = 1/(constants.golden_ratio**2)
+
+    h = a - b
+    number_of_steps = int(np.ceil(np.log(1e-5/h)) / np.log(phi_a))
+
+    c = min(data[0], key=lambda x: abs(x - a + phi_b*h))
+    d = min(data[0], key=lambda x: abs(x - a + phi_a*h))
+
+    fc = data[1][np.where(data[0] == c)]
+    fd = data[1][np.where(data[0] == d)]
+
+    for k in range(number_of_steps - 1):
+        if fc < fd:
+            b=d
+            d=c
+            fd=fc
+            h = phi_a*h
+            c = min(data[0], key=lambda x: abs(x - a + phi_b*h))
+            fc = data[1][np.where(data[0] == c)]
+        else:
+            a = c
+            c = d
+            fc = fd
+            h = phi_a*h
+            d = min(data[0], key=lambda x: abs(x - a + phi_a*h))
+            fd = data[1][np.where(data[0] == d)]
+
+    if fc < fd:
+        return (a, d)
+    else:
+        return (c, b)

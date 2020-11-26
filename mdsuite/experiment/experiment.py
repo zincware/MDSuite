@@ -29,6 +29,7 @@ from mdsuite.analysis import green_kubo_diffusion_coefficients
 from mdsuite.analysis import green_kubo_ionic_conductivity
 from mdsuite.analysis import einstein_helfand_ionic_conductivity
 from mdsuite.analysis import radial_distribution_function
+from mdsuite.analysis import coordination_number_calculation
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
@@ -41,52 +42,125 @@ warnings.filterwarnings("ignore")
 class Experiment(methods.ProjectMethods):
     """ Experiment from simulation
 
-    Attributes:
+    ...
 
-        trajectory_file (str) -- trajectory_file of the trajectory
+    Attributes
+    -----------
 
-        analysis_name (str) -- name of the analysis being performed e.g. NaCl_1400K
+        trajectory_file : str
+                            A file containing trajectory data of a simulation
 
-        storage_path (str) -- where to store the data (best to have  drive capable of storing large files)
+        analysis_name : str
+                            The name of the analysis being performed e.g. NaCl_1400K
 
-        temperature (float) -- temperature of the system
+        storage_path : str
+                            Path to where the data should be stored (best to have  drive capable of storing large files)
 
-        time_step (float) -- time step in the simulation e.g 0.002
+        temperature : float
+                            The temperature of the simulation that should be used in some analysis
 
-        volume (float) -- volume of the system
+        time_step : float
+                            Time step of the simulation e.g 0.002
 
-        species (dict) -- dictionary of the species in the system and their indices in the trajectory. e.g.
-                          {'Na': [1, 3, 7, 9], 'Cl': [0, 2, 4, 5, 6, 8]}
+        volume : float
+                            Volume of the simulation box
 
-        number_of_atoms (int) -- number of atoms in the system
+        species : dict
+                            A dictionary of the species in the system and their properties. Their properties includes
+                            index location in the trajectory file, mass of the species as taken from the PubChem
+                            database, and the charge taken from the same database. When using these properties, it is
+                            best that users confirm this information, with exception to the indices as they are read
+                            from the file and will be correct.
 
-        properties (dict) -- properties in the trajectory available for analysis, not important for understanding
+        number_of_atoms : int
+                            The total number of atoms in the simulation
 
-        property_groups (list) -- property groups, e.g ["Forces", "Positions", "Velocities", "Torques"]
+        properties : dict
+                            Properties in the trajectory available for analysis, not important for understanding
 
-        dimensions (float) -- dimensionality of the system e.g. 3.0
+        property_groups : dict
+                            Property groups, e.g Forces, Positions, Velocities, Torques,  along with their
+                            location in the trajectory file.
 
-        box_array (list) -- box lengths, e.g [10.7, 10.7, 10.8]
+        dimensions : float
+                            Dimensionality of the system e.g. 3.0. This is currently not used anywhere in a useful way.
+                            It is called in the calculations of some properties, but these properties cannot really be
+                            calculated in any dimension other than 3 at the moment. Therefore this attribute is here
+                            mostly for future functionality.
 
-        number_of_configurations (int) -- number of configurations in the trajectory
+        box_array : list
+                            Box lengths of the simulation, e.g [13.1, 22, 8.0]. It should be noted that at the moment
+                            only cuboid structures can be used. If a non-rectangular box is parsed, the code will
+                            read it in as a cuboid.
 
-        time_dimensions (list) -- Time domain in the system, e.g, for a 1ns simulation, [0.0, 1e-9]
+        number_of_configurations : int
+                            The number of configurations in the trajectory
 
-        diffusion_coefficients (dict) -- Dictionary of diffusion coefficients including from Einstein and Green-Kubo,
-                                         and split again into singular and distinct coefficients.
-        ionic_conductivity (dict) -- Ionic conductivity of the system e.g. 4.5 S/cm
-        thermal_conductivity (dict) -- The thermal conductivity of the material. Can be calculated as a global or local
-                                       calculation and is therefore labelled as such.
+        units : dict
+                            A dictionary of the to-SI unit conversion depending on the units used during the simulation.
+                            In this code we stick to LAMMPS units conventions.
+
+        diffusion_coefficients : dict
+                            A dictionary of diffusion coefficients including from Einstein and Green-Kubo,
+                            and split again into singular and distinct coefficients.
+
+        ionic_conductivity : dict
+                            Ionic conductivity of the system given by several different calculations including the
+                            Green-Kubo approach, the Einstein-Helfand approach, the Nernst-Einstein, and the Corrected
+                            Nernst-Einstein approaches.
+
+        thermal_conductivity : dict
+                            The thermal conductivity of the material. Can be calculated from a flux file or from local
+                            atomic energies. These different values are stored as key: value pairs in the dictionary.
+
+        Methods
+        -------
+
+        add_data(self, trajectory_file=None)
+                            Add simulation data to the experiment for further analysis.
+
+        unwrap_coordinates(self, species=None, center_box=True)
+                            Unwrap the coordinates in the hdf5 database.
+
+        load_matrix(self, identifier, species=None)
+                            Load a data matrix from the hdf5 database. Not a private method as it is called by the
+                            analysis modules which, whilst using experiment class methods and attributes, are not
+                            by definition child classes and do not formally inherit.
+
+        einstein_diffusion_coefficients(self, plot=False, singular=True, distinct=False, species=None, data_range=500)
+                            Calculate the diffusion coefficients of the system constituents using the Einstein method.
+
+        green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None)
+                            Calculate the diffusion coefficients of the system constituents using the Green-Kubo method.
+
+        nernst_einstein_conductivity(self)
+                            Calculate the ionic conductivity of the system using the Nernst-Einstein and corrected
+                            Nernst-Einstein methods.
+
+        einstein_helfand_ionic_conductivity(self, data_range, plot=False)
+                            Calculate the ionic conductivity of the system using the Einstein-Helfand method.
+
+        green_kubo_ionic_conductivity(self, data_range, plot=False)
+                            Calculate the ionic conductivity of the system using the Green-Kubo method.
+
+        radial_distribution_function(self, plot=True, bins=500, cutoff=None, data_range=500)
+                            Calculate the radial distribution function for the particle pairs in the system.
+
+        calculate_coordination_numbers(self, plot=True)
+                            Calculate the coordination numbers from the radial distribution functions.
     """
 
     def __init__(self, analysis_name, storage_path='./', timestep=1.0, temperature=0, units='real'):
         """ Initialise with trajectory_file """
 
-        self.trajectory_file = None  # will be set later
+        # Taken upon instantiation
         self.analysis_name = analysis_name
         self.storage_path = storage_path
         self.temperature = temperature
         self.time_step = timestep
+
+        # Added from trajectory file
+        self.trajectory_file = None
         self.sample_rate = None
         self.batch_size = None
         self.volume = None
@@ -99,6 +173,8 @@ class Experiment(methods.ProjectMethods):
         self.number_of_configurations = 0
         self.time_dimensions = None
         self.units = self.units_to_si(units)
+
+        # Properties of the experiment
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.ionic_conductivity = {"Einstein-Helfand": {},
@@ -106,14 +182,16 @@ class Experiment(methods.ProjectMethods):
                                    "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
         self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
+        self.coordination_numbers = {}
+        self.radial_distribution_function_state = False  # Set true if this has been calculated
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
-            print("This model already exists, loading it now.")
+            print("This experiment already exists! I'll load it up now.")
             self._load_class()
         else:
-            print("Building a new model.")
-            self.build_model()
+            print("Creating a new experiment! How exciting!")
+            self._build_model()
 
     def _process_input_file(self):
         """ Process the input file
@@ -129,7 +207,7 @@ class Experiment(methods.ProjectMethods):
 
         return file_format
 
-    def get_system_properties(self):
+    def _get_system_properties(self):
         """ Get the properties of the system
 
         This method will call the Get_X_Properties depending on the file format. This function will update all of the
@@ -155,7 +233,7 @@ class Experiment(methods.ProjectMethods):
 
         return choice(self)
 
-    def build_model(self):
+    def _build_model(self):
         """ Build the 'experiment' for the analysis
 
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
@@ -165,14 +243,16 @@ class Experiment(methods.ProjectMethods):
 
         # Create new analysis directory and change into it
         try:
-            os.mkdir(f'{self.storage_path}/{self.analysis_name}')
-        except FileExistsError:
-            pass
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}')  # Make the experiment directory
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}/Figures')  # Create a directory to save images
+            os.mkdir(f'{self.storage_path}/{self.analysis_name}/data')  # Create a directory for data
 
+        except FileExistsError:
+            return
 
         self._save_class()
 
-        print(f"** Experiment has been constructed for {self.analysis_name} **")
+        print(f"** An experiment has been added entitled {self.analysis_name} **")
 
     def _get_minimal_class_state(self):
         """ Get a minimum umber of class properties for comparison """
@@ -182,7 +262,7 @@ class Experiment(methods.ProjectMethods):
     def _update_database(self):
         """ Update a pre-existing database """
 
-        trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
+        trajectory_reader = self._get_system_properties()  # select the correct trajectory reader
         # get properties of new trajectory
         compare_data = trajectory_reader.process_trajectory_file(update_class=False)
         class_state = self._get_minimal_class_state()
@@ -212,7 +292,7 @@ class Experiment(methods.ProjectMethods):
     def _build_new_database(self):
         """ Build a new database """
 
-        trajectory_reader = self.get_system_properties()  # select the correct trajectory reader
+        trajectory_reader = self._get_system_properties()  # select the correct trajectory reader
         trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
         trajectory_reader.build_database_skeleton()  # Build the database skeleton
 
@@ -478,15 +558,24 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    # TODO def green_kubo_viscosity(self):
-
-    def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
+    def radial_distribution_function(self, plot=True, bins=500, cutoff=None, data_range=500):
         """ Calculate the radial distribution function """
 
         calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,
                                                                                   bins=bins,
                                                                                   cutoff=cutoff)
-        calculation_rdf.perform_analysis()  # run the analysis
+        calculation_rdf.run_analysis()  # run the analysis
+        self.radial_distribution_function_state = True  # update the analysis state
+        self._save_class()  # save the class state
+
+    def calculate_coordination_numbers(self, plot=True):
+        """ Caclulate the coordination numbers """
+
+        calculation_cn = coordination_number_calculation._CoordinationNumbers(self, plot)
+        calculation_cn.run_analysis()
+        self._save_class()
+
+    # TODO def green_kubo_viscosity(self):
 
     # TODO def kirkwood_buff_integrals(self):
 

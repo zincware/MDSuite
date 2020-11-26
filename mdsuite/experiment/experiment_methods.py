@@ -13,6 +13,10 @@ import numpy as np
 
 import mdsuite.utils.constants as constants
 
+# Using static file from data
+from importlib.resources import open_text
+from mdsuite import data as static_data
+
 class ProjectMethods:
     """ methods to be used in the Experiment class """
 
@@ -26,8 +30,8 @@ class ProjectMethods:
         returns:
             This method will update the class attributes in place and therefore, will not return anything explicitly.
         """
-        with open('PubChemElements_all.json') as json_file:
-            PSE = json.load(json_file)
+        with open_text(static_data, 'PubChemElements_all.json') as json_file:
+            PSE = json.loads(json_file.read())
 
             # Try to get the species data from the Periodic System of Elements file
         for element in self.species:
