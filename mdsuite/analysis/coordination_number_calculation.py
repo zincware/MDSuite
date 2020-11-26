@@ -13,9 +13,10 @@ from mdsuite.analysis.analysis import Analysis
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
-
 class _CoordinationNumbers(Analysis):
-    """ Class for the calculation of coordination numbers """
+    """ Class for the calculation of coordination numbers
+
+    """
 
     def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label='CN',
                  analysis_name='Coordination_Numbers'):
@@ -45,15 +46,10 @@ class _CoordinationNumbers(Analysis):
         """ Use the species_tuple in front of the name to get information about the pair """
 
         species = self.species_tuple.split("_")  # get an array of the species being studied
-        # Reduce the array if the species are the same
-        if species[0] == species[1]:
-            species = [species[0]]
 
-        rdf_number_of_atoms = 0  # define the number of atoms in the rdf count
-        for item in species:
-            rdf_number_of_atoms += len(self.parent.species[item]['indices'])
+        rdf_number_of_atoms = len(self.parent.species[species[0]]['indices'])
 
-        return rdf_number_of_atoms / self.parent.number_of_atoms  # calculate the density
+        return rdf_number_of_atoms/self.parent.volume
 
     def _load_rdf_from_file(self):
         """ Load the raw rdf data from a directory """
@@ -79,7 +75,7 @@ class _CoordinationNumbers(Analysis):
         """ get the max values of the rdf for use in the minimum calculation """
 
         filtered_data = apply_savgol_filter(self.rdf)  # filter the data
-        peaks = find_peaks(filtered_data, height=1.0)  # get the maximum values
+        peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
         if len(peaks) < 2:
             raise CannotPerformThisAnalysis
@@ -91,13 +87,14 @@ class _CoordinationNumbers(Analysis):
 
         peaks = self._get_max_values()  # get the max value indices
 
-        cn_radii_1 = golden_section_search(self.rdf, peaks[1], peaks[0])  # get the first cn index range
-        cn_radii_2 = golden_section_search(self.rdf, peaks[2], peaks[1])  # get the second index range
+        # Calculate the range in which the coordination numbers should exist.
+        cn_radii_1 = golden_section_search([self.radii, self.rdf], self.radii[peaks[1]], self.radii[peaks[0]])
+        cn_radii_2 = golden_section_search([self.radii, self.rdf], self.radii[peaks[2]], self.radii[peaks[1]])
 
-        cn_indices_1 = [np.where(self.radii == cn_radii_1[0]),
-                        np.where(self.radii == cn_radii_1[1])]
-        cn_indices_2 = [np.where(self.radii == cn_radii_2[0]),
-                        np.where(self.radii == cn_radii_2[1])]
+        cn_indices_1 = list([np.where(self.radii == cn_radii_1[0])[0][0],
+                        np.where(self.radii == cn_radii_1[1])[0][0]])
+        cn_indices_2 = list([np.where(self.radii == cn_radii_2[0])[0][0],
+                        np.where(self.radii == cn_radii_2[1])[0][0]])
 
         return cn_indices_1, cn_indices_2
 
@@ -106,11 +103,13 @@ class _CoordinationNumbers(Analysis):
 
         self.indices = self._find_minimums()  # get the minimums
 
-        first_shell = np.mean(self.rdf[self.integral_data[0][0]], self.integral_data[self.indices[0][1]])
-        first_shell_error = np.std(self.rdf[self.integral_data[0][0]], self.rdf[self.integral_data[0][1]])/np.sqrt(2)
+        first_shell = np.mean([self.integral_data[self.indices[0][0]], self.integral_data[self.indices[0][1]]])
+        first_shell_error = np.std([self.integral_data[self.indices[0][0]],
+                                   self.integral_data[self.indices[0][1]]])/np.sqrt(2)
 
-        second_shell = np.mean(self.rdf[self.integral_data[1][0]], self.rdf[self.integral_data[1][1]])
-        second_shell_error = np.std(self.rdf[self.integral_data[1][0]], self.rdf[self.integral_data[1][1]])/np.sqrt(2)
+        second_shell = np.mean([self.integral_data[self.indices[1][0]], self.integral_data[self.indices[1][1]]])
+        second_shell_error = np.std([self.integral_data[self.indices[1][0]],
+                                    self.integral_data[self.indices[1][1]]])/np.sqrt(2)
 
         self.parent.coordination_numbers[self.species_tuple] = {'first_shell': [first_shell, first_shell_error],
                                                                 'second_shell': [second_shell, second_shell_error]}
@@ -120,14 +119,12 @@ class _CoordinationNumbers(Analysis):
         """ Plot the calculated coordination numbers on top of the rdfs """
 
         plt.plot(self.radii, self.rdf, label=f"{self.species_tuple} RDF")
-        plt.plot(self.radii[self.indices[0]], self.rdf[self.indices[0]])
-        plt.plot(self.radii[self.indices[1]], self.rdf[self.indices[1]])
+        plt.plot(self.radii[self.indices[0]], self.rdf[self.indices[0]], 'o')
+        plt.plot(self.radii[self.indices[1]], self.rdf[self.indices[1]], 'x')
 
 
     def run_analysis(self):
-        """ Calculate the coordination numbers and perform error analysis
-        """
-
+        """ Calculate the coordination numbers and perform error analysis """
 
         self._get_rdf_data()  # fill the data array with data
 
@@ -143,7 +140,7 @@ class _CoordinationNumbers(Analysis):
                 self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.integral_data])
 
             if self.plot:
-                plt.plot(self.radii, self.integral_data, label=f"{self.species_tuple} CCN")
+                plt.plot(self.radii[1:], np.array(self.integral_data), label=f"{self.species_tuple} CCN")
                 self._plot_coordination_shells()
 
         if self.plot:

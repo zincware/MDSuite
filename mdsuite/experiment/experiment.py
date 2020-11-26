@@ -29,7 +29,7 @@ from mdsuite.analysis import green_kubo_diffusion_coefficients
 from mdsuite.analysis import green_kubo_ionic_conductivity
 from mdsuite.analysis import einstein_helfand_ionic_conductivity
 from mdsuite.analysis import radial_distribution_function
-from mdsuite.analysis import coordination_numbers
+from mdsuite.analysis import coordination_number_calculation
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
@@ -146,7 +146,7 @@ class Experiment(methods.ProjectMethods):
         radial_distribution_function(self, plot=True, bins=500, cutoff=None, data_range=500)
                             Calculate the radial distribution function for the particle pairs in the system.
 
-        coordination_numbers(self, plot=True)
+        calculate_coordination_numbers(self, plot=True)
                             Calculate the coordination numbers from the radial distribution functions.
     """
 
@@ -568,10 +568,10 @@ class Experiment(methods.ProjectMethods):
         self.radial_distribution_function_state = True  # update the analysis state
         self._save_class()  # save the class state
 
-    def coordination_numbers(self, plot=True):
+    def calculate_coordination_numbers(self, plot=True):
         """ Caclulate the coordination numbers """
 
-        calculation_cn = coordination_numbers._CoordinationNumbers(self, plot)
+        calculation_cn = coordination_number_calculation._CoordinationNumbers(self, plot)
         calculation_cn.run_analysis()
         self._save_class()
 
