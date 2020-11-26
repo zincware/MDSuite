@@ -16,3 +16,10 @@ class NotApplicableToAnalysis(Exception):
     print("This particular function does not apply to the analysis being performed and so is not implemented")
 
     pass
+
+class CannotPerformThisAnalysis(Exception):
+    """ Thrown when analysis cannot be reliably performed given the data """
+
+    print("This analysis cannot be reliable performed ")
+
+    pass

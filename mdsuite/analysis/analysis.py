@@ -46,7 +46,7 @@ class Analysis:
         self._analysis()  # Can be diffusion coefficients or whatever is being calculated, but run the calculation
         self._error_anaysis  # Run an error analysis, could be done during the calculation, or may have to be for the
                                 sake of memory.
-        self._update_experiment  # Update the main experiment class with the calcualted properties
+        self._update_experiment  # Update the main experiment class with the calculated properties
         """
         raise NotImplementedError  # Implement in the child class
 
