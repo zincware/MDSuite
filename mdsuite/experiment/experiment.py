@@ -11,13 +11,11 @@ import sys
 import h5py as hf
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import curve_fit
 from tqdm import tqdm
 import warnings
 from pathlib import Path
 
 import mdsuite.utils.constants as constants
-import mdsuite.utils.meta_functions as meta_functions
 import mdsuite.experiment.experiment_methods as methods
 
 # File readers
@@ -30,6 +28,7 @@ from mdsuite.analysis import green_kubo_ionic_conductivity
 from mdsuite.analysis import einstein_helfand_ionic_conductivity
 from mdsuite.analysis import radial_distribution_function
 from mdsuite.analysis import coordination_number_calculation
+from mdsuite.analysis import potential_of_mean_force
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
@@ -183,6 +182,7 @@ class Experiment(methods.ProjectMethods):
                                    "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
         self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
         self.coordination_numbers = {}
+        self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
@@ -381,11 +381,11 @@ class Experiment(methods.ProjectMethods):
         if species is None:
             species = list(self.species.keys())
 
-        calculation_ed = einstein_diffusion_coefficients._EinsteinDiffusionCoefficients(self, plot=plot,
-                                                                                        singular=singular,
-                                                                                        distinct=distinct,
-                                                                                        species=species,
-                                                                                        data_range=data_range)
+        calculation_ed = einstein_diffusion_coefficients.EinsteinDiffusionCoefficients(self, plot=plot,
+                                                                                       singular=singular,
+                                                                                       distinct=distinct,
+                                                                                       species=species,
+                                                                                       data_range=data_range)
 
         calculation_ed._single_diffusion_coefficients()
 
@@ -403,11 +403,11 @@ class Experiment(methods.ProjectMethods):
         if species is None:
             species = list(self.species.keys())
 
-        calculation_gkd = green_kubo_diffusion_coefficients._GreenKuboDiffusionCoefficients(self, plot=plot,
-                                                                                            singular=singular,
-                                                                                            distinct=distinct,
-                                                                                            species=species,
-                                                                                            data_range=data_range)
+        calculation_gkd = green_kubo_diffusion_coefficients.GreenKuboDiffusionCoefficients(self, plot=plot,
+                                                                                           singular=singular,
+                                                                                           distinct=distinct,
+                                                                                           species=species,
+                                                                                           data_range=data_range)
 
         if singular:
             calculation_gkd._singular_diffusion_coefficients()
@@ -531,9 +531,9 @@ class Experiment(methods.ProjectMethods):
             plot(bool=False) -- If True, will plot the MSD over time
         """
 
-        calculation_ehic = einstein_helfand_ionic_conductivity._EinsteinHelfandIonicConductivity(self, data_range, plot)
+        calculation_ehic = einstein_helfand_ionic_conductivity.EinsteinHelfandIonicConductivity(self, data_range, plot)
         calculation_ehic._calculate_ionic_conductivity()
-        self._save_class
+        self._save_class()
 
     def green_kubo_ionic_conductivity(self, data_range, plot=False):
         """ Calculate Green-Kubo Ionic Conductivity
@@ -552,13 +552,13 @@ class Experiment(methods.ProjectMethods):
 
         """
 
-        calculation_gkic = green_kubo_ionic_conductivity._GreenKuboIonicConductivity(self, plot=plot,
-                                                                                     data_range=data_range)
+        calculation_gkic = green_kubo_ionic_conductivity.GreenKuboIonicConductivity(self, plot=plot,
+                                                                                    data_range=data_range)
         calculation_gkic._calculate_ionic_conductivity()
 
         self._save_class()  # Update class state
 
-    def radial_distribution_function(self, plot=True, bins=500, cutoff=None, data_range=500):
+    def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
         """ Calculate the radial distribution function """
 
         calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,
@@ -569,11 +569,17 @@ class Experiment(methods.ProjectMethods):
         self._save_class()  # save the class state
 
     def calculate_coordination_numbers(self, plot=True):
-        """ Caclulate the coordination numbers """
+        """ Calculate the coordination numbers """
 
-        calculation_cn = coordination_number_calculation._CoordinationNumbers(self, plot)
+        calculation_cn = coordination_number_calculation.CoordinationNumbers(self, plot)
         calculation_cn.run_analysis()
         self._save_class()
+
+    def potential_of_mean_force(self, plot=True, save=True):
+        """ Calculate the potential of mean-force """
+
+        calculation_pomf = potential_of_mean_force.PotentialOfMeanForce(self, plot=plot, save=save)
+        calculation_pomf.run_analysis()
 
     # TODO def green_kubo_viscosity(self):
 

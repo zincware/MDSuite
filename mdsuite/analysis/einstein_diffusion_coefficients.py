@@ -29,7 +29,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _EinsteinDiffusionCoefficients(Analysis):
+class EinsteinDiffusionCoefficients(Analysis):
     """ Class for the Einstein diffusion coefficient implementation
 
     additional attrbs:

@@ -28,7 +28,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _GreenKuboDiffusionCoefficients(Analysis):
+class GreenKuboDiffusionCoefficients(Analysis):
     """ Class for the Green-Kubo diffusion coefficient implementation
 
     additional attrbs:

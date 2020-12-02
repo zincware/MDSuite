@@ -32,6 +32,7 @@ class RadialDistributionFunction(Analysis):
     def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
                  y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1):
         """ Standard python constructor """
+
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
         self.parent = obj
         self.bins = bins
@@ -83,7 +84,7 @@ class RadialDistributionFunction(Analysis):
     def _construct_scaling_tensor(self, atoms):
         """ Build the scaling tensor for use in the _apply_pbc method """
 
-        box_images = [i for i in range(-self.images, self.images + 1)]  # get the indices of the box indices
+        box_images = [i for i in range(-self.images, self.images + 1)]               # get the indices of the box images
 
         combinations = list(itertools.combinations_with_replacement(box_images, 3))  # permute the indices
 
