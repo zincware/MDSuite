@@ -29,7 +29,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _GreenKuboIonicConductivity(Analysis):
+class GreenKuboIonicConductivity(Analysis):
     """ Class for the Green-Kubo ionic conductivity implementation
 
     additional attrbs:

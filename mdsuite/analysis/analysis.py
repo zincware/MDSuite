@@ -4,7 +4,41 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 class Analysis:
-    """ Parent class for analysis modules """
+    """ Parent class for analysis modules
+
+    Attributes
+    ----------
+    obj : class object
+                        Class object of the experiment.
+    plot : bool (default=True)
+                        Decision to plot the analysis.
+    save : bool (default=True)
+                        Decision to save the generated data arrays.
+
+    data_range : int (default=500)
+                        Range over which the property should be evaluated. This is not applicable to the current
+                        analysis as the full rdf will be calculated.
+    x_label : str
+                        How to label the x axis of the saved plot.
+    y_label : str
+                        How to label the y axis of the saved plot.
+    analysis_name : str
+                        Name of the analysis. used in saving of the data and figure.
+
+    Methods
+    -------
+    _autocorrelation_time()
+                        Perform autocorrelation time analysis on a data series to get the correct sampling rate.
+
+    _save_data(self, title, data)
+                        Save a .npy file of generated data from the calculation.
+
+    _plot_data(self)
+                        Plot the generated data from the analysis and save in it.
+
+    run_analysis(self)
+                        Run the analysis being called. Will call all relevant methods.
+    """
 
     def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None):
         """ Python constructor """
@@ -33,8 +67,8 @@ class Analysis:
         plt.xlabel(rf'{self.x_label}')  # set the x label
         plt.ylabel(rf'{self.y_label}')  # set the y label
         plt.legend()  # enable the legend
-        plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{self.analysis_name}.eps",
-                    dpi=600, format='eps')
+        plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{self.analysis_name}.svg",
+                    dpi=600, format='svg')
 
     def run_analysis(self):
         """ Run the appropriate analysis

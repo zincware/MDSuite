@@ -95,13 +95,8 @@ class Project:
         save_file.write(pickle.dumps(self.__dict__))
         save_file.close()
 
-    def add_experiment(self, experiment_name=None, data_file=None):
+    def add_experiment(self, experiment_name=None, timestep=None, temperature=None, units=None):
         """ add an experiment to the project """
-
-        # Kill program if no data is given for the experiment
-        if data_file is None:
-            print(" No data was provided to the program, no experiment can be added")
-            sys.exit()  # quit the program
 
         # Set a name in case none is given
         if experiment_name is None:
@@ -115,7 +110,9 @@ class Project:
 
         new_experiment = Experiment(experiment_name,
                                     storage_path=f"{self.storage_path}/{self.name}",
-                                    data_file=data_file)
+                                    timestep=timestep,
+                                    units=units,
+                                    temperature=temperature)
 
         self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 

@@ -25,7 +25,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _EinsteinHelfandIonicConductivity:
+class EinsteinHelfandIonicConductivity:
     """ Class for the Einstein-Helfand Ionic Conductivity """
 
     def __init__(self, obj, data_range, plot):
