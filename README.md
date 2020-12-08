@@ -18,6 +18,9 @@ For an overview of the program functionality, run the module directly with `-h` 
 ```
 $ python -m mdsuite -h
 ```
+
+NOTE: to install tensorflow with GPU support, use CUDA 10.1 and cuDNN 7.6.5. 
+
 ## Documentation
 
 In order to see analysis walkthroughs, tool examples, software information, or contribution resources, 
