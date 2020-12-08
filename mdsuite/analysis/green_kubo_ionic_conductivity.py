@@ -40,18 +40,19 @@ class GreenKuboIonicConductivity(Analysis):
         data_range
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_axis='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label=r'JACF ($C^{2}\cdot m^{2}/s^{2}$)',
                  save=True, analysis_name='green_kubo_ionic_conductivity'):
-        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
         self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
                                         self.parent.batch_size
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
         self.loop_range = self.number_of_configurations - data_range - 1
-        self.correlation_time = 1
+        self.correlation_time = 10
 
     def _autocorrelation_time(self):
         """ calculate the current autocorrelation time for correct sampling """
-        raise NotImplementedError
+
+        pass
 
     def _calculate_system_current(self):
         """ Calculate the ionic current of the system
@@ -82,7 +83,7 @@ class GreenKuboIonicConductivity(Analysis):
 
         sigma = []
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
-        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
+        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=50):
             jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
 
             # Calculate the current autocorrelation
@@ -110,3 +111,9 @@ class GreenKuboIonicConductivity(Analysis):
 
         if self.plot:
             self._plot_data()  # Plot the data if necessary
+
+    def run_analysis(self):
+        """ call relevant methods and run analysis """
+
+        self._autocorrelation_time()  # get the autocorrelation time
+        self._calculate_ionic_conductivity()  # calculate the ionic conductivity

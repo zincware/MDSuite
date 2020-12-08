@@ -61,13 +61,16 @@ class Analysis:
 
         np.save(f"{self.parent.storage_path}/{self.parent.analysis_name}/data/{title}.npy", data)
 
-    def _plot_data(self):
+    def _plot_data(self, title=None):
         """ Plot the data generated during the analysis """
+
+        if title is None:
+            title = f"{self.analysis_name}"
 
         plt.xlabel(rf'{self.x_label}')  # set the x label
         plt.ylabel(rf'{self.y_label}')  # set the y label
         plt.legend()  # enable the legend
-        plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{self.analysis_name}.svg",
+        plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{title}.svg",
                     dpi=600, format='svg')
 
     def run_analysis(self):

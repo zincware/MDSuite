@@ -32,15 +32,16 @@ warnings.filterwarnings("ignore")
 class EinsteinDiffusionCoefficients(Analysis):
     """ Class for the Einstein diffusion coefficient implementation
 
-    additional attrbs:
-        plot
-        singular
-        distinct
-        species
-        data_range
+    Attributes
+    ----------
+    plot : bool
+    singular : bool
+    distinct : bool
+    species : list
+    data_range : int
     """
 
-    def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=500, save=True,
+    def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=200, save=True,
                  x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients'):
         """ Python constructor """
 
@@ -49,7 +50,7 @@ class EinsteinDiffusionCoefficients(Analysis):
         self.singular = singular
         self.distinct = distinct
         self.species = species
-        self.data_range = data_range
+
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
         self.loop_range = self.parent.number_of_configurations - data_range - 1
         self.correlation_time = 100
@@ -75,14 +76,13 @@ class EinsteinDiffusionCoefficients(Analysis):
             positions_tensor = tf.convert_to_tensor(np.array(self.parent.load_matrix("Unwrapped_Positions",
                                                                                      [item])))
             msd_array = np.zeros(self.data_range)  # define empty msd array
+            # Calculate the prefactor
+            numerator = self.parent.units['length'] ** 2
+            denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
+            prefactor = numerator / denominator
 
             for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
                 window_tensor = positions_tensor[:, i:i + self.data_range]  # extract a window to analyze
-
-                # Calculate the prefactor
-                numerator = self.parent.units['length'] ** 2
-                denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
-                prefactor = numerator / denominator
 
                 # Calculate the msd
                 msd = (window_tensor - (
@@ -95,7 +95,7 @@ class EinsteinDiffusionCoefficients(Analysis):
             msd_array /= int(self.loop_range/self.correlation_time)
 
             popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
-            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = popt[0]
+            self.parent.diffusion_coefficients["Einstein-Helfand"] = popt[0]
 
             # Update the plot if required
             if self.plot:
@@ -109,8 +109,7 @@ class EinsteinDiffusionCoefficients(Analysis):
         if self.plot:
             self._plot_data()
 
-    @staticmethod
-    def _distinct_diffusion_coefficients():
+    def _distinct_diffusion_coefficients(self):
         """ Calculate the Distinct Diffusion Coefficients
 
         Use the Einstein method to calculate the distinct diffusion coefficients of the system from the mean
@@ -142,7 +141,7 @@ class EinsteinDiffusionCoefficients(Analysis):
 
             for i in range(len(positions_matrix[]))
         """
-        return
+        raise NotImplementedError
 
     def run_analysis(self):
         """ Run a diffusion coefficient analysis
@@ -152,4 +151,9 @@ class EinsteinDiffusionCoefficients(Analysis):
         the fit error of the scipy fit package. The second is calculated by averaging the diffusion coefficient
         calculated at start times, taken over correlation times.
         """
-        pass
+        self._autocorrelation_time()  # get the autocorrelation time
+
+        if self.singular:
+            self._single_diffusion_coefficients()  # calculate the singular diffusion coefficients
+        if self.distinct:
+            self._distinct_diffusion_coefficients()  # calculate the distinct diffusion coefficients
