@@ -29,5 +29,5 @@ setuptools.setup(
                       'scipy',
                       'tqdm',
                       'psutil',
-                      'tensorflow',
+                      'tensorflow>=2.1',
                       'numpy'])
