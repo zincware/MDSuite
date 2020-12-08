@@ -12,12 +12,16 @@ calculations performed.
 # Python standard packages
 import matplotlib.pyplot as plt
 import warnings
+from scipy.optimize import curve_fit
+import numpy as np
 
 # Import user packages
 from tqdm import tqdm
-import torch
-
+import tensorflow as tf
 # Import MDSuite modules
+import mdsuite.utils.meta_functions as meta_functions
+from mdsuite.utils.constants import *
+from mdsuite.analysis.analysis import Analysis
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -25,21 +29,19 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class EinsteinHelfandIonicConductivity:
+class EinsteinHelfandIonicConductivity(Analysis):
     """ Class for the Einstein-Helfand Ionic Conductivity """
 
-    def __init__(self, obj, data_range, plot):
+    def __init__(self, obj, plot=True, species=None, data_range=500, save=True,
+                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity'):
         """ Python constructor """
 
-        self.parent = obj
-        self.data_range = data_range
-        self.plot = plot
-        self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
-                                        self.parent.batch_size
-        self.loop_range = self.number_of_configurations - data_range - 1
-        self.correlation_time = 1
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
 
-        raise NotImplementedError
+        self.loop_range = self.parent.number_of_configurations - data_range - 1
+        self.correlation_time = 10
+        self.species = species
+        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
     def _autocorrelation_time(self):
         """ Calculate dipole moment autocorrelation time
@@ -49,82 +51,64 @@ class EinsteinHelfandIonicConductivity:
         """
         pass
 
-    def _calculate_translational_dipole(self):
+    def _calculate_translational_dipole(self, index, data_range):
         """ Calculate the translational dipole of the system """
 
         # Load the particle positions and sum
-        dipole_moment = torch.from_numpy(self.parent.load_matrix("Unwrapped_Positions")).sum(1)
+        dipole_moment = self.parent.load_matrix("Unwrapped_Positions",
+                                                select_slice=np.s_[:, index:index + data_range],
+                                                tensor=True)
+        dipole_moment = tf.math.reduce_sum(dipole_moment, axis=1)
 
         # Build the charge tensor for assignment
         system_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
-        charge_tuple = ()
+        charge_tuple = []
         for charge in system_charges:
-            charge_tuple += (torch.ones(self.number_of_configurations, 3))*charge
-        charge_tensor = torch.stack(charge_tuple)
+            charge_tuple.append(tf.ones([data_range, 3]) * charge)
+        charge_tensor = tf.stack(charge_tuple)
 
         dipole_moment *= charge_tensor  # Multiply the dipole moment tensor by the system charges
-        dipole_moment = dipole_moment.sum(0)  # Calculate the final dipole moments
+        dipole_moment = tf.reduce_sum(dipole_moment, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment
 
     def _calculate_ionic_conductivity(self):
         """ Calculate the conductivity """
 
-        dipole_moment_tensor = self._calculate_translational_diplole()  # Calculate the dipole moment
-        dipole_msd_tensor = torch.zeros(self.data_range, 3)  # Initialize the msd tensor
+        dipole_msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
-        # Construct mask tensor
-        raise NotImplementedError
-
-"""
- # Fill the dipole moment msd matrix
-        for i in tqdm(range(loop_range)):
-            for j in range(3):
-                dipole_moment_msd[j] += (dipole_moment[i:i + data_range, j] - dipole_moment[i][j]) ** 2
-
-        dipole_msd = np.array(np.array(dipole_moment_msd[0]) +
-                              np.array(dipole_moment_msd[1]) +
-                              np.array(dipole_moment_msd[2]))  # Calculate the net msd
-
-        # Initialize the time
-        time = np.linspace(0.0, data_range * self.sample_rate * self.time_step, len(dipole_msd[0]))
-
-        sigma_array = []  # Initialize and array for the conductivity calculations
-        # Loop over different fit ranges to generate an array of conductivities, from which a value can be calculated
-        for i in range(100):
-            # Create the data range
-            start = np.random.randint(int(0.1 * len(dipole_msd[0])), int(0.60 * len(dipole_msd[0])))
-            stop = np.random.randint(int(1.4 * start), int(1.65 * start))
-
-            # Calculate the value and append the array
-            popt, pcov = curve_fit(meta_functions.linear_fitting_function, time[start:stop], dipole_msd[0][start:stop])
-            sigma_array.append(popt[0])
-
-        # Define the multiplicative prefactor of the calculation
-        denominator = (6 * self.temperature * (self.volume * self.length_unit ** 3) * constants.boltzmann_constant) * \
-                      self.time_unit * loop_range
-        numerator = (self.length_unit ** 2) * (constants.elementary_charge ** 2)
+        # Calculate the prefactor
+        numerator = (self.parent.units['length'] ** 2) * (elementary_charge ** 2)
+        denominator = 6 * self.parent.units['time'] * (self.parent.volume * self.parent.units['length'] ** 3) * \
+                      self.parent.temperature * boltzmann_constant
         prefactor = numerator / denominator
 
-        sigma = prefactor * np.mean(sigma_array)
-        sigma_error = prefactor * (np.sqrt(np.var(sigma_array)) / np.sqrt(len(sigma_array)))
+        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=50):
+            window_tensor = self._calculate_translational_dipole(i, self.data_range)
 
-        if plot:
-            plt.plot(time, dipole_msd[0])
-            plt.xlabel("Time")
-            plt.ylabel("Dipole Mean Square Displacement")
-            plt.savefig(f"EHCond_{self.temperature}.pdf", format='pdf', dpi=600)
-            plt.show()
+            # Calculate the msd
+            msd = (window_tensor - (
+                tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
+            msd = prefactor * tf.reduce_sum(msd, axis=1)
 
-        print(f"Einstein-Helfand Conductivity at {self.temperature}K: {sigma / 100} +- {sigma_error / 100} S/cm")
+            dipole_msd_array += np.array(msd)
 
-        self._save_class()  # Update class state
-"""
+        dipole_msd_array /= int(self.loop_range / self.correlation_time)
 
+        popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
+        self.parent.ionic_conductivity["Einstein-Helfand"] = popt[0] / 100
 
+        # Update the plot if required
+        if self.plot:
+            plt.plot(np.array(self.time) * self.parent.units['time'], dipole_msd_array)
+            self._plot_data()
 
+        # Save the array if required
+        if self.save:
+            self._save_data(f"{self.analysis_name}", [self.time, dipole_msd_array])
 
+    def run_analysis(self):
+        """ Collect methods and run analysis """
 
-
-
-
+        self._autocorrelation_time()  # get the correct correlation time
+        self._calculate_ionic_conductivity()  # calculate the ionic conductivity

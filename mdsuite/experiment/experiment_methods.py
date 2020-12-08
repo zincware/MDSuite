@@ -10,11 +10,19 @@ import h5py as hf
 import pubchempy as pcp
 import json
 import numpy as np
+from importlib.resources import open_text
+
+from diagrams import Diagram, Cluster
+from diagrams.aws.compute import EC2
+from diagrams.aws.database import RDS
+from diagrams.aws.network import ELB
+from diagrams.aws.compute import ECS
+
+from diagrams.generic.place import Datacenter
+from diagrams.generic.storage import Storage
+from diagrams.generic.database import SQL
 
 import mdsuite.utils.constants as constants
-
-# Using static file from data
-from importlib.resources import open_text
 from mdsuite import data as static_data
 
 class ProjectMethods:
@@ -118,10 +126,19 @@ class ProjectMethods:
                     data[positions][:, self.property_groups[property_group][2]].astype(float).reshape(
                         (len(self.species[item]['indices']), partitioned_configurations), order='F')
 
-    def print_data_structrure(self):
+    def print_data_structure(self):
         """ Print the data structure of the hdf5 dataset """
 
         database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
+        with Diagram("Web Service", show=True, direction='TB'):
+            head = RDS("Database")
+            for item in database:
+                with Cluster(f"{item}"):
+                    # group = Storage(f"{item}")
+                    group_list = []
+                    for property_group in database[item]:
+                        group_list.append(ECS(property_group))
+                head >> group_list
 
     def write_xyz(self, property="Positions", species=None):
         """ Write an xyz file from database array
@@ -173,7 +190,6 @@ class ProjectMethods:
 
     def print_class_attributes(self):
         """ Print all attributes of the class """
-
         attributes = []
         for item in vars(self).items():
             attributes.append(item)

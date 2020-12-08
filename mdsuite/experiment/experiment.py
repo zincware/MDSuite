@@ -14,6 +14,7 @@ import numpy as np
 from tqdm import tqdm
 import warnings
 from pathlib import Path
+import tensorflow as tf
 
 import mdsuite.utils.constants as constants
 import mdsuite.experiment.experiment_methods as methods
@@ -282,7 +283,7 @@ class Experiment(methods.ProjectMethods):
         loop_range = int((self.number_of_configurations - counter) / self.batch_size)
         with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
             with open(self.trajectory_file) as f:
-                for _ in tqdm(range(loop_range), ncols=10):
+                for _ in tqdm(range(loop_range), ncols=70):
                     batch_data = trajectory_reader.read_configurations(self.batch_size, f)
 
                     trajectory_reader.process_configurations(batch_data, database, counter)
@@ -329,7 +330,7 @@ class Experiment(methods.ProjectMethods):
         transformation_ufb = unwrap_coordinates.CoordinateUnwrapper(self, species, center_box)  # load the unwrapper
         transformation_ufb.unwrap_particles()  # unwrap the coordinates
 
-    def load_matrix(self, identifier, species=None):
+    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False):
         """ Load a desired property matrix
 
         args:
@@ -342,6 +343,8 @@ class Experiment(methods.ProjectMethods):
 
         if species is None:
             species = list(self.species.keys())
+        if select_slice is None:
+            select_slice = np.s_[:]
         property_matrix = []  # Define an empty list for the properties to fill
 
         with hf.File(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
@@ -353,10 +356,16 @@ class Experiment(methods.ProjectMethods):
                 if identifier not in database[item]:
                     print("This data was not found in the database. Was it included in your simulation input?")
                     return
-
-                property_matrix.append(np.dstack((database[item][identifier]['x'],
-                                                  database[item][identifier]['y'],
-                                                  database[item][identifier]['z'])))
+                if tensor:
+                    property_matrix.append(
+                        tf.convert_to_tensor(np.dstack((database[item][identifier]['x'][select_slice],
+                                                        database[item][identifier]['y'][select_slice],
+                                                        database[item][identifier]['z'][select_slice])),
+                                             dtype=tf.float32))
+                else:
+                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
+                                                      database[item][identifier]['y'][select_slice],
+                                                      database[item][identifier]['z'][select_slice])))
 
         if len(property_matrix) == 1:
             return property_matrix[0]
@@ -387,11 +396,12 @@ class Experiment(methods.ProjectMethods):
                                                                                        species=species,
                                                                                        data_range=data_range)
 
-        calculation_ed._single_diffusion_coefficients()
+        calculation_ed.run_analysis()
 
         self._save_class()  # Update class state
 
-    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None):
+    def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False,
+                                          species=None):
         """ Calculate the Green_Kubo Diffusion coefficients
 
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
@@ -409,10 +419,7 @@ class Experiment(methods.ProjectMethods):
                                                                                            species=species,
                                                                                            data_range=data_range)
 
-        if singular:
-            calculation_gkd._singular_diffusion_coefficients()
-        if distinct:
-            calculation_gkd._distinct_diffusion_coefficients()
+        calculation_gkd.run_analysis()  # run the analysis
 
         self._save_class()  # Update class state
 
@@ -436,7 +443,7 @@ class Experiment(methods.ProjectMethods):
             """
 
             numerator = self.number_of_atoms * (constants.elementary_charge ** 2)
-            denominator = constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
+            denominator = constants.boltzmann_constant * self.temperature * (self.volume * (self.units['length'] ** 3))
             prefactor = numerator / denominator
 
             diffusion_array = []
@@ -452,7 +459,7 @@ class Experiment(methods.ProjectMethods):
             return
 
             numerator = self.number_of_atoms * (constants.elementary_charge ** 2)
-            denominator = constants.boltzmann_constant * self.temperature * (self.volume * (self.length_unit ** 3))
+            denominator = constants.boltzmann_constant * self.temperature * (self.volume * (self.units['length'] ** 3))
             prefactor = numerator / denominator
 
             singular_diffusion_array = []
@@ -519,7 +526,7 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    def einstein_helfand_ionic_conductivity(self, data_range, plot=False):
+    def einstein_helfand_ionic_conductivity(self, data_range=500, plot=False):
         """ Calculate the Einstein-Helfand Ionic Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
@@ -531,8 +538,10 @@ class Experiment(methods.ProjectMethods):
             plot(bool=False) -- If True, will plot the MSD over time
         """
 
-        calculation_ehic = einstein_helfand_ionic_conductivity.EinsteinHelfandIonicConductivity(self, data_range, plot)
-        calculation_ehic._calculate_ionic_conductivity()
+        calculation_ehic = einstein_helfand_ionic_conductivity.EinsteinHelfandIonicConductivity(self,
+                                                                                                data_range=data_range,
+                                                                                                plot=plot)
+        calculation_ehic.run_analysis()
         self._save_class()
 
     def green_kubo_ionic_conductivity(self, data_range, plot=False):
@@ -554,7 +563,7 @@ class Experiment(methods.ProjectMethods):
 
         calculation_gkic = green_kubo_ionic_conductivity.GreenKuboIonicConductivity(self, plot=plot,
                                                                                     data_range=data_range)
-        calculation_gkic._calculate_ionic_conductivity()
+        calculation_gkic.run_analysis()
 
         self._save_class()  # Update class state
 
