@@ -3,12 +3,13 @@
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.constants import lammps_properties_labels
 from mdsuite.utils.constants import lammps_properties
+from mdsuite.utils.constants import lammps_properties_dict
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import simple_file_read
 from mdsuite.utils.meta_functions import get_dimensionality
-
+from collections import Counter
 
 class LAMMPSTrajectoryFile(FileProcessor):
     """ Child class for the lammps file reader """
@@ -95,9 +96,8 @@ class LAMMPSTrajectoryFile(FileProcessor):
         """
             Get the available properties for analysis
         """
-        for i in range(len(first_configuration[8])):
-            if first_configuration[8][i] in lammps_properties_labels:
-                properties_summary[first_configuration[8][i]] = i - 2
+        header_line = first_configuration[8]
+        properties_summary = self._get_column_properties(header_line)
 
         """
             Get the box size from the first simulation cell
@@ -125,6 +125,12 @@ class LAMMPSTrajectoryFile(FileProcessor):
             self.project.batch_size = batch_size
             return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
+    @staticmethod
+    def _get_column_properties(header_line):
+        header_line = header_line[4:]
+        properties_summary = {variable: idx+2 for idx, variable in enumerate(header_line)}
+        return properties_summary
+
     def _extract_properties(self):
         """ Construct generalized property array
 
@@ -140,58 +146,28 @@ class LAMMPSTrajectoryFile(FileProcessor):
                 values of the dictionary keys correspond to the array location of the specific piece of data in the set.
             """
 
-        # Define Initial Properties and arrays
-
-        trajectory_properties = {}
-        system_properties = list(self.project.properties)
+        # grab the properties present in the current case
         properties_dict = self.project.properties
 
-        if 'x' in system_properties:
-            trajectory_properties[lammps_properties[0]] = [properties_dict['x'],
-                                                           properties_dict['y'],
-                                                           properties_dict['z']]
-        if 'xs' in system_properties:
-            trajectory_properties[lammps_properties[1]] = [properties_dict['xs'],
-                                                           properties_dict['ys'],
-                                                           properties_dict['zs']]
-        if 'xu' in system_properties:
-            trajectory_properties[lammps_properties[2]] = [properties_dict['xu'],
-                                                           properties_dict['yu'],
-                                                           properties_dict['zu']]
-        if 'xsu' in system_properties:
-            trajectory_properties[lammps_properties[3]] = [properties_dict['xsu'],
-                                                           properties_dict['ysu'],
-                                                           properties_dict['zsu']]
-        if 'vx' in system_properties:
-            trajectory_properties[lammps_properties[4]] = [properties_dict['vx'],
-                                                           properties_dict['vy'],
-                                                           properties_dict['vz']]
-        if 'fx' in system_properties:
-            trajectory_properties[lammps_properties[5]] = [properties_dict['fx'],
-                                                           properties_dict['fy'],
-                                                           properties_dict['fz']]
-        if 'ix' in system_properties:
-            trajectory_properties[lammps_properties[6]] = [properties_dict['ix'],
-                                                           properties_dict['iy'],
-                                                           properties_dict['iz']]
-        if 'mux' in system_properties:
-            trajectory_properties[lammps_properties[7]] = [properties_dict['mux'],
-                                                           properties_dict['muy'],
-                                                           properties_dict['muz']]
-        if 'omegax' in system_properties:
-            trajectory_properties[lammps_properties[8]] = [properties_dict['omegax'],
-                                                           properties_dict['omegay'],
-                                                           properties_dict['omegaz']]
-        if 'angmomx' in system_properties:
-            trajectory_properties[lammps_properties[9]] = [properties_dict['angmomx'],
-                                                           properties_dict['angmomy'],
-                                                           properties_dict['angmomz']]
-        if 'tqx' in system_properties:
-            trajectory_properties[lammps_properties[10]] = [properties_dict['tqx'],
-                                                            properties_dict['tqy'],
-                                                            properties_dict['tqz']]
+        # for each property label (position, velocity,etc) in the lammps definition
+        for property_label, property_names in lammps_properties_dict.items():
+            # for each coordinate for a given property label (position: x, y, z), get idx and the name
+            for idx, property_name in enumerate(property_names):
+                if property_name in properties_dict.keys(): # if this name (x) is in the input file properties
+                    # we change the lammps_properties_dict replacing the string of the property name by the column name
+                    lammps_properties_dict[property_label][idx] = properties_dict[property_name]
+
+        # trajectory_properties only needs the labels with the integer columns, then we one copy those
+        trajectory_properties = {}
+        for property_label, properties_columns in lammps_properties_dict.items():
+            if all([isinstance(property_column, int) for property_column in properties_columns]):
+                trajectory_properties[property_label] = properties_columns
+
+        print("I have found the following properties with the columns in []: ")
+        [print(key, value) for key, value in trajectory_properties.items()]
 
         return trajectory_properties
+
 
     def _read_lammpstrj(self):
         """ Process a lammps trajectory file """
