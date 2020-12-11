@@ -58,25 +58,32 @@ class FileProcessor:
                      libver='latest') as database:
             for item in self.project.species:
                 database.create_group(item)
-                for observable in self.project.property_groups:
-                    database[item].create_group(observable)
-                    database[item][observable].create_dataset("x", (len(self.project.species[item]['indices']),
-                                                                    initial_length),
-                                                              maxshape=(
-                                                              len(self.project.species[item]['indices']), None),
-                                                              scaleoffset=5)
+                for observable, columns in self.project.property_groups.items():
+                    if len(columns) == 1: # scalar
+                        database[item].create_dataset(observable, (len(self.project.species[item]['indices']),
+                                                                        initial_length),
+                                                                  maxshape=(
+                                                                      len(self.project.species[item]['indices']), None),
+                                                                  scaleoffset=5)
+                    else: # vector
+                        database[item].create_group(observable)
+                        database[item][observable].create_dataset("x", (len(self.project.species[item]['indices']),
+                                                                        initial_length),
+                                                                  maxshape=(
+                                                                  len(self.project.species[item]['indices']), None),
+                                                                  scaleoffset=5)
 
-                    database[item][observable].create_dataset("y", (len(self.project.species[item]['indices']),
-                                                                    initial_length),
-                                                              maxshape=(
-                                                              len(self.project.species[item]['indices']), None),
-                                                              scaleoffset=5)
+                        database[item][observable].create_dataset("y", (len(self.project.species[item]['indices']),
+                                                                        initial_length),
+                                                                  maxshape=(
+                                                                  len(self.project.species[item]['indices']), None),
+                                                                  scaleoffset=5)
 
-                    database[item][observable].create_dataset("z", (len(self.project.species[item]['indices']),
-                                                                    initial_length),
-                                                              maxshape=(
-                                                              len(self.project.species[item]['indices']), None),
-                                                              scaleoffset=5)
+                        database[item][observable].create_dataset("z", (len(self.project.species[item]['indices']),
+                                                                        initial_length),
+                                                                  maxshape=(
+                                                                  len(self.project.species[item]['indices']), None),
+                                                                  scaleoffset=5)
 
     def resize_database(self):
         """ Resize the database skeleton """
@@ -108,19 +115,24 @@ class FileProcessor:
         partitioned_configurations = int(len(data) / self.project.number_of_atoms)
 
         for item in self.project.species:
-            # get the new indices for the positions
+            # get the new indices for the positions #TODO: (FRAN) I do not understand this line well.
             positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
                                   self.header_lines for i in range(int(partitioned_configurations))]).flatten()
             # Fill the database
-            for property_group in self.project.property_groups:
-                database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.project.property_groups[property_group][0]].astype(float).reshape(
-                        (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+            for property_group, columns in self.project.property_groups.items():
+                if len(columns) == 1:
+                    database[item][property_group][:, counter:counter + partitioned_configurations] = \
+                        data[positions][:, columns[0]].astype(float).reshape(
+                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                else:
+                    database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
+                        data[positions][:, columns[0]].astype(float).reshape(
+                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
 
-                database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.project.property_groups[property_group][1]].astype(float).reshape(
-                        (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                    database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
+                        data[positions][:, columns[1]].astype(float).reshape(
+                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
 
-                database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.project.property_groups[property_group][2]].astype(float).reshape(
-                        (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                    database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
+                        data[positions][:, columns[2]].astype(float).reshape(
+                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
