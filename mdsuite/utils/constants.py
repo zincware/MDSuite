@@ -19,24 +19,6 @@ gravity = 9.80665  # m s^-2 -- Standard acceleration due to gravity on earth
 atmosphere = 101325  # Pa -- Standard atmospheric pressure
 golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 
-lammps_properties_labels = {'x', 'y', 'z',
-                            'xs', 'ys', 'zs',
-                            'xu', 'yu', 'zu',
-                            'xsu', 'ysu', 'zsu',
-                            'ix', 'iy', 'iz',
-                            'vx', 'vy', 'vz',
-                            'fx', 'fy', 'fz',
-                            'mux', 'muy', 'muz', 'mu',
-                            'omegax', 'omegay', 'omegaz',
-                            'angmomx', 'angmomy', 'angmomz',
-                            'tqx', 'tqy', 'tqz'}
-
-lammps_properties = ["Positions", "Scaled_Positions", "Unwrapped_Positions", "Scaled_Unwrapped_Positions",
-                     "Velocities", "Forces", "Box_Images", "Dipole_Orientation_Magnitude",
-                     "Angular_Velocity_Spherical",
-                     "Angular_Velocity_Non_Spherical", "Torque"]
-
-
 # this is the dict that specifies the properties names in the lammps dump
 lammps_properties_dict = {
     "Positions": ['x', 'y', 'z'],
@@ -55,20 +37,3 @@ lammps_properties_dict = {
     "Stress": ['c_Stress[1]', 'c_Stress[2]', 'c_Stress[3]']
 }
 
-# This is the dict used to search the name of the property
-lammps_properties_search_dict = {
-    "x": 'Positions',
-    'xs': "Scaled_Positions",
-    'xu': "Unwrapped_Positions",
-    'xsu': "Scaled_Unwrapped_Positions",
-    'vx': "Velocities",
-    'fx': "Forces",
-    'ix': "Box_Images",
-    'mux': "Dipole_Orientation_Magnitude",
-    'omegax': "Angular_Velocity_Spherical",
-    'angmomx': "Angular_Velocity_Non_Spherical",
-    'tqx': "Torque",
-    'KE': "KE",
-    'PE': "PE",
-    'c_Stress[1]': 'Stress'
-}

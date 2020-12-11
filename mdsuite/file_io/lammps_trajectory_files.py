@@ -1,15 +1,12 @@
 """ Module for reading lammps trajectory files"""
 
 from mdsuite.file_io.file_read import FileProcessor
-from mdsuite.utils.constants import lammps_properties_labels
-from mdsuite.utils.constants import lammps_properties
 from mdsuite.utils.constants import lammps_properties_dict
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
-from mdsuite.utils.meta_functions import simple_file_read
 from mdsuite.utils.meta_functions import get_dimensionality
-from collections import Counter
+
 
 class LAMMPSTrajectoryFile(FileProcessor):
     """ Child class for the lammps file reader """
@@ -128,7 +125,7 @@ class LAMMPSTrajectoryFile(FileProcessor):
     @staticmethod
     def _get_column_properties(header_line):
         header_line = header_line[4:]
-        properties_summary = {variable: idx+2 for idx, variable in enumerate(header_line)}
+        properties_summary = {variable: idx + 2 for idx, variable in enumerate(header_line)}
         return properties_summary
 
     def _extract_properties(self):
@@ -153,7 +150,7 @@ class LAMMPSTrajectoryFile(FileProcessor):
         for property_label, property_names in lammps_properties_dict.items():
             # for each coordinate for a given property label (position: x, y, z), get idx and the name
             for idx, property_name in enumerate(property_names):
-                if property_name in properties_dict.keys(): # if this name (x) is in the input file properties
+                if property_name in properties_dict.keys():  # if this name (x) is in the input file properties
                     # we change the lammps_properties_dict replacing the string of the property name by the column name
                     lammps_properties_dict[property_label][idx] = properties_dict[property_name]
 
@@ -167,7 +164,6 @@ class LAMMPSTrajectoryFile(FileProcessor):
         [print(key, value) for key, value in trajectory_properties.items()]
 
         return trajectory_properties
-
 
     def _read_lammpstrj(self):
         """ Process a lammps trajectory file """
