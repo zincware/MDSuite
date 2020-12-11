@@ -60,71 +60,71 @@ class ProjectMethods:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
-    def _build_database_skeleton(self):
-        """ Build skeleton of the hdf5 database
+    # def _build_database_skeleton(self):
+    #     """ Build skeleton of the hdf5 database
+    #
+    #     Gathers all of the properties of the system using the relevant functions. Following the gathering
+    #     of the system properties, this function will read through the first configuration of the dataset, and
+    #     generate the necessary database structure to allow for the following generation to take place. This will
+    #     include the separation of species, atoms, and properties. For a full description of the data structure,
+    #     look into the documentation.
+    #     """
+    #
+    #     database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
+    #
+    #     property_groups = meta_functions.extract_lammps_properties(self.properties)  # Get the property groups
+    #     self.property_groups = property_groups
+    #
+    #     # Build the database structure
+    #     for item in self.species:
+    #         database.create_group(item)
+    #         for property in property_groups:
+    #             database[item].create_group(property)
+    #             database[item][property].create_dataset("x", (
+    #             len(self.species[item]['indices']), self.number_of_configurations -
+    #             self.number_of_configurations % self.batch_size),
+    #                                                     compression="gzip", compression_opts=9)
+    #             database[item][property].create_dataset("y", (
+    #             len(self.species[item]['indices']), self.number_of_configurations -
+    #             self.number_of_configurations % self.batch_size),
+    #                                                     compression="gzip", compression_opts=9)
+    #             database[item][property].create_dataset("z", (
+    #             len(self.species[item]['indices']), self.number_of_configurations -
+    #             self.number_of_configurations % self.batch_size),
+    #                                                     compression="gzip", compression_opts=9)
 
-        Gathers all of the properties of the system using the relevant functions. Following the gathering
-        of the system properties, this function will read through the first configuration of the dataset, and
-        generate the necessary database structure to allow for the following generation to take place. This will
-        include the separation of species, atoms, and properties. For a full description of the data structure,
-        look into the documentation.
-        """
-
-        database = hf.File('{0}/{1}/{1}.hdf5'.format(self.filepath, self.analysis_name), 'w', libver='latest')
-
-        property_groups = meta_functions.extract_lammps_properties(self.properties)  # Get the property groups
-        self.property_groups = property_groups
-
-        # Build the database structure
-        for item in self.species:
-            database.create_group(item)
-            for property in property_groups:
-                database[item].create_group(property)
-                database[item][property].create_dataset("x", (
-                len(self.species[item]['indices']), self.number_of_configurations -
-                self.number_of_configurations % self.batch_size),
-                                                        compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("y", (
-                len(self.species[item]['indices']), self.number_of_configurations -
-                self.number_of_configurations % self.batch_size),
-                                                        compression="gzip", compression_opts=9)
-                database[item][property].create_dataset("z", (
-                len(self.species[item]['indices']), self.number_of_configurations -
-                self.number_of_configurations % self.batch_size),
-                                                        compression="gzip", compression_opts=9)
-
-    def process_configurations(self, data, database, counter):
-        """ Process the available data
-
-        Called during the main database creation. This function will calculate the number of configurations within the
-        raw data and process it.
-
-        args:
-            data (numpy array) -- Array of the raw data for N configurations.
-            database (object) --
-            counter (int) --
-        """
-
-        # Re-calculate the number of available configurations for analysis
-        partitioned_configurations = int(len(data) / self.number_of_atoms)
-
-        for item in self.species:
-            # get the new indices for the positions
-            positions = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms - 9 for i in
-                                  range(int(partitioned_configurations))]).flatten()
-            # Fill the database
-            for property_group in self.property_groups:
-                database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property_group][0]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
-
-                database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property_group][1]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
-
-                database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
-                    data[positions][:, self.property_groups[property_group][2]].astype(float).reshape(
-                        (len(self.species[item]['indices']), partitioned_configurations), order='F')
+    # def process_configurations(self, data, database, counter):
+    #     """ Process the available data
+    #
+    #     Called during the main database creation. This function will calculate the number of configurations within the
+    #     raw data and process it.
+    #
+    #     args:
+    #         data (numpy array) -- Array of the raw data for N configurations.
+    #         database (object) --
+    #         counter (int) --
+    #     """
+    #
+    #     # Re-calculate the number of available configurations for analysis
+    #     partitioned_configurations = int(len(data) / self.number_of_atoms)
+    #
+    #     for item in self.species:
+    #         # get the new indices for the positions
+    #         positions = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms - 9 for i in
+    #                               range(int(partitioned_configurations))]).flatten()
+    #         # Fill the database
+    #         for property_group in self.property_groups:
+    #             database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
+    #                 data[positions][:, self.property_groups[property_group][0]].astype(float).reshape(
+    #                     (len(self.species[item]['indices']), partitioned_configurations), order='F')
+    #
+    #             database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
+    #                 data[positions][:, self.property_groups[property_group][1]].astype(float).reshape(
+    #                     (len(self.species[item]['indices']), partitioned_configurations), order='F')
+    #
+    #             database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
+    #                 data[positions][:, self.property_groups[property_group][2]].astype(float).reshape(
+    #                     (len(self.species[item]['indices']), partitioned_configurations), order='F')
 
     def print_data_structure(self):
         """ Print the data structure of the hdf5 dataset """
