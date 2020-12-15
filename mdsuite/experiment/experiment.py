@@ -431,6 +431,7 @@ class Experiment(methods.ProjectMethods):
         A function to determine the Nernst-Einstein (NE) as well as the corrected Nernst-Einstein (CNE)
         conductivity of a system.
 
+        TODO: (FRAN) I think this should not be here.
         """
         truth_array = [[bool(self.diffusion_coefficients["Einstein"]["Singular"]),
                         bool(self.diffusion_coefficients["Einstein"]["Distinct"])],
