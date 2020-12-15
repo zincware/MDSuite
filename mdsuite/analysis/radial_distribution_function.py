@@ -30,7 +30,8 @@ class RadialDistributionFunction(Analysis):
     """ Class for the calculation of the radial distribution function """
 
     def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
-                 y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1):
+                 y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1, start=0,
+                 stop=None, n_confs=None):
         """ Standard python constructor """
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
@@ -146,7 +147,7 @@ class RadialDistributionFunction(Analysis):
         :returns names (string) -- Prefix for the saved file
         """
 
-        species = list(self.parent.species())  # load all of the species
+        species = list(self.parent.species)  # load all of the species
 
         return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
 
@@ -162,7 +163,7 @@ class RadialDistributionFunction(Analysis):
         for tuples in itertools.combinations_with_replacement(index_list, 2):
             rdf = np.zeros(self.bins)  # define the empty data array
             # Loop over the configurations starting points
-            for i in range(0, self.loop_range, self.correlation_time):
+            for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=50):
 
                 reference_tensor = positions[tuples[0]][:, i:i + self.data_range]  # set the reference matrix
                 positions_tensor = positions[tuples[1]][:, i:i + self.data_range]  # set the measurement tensor
