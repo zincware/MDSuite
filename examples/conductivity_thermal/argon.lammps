@@ -60,6 +60,8 @@ variable     k33 equal trap(f_JJ[5])*${scale}
 
 # shell mkdir energy
 # dump energy all custom 400 energy/energy_dump.* id type x y z vx vy vz c_myKE c_myPE
+# dump the data required for G-K computations
+dump position all custom 1 gk_data.txt id type x y z vx vy vz c_myKE c_myPE c_myStress[1] c_myStress[2] c_myStress[3]
 
 thermo_style custom step temp v_Jx v_Jy v_Jz v_k11 v_k22 v_k33
 # run          500000

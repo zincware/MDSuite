@@ -1,7 +1,7 @@
 """
 Class for the calculation of the einstein diffusion coefficients.
 
-Author: Francisco Torres ; Samuel Tovey
+Author: Francisco Torres-Herrador ; Samuel Tovey
 
 Description: This module contains the code for the thermal conductivity class. This class is called by the
 Experiment class and instantiated when the user calls the ... method.
