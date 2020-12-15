@@ -30,6 +30,7 @@ from mdsuite.analysis import einstein_helfand_ionic_conductivity
 from mdsuite.analysis import radial_distribution_function
 from mdsuite.analysis import coordination_number_calculation
 from mdsuite.analysis import potential_of_mean_force
+from mdsuite.analysis import kirkwood_buff_integrals
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
@@ -185,6 +186,7 @@ class Experiment(methods.ProjectMethods):
         self.coordination_numbers = {}
         self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
+        self.kirkwood_buff_integral_state=True  # Set true if it has been calculated
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
@@ -361,7 +363,7 @@ class Experiment(methods.ProjectMethods):
                         tf.convert_to_tensor(np.dstack((database[item][identifier]['x'][select_slice],
                                                         database[item][identifier]['y'][select_slice],
                                                         database[item][identifier]['z'][select_slice])),
-                                             dtype=tf.float32))
+                                             dtype=tf.float64))
                 else:
                     property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
                                                       database[item][identifier]['y'][select_slice],
@@ -526,16 +528,18 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    def einstein_helfand_ionic_conductivity(self, data_range=500, plot=False):
+    def einstein_helfand_ionic_conductivity(self, data_range=500, plot=True):
         """ Calculate the Einstein-Helfand Ionic Conductivity
 
         A function to use the mean square displacement of the dipole moment of a system to extract the
         ionic conductivity
 
-        args:
-            data_range (int) -- time range over which the measurement should be performed
-        kwargs:
-            plot(bool=False) -- If True, will plot the MSD over time
+        Parameters
+        ----------
+        data_range : int
+                            Time range over which the measurement should be performed
+        plot : bool
+                            If True, will plot the MSD over time
         """
 
         calculation_ehic = einstein_helfand_ionic_conductivity.EinsteinHelfandIonicConductivity(self,
@@ -544,20 +548,24 @@ class Experiment(methods.ProjectMethods):
         calculation_ehic.run_analysis()
         self._save_class()
 
-    def green_kubo_ionic_conductivity(self, data_range, plot=False):
+    def green_kubo_ionic_conductivity(self, data_range, plot=True):
         """ Calculate Green-Kubo Ionic Conductivity
 
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
         system being studied.
 
-        args:
-            data_range (int) -- number of data points with which to calculate the conductivity
+        Parameters
+        ----------
+        data_range : int
+                            Number of data points with which to calculate the conductivity
 
-        kwargs:
-            plot (bool=False) -- If True, a plot of the current autocorrelation function will be generated
+        plot : bool
+                            If True, a plot of the current autocorrelation function will be generated
 
-        returns:
-            sigma (float) -- The ionic conductivity in units of S/cm
+        Returns
+        -------
+        sigma : float
+                            The ionic conductivity in units of S/cm
 
         """
 
@@ -590,9 +598,14 @@ class Experiment(methods.ProjectMethods):
         calculation_pomf = potential_of_mean_force.PotentialOfMeanForce(self, plot=plot, save=save)
         calculation_pomf.run_analysis()
 
-    # TODO def green_kubo_viscosity(self):
+    def kirkwood_buff_integrals(self, plot=True, save=True):
+        """ Calculate the kirkwood buff integrals """
 
-    # TODO def kirkwood_buff_integrals(self):
+        calculation_kbi = kirkwood_buff_integrals.KirkwoodBuffIntegral(self, plot=plot, save=save)
+        calculation_kbi.run_analysis()
+        self.kirkwood_buff_integral_state = True  # set the value to true for future
+
+    # TODO def green_kubo_viscosity(self):
 
     # TODO def structure_factor(self):
 
