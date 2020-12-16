@@ -4,7 +4,7 @@ Affiliation: Institute for Computational Physics, University of Stuttgart ;
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Class functionality of the program
 """
-
+import json
 import os
 import sys
 
@@ -190,6 +190,17 @@ class Experiment(methods.ProjectMethods):
         self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state=True  # Set true if it has been calculated
+
+        self.results = {
+            'diffusion_coefficients': self.diffusion_coefficients,
+            'ionic_conductivity': self.ionic_conductivity,
+            'thermal_conductivity': self.thermal_conductivity,
+            'coordination_numbers': self.coordination_numbers,
+            'potential_of_mean_force_values': self.potential_of_mean_force_values,
+            'radial_distribution_function': self.radial_distribution_function_state,
+            'kirkwood_buff_integral': self.kirkwood_buff_integral_state
+        }
+
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
@@ -664,3 +675,8 @@ class Experiment(methods.ProjectMethods):
             [print(key) for key in dict_classes_computations.keys()]
             sys.exit(1)
         print(help(class_compute))
+
+    def dump_results_json(self):
+        filename = Path(f"{self.storage_path}/{self.analysis_name}.json")
+        with open(filename, 'w') as fp:
+            json.dump(self.results, fp, indent=4, sort_keys=True)

@@ -20,4 +20,7 @@ argon.run_computation('EinsteinDiffusionCoefficients', species=list(argon.specie
 # argon.einstein_diffusion_coefficients(plot=True, data_range=50)
 # argon.green_kubo_diffusion_coefficients(plot=True, data_range=50)
 
-# print(argon.diffusion_coefficients)
+print(argon.diffusion_coefficients)
+print(argon.results)
+
+argon.dump_results_json()
