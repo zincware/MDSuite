@@ -32,6 +32,8 @@ from mdsuite.analysis import coordination_number_calculation
 from mdsuite.analysis import potential_of_mean_force
 from mdsuite.analysis import kirkwood_buff_integrals
 
+from mdsuite.analysis.computations_dict import dict_classes_computations
+
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
 
@@ -176,6 +178,7 @@ class Experiment(methods.ProjectMethods):
         self.units = self.units_to_si(units)
 
         # Properties of the experiment
+        # TODO: maybe we could put all of this in a single structure.
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.ionic_conductivity = {"Einstein-Helfand": {},
@@ -611,3 +614,53 @@ class Experiment(methods.ProjectMethods):
     # TODO def structure_factor(self):
 
     # TODO def angular_distribution_function(self):
+
+    def run_computation(self, computation_name, **kwargs):
+        """ Run a computation
+
+        The type of computation will be stored in a dictionary.
+
+        Parameters
+        ----------
+        computation_name : str
+                            name of the computation to be performed
+
+        **kwargs : extra arguments passed to the classes
+
+
+        Returns
+        -------
+        sigma : float
+                            The ionic conductivity in units of S/cm
+
+        """
+
+        print(dict_classes_computations)
+        print(computation_name)
+        try:
+            class_compute = dict_classes_computations[computation_name]
+        except KeyError:
+            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
+            print(f'{computation_name} not found')
+            print(f'Available computations are:')
+            [print(key) for key in dict_classes_computations.keys()]
+            sys.exit(1)
+
+        object_compute = class_compute(self, **kwargs)
+        object_compute.run_analysis()
+        self._save_class()
+
+    @staticmethod
+    def help_computations_args(computation_name):
+        """
+        Shows the input parameters for the specified class
+        """
+        try:
+            class_compute = dict_classes_computations[computation_name]
+        except KeyError:
+            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
+            print(f'{computation_name} not found')
+            print(f'Available computations are:')
+            [print(key) for key in dict_classes_computations.keys()]
+            sys.exit(1)
+        print(help(class_compute))
