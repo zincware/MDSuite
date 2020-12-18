@@ -115,22 +115,22 @@ class StructureFactor(Analysis):
     def run_analysis(self):
         """ Calculate the potential of mean-force and perform error analysis """
 
-        self._get_rdf_data()  # fill the data array with data
+        self.partial_structure_factor()
+        #self._get_rdf_data()  # fill the data array with data
 
-        for data in self.data_files:
-            self.file_to_study = data                  # Set the correct data file in the class
-            self.species_tuple = data[:-33]            # set the tuple
-            self._load_rdf_from_file()                 # load up the data
-            self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
-            self._get_pomf_value()                     # Determine the min values of the function and update experiment
-
-            # Plot and save the data if necessary
-            if self.save:
-                self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.pomf])
-
-            if self.plot:
-                self._plot_fits()
-
-        if self.plot:
-            self._plot_data()
-
+        # for data in self.data_files:
+        #     self.file_to_study = data                  # Set the correct data file in the class
+        #     self.species_tuple = data[:-33]            # set the tuple
+        #     self._load_rdf_from_file()                 # load up the data
+        #     self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
+        #     self._get_pomf_value()                     # Determine the min values of the function and update experiment
+        #
+        #     # Plot and save the data if necessary
+        #     if self.save:
+        #         self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.pomf])
+        #
+        #     if self.plot:
+        #         self._plot_fits()
+        #
+        # if self.plot:
+        #     self._plot_data()
