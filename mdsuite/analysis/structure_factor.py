@@ -92,7 +92,7 @@ class StructureFactor(Analysis):
         self.Q = Q
         self.rho = rho
         with open_text(static_data, 'form_factor_table.txt') as file:
-            self.coeff_atomic_formfactor = pd.read_csv(file)
+            self.coeff_atomic_formfactor = pd.read_csv(file, sep='\t')
 
 
     def _get_rdf_data(self):
@@ -117,10 +117,15 @@ class StructureFactor(Analysis):
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
     def atomic_form_factors(self):
-        pass
+        species = self.file_to_study.split('_')[0:2]
+        print(species[0])
+        print(list(self.coeff_atomic_formfactor.columns))
+        print('stuff ',self.coeff_atomic_formfactor.loc[self.coeff_atomic_formfactor['Element '] == ' H '])
+        return 1
 
 
     def weight_factors(self, c_1, c_2):
+        f_factors = self.atomic_form_factors()
         weight = c_1 * c_2
         return weight
 
@@ -143,7 +148,6 @@ class StructureFactor(Analysis):
 
         integrand = np.zeros(len(self.radii))
         #print(self.rdf)
-        print('self.rdf[0]',self.rdf[0])
         for counter,radius in enumerate(self.radii):
             if np.isnan(self.rdf[counter]) :
                 self.rdf[counter]= 0
@@ -170,6 +174,7 @@ class StructureFactor(Analysis):
         """ Calculate the potential of mean-force and perform error analysis """
 
         self._get_rdf_data()
+        print(self.data_files)
         self.file_to_study = self.data_files[1]
         self._load_rdf_from_file()
         #print(self.radii)
