@@ -610,8 +610,8 @@ class Experiment(methods.ProjectMethods):
     # TODO def green_kubo_viscosity(self):
 
     # TODO def structure_factor(self):
-    def structure_factor(self):
-        struc_obj = structure_factor.StructureFactor(self)
-        struc_obj.run_analysis()
+    def structure_factor(self, Q, rho):
+        calculation_strfac = structure_factor.StructureFactor(self, Q, rho)
+        calculation_strfac.run_analysis()
 
     # TODO def angular_distribution_function(self):
