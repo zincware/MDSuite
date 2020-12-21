@@ -2,7 +2,9 @@
 
 import numpy as np
 import os
-from scipy.signal import find_peaks
+import pandas as pd
+from scipy.integrate import simps
+from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
 
 # MDSuite imports
@@ -13,6 +15,8 @@ from mdsuite.analysis.analysis import Analysis
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
+from mdsuite import data as static_data
+from importlib.resources import open_text
 
 class StructureFactor(Analysis):
     """ Class for the calculation of the structure factor
@@ -52,7 +56,7 @@ class StructureFactor(Analysis):
                         List of data of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
+    def __init__(self, obj, Q, rho, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
                  analysis_name='Structure_Factor'):
         """ Python constructor for the class
 
@@ -85,6 +89,11 @@ class StructureFactor(Analysis):
         self.species_tuple = None                                             # Which species are being studied
         self.pomf = None                                                      # potential of mean force array
         self.indices = None                                                   # Indices of the pomf range
+        self.Q = Q
+        self.rho = rho
+        with open_text(static_data, 'form_factor_table.txt') as file:
+            self.coeff_atomic_formfactor = pd.read_csv(file)
+
 
     def _get_rdf_data(self):
         """ Fill the data_files list with filenames of the rdf data """
@@ -102,20 +111,73 @@ class StructureFactor(Analysis):
         """ Not needed in this analysis """
         raise NotApplicableToAnalysis
 
-    def partial_structure_factor(self):
-        print(' \n hello \n')
-
-
-
     def _plot_fits(self):
         """ Plot the predicted minimum value before parsing the other data for plotting """
         plt.plot(self.radii, self.pomf, label=f'{self.species_tuple}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
+    def atomic_form_factors(self):
+        pass
+
+
+    def weight_factors(self, c_1, c_2):
+        weight = c_1 * c_2
+        return weight
+
+
+    def partial_structure_factor(self):
+        test = False
+        if test:
+            self.radii=np.linspace(0,4*np.pi)
+            integrand=np.sin(self.radii)
+            running_integral = cumtrapz(integrand, self.radii, initial=0.0)
+            integral = simps(integrand, self.radii)
+            S = 1 + 4 * np.pi * self.rho * integral
+            print('integral ', integral)
+            print('s ', S)
+            plt.figure()
+            plt.plot(self.radii, running_integral)
+            plt.show()
+
+
+
+        integrand = np.zeros(len(self.radii))
+        #print(self.rdf)
+        print('self.rdf[0]',self.rdf[0])
+        for counter,radius in enumerate(self.radii):
+            if np.isnan(self.rdf[counter]) :
+                self.rdf[counter]= 0
+            if radius == 0:
+                integrand[counter] = 0
+                continue
+            integrand[counter] = radius**2 * np.sin(self.Q*radius)/(self.Q*radius) * (self.rdf[counter] - 1)
+        #print(integrand)
+        running_integral = cumtrapz(integrand, self.radii, initial=0.0)
+        integral = simps(integrand, self.radii)
+        S_12 = 1 + 4 * np.pi * self.rho * integral
+        print('integral ', integral)
+        print('s ', S_12)
+        plt.figure()
+        plt.plot(self.radii, running_integral, label='integral')
+        plt.plot(self.radii, self.rdf, label='rdf')
+        plt.legend()
+        plt.show()
+        return S_12
+
+
+
     def run_analysis(self):
         """ Calculate the potential of mean-force and perform error analysis """
 
-        self.partial_structure_factor()
+        self._get_rdf_data()
+        self.file_to_study = self.data_files[1]
+        self._load_rdf_from_file()
+        #print(self.radii)
+        S_12 = self.partial_structure_factor()
+        weight = self.weight_factors(c_1=0.5, c_2=0.5)
+        S_in = weight * S_12
+        print('S_in', S_in)
+
         #self._get_rdf_data()  # fill the data array with data
 
         # for data in self.data_files:
