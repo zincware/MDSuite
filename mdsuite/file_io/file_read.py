@@ -115,7 +115,7 @@ class FileProcessor:
         partitioned_configurations = int(len(data) / self.project.number_of_atoms)
 
         for item in self.project.species:
-            # get the new indices for the positions #TODO: (FRAN) I do not understand this line well.
+            # get the new indices for the positions
             positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
                                   self.header_lines for i in range(int(partitioned_configurations))]).flatten()
             # Fill the database

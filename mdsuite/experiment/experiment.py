@@ -175,6 +175,9 @@ class Experiment(methods.ProjectMethods):
         self.time_dimensions = None
         self.units = self.units_to_si(units)
 
+        # Memory properties
+        self.memory_requirements = {}
+
         # Properties of the experiment
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
@@ -191,7 +194,7 @@ class Experiment(methods.ProjectMethods):
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
             print("This experiment already exists! I'll load it up now.")
-            self._load_class()
+            self.load_class()
         else:
             print("Creating a new experiment! How exciting!")
             self._build_model()
@@ -279,6 +282,18 @@ class Experiment(methods.ProjectMethods):
         else:
             print(compare_data[:-1] == class_state)
 
+    def _collect_memory_information(self):
+        """ Get information about dataset memory requirements """
+
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as db:
+            for item in self.species:
+                self.memory_requirements[item] = {}
+                for group in db[item]:
+                    memory = 0
+                    for dataset in db[item][group]:
+                        memory += db[item][group][dataset].nbytes
+                    self.memory_requirements[item][group] = memory
+
     def _fill_database(self, trajectory_reader, counter=0):
         """ Loads data into a hdf5 database """
 
@@ -320,6 +335,7 @@ class Experiment(methods.ProjectMethods):
         else:
             self._build_new_database()
 
+        self._collect_memory_information()  # Update the memory information
         self._save_class()
 
     def unwrap_coordinates(self, species=None, center_box=True):
@@ -576,12 +592,17 @@ class Experiment(methods.ProjectMethods):
 
         self._save_class()  # Update class state
 
-    def radial_distribution_function(self, plot=True, bins=500, cutoff=None):
+    def radial_distribution_function(self, plot=True, bins=500, cutoff=None, start=0, stop=None, n_confs=1000,
+                                     n_batches=1):
         """ Calculate the radial distribution function """
 
         calculation_rdf = radial_distribution_function.RadialDistributionFunction(self, plot=plot,
                                                                                   bins=bins,
-                                                                                  cutoff=cutoff)
+                                                                                  cutoff=cutoff,
+                                                                                  start=start,
+                                                                                  stop=stop,
+                                                                                  n_confs=n_confs,
+                                                                                  n_batches=n_batches)
         calculation_rdf.run_analysis()  # run the analysis
         self.radial_distribution_function_state = True  # update the analysis state
         self._save_class()  # save the class state

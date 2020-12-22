@@ -64,8 +64,8 @@ class KirkwoodBuffIntegral(Analysis):
                         List of data of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
-                 analysis_name='Potential_of_Mean_Force'):
+    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$G(\mathbf{r})$',
+                 analysis_name='Kirkwood-Buff_Integral'):
         """ Python constructor for the class
 
         Parameters
@@ -119,7 +119,7 @@ class KirkwoodBuffIntegral(Analysis):
         self.kb_integral = []  # empty the integration data
 
         for i in range(1, len(self.radii)):
-            self.kb_integral.append(4*np.pi*(np.trapz(self.rdf[i], x=self.radii[i]) - 1)*(self.radii[i])**2)
+            self.kb_integral.append(4*np.pi*(np.trapz((self.rdf[1:i] - 1)*(self.radii[1:i])**2, x=self.radii[1:i])))
 
     def run_analysis(self):
         """ Calculate the potential of mean-force and perform error analysis """
@@ -136,5 +136,4 @@ class KirkwoodBuffIntegral(Analysis):
             if self.plot:
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
-                plt.clf()
 
