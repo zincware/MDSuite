@@ -88,7 +88,7 @@ class ProjectFlux(methods.ProjectMethods):
         self.units = self.units_to_si(units)
 
         if not self.new_project:
-            self._load_class()
+            self.load_class()
         else:
             self.build_database()
 

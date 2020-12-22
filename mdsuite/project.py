@@ -46,6 +46,8 @@ class Project:
             print("Loading the class state")
             self._load_class()  # load the class state
 
+            for experiment in self.experiments.values():
+                experiment.load_class()
             print("List of available experiments")
             self.list_experiments()
         else:

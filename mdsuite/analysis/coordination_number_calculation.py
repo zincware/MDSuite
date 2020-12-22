@@ -185,9 +185,6 @@ class CoordinationNumbers(Analysis):
                     alpha=0.5, color='k', lw=0, hatch='|')
 
         ax1.set_xlabel(r'r ($\AA$)')
-        plt.savefig(
-            f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{self.analysis_name}_{self.species_tuple}.svg",
-            dpi=600, format='svg')
 
     def run_analysis(self):
         """ Calculate the coordination numbers and perform error analysis """
@@ -207,4 +204,4 @@ class CoordinationNumbers(Analysis):
 
             if self.plot:
                 self._plot_coordination_shells()
-                plt.clf()
+        self._plot_data(manual=True)

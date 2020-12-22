@@ -38,8 +38,11 @@ class EinsteinHelfandIonicConductivity(Analysis):
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
 
+        self.loaded_property = 'Unwrapped_Positions'
+        self.batch_loop = None
+
         self.loop_range = self.parent.number_of_configurations - data_range - 1
-        self.correlation_time = 10
+        self.correlation_time = 100
         self.species = species
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
@@ -51,20 +54,28 @@ class EinsteinHelfandIonicConductivity(Analysis):
         """
         pass
 
-    def _calculate_translational_dipole(self, index, data_range):
+    def _calculate_batch_loop(self):
+        """ Calculate the batch loop parameters """
+        self.batch_loop = int((self.batch_size['Parallel'] * self.data_range) /
+                              (self.data_range + self.correlation_time))
+
+    def _load_batch(self, batch_number, item=None):
+        """ Load a batch of data """
+        start = batch_number*self.batch_size['Parallel']*self.data_range
+        stop = start + self.batch_size['Parallel']*self.data_range
+
+        return self.parent.load_matrix("Unwrapped_Positions", item, select_slice=np.s_[:, start:stop], tensor=True)
+
+    def _calculate_translational_dipole(self, data):
         """ Calculate the translational dipole of the system """
 
-        # Load the particle positions and sum
-        dipole_moment = self.parent.load_matrix("Unwrapped_Positions",
-                                                select_slice=np.s_[:, index:index + data_range],
-                                                tensor=True)
-        dipole_moment = tf.math.reduce_sum(dipole_moment, axis=1)
+        dipole_moment = tf.math.reduce_sum(data, axis=1)
 
         # Build the charge tensor for assignment
         system_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
         charge_tuple = []
         for charge in system_charges:
-            charge_tuple.append(tf.ones([data_range, 3]) * charge)
+            charge_tuple.append(tf.ones([self.batch_size['Parallel']*self.data_range, 3], dtype=tf.float64) * charge)
         charge_tensor = tf.stack(charge_tuple)
 
         dipole_moment *= charge_tensor  # Multiply the dipole moment tensor by the system charges
@@ -83,20 +94,24 @@ class EinsteinHelfandIonicConductivity(Analysis):
                       self.parent.temperature * boltzmann_constant
         prefactor = numerator / denominator
 
-        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=50):
-            window_tensor = self._calculate_translational_dipole(i, self.data_range)
+        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):
+            batch = self._calculate_translational_dipole(self._load_batch(i))  # get the ionic current
+            for start_index in range(self.batch_loop):
+                start = int(start_index*self.data_range + self.correlation_time)
+                stop = int(start + self.data_range)
+                window_tensor = batch[start:stop]
 
-            # Calculate the msd
-            msd = (window_tensor - (
-                tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
-            msd = prefactor * tf.reduce_sum(msd, axis=1)
+                # Calculate the msd
+                msd = (window_tensor - (
+                    tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
+                msd = prefactor * tf.reduce_sum(msd, axis=1)
 
-            dipole_msd_array += np.array(msd)
+                dipole_msd_array += np.array(msd)
 
-        dipole_msd_array /= int(self.loop_range / self.correlation_time)
+        dipole_msd_array /= int(self.n_batches['Parallel']*self.batch_loop)
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
-        self.parent.ionic_conductivity["Einstein-Helfand"] = popt[0] / 100
+        self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0]/100]
 
         # Update the plot if required
         if self.plot:
@@ -110,5 +125,7 @@ class EinsteinHelfandIonicConductivity(Analysis):
     def run_analysis(self):
         """ Collect methods and run analysis """
 
-        self._autocorrelation_time()  # get the correct correlation time
-        self._calculate_ionic_conductivity()  # calculate the ionic conductivity
+        self._autocorrelation_time()            # get the correct correlation time
+        self._collect_machine_properties()      # collect machine properties and determine batch size
+        self._calculate_batch_loop()            # Update the batch loop attribute
+        self._calculate_ionic_conductivity()    # calculate the ionic conductivity

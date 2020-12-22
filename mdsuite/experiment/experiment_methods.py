@@ -176,7 +176,7 @@ class ProjectMethods:
         save_file.write(pickle.dumps(self.__dict__))
         save_file.close()
 
-    def _load_class(self):
+    def load_class(self):
         """ Load class instance
 
         A function to load a class instance given the project name.

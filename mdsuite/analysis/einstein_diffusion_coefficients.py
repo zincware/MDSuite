@@ -45,14 +45,16 @@ class EinsteinDiffusionCoefficients(Analysis):
                  x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients'):
         """ Python constructor """
 
-        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+
+        self.loaded_property = 'Unwrapped_Positions'
+        self.batch_loop = None
 
         self.singular = singular
         self.distinct = distinct
         self.species = species
 
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.loop_range = self.parent.number_of_configurations - data_range - 1
         self.correlation_time = 100
 
     def _autocorrelation_time(self):
@@ -62,6 +64,17 @@ class EinsteinDiffusionCoefficients(Analysis):
         system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
         """
         pass
+
+    def _calculate_batch_loop(self):
+        """ Calculate the batch loop parameters """
+        self.batch_loop = int((self.batch_size['Serial'] * self.data_range) / (self.data_range + self.correlation_time))
+
+    def _load_batch(self, batch_number, item=None):
+        """ Load a batch of data """
+        start = batch_number*self.batch_size['Serial']*self.data_range
+        stop = start + self.batch_size['Serial']*self.data_range
+
+        return self.parent.load_matrix("Unwrapped_Positions", item, select_slice=np.s_[:, start:stop], tensor=True)
 
     def _single_diffusion_coefficients(self):
         """ Calculate singular diffusion coefficients
@@ -73,29 +86,33 @@ class EinsteinDiffusionCoefficients(Analysis):
 
         # Loop over each atomic species to calculate self-diffusion
         for item in list(self.species):
-            positions_tensor = tf.convert_to_tensor(np.array(self.parent.load_matrix("Unwrapped_Positions",
-                                                                                     [item])))
             msd_array = np.zeros(self.data_range)  # define empty msd array
+
             # Calculate the prefactor
             numerator = self.parent.units['length'] ** 2
             denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
             prefactor = numerator / denominator
 
-            for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
-                window_tensor = positions_tensor[:, i:i + self.data_range]  # extract a window to analyze
+            # Construct the MSD function
+            for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
+                batch = self._load_batch(i, [item])  # load a batch of data
+                for start_index in range(self.batch_loop):
+                    start = start_index*self.data_range + self.correlation_time
+                    stop = start + self.data_range
+                    window_tensor = batch[:, start:stop]
 
-                # Calculate the msd
-                msd = (window_tensor - (
-                    tf.repeat(tf.expand_dims(window_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
-                msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0),
-                                                axis=1)  # Sum over trajectory and then coordinates
+                    # Calculate the msd
+                    msd = (window_tensor - (
+                        tf.repeat(tf.expand_dims(window_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
 
-                msd_array += np.array(msd)
+                    # Sum over trajectory and then coordinates and apply averaging and prefactors
+                    msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
+                    msd_array += np.array(msd)  # Update the averaged function
 
-            msd_array /= int(self.loop_range/self.correlation_time)
+            msd_array /= int(self.n_batches['Serial'])*self.batch_loop  # Apply the batch/loop average
 
             popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
-            self.parent.diffusion_coefficients["Einstein-Helfand"] = popt[0]
+            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = [popt[0], np.square(np.diag(pcov))[0]]
 
             # Update the plot if required
             if self.plot:
@@ -151,9 +168,11 @@ class EinsteinDiffusionCoefficients(Analysis):
         the fit error of the scipy fit package. The second is calculated by averaging the diffusion coefficient
         calculated at start times, taken over correlation times.
         """
-        self._autocorrelation_time()  # get the autocorrelation time
 
+        self._autocorrelation_time()                    # get the autocorrelation time
+        self._collect_machine_properties()              # collect machine properties and determine batch size
+        self._calculate_batch_loop()                    # Update the batch loop attribute
         if self.singular:
-            self._single_diffusion_coefficients()  # calculate the singular diffusion coefficients
+            self._single_diffusion_coefficients()       # calculate the singular diffusion coefficients
         if self.distinct:
-            self._distinct_diffusion_coefficients()  # calculate the distinct diffusion coefficients
+            self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
