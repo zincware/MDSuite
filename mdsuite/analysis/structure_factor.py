@@ -91,8 +91,8 @@ class StructureFactor(Analysis):
         self.indices = None                                                   # Indices of the pomf range
         self.Q = Q
         self.rho = rho
-        with open_text(static_data, 'form_factor_table.txt') as file:
-            self.coeff_atomic_formfactor = pd.read_csv(file, sep='\t')
+        with open_text(static_data, 'form_fac_coeffs.csv') as file:
+            self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')
 
 
     def _get_rdf_data(self):
@@ -120,7 +120,7 @@ class StructureFactor(Analysis):
         species = self.file_to_study.split('_')[0:2]
         print(species[0])
         print(list(self.coeff_atomic_formfactor.columns))
-        print('stuff ',self.coeff_atomic_formfactor.loc[self.coeff_atomic_formfactor['Element '] == ' H '])
+        print('stuff', self.coeff_atomic_formfactor.loc[self.coeff_atomic_formfactor['Element'] == 'H1-'].iloc[0, 0])
         return 1
 
 
