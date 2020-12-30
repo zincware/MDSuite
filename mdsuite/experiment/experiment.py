@@ -31,6 +31,7 @@ from mdsuite.analysis import radial_distribution_function
 from mdsuite.analysis import coordination_number_calculation
 from mdsuite.analysis import potential_of_mean_force
 from mdsuite.analysis import kirkwood_buff_integrals
+from mdsuite.analysis import structure_factor
 
 from mdsuite.analysis.computations_dict import dict_classes_computations
 
@@ -623,6 +624,9 @@ class Experiment(methods.ProjectMethods):
     # TODO def green_kubo_viscosity(self):
 
     # TODO def structure_factor(self):
+    def structure_factor(self, Q, rho):
+        calculation_strfac = structure_factor.StructureFactor(self, Q, rho)
+        calculation_strfac.run_analysis()
 
     # TODO def angular_distribution_function(self):
 
