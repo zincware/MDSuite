@@ -4,7 +4,7 @@ Affiliation: Institute for Computational Physics, University of Stuttgart ;
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 Purpose: Class functionality of the program
 """
-
+import json
 import os
 import sys
 
@@ -31,6 +31,8 @@ from mdsuite.analysis import radial_distribution_function
 from mdsuite.analysis import coordination_number_calculation
 from mdsuite.analysis import potential_of_mean_force
 from mdsuite.analysis import kirkwood_buff_integrals
+
+from mdsuite.analysis.computations_dict import dict_classes_computations
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
@@ -176,6 +178,7 @@ class Experiment(methods.ProjectMethods):
         self.units = self.units_to_si(units)
 
         # Properties of the experiment
+        # TODO: maybe we could put all of this in a single structure.
         self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
                                        "Green-Kubo": {"Singular": {}, "Distinct": {}}}
         self.ionic_conductivity = {"Einstein-Helfand": {},
@@ -187,6 +190,17 @@ class Experiment(methods.ProjectMethods):
         self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state=True  # Set true if it has been calculated
+
+        self.results = {
+            'diffusion_coefficients': self.diffusion_coefficients,
+            'ionic_conductivity': self.ionic_conductivity,
+            'thermal_conductivity': self.thermal_conductivity,
+            'coordination_numbers': self.coordination_numbers,
+            'potential_of_mean_force_values': self.potential_of_mean_force_values,
+            'radial_distribution_function': self.radial_distribution_function_state,
+            'kirkwood_buff_integral': self.kirkwood_buff_integral_state
+        }
+
 
         test_dir = Path(f"{self.storage_path}/{self.analysis_name}")
         if test_dir.exists():
@@ -611,3 +625,58 @@ class Experiment(methods.ProjectMethods):
     # TODO def structure_factor(self):
 
     # TODO def angular_distribution_function(self):
+
+    def run_computation(self, computation_name, **kwargs):
+        """ Run a computation
+
+        The type of computation will be stored in a dictionary.
+
+        Parameters
+        ----------
+        computation_name : str
+                            name of the computation to be performed
+
+        **kwargs : extra arguments passed to the classes
+
+
+        Returns
+        -------
+        sigma : float
+                            The ionic conductivity in units of S/cm
+
+        """
+
+        print(dict_classes_computations)
+        print(computation_name)
+        try:
+            class_compute = dict_classes_computations[computation_name]
+        except KeyError:
+            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
+            print(f'{computation_name} not found')
+            print(f'Available computations are:')
+            [print(key) for key in dict_classes_computations.keys()]
+            sys.exit(1)
+
+        object_compute = class_compute(self, **kwargs)
+        object_compute.run_analysis()
+        self._save_class()
+
+    @staticmethod
+    def help_computations_args(computation_name):
+        """
+        Shows the input parameters for the specified class
+        """
+        try:
+            class_compute = dict_classes_computations[computation_name]
+        except KeyError:
+            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
+            print(f'{computation_name} not found')
+            print(f'Available computations are:')
+            [print(key) for key in dict_classes_computations.keys()]
+            sys.exit(1)
+        print(help(class_compute))
+
+    def dump_results_json(self):
+        filename = Path(f"{self.storage_path}/{self.analysis_name}.json")
+        with open(filename, 'w') as fp:
+            json.dump(self.results, fp, indent=4, sort_keys=True)
