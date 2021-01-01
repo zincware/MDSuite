@@ -35,7 +35,7 @@ not true. For a many body simulation, we modify the equation above to
 
 .. math::
 
-    D_{\alpha} = \frac{1}{2dD\tau}\sum\limits_{i=0}^{N_{\alpha}}\langle|\mathbf{r}_{i}(t + \tau) - \mathbf{r}_{i}(t)|^{2}\rangle
+    D_{\alpha} = \frac{1}{2dD\tau}\sum_{i=0}^{N_{\alpha}}\langle|\mathbf{r}_{i}(t + \tau) - \mathbf{r}_{i}(t)|^{2}\rangle
 
 where the summation goes over all particle of type :math:`\alpha` in the system. In this way, the average value for the
 diffusion of this type is calculated.
