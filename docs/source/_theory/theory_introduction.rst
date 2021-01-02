@@ -31,7 +31,7 @@ which can solve for these properties using such a flux file.
 
 **Structural Properties:**
 
-* `Radial distribution function <radial_distribution_functions.html>`_
+* `Radial distribution function <radial_distribution_function.html>`_
 * `Coordination numbers <calculate_coordination_numbers.html>`_
 * `Structure factor <structure_factor.html>`_
 * `Kirkwood-Buff Integrals <kirkwood_buff_integrals.html>`_
