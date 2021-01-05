@@ -53,6 +53,8 @@ class FileProcessor:
 
         initial_length = self.project.number_of_configurations - self.project.number_of_configurations % self.project.batch_size
 
+        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
+
         # Build the database structure
         with hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
                      libver='latest') as database:
@@ -65,25 +67,24 @@ class FileProcessor:
                                                                   maxshape=(
                                                                       len(self.project.species[item]['indices']), None),
                                                                   scaleoffset=5)
+                    elif len(columns) == 6: # symmetric tensor (for stress tensor for example)
+                        database[item].create_group(observable)
+                        for axis in axis_names:
+                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
+                                                                            initial_length),
+                                                                      maxshape=(
+                                                                      len(self.project.species[item]['indices']), None),
+                                                                      scaleoffset=5)
+
                     else: # vector
                         database[item].create_group(observable)
-                        database[item][observable].create_dataset("x", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                  len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
+                        for axis in axis_names[0:3]:
+                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
+                                                                            initial_length),
+                                                                      maxshape=(
+                                                                      len(self.project.species[item]['indices']), None),
+                                                                      scaleoffset=5)
 
-                        database[item][observable].create_dataset("y", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                  len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
-
-                        database[item][observable].create_dataset("z", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                  len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
 
     def resize_database(self):
         """ Resize the database skeleton """
@@ -118,21 +119,17 @@ class FileProcessor:
             # get the new indices for the positions #TODO: (FRAN) I do not understand this line well.
             positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
                                   self.header_lines for i in range(int(partitioned_configurations))]).flatten()
+
+            axis_names = ('x','y','z','xy','xz','yz')
             # Fill the database
             for property_group, columns in self.project.property_groups.items():
-                if len(columns) == 1:
+                num_columns = len(columns)
+                if num_columns == 1:
                     database[item][property_group][:, counter:counter + partitioned_configurations] = \
                         data[positions][:, columns[0]].astype(float).reshape(
                             (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
                 else:
-                    database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[0]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-
-                    database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[1]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-
-                    database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[2]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                    for column, axis in zip(columns, axis_names):
+                        database[item][property_group][axis][:, counter:counter + partitioned_configurations] = \
+                            data[positions][:, column].astype(float).reshape(
+                                (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
