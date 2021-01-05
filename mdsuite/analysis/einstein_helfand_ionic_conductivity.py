@@ -42,7 +42,7 @@ class EinsteinHelfandIonicConductivity(Analysis):
         self.batch_loop = None
 
         self.loop_range = self.parent.number_of_configurations - data_range - 1
-        self.correlation_time = 100
+        self.correlation_time = 50
         self.species = species
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
@@ -69,7 +69,13 @@ class EinsteinHelfandIonicConductivity(Analysis):
     def _calculate_translational_dipole(self, data):
         """ Calculate the translational dipole of the system """
 
-        dipole_moment = tf.math.reduce_sum(data, axis=1)
+        counter=0
+        for tensor in data:
+            data[counter] = tf.math.reduce_sum(tensor, axis=0)
+            counter += 1
+
+        dipole_moment = tf.convert_to_tensor(data)
+        print(dipole_moment.shape)
 
         # Build the charge tensor for assignment
         system_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
@@ -79,6 +85,7 @@ class EinsteinHelfandIonicConductivity(Analysis):
         charge_tensor = tf.stack(charge_tuple)
 
         dipole_moment *= charge_tensor  # Multiply the dipole moment tensor by the system charges
+
         dipole_moment = tf.reduce_sum(dipole_moment, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment

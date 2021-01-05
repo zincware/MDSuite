@@ -1,0 +1,76 @@
+# #################################### #
+# Liquid Krypton at 85K NVT Simulation #
+# #################################### #
+
+#############################
+### Configure system type ###
+#############################
+
+units		metal
+boundary 	p p p
+atom_style	atomic
+
+################################
+### Define system parameters ###
+################################
+
+region		myRegion block 0.0 18.40 0.0 18.40 0.0 18.40
+create_box 	1 myRegion
+
+
+##############################################################
+### Read input file and assign types and elementary groups ###
+##############################################################
+
+read_dump 	Kr.xyz 0 x y z box no add yes format xyz
+set 		atom 1*108 type 1
+mass		1  83.798
+velocity	all create 85 174782
+
+########################################
+### Define forcefield for simulation ###
+########################################
+
+pair_style 	lj/cut 8.604747015385797
+pair_coeff      * * 0.01436242 4.041 
+
+####################
+### Set Timestep ###
+####################
+
+timestep        0.002
+
+###########################################
+### Define thermostat or other ensemble ###
+###########################################
+
+fix             myThermostat all nvt temp 85 85 $(50*dt)
+
+#################################
+### Compute system parameters ###
+################################# 
+
+##########################
+#### Define dump files ###
+##########################
+
+dump            myDump1 all custom 20 Kr_85K.dump id type element x y z vx vy vz fx fy fz
+dump_modify	myDump1 element Kr
+dump_modify     myDump1 sort id
+dump_modify     myDump1 append yes
+
+log             log.Kr_85K append
+
+################################
+### Define restart file dump ###
+################################
+
+#restart		1000 Kr_1.restart Kr_2.restart
+
+#################################################################
+### Define thermo output for log dump and run the simulations ###
+#################################################################
+
+thermo          100
+thermo_style 	custom step time temp pe ke etotal press
+run             200000
