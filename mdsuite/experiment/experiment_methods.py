@@ -60,6 +60,35 @@ class ProjectMethods:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
+    def set_element(self, old_name, new_name):
+        """ Change the name of the element in the self.species dictionary
+
+        kwargs:
+            old_name (str) -- Name of the element you want to change
+            new_name (str) -- New name of the element
+        """
+        if new_name != old_name:
+            self.species[new_name] = self.species[old_name]
+            del self.species[old_name]
+
+    def set_charge(self, element, charge):
+        """ Set the charge/s of an element
+
+        kwargs:
+            element (str) -- Name of the element whose charge you want to change
+            charge (list) -- New charge/s of the element
+        """
+        self.species[element]['charge'] = charge
+
+    def set_mass(self, element, mass):
+        """ Set the mass/es of an element
+
+        kwargs:
+            element (str) -- Name of the element whose mass you want to change
+            mass (list) -- New mass/es of the element
+        """
+        self.species[element]['mass'] = mass
+
     def print_data_structure(self):
         """ Print the data structure of the hdf5 dataset """
 
