@@ -14,7 +14,8 @@ The goal of MDSuite is to calculate physical properties of systems from experime
 split analysis into two groups, namely structural, and dynamic properties of a material. As we add functionality to the
 code the documentation will grow to incorporate the theoretical background for that calculation.
 
-**Dynamic Properties:**
+Dynamic Properties:
+^^^^^^^^^^^^^^^^^^^
 
 * `Self diffusion coefficients <diffusion_coefficients.html>`_
 * `Distinct diffusion coefficients <diffusion_coefficients.html>`_
@@ -29,7 +30,8 @@ displacement of some property is calculated to describe the motion. In some case
 properties using a pre-computed flux file rather than atomistic data. In these cases, we have also introduced functions
 which can solve for these properties using such a flux file.
 
-**Structural Properties:**
+Structural Properties:
+^^^^^^^^^^^^^^^^^^^^^^
 
 * `Radial distribution function <radial_distribution_function.html>`_
 * `Coordination numbers <calculate_coordination_numbers.html>`_
@@ -50,18 +52,20 @@ In addition to the discussion surrounding the properties being calculated and ho
 more abstract theory sections relating either to computational methods or some broader theory which, whilst being
 implemented in the package, is not directly related to a single calculation.
 
-**Computational Topics:**
+Computational Topics:
+^^^^^^^^^^^^^^^^^^^^^
 
 * `Tensor operations in MDSuite <tensor_operations_in_mdsuite.html>`_
 * `HDF5 data structure <hdf5_data_structure.html>`_
 * `Autocorrelation in MDSuite <autocorrelation_in_mdsuite.html>`_
 
-**Theoretical Concepts:**
+Theoretical Concepts:
+^^^^^^^^^^^^^^^^^^^^^
 
 * `The Fluctuation-Dissipation Theorem <fluctuation_dissipation_theorem.html>`_
 * `Green-Kubo relations <green_kubo_relations.html>`_
 * `Einstein type calculations <einstein_calculations.html>`_
-* `Onsager coefficients and dynamics in MD simulations <onsger_coefficients_and_dynamics_in_md_simulations.html>`_
+* `Onsager coefficients and dynamics in MD simulations <onsager_coefficients_and_dynamics_in_md_simulations.html>`_
 
 Final Words
 -----------
