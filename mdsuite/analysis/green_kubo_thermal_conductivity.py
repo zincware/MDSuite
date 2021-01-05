@@ -40,7 +40,7 @@ class GreenKuboThermalConductivity(Analysis):
         data_range
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_axis='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
                  save=True, analysis_name='green_kubo_thermal_conductivity'):
         super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
         self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
@@ -51,7 +51,7 @@ class GreenKuboThermalConductivity(Analysis):
 
     def _autocorrelation_time(self):
         """ calculate the current autocorrelation time for correct sampling """
-        raise NotImplementedError
+        pass
 
     def _calculate_system_current(self):
         """ Calculate the thermal current of the system
@@ -59,13 +59,18 @@ class GreenKuboThermalConductivity(Analysis):
         :return: system_current (numpy array) -- thermal current of the system as a vector of shape (n_confs, 3)
         """
 
+        ## TODO: re-implement for thermal conductivity.
+
         velocity_matrix = self.parent.load_matrix("Velocities")  # Load the velocity matrix
-        species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
+        stress_tensor = self.parent.load_matrix("Stress", sym_matrix=True)
+        ke = self.parent.load_matrix("KE", scalar=True)
+        pe = self.parent.load_matrix("PE", scalar=True)
+        energy = ke + pe
+
 
         system_current = np.zeros((self.number_of_configurations, 3))  # instantiate the current array
         # Calculate the total system current
-        for i in range(len(velocity_matrix)):
-            system_current += np.array(np.sum(velocity_matrix[i][:, 0:], axis=0)) * species_charges[i]
+
 
         return system_current
 
@@ -112,3 +117,13 @@ class GreenKuboThermalConductivity(Analysis):
 
         if self.plot:
             self._plot_data()  # Plot the data if necessary
+
+    def run_analysis(self):
+        """ Run a diffusion coefficient analysis
+
+        The thermal conductivity is computed at this step.
+        """
+        self._autocorrelation_time()  # get the autocorrelation time
+
+        self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
+

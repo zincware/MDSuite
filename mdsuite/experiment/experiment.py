@@ -347,12 +347,13 @@ class Experiment(methods.ProjectMethods):
         transformation_ufb = unwrap_coordinates.CoordinateUnwrapper(self, species, center_box)  # load the unwrapper
         transformation_ufb.unwrap_particles()  # unwrap the coordinates
 
-    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False):
+    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """ Load a desired property matrix
 
         args:
             identifier (str) -- Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
             species (list) -- List of species to be loaded
+            scalar (bool) -- If it is a scalar quantity per atom, load it differently.
 
         returns:
             Matrix of the property
@@ -379,6 +380,15 @@ class Experiment(methods.ProjectMethods):
                                                         database[item][identifier]['y'][select_slice],
                                                         database[item][identifier]['z'][select_slice])),
                                              dtype=tf.float64))
+                elif sym_matrix:
+                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
+                                                      database[item][identifier]['y'][select_slice],
+                                                      database[item][identifier]['z'][select_slice],
+                                                      database[item][identifier]['xy'][select_slice],
+                                                      database[item][identifier]['xz'][select_slice],
+                                                      database[item][identifier]['yz'][select_slice],)))
+                elif scalar:
+                    property_matrix.append(database[item][identifier][select_slice])
                 else:
                     property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
                                                       database[item][identifier]['y'][select_slice],
