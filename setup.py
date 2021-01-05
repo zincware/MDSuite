@@ -30,5 +30,6 @@ setuptools.setup(
                       'psutil',
                       'tensorflow>2.0',
                       'numpy',
+                      'gputil',
                       'diagrams',
                       'pubchempy'])

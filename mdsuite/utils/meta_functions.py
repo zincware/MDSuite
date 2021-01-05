@@ -95,17 +95,20 @@ def optimize_batch_size(filepath, number_of_configurations):
 
     computer_statistics = get_machine_properties()  # Get computer statistics
 
-    batch_number = None  # Instantiate parameter for correct syntax
-
     file_size = os.path.getsize(filepath)  # Get the size of the file
-    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.5 * computer_statistics['memory']  # We take 50% of the available memory
+    memory_per_configuration = 8*file_size / number_of_configurations  # get the memory per configuration
+    database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
-    if file_size < database_memory:
+
+    if 8*file_size < database_memory:
         return int(number_of_configurations)
+    elif initial_batch_number > 1000:
+        return 1000
     else:
-        return int(np.floor(number_of_configurations/initial_batch_number))
+        nearest_batch_amount = np.floor(number_of_configurations/initial_batch_number)
+
+        return int(number_of_configurations/nearest_batch_amount)
 
 def linear_fitting_function(x, a, b):
     """ Linear function for line fitting

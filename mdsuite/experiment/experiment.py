@@ -297,7 +297,7 @@ class Experiment(methods.ProjectMethods):
     def _fill_database(self, trajectory_reader, counter=0):
         """ Loads data into a hdf5 database """
 
-        loop_range = int((self.number_of_configurations - counter) / self.batch_size)
+        loop_range = int((self.number_of_configurations - counter) / self.batch_size) - 1
         with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
             with open(self.trajectory_file) as f:
                 for _ in tqdm(range(loop_range), ncols=70):
