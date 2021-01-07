@@ -3,9 +3,11 @@ Authors: Samuel Tovey
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 
-Description: Module containing all the code for the Project class. The project class is the governing class in the
-             mdsuite program. Within the project class include all of the method required to add a new experiment and
-             compare the results of the analysis on that experiment.
+Summary
+-------
+Module containing all the code for the Project class. The project class is the governing class in the
+mdsuite program. Within the project class include all of the method required to add a new experiment and
+compare the results of the analysis on that experiment.
 """
 
 import os
@@ -141,6 +143,17 @@ class Project:
     def add_experiment(self, experiment_name=None, timestep=None, temperature=None, units=None):
         """
         Add an experiment to the project
+
+        Parameters
+        ----------
+        experiment_name : str
+                Name to use for the experiment class
+        timestep : float
+                Timestep used during the simulation
+        temperature : float
+                Temperature the simulation was performed at and is to be used in calculation
+        units : str
+                LAMMPS units used TODO: Make it possible to add custom units
         """
 
         # Set a name in case none is given

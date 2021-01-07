@@ -1,5 +1,8 @@
 """
 Parent class for file processing
+
+Summary
+-------
 """
 
 import numpy as np
@@ -84,8 +87,6 @@ class FileProcessor:
         """
         Build skeleton of the hdf5 database
 
-        Summary
-        -------
         Gathers all of the properties of the system using the relevant functions. Following the gathering
         of the system properties, this function will read through the first configuration of the dataset, and
         generate the necessary database structure to allow for the following generation to take place. This will
@@ -168,8 +169,6 @@ class FileProcessor:
         """
         Process the available data
 
-        Summary
-        -------
         Called during the main database creation. This function will calculate the number of configurations
         within the raw data and process it.
 

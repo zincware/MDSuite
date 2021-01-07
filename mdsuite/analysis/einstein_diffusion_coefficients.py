@@ -1,8 +1,8 @@
 """
 Class for the calculation of the einstein diffusion coefficients.
 
-Author: Samuel Tovey
-
+Summary
+-------
 Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
 Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
 The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
@@ -30,54 +30,97 @@ warnings.filterwarnings("ignore")
 
 
 class EinsteinDiffusionCoefficients(Analysis):
-    """ Class for the Einstein diffusion coefficient implementation
+    """
+    Class for the Einstein diffusion coefficient implementation
 
     Attributes
     ----------
+    obj :  object
+            Experiment class to call from
     plot : bool
+            if true, plot the data
     singular : bool
+            If true, calculate the singular diffusion coefficients
     distinct : bool
+            If true, calculate the distinct diffusion coefficient
     species : list
-    data_range : int
+            Which species to perform the analysis on
+    data_range :
+            Number of configurations to use in each ensemble
+    save :
+            If true, data will be saved after the analysis
+    x_label : str
+            X label of the data when plotted
+    y_label : str
+            Y label of the data when plotted
+    analysis_name : str
+            Name of the analysis
+    loaded_property : str
+            Property loaded from the database for the analysis
+    batch_loop : int
+            Number of ensembles in each batch
+    time : np.array
+            Array of the time.
+    correlation_time : int
+            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
+            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
     def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=200, save=True,
                  x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients'):
-        """ Python constructor """
+        """
+
+        Parameters
+        ----------
+        obj :  object
+                Experiment class to call from
+        plot : bool
+                if true, plot the data
+        singular : bool
+                If true, calculate the singular diffusion coefficients
+        distinct : bool
+                If true, calculate the distinct diffusion coefficient
+        species : list
+                Which species to perform the analysis on
+        data_range :
+                Number of configurations to use in each ensemble
+        save :
+                If true, data will be saved after the analysis
+        x_label : str
+                X label of the data when plotted
+        y_label : str
+                Y label of the data when plotted
+        analysis_name : str
+                Name of the analysis
+        """
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
 
-        self.loaded_property = 'Unwrapped_Positions'
-        self.batch_loop = None
+        self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded
+        self.batch_loop = None                        # Number of ensembles in each batch
+        self.parallel = False                         # Set the parallel attribute
+        self.tensor_choice = True                     # Load data as a tensor
 
-        self.singular = singular
-        self.distinct = distinct
-        self.species = species
+        self.singular = singular                      # calculate singular diffusion if true
+        self.distinct = distinct                      # calculate distinct diffusion if true
+        self.species = species                        # Which species to calculate the diffusion for
 
+        # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.correlation_time = 100
+        self.correlation_time = 100  # correlation time TODO: do not hard code this.
 
     def _autocorrelation_time(self):
-        """ Calculate positions autocorrelation time
+        """
+        Calculate positions autocorrelation time
 
         When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
         system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
         """
         pass
 
-    def _calculate_batch_loop(self):
-        """ Calculate the batch loop parameters """
-        self.batch_loop = int((self.batch_size['Serial'] * self.data_range) / (self.data_range + self.correlation_time))
-
-    def _load_batch(self, batch_number, item=None):
-        """ Load a batch of data """
-        start = batch_number*self.batch_size['Serial']*self.data_range
-        stop = start + self.batch_size['Serial']*self.data_range
-
-        return self.parent.load_matrix("Unwrapped_Positions", item, select_slice=np.s_[:, start:stop], tensor=True)
-
     def _single_diffusion_coefficients(self):
-        """ Calculate singular diffusion coefficients
+        """
+        Calculate singular diffusion coefficients
 
         Implement the Einstein method for the calculation of the singular diffusion coefficient. This is performed
         using unwrapped coordinates, generated by the unwrap method. From these values, the mean square displacement
@@ -127,41 +170,19 @@ class EinsteinDiffusionCoefficients(Analysis):
             self._plot_data()
 
     def _distinct_diffusion_coefficients(self):
-        """ Calculate the Distinct Diffusion Coefficients
+        """
+        Calculate the Distinct Diffusion Coefficients
 
         Use the Einstein method to calculate the distinct diffusion coefficients of the system from the mean
         square displacement, as calculated from different atoms. This value is averaged over all the possible
         combinations of atoms for the best fit.
         """
-        """
-        positions_matrix = self.load_matrix("Velocities")
-
-        combinations = ['-'.join(tup) for tup in
-                        list(itertools.combinations_with_replacement(list(self.species.keys()), 2))]
-
-        index_list = [i for i in range(len(positions_matrix))]
-        time = np.linspace(0.0, data_range * self.time_step * self.sample_rate, data_range)
-
-        used_configurations = int(self.number_of_configurations - self.number_of_configurations % self.batch_size)
-
-        # Update the dictionary with relevant combinations
-        for combination in combinations:
-            self.diffusion_coefficients["Einstein"]["Distinct"][combination] = {}
-        pairs = 0
-
-        for tuples in itertools.combinations_with_replacement(index_list, 2):
-            msd = [[np.zeros(used_configurations)],
-                   [np.zeros(used_configurations)],
-                   [np.zeros(used_configurations)]]
-            numerator = self.length_unit ** 2 * self.number_of_atoms
-            denominator = len(positions_matrix[tuples[0]]) * len(positions_matrix[tuples[1]]) * 6 * self.time_unit
-
-            for i in range(len(positions_matrix[]))
-        """
+        # TODO: Implement this function
         raise NotImplementedError
 
     def run_analysis(self):
-        """ Run a diffusion coefficient analysis
+        """
+        Run a diffusion coefficient analysis
 
         In order to full calculate diffusion coefficients from a simulation, one should perform a two-stage error
         analysis on the data. The two steps are performed at the same time. The first error contribution comes from

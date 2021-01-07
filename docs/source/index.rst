@@ -18,6 +18,7 @@ hear from our users.
    _usage/installation
    _usage/quickstart
    _theory/theory_introduction
+   _usage/modules_and_classes/modules_and_classes
    _theory/database_structure
    _usage/tools
    _usage/experiment

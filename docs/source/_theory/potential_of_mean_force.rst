@@ -1,3 +1,4 @@
+:orphan:
 Potential of Mean-Force
 =======================
 

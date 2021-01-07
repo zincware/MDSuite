@@ -1,8 +1,9 @@
 """
-Authors: Samuel Tovey, Francisco Torres
-Affiliation: Institute for Computational Physics, University of Stuttgart ; 
-Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Class functionality of the program
+The central experiment class fundamental to all analysis.
+
+Summary
+-------
+The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
 
 import json
@@ -48,8 +49,6 @@ class Experiment(methods.ProjectMethods):
     """
     Experiment from simulation
 
-    Summary
-    -------
     The central experiment class fundamental to all analysis.
 
     Attributes
@@ -126,7 +125,7 @@ class Experiment(methods.ProjectMethods):
 
     def __init__(self, analysis_name, storage_path='./', timestep=1.0, temperature=0, units='real'):
         """
-        Initialise the experiment classs.
+        Initialise the experiment class.
         """
 
         # Taken upon instantiation
@@ -166,7 +165,7 @@ class Experiment(methods.ProjectMethods):
         self.coordination_numbers = {}
         self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = True  # Set true if it has been calculated
+        self.kirkwood_buff_integral_state = True         # Set true if it has been calculated
 
         # Dictionary of results
         self.results = {
@@ -193,8 +192,6 @@ class Experiment(methods.ProjectMethods):
         """
         Process the input file
 
-        Summary
-        -------
         A trivial function to get the format of the input file. Will probably become more useful when we add support
         for more file formats.
 
@@ -216,8 +213,6 @@ class Experiment(methods.ProjectMethods):
         """
         Get the properties of the system
 
-        Summary
-        -------
         This method will call the Get_X_Properties depending on the file format. This function will update all of the
         class attributes and is necessary for the operation of the Build database method.
 
@@ -260,8 +255,6 @@ class Experiment(methods.ProjectMethods):
         """
         Build the 'experiment' for the analysis
 
-        Summary
-        -------
         A method to build the database in the hdf5 format. Within this method, several other are called to develop the
         database skeleton, get configurations, and process and store the configurations. The method is accompanied
         by a loading bar which should be customized to make it more interesting.
@@ -319,8 +312,6 @@ class Experiment(methods.ProjectMethods):
         """
         Get information about dataset memory requirements
 
-        Summary
-        -------
         This method will simply get the size of all the datasets in the database such that efficient memory management
         can be performed during analysis.
         """
@@ -347,7 +338,7 @@ class Experiment(methods.ProjectMethods):
                 Number of configurations that have been read in.
         """
 
-        loop_range = int((self.number_of_configurations - counter) / self.batch_size) - 1    # loop range for the data.
+        loop_range = int((self.number_of_configurations - counter) / self.batch_size)    # loop range for the data.
         with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as database:
             with open(self.trajectory_file) as f:
                 for _ in tqdm(range(loop_range), ncols=70):
@@ -396,8 +387,6 @@ class Experiment(methods.ProjectMethods):
         """
         Unwrap coordinates of trajectory
 
-        Summary
-        -------
         For a number of properties the input data must in the form of unwrapped coordinates. This function takes the
         stored trajectory and returns the unwrapped coordinates so that they may be used for analysis.
 
@@ -484,8 +473,6 @@ class Experiment(methods.ProjectMethods):
         """
         Calculate the Einstein self diffusion coefficients
 
-        Summary
-        -------
         A function to implement the Einstein method for the calculation of the self diffusion coefficients
         of a liquid. In this method, unwrapped trajectories are read in and the MSD of the positions calculated and
         a gradient w.r.t time is calculated over several ranges to calculate an error measure.
@@ -521,8 +508,6 @@ class Experiment(methods.ProjectMethods):
         """
         Calculate the Green_Kubo Diffusion coefficients
 
-        Summary
-        -------
         Function to implement a Green-Kubo method for the calculation of diffusion coefficients whereby the velocity
         autocorrelation function is integrated over and divided by 3. Autocorrelation is performed using the scipy
         fft correlate function in order to speed up the calculation.
@@ -558,8 +543,6 @@ class Experiment(methods.ProjectMethods):
         """
         Calculate Nernst-Einstein Conductivity
 
-        Summary
-        -------
         A function to determine the Nernst-Einstein (NE) as well as the corrected Nernst-Einstein (CNE)
         conductivity of a system.
         """
@@ -570,8 +553,6 @@ class Experiment(methods.ProjectMethods):
         """
         Calculate the Einstein-Helfand Ionic Conductivity
 
-        Summary
-        -------
         A function to use the mean square displacement of the dipole moment of a system to extract the
         ionic conductivity
 
@@ -594,8 +575,6 @@ class Experiment(methods.ProjectMethods):
         """
         Calculate Green-Kubo Ionic Conductivity
 
-        Summary
-        -------
         A function to use the current autocorrelation function to calculate the Green-Kubo ionic conductivity of the
         system being studied.
 

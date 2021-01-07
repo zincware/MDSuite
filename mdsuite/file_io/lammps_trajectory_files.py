@@ -1,5 +1,8 @@
 """
 Module for reading lammps trajectory files
+
+Summary
+-------
 """
 
 from mdsuite.file_io.file_read import FileProcessor
@@ -37,8 +40,6 @@ class LAMMPSTrajectoryFile(FileProcessor):
     def process_trajectory_file(self, update_class=True):
         """ Get additional information from the trajectory file
 
-        Summary
-        -------
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
 
@@ -165,19 +166,20 @@ class LAMMPSTrajectoryFile(FileProcessor):
         return properties_summary
 
     def _extract_properties(self):
-        """ Construct generalized property array
+        """
+        Construct generalized property array
 
-            Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
-            class.
+        Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
+        class.
 
-            agrs:
-                properties_dict (dict) -- A dictionary of all the available properties in the trajectory. This dictionary is
-                built only from the LAMMPS symbols and therefore must be again processed to extract the useful information.
+        agrs:
+            properties_dict (dict) -- A dictionary of all the available properties in the trajectory. This dictionary is
+            built only from the LAMMPS symbols and therefore must be again processed to extract the useful information.
 
-            returns:
-                trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
-                values of the dictionary keys correspond to the array location of the specific piece of data in the set.
-            """
+        returns:
+            trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
+            values of the dictionary keys correspond to the array location of the specific piece of data in the set.
+        """
 
         # grab the properties present in the current case
         properties_dict = self.project.properties
