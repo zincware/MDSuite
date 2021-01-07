@@ -2,6 +2,7 @@
 Author: Samuel Tovey
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
+
 Purpose: This file contains arbitrary functions used in several different processes. They are often generic and serve
          smaller purposes in order to clean up code in more important parts of the program.
 """
@@ -19,49 +20,39 @@ import mdsuite.utils.constants as constants
 
 
 def get_dimensionality(box):
-    """ Calculate the dimensionality of the system box
+    """
+    Calculate the dimensionality of the system box
 
-    args:
-        box (list) -- box array [x, y, z]
+    Parameters
+    ----------
+    box : list
+            box array of the system of the form [x, y, z]
 
-    returns:
-        dimensions (int) -- dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably don't make sense just yet)
+    Returns
+    -------
+    dimensions : int
+            dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably don't make sense just yet)
     """
 
+    # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
         dimensions = 2
 
+    # Check if only one of the entries is non-zero, i.e. 1 dimension.
     elif box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
         dimensions = 1
 
+    # Other option is 3 dimensions.
     else:
         dimensions = 3
 
     return dimensions
 
 
-def extract_extxyz_properties(properties_dict):
-    """ Construct generalized property array
-
-    Takes the extxyz properties dictionary and constructs and array of properties which can be used by the species
-    class.
-    """
-
-    # Define Initial Properties and arrays
-    extxyz_properties = ['Positions', 'Forces']
-    output_properties = []
-    system_properties = list(properties_dict)
-
-    if 'pos' in system_properties:
-        output_properties.append(extxyz_properties[0])
-    if 'force' in system_properties:
-        output_properties.append(extxyz_properties[1])
-
-    return output_properties
-
-
 def get_machine_properties():
-    """ Get the properties of the machine being used """
+    """
+    Get the properties of the machine being used
+    """
 
     machine_properties = {}
     available_memory = psutil.virtual_memory().available  # RAM available
@@ -77,85 +68,165 @@ def get_machine_properties():
 
     return machine_properties
 
+
 def line_counter(filename):
     """
     Count the number of lines in a file
-    :param filename: (str) name of file to read
-    :return: lines: (int) number of lines in the file
+
+    This function used a memory safe method to count the number of lines in the file. Using the other data collected
+    during the trajectory analysis, this is enough information to completely characterize the system.
+
+    Parameters
+    ----------
+    filename : str
+            Name of the file to be read in.
+
+    Returns
+    -------
+    lines : int
+            Number of lines in the file
     """
 
-    return sum(1 for i in open(filename, 'rb'))
+    return sum(1 for _ in open(filename, 'rb'))
+
 
 def optimize_batch_size(filepath, number_of_configurations):
-    """ Optimize the size of batches during initial processing
+    """
+    Optimize the size of batches during initial processing
 
     During the database construction a batch size must be chosen in order to process the trajectories with the
     least RAM but reasonable performance.
+
+    Parameters
+    ----------
+    filepath : str
+            Path to the file be read in. This is not opened during the process, it is simply needed to read the file
+            size.
+
+    number_of_configurations : int
+            Number of configurations in the trajectory.
+
+    Returns
+    -------
+    batch size : int
+            Number of configurations to load in each batch
     """
 
     computer_statistics = get_machine_properties()  # Get computer statistics
 
-    file_size = os.path.getsize(filepath)  # Get the size of the file
-    memory_per_configuration = 8*file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
+    file_size = os.path.getsize(filepath)                                   # Get the size of the file
+    memory_per_configuration = 8*file_size / number_of_configurations       # get the memory per configuration
+    database_memory = 0.2 * computer_statistics['memory']                   # We take 20% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
-
+    # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
     if 8*file_size < database_memory:
         return int(number_of_configurations)
+
+    # Set the batch size to 1000 at most. Prevents unwanted problems from arising for large computers.
     elif initial_batch_number > 1000:
         return 1000
+
     else:
         nearest_batch_amount = np.floor(number_of_configurations/initial_batch_number)
 
         return int(number_of_configurations/nearest_batch_amount)
 
+
 def linear_fitting_function(x, a, b):
-    """ Linear function for line fitting
+    """
+    Linear function for line fitting
 
     In many cases, namely those involving an Einstein relation, a linear curve must be fit to some data. This function
     is called by the scipy curve_fit module as the model to fit to.
 
-    args:
-        x (list) -- x data for fitting
-        a (float) -- fitting parameter of the gradient
-        b (float) -- fitting parameter for the y intercept
+    Parameters
+    ----------
+    x : np.array
+            x data for fitting
+    a : float
+            Fitting parameter of the gradient
+    b : float
+            Fitting parameter for the y intercept
+
+    Returns
+    -------
+    a*x + b : float
+            Returns the evaluation of a linear function.
     """
     return a * x + b
 
 
 def simple_file_read(filename):
-    """ trivially read a file and load it into an array
+    """
+    Trivially read a file and load it into an array
 
     There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
     and dump data into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+
+    Parameters
+    ----------
+    filename : str
+            Name of the file to be read in.
+
+    Returns
+    -------
+    data_array: list
+            Data read in by the function.
     """
 
-    data_array = []
-    with open(filename, 'r+') as f:
-        for line in f:
-            data_array.append(line.split())
+    data_array = []                          # define empty data array
+    with open(filename, 'r+') as f:          # Open the file for reading
+        for line in f:                       # Loop over the lines
+            data_array.append(line.split())  # Split the lines by whitespace and add to data array
 
     return data_array
 
 
 def timeit(f):
-    """ Decorator to time the execution of a method """
+    """
+    Decorator to time the execution of a method.
+
+    Parameters
+    ----------
+    f : function
+            Function to be wrapped.
+
+    Returns
+    -------
+    wrap : python decorator
+    """
 
     @wraps(f)
     def wrap(*args, **kw):
         """ Function to wrap a method and time its execution """
-        ts = time()
-        result = f(*args, **kw)
-        te = time()
-        print(f'func:{f.__name__} took: {(te - ts)} sec')
+        ts = time()                                        # get the initial time
+        result = f(*args, **kw)                            # run the function.
+        te = time()                                        # get the time after the function as run.
+        print(f'func:{f.__name__} took: {(te - ts)} sec')  # print the outcome.
+
         return result
 
     return wrap
 
 
 def apply_savgol_filter(data):
-    """ Apply a savgol filter for function smoothing """
+    """
+    Apply a savgol filter for function smoothing
+
+    This function will simply call the scipy SavGol implementation with preset parameters for the polynomial number
+    and window size.
+
+    Parameters
+    ----------
+    data : list
+            Array of data to be analysed.
+
+    Returns
+    -------
+    filtered data : list
+            Returns the filtered data directly from the scipy SavGol filter.
+    """
 
     return savgol_filter(data, 17, 2)
 
@@ -172,23 +243,38 @@ def golden_section_search(data, a, b):
 
     Arguments
     ---------
-    data (np.array) -- data on which to find minimums
+    data : np.array
+            Data on which to find minimums.
+    a : float
+            upper bound on the min finding range.
+    b : float
+            lower bound on the min finding range.
+
+    Returns
+    -------
+    minimum range : tuple
+            Returns two radii values within which the minimum can be found.
     """
 
     # Define the golden ratio identities
     phi_a = 1 / constants.golden_ratio
     phi_b = 1 / (constants.golden_ratio ** 2)
 
+    # Get the initial range and caluclate the maximum number of steps to be performed.
     h = a - b
     number_of_steps = int(np.ceil(np.log(1e-5 / h)) / np.log(phi_a))
 
+    # get the minimum jump in radii
     c = min(data[0], key=lambda x: abs(x - a + phi_b * h))
     d = min(data[0], key=lambda x: abs(x - a + phi_a * h))
 
+    # Calculate the function values at this point
     fc = data[1][np.where(data[0] == c)]
     fd = data[1][np.where(data[0] == d)]
 
+    # Perform the search
     for k in range(number_of_steps - 1):
+        # Check for the smaller range and update the current interval.
         if fc < fd:
             b = d
             d = c
