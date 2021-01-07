@@ -3,7 +3,9 @@ Class for the calculation of the radial distribution function.
 
 Author: Samuel Tovey, Fabian Zills
 
-Description: This module contains the code for the radial distribution function. This class is called by
+Summary
+-------
+This module contains the code for the radial distribution function. This class is called by
 the Experiment class and instantiated when the user calls the Experiment.radial_distribution_function method.
 The methods in class can then be called by the Experiment.radial_distribution_function method and all necessary
 calculations performed.
@@ -27,34 +29,52 @@ warnings.filterwarnings("ignore")
 
 
 class RadialDistributionFunction(Analysis):
-    """ Class for the calculation of the radial distribution function """
+    """ Class for the calculation of the radial distribution function
+
+    Attributes
+    ----------
+    obj :  object
+            Experiment class to call from
+    plot : bool
+            if true, plot the data
+    data_range :
+            Number of configurations to use in each ensemble
+    save :
+            If true, data will be saved after the analysis
+    x_label : str
+            X label of the data when plotted
+    y_label : str
+            Y label of the data when plotted
+    analysis_name : str
+            Name of the analysis
+    loaded_property : str
+            Property loaded from the database for the analysis
+    correlation_time : int
+            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
+            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+    """
 
     def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
                  y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1, start=0,
                  stop=None, n_confs=1000, n_batches=20):
         """
 
-        Parameters
+        Attributes
         ----------
-        obj
-        plot
-        bins
-        cutoff
-        save
-        data_range
-        x_label
-        y_label
-        analysis_name
-        periodic
-        images
-        start: int
-            First Datapoint for calculating the rdf. Default is 1
-        stop: int
-            Last Datapoint for calculating the rdf. Default is None, so the calculation goes over the entire dataset
-        n_confs: int
-            Number of configurations to use for the rdf calculation
-        n_batches: int
-            Number of batches to split the rdf calculation into. Default is 1
+        obj :  object
+                Experiment class to call from
+        plot : bool
+                if true, plot the data
+        data_range :
+                Number of configurations to use in each ensemble
+        save :
+                If true, data will be saved after the analysis
+        x_label : str
+                X label of the data when plotted
+        y_label : str
+                Y label of the data when plotted
+        analysis_name : str
+                Name of the analysis
         """
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
@@ -63,7 +83,6 @@ class RadialDistributionFunction(Analysis):
         self.cutoff = cutoff
         self.correlation_time = None
         self.loaded_property = 'Positions'
-
 
         self.loop_range = obj.number_of_configurations - self.data_range - 1
         self.periodic = periodic  # whether or not to apply PBC
@@ -234,7 +253,9 @@ class RadialDistributionFunction(Analysis):
         return prefactor
 
     def run_analysis(self):
-        """ Perform the rdf analysis """
+        """
+        Perform the rdf analysis
+        """
 
         #self._collect_machine_properties()              # collect machine properties and determine batch size
 

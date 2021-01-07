@@ -1,8 +1,6 @@
 """
-Author: Samuel Tovey ; Francisco Torres
-Affiliation: Institute for Computational Physics, University of Stuttgart
-Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Class functionality of the program
+Summary
+-------
 """
 
 import os
@@ -22,7 +20,8 @@ import mdsuite.experiment.experiment_methods as methods
 from mdsuite.analysis.flux_analyses import _GreenKuboThermalConductivityFlux
 
 class ProjectFlux(methods.ProjectMethods):
-    """ Experiment from simulation
+    """
+    Experiment from simulation
 
     Attributes:
 

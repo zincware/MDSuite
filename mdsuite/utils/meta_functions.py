@@ -3,8 +3,10 @@ Author: Samuel Tovey
 Affiliation: Institute for Computational Physics, University of Stuttgart
 Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
 
-Purpose: This file contains arbitrary functions used in several different processes. They are often generic and serve
-         smaller purposes in order to clean up code in more important parts of the program.
+Summary
+-------
+This file contains arbitrary functions used in several different processes. They are often generic and serve
+smaller purposes in order to clean up code in more important parts of the program.
 """
 
 import os

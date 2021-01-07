@@ -1,4 +1,10 @@
-# Analysis classes
+"""
+Module to contain the structured dict for analysis.
+
+Summary
+-------
+"""
+
 from mdsuite.analysis.einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
 from mdsuite.analysis.green_kubo_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from mdsuite.analysis.green_kubo_ionic_conductivity import GreenKuboIonicConductivity

@@ -1,4 +1,9 @@
-""" Methods for the project class to use """
+"""
+Methods for the project class to use
+
+Summary
+-------
+"""
 
 class CompareProperties:
     """

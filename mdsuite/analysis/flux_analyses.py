@@ -1,9 +1,9 @@
 """
 Class for the calculation of the einstein diffusion coefficients.
 
-Author: Francisco Torres-Herrador ; Samuel Tovey
-
-Description: This module contains the code for the thermal conductivity class. This class is called by the
+Summary
+-------
+This module contains the code for the thermal conductivity class. This class is called by the
 Experiment class and instantiated when the user calls the ... method.
 The methods in class can then be called by the ... method and all necessary
 calculations performed.
@@ -27,17 +27,31 @@ warnings.filterwarnings("ignore")
 
 
 class _GreenKuboThermalConductivityFlux:
-    """ Class for the Einstein diffusion coefficient implementation
+    """
+    Class for the Einstein diffusion coefficient implementation
 
-    additional attrbs:
-        plot
-        singular
-        distinct
-        species
-        data_range
+    Attributes
+    ----------
+    obj :  object
+            Experiment class to call from
+    plot : bool
+            if true, plot the data
+    time : np.array
+            Array of the time.
     """
 
     def __init__(self, obj, plot=False, data_range=500):
+        """
+
+        Parameters
+        ----------
+        obj : object
+                Experiment class to read and write to
+        plot : bool
+                If true, a plot of the analysis is saved.
+        data_range : int
+                Number of configurations to include in each ensemble
+        """
         self.parent = obj
         self.plot = plot
         self.data_range = data_range
@@ -45,12 +59,16 @@ class _GreenKuboThermalConductivityFlux:
                                 * self.parent.units['time'], self.data_range)
 
     def _autocorrelation_time(self):
-        """ Claculate the flux autocorrelation time to ensure correct sampling """
+        """
+        Calculate the flux autocorrelation time to ensure correct sampling
+        """
         raise NotImplementedError
 
     @timeit
     def _compute_thermal_conductivity(self):
-        """ Compute the thermal conductivity """
+        """
+        Compute the thermal conductivity
+        """
 
         if self.plot:
             averaged_jacf = np.zeros(self.data_range)
@@ -62,34 +80,9 @@ class _GreenKuboThermalConductivityFlux:
 
         # not sure why I need the /2 in data range...
         prefactor = numerator / denominator
-
         flux = self.load_flux_matrix()
-
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
-
         sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
-
-        # # main loop for computation
-        # for i in tqdm(range(loop_range)):
-        #     jacf = np.zeros(2 * self.data_range - 1)  # Define the empty JACF array
-        #     jacf += (signal.correlate(flux[:, 0][i:i + self.data_range],
-        #                               flux[:, 0][i:i + self.data_range],
-        #                               mode='full', method='fft') +
-        #              signal.correlate(flux[:, 1][i:i + self.data_range],
-        #                               flux[:, 1][i:i + self.data_range],
-        #                               mode='full', method='fft') +
-        #              signal.correlate(flux[:, 2][i:i + self.data_range],
-        #                               flux[:, 2][i:i + self.data_range],
-        #                               mode='full', method='fft'))
-        #
-        #     # Cut off the second half of the acf
-        #     jacf = jacf[int((len(jacf) / 2)):]
-        #     if self.plot:
-        #         averaged_jacf += jacf
-        #
-        #     integral = np.trapz(jacf, x=self.time)
-        #     sigma.append(integral)
-
         sigma = prefactor * np.array(sigma)
 
         if self.plot:
@@ -106,10 +99,12 @@ class _GreenKuboThermalConductivityFlux:
         self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma) / 100
 
     def load_flux_matrix(self):
-        """ Load the flux matrix
+        """
+        Load the flux matrix
 
-        returns:
-            Matrix of the property flux
+        Returns
+        -------
+        Matrix of the property flux
         """
         identifiers = [f'c_flux_thermal[{i + 1}]' for i in range(3)]
         matrix_data = []

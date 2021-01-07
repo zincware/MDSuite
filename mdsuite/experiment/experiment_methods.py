@@ -1,8 +1,5 @@
 """
-Author: Samuel Tovey ; Francisco Torres
-Affiliation: Institute for Computational Physics, University of Stuttgart
-Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Larger methods used in the Experiment class
+Python module for the experiment class
 """
 import pickle
 
@@ -34,8 +31,6 @@ class ProjectMethods:
         """
         Add information to the species dictionary
 
-        Summary
-        -------
         A fundamental part of this package is species specific analysis. Therefore, the mendeleev python package is
         used to add important species specific information to the class. This will include the charge of the ions which
         will be used in conductivity calculations.
@@ -124,8 +119,6 @@ class ProjectMethods:
         """
         Write an xyz file from database array
 
-        Summary
-        -------
         For some of the properties calculated it is beneficial to have an xyz file for analysis with other platforms.
         This function will write an xyz file from a numpy array of some property. Can be used in the visualization of
         trajectories.
@@ -163,8 +156,6 @@ class ProjectMethods:
         """
         Saves class instance
 
-        Summary
-        -------
         In order to keep properties of a class the state must be stored. This method will store the instance of the
         class for later re-loading
         """
@@ -177,8 +168,6 @@ class ProjectMethods:
         """
         Load class instance
 
-        Summary
-        -------
         A function to load a class instance given the project name.
         """
 
@@ -211,8 +200,6 @@ class ProjectMethods:
         """
         Passes the given dimension to SI units.
 
-        Summary
-        -------
         It is easier to work in SI units always, to avoid mistakes.
 
         Parameters
