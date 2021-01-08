@@ -42,7 +42,7 @@ class GreenKuboThermalConductivity(Analysis):
 
     def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
                  save=True, analysis_name='green_kubo_thermal_conductivity'):
-        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
         self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
                                         self.parent.batch_size
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
@@ -63,14 +63,35 @@ class GreenKuboThermalConductivity(Analysis):
 
         velocity_matrix = self.parent.load_matrix("Velocities")  # Load the velocity matrix
         stress_tensor = self.parent.load_matrix("Stress", sym_matrix=True)
+
+        # define phi as product stress tensor * velocity matrix.
+        # It is done by components to take advantage of the symmetric matrix.
+        phi_x = np.multiply(stress_tensor[:, :, 0], velocity_matrix[:, :, 0]) + \
+                np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 1]) + \
+                np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 2])
+        phi_y = np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 0]) + \
+                np.multiply(stress_tensor[:, :, 1], velocity_matrix[:, :, 1]) + \
+                np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 2])
+        phi_z = np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 0]) + \
+                np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 1]) + \
+                np.multiply(stress_tensor[:, :, 2], velocity_matrix[:, :, 2])
+
+        phi = np.dstack([phi_x, phi_y, phi_z])
+
+        phi_sum_atoms = phi.sum(axis=0) / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
+
         ke = self.parent.load_matrix("KE", scalar=True)
         pe = self.parent.load_matrix("PE", scalar=True)
+
+        # ke_total = np.sum(ke, axis=0) # to check it was the same, can be removed.
+        # pe_total = np.sum(pe, axis=0)
+
         energy = ke + pe
 
+        energy_velocity = energy[:, :, None] * velocity_matrix
+        energy_velocity_atoms = energy_velocity.sum(axis=0)
 
-        system_current = np.zeros((self.number_of_configurations, 3))  # instantiate the current array
-        # Calculate the total system current
-
+        system_current = energy_velocity_atoms - phi_sum_atoms  # returns the same values as in the compute flux of lammps
 
         return system_current
 
@@ -79,13 +100,14 @@ class GreenKuboThermalConductivity(Analysis):
 
         system_current = self._calculate_system_current()  # get the thermal current
 
-        # Calculate the prefactor
+        # prepare the prefactor for the integral
         numerator = 1
-        denominator = 3 * (self.data_range / 2 - 1) * self.parent.temperature ** 2 * constants.boltzmann_constant \
-                      * self.parent.volume * self.parent.units['length'] ** 3
+        denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
+                      * self.parent.volume # we use boltzman constant in the units provided.
 
         # not sure why I need the /2 in data range...
         prefactor = numerator / denominator
+
 
         sigma = []
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
@@ -107,7 +129,11 @@ class GreenKuboThermalConductivity(Analysis):
             parsed_autocorrelation += jacf
             sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
 
-        self.parent.thermal_conductivity["Green-Kubo"] = np.mean(sigma) / 100
+        # convert to SI units.
+        prefactor_units = self.parent.units['energy']/self.parent.units['length']/self.parent.units['time']
+        sigma = prefactor_units*np.array(sigma)
+
+        self.parent.thermal_conductivity["Green-Kubo"] = np.mean(sigma)
 
         plt.plot(self.time, parsed_autocorrelation)  # Add a plot
 
@@ -126,4 +152,3 @@ class GreenKuboThermalConductivity(Analysis):
         self._autocorrelation_time()  # get the autocorrelation time
 
         self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
-

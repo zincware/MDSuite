@@ -66,7 +66,7 @@ class FileProcessor:
                                                                         initial_length),
                                                                   maxshape=(
                                                                       len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
+                                                                  scaleoffset=10)
                     elif len(columns) == 6: # symmetric tensor (for stress tensor for example)
                         database[item].create_group(observable)
                         for axis in axis_names:
@@ -74,7 +74,7 @@ class FileProcessor:
                                                                             initial_length),
                                                                       maxshape=(
                                                                       len(self.project.species[item]['indices']), None),
-                                                                      scaleoffset=5)
+                                                                      scaleoffset=10)
 
                     else: # vector
                         database[item].create_group(observable)
@@ -83,7 +83,7 @@ class FileProcessor:
                                                                             initial_length),
                                                                       maxshape=(
                                                                       len(self.project.species[item]['indices']), None),
-                                                                      scaleoffset=5)
+                                                                      scaleoffset=10)
 
 
     def resize_database(self):

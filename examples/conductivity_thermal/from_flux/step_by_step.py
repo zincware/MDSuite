@@ -9,4 +9,4 @@ if __name__ == '__main__':
                         filename="../flux.dat",
                         units='real')
 
-    argon.green_kubo_thermal_conductivity(data_range=800, plot=False)
+    argon.green_kubo_thermal_conductivity(data_range=8000, plot=False)
