@@ -156,3 +156,6 @@ class CoordinateUnwrapper:
                     self._build_image_mask()                             # build the image mask
                     self._apply_mask()                                   # Apply the mask and unwrap the coordinates
                     self._save_unwrapped_coordinates(database, species)  # save the newly unwrapped coordinates
+
+        self.system.collect_memory_information()  # update the memory dictionary with the unwrapped coordinates
+        self.system.save_class()                  # update the class state

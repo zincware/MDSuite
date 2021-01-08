@@ -152,7 +152,7 @@ class ProjectMethods:
                     for atom in data_matrix[j]:
                         f.write(f"{species[j]:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
 
-    def _save_class(self):
+    def save_class(self):
         """
         Saves class instance
 

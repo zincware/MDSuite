@@ -217,7 +217,7 @@ class ProjectFlux(methods.ProjectMethods):
 
                     counter += self.batch_size
 
-        self._save_class()
+        self.save_class()
 
         print(f"\n ** Database has been constructed and saved for {self.analysis_name}  ** \n")
 
@@ -324,4 +324,4 @@ class ProjectFlux(methods.ProjectMethods):
         print(data_range)
         calculation_ehic = _GreenKuboThermalConductivityFlux(self, data_range=data_range, plot=plot)
         calculation_ehic._compute_thermal_conductivity()
-        self._save_class()
+        self.save_class()
