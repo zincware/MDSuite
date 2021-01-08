@@ -269,7 +269,7 @@ class Experiment(methods.ProjectMethods):
         except FileExistsError:  # throw exception if the file exits
             return
 
-        self._save_class()  # save the class state.
+        self.save_class()  # save the class state.
 
         print(f"** An experiment has been added entitled {self.analysis_name} **")
 
@@ -308,7 +308,7 @@ class Experiment(methods.ProjectMethods):
         else:
             print("Added data does not match the data in the database, make a new experiment.")
 
-    def _collect_memory_information(self):
+    def collect_memory_information(self):
         """
         Get information about dataset memory requirements
 
@@ -355,7 +355,7 @@ class Experiment(methods.ProjectMethods):
         trajectory_reader.build_database_skeleton()        # Build the database skeleton
         self._fill_database(trajectory_reader)             # Fill the database with trajectory data
         self.build_species_dictionary()                    # Add data to the species dictionary.
-        self._save_class()                                 # Update the class state
+        self.save_class()                                 # Update the class state
 
     def add_data(self, trajectory_file=None):
         """
@@ -380,8 +380,8 @@ class Experiment(methods.ProjectMethods):
             self._build_new_database()
 
         self.trajectory_file = trajectory_file  # Update the current class trajectory file
-        self._collect_memory_information()      # Update the memory information
-        self._save_class()                      # Update the class state.
+        self.collect_memory_information()      # Update the memory information
+        self.save_class()                      # Update the class state.
 
     def unwrap_coordinates(self, species=None, center_box=True):
         """
@@ -502,7 +502,7 @@ class Experiment(methods.ProjectMethods):
                                                                                        species=species,
                                                                                        data_range=data_range)
         calculation_ed.run_analysis()  # perform the calculation
-        self._save_class()             # Update class state
+        self.save_class()             # Update class state
 
     def green_kubo_diffusion_coefficients(self, data_range=500, plot=False, singular=True, distinct=False, species=None):
         """
@@ -537,7 +537,7 @@ class Experiment(methods.ProjectMethods):
                                                                                            species=species,
                                                                                            data_range=data_range)
         calculation_gkd.run_analysis()  # run the analysis
-        self._save_class()              # Update class state
+        self.save_class()              # Update class state
 
     def nernst_einstein_conductivity(self):
         """
@@ -547,7 +547,7 @@ class Experiment(methods.ProjectMethods):
         conductivity of a system.
         """
         # TODO: Write the NE conductivity class
-        self._save_class()  # Update class state
+        self.save_class()  # Update class state
 
     def einstein_helfand_ionic_conductivity(self, data_range=500, plot=True):
         """
@@ -569,7 +569,7 @@ class Experiment(methods.ProjectMethods):
                                                                                                 data_range=data_range,
                                                                                                 plot=plot)
         calculation_ehic.run_analysis()  # Perform analysis.
-        self._save_class()               # Update the class state.
+        self.save_class()               # Update the class state.
 
     def green_kubo_ionic_conductivity(self, data_range, plot=True):
         """
@@ -591,7 +591,7 @@ class Experiment(methods.ProjectMethods):
         calculation_gkic = green_kubo_ionic_conductivity.GreenKuboIonicConductivity(self, plot=plot,
                                                                                     data_range=data_range)
         calculation_gkic.run_analysis()  # run the analysis
-        self._save_class()               # Update class state
+        self.save_class()               # Update class state
 
     def radial_distribution_function(self, plot=True, bins=500, cutoff=None, start=0, stop=None, n_confs=1000,
                                      n_batches=1):
@@ -627,7 +627,7 @@ class Experiment(methods.ProjectMethods):
                                                                                   n_batches=n_batches)
         calculation_rdf.run_analysis()                  # run the analysis
         self.radial_distribution_function_state = True  # update the analysis state
-        self._save_class()                              # save the class state
+        self.save_class()                              # save the class state
 
     def calculate_coordination_numbers(self, plot=True):
         """
@@ -641,7 +641,7 @@ class Experiment(methods.ProjectMethods):
 
         calculation_cn = coordination_number_calculation.CoordinationNumbers(self, plot)  # Instantiate the calculator
         calculation_cn.run_analysis()                                                     # Run the analysis
-        self._save_class()                                                                # Update the class state
+        self.save_class()                                                                # Update the class state
 
     def potential_of_mean_force(self, plot=True, save=True):
         """
@@ -657,7 +657,7 @@ class Experiment(methods.ProjectMethods):
 
         calculation_pomf = potential_of_mean_force.PotentialOfMeanForce(self, plot=plot, save=save)  # Load calculator
         calculation_pomf.run_analysis()                                                              # Perform analysis
-        self._save_class()                                                                           # Update class
+        self.save_class()                                                                           # Update class
 
     def kirkwood_buff_integrals(self, plot=True, save=True):
         """
@@ -674,7 +674,7 @@ class Experiment(methods.ProjectMethods):
         calculation_kbi = kirkwood_buff_integrals.KirkwoodBuffIntegral(self, plot=plot, save=save)  # Load calculator
         calculation_kbi.run_analysis()                                                              # Perform analysis
         self.kirkwood_buff_integral_state = True                                                    # update class
-        self._save_class()                                                                          # Save class state
+        self.save_class()                                                                          # Save class state
 
     def structure_factor(self):
         """
@@ -683,7 +683,7 @@ class Experiment(methods.ProjectMethods):
 
         calculation_strfac = structure_factor.StructureFactor(self)  # Instantiate calculator class
         calculation_strfac.run_analysis()                            # Run the analysis
-        self._save_class()                                           # Update the class state.
+        self.save_class()                                           # Update the class state.
 
     # TODO def green_kubo_viscosity(self):
     # TODO def angular_distribution_function(self):
@@ -720,7 +720,7 @@ class Experiment(methods.ProjectMethods):
 
         object_compute = class_compute(self, **kwargs)
         object_compute.run_analysis()
-        self._save_class()
+        self.save_class()
 
     @staticmethod
     def help_computations_args(computation_name):

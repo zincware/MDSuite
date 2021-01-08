@@ -15,6 +15,7 @@ from scipy.optimize import curve_fit
 import numpy as np
 import warnings
 import tensorflow as tf
+import h5py as hf
 
 # Import user packages
 from tqdm import tqdm
@@ -32,6 +33,11 @@ warnings.filterwarnings("ignore")
 class EinsteinDiffusionCoefficients(Analysis):
     """
     Class for the Einstein diffusion coefficient implementation
+
+    Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
+    Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
+    The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
+    calculations performed.
 
     Attributes
     ----------
@@ -108,6 +114,15 @@ class EinsteinDiffusionCoefficients(Analysis):
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
         self.correlation_time = 100  # correlation time TODO: do not hard code this.
+
+        # Check for unwrapped coordinates and unwrap if not stored already.
+        with hf.File(f"{obj.storage_path}/{obj.analysis_name}/{obj.analysis_name}.hdf5", "r+") as database:
+            for item in species:
+                # Unwrap the positions if they need to be unwrapped
+                if "Unwrapped_Positions" not in database[item]:
+                    print("Unwrapping coordinates")
+                    obj.unwrap_coordinates(species=[item])  # perform the coordinate unwrapping.
+                    print("Coordinate unwrapping finished, proceeding with analysis")
 
     def _autocorrelation_time(self):
         """

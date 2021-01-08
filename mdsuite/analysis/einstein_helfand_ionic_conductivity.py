@@ -16,6 +16,8 @@ import numpy as np
 # Import user packages
 from tqdm import tqdm
 import tensorflow as tf
+import h5py as hf
+
 # Import MDSuite modules
 import mdsuite.utils.meta_functions as meta_functions
 from mdsuite.utils.constants import *
@@ -98,6 +100,16 @@ class EinsteinHelfandIonicConductivity(Analysis):
 
         # Time array for the calculations
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
+
+        # Check for unwrapped coordinates and unwrap if not stored already.
+        with hf.File(f"{obj.storage_path}/{obj.analysis_name}/{obj.analysis_name}.hdf5", "r+") as database:
+            for item in species:
+                # Unwrap the positions if they need to be unwrapped
+                if "Unwrapped_Positions" not in database[item]:
+                    print("Unwrapping coordinates")
+                    obj.unwrap_coordinates(species=[item])  # perform the coordinate unwrapping.
+                    print("Coordinate unwrapping finished, proceeding with analysis")
+
 
     def _autocorrelation_time(self):
         """
