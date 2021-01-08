@@ -41,8 +41,7 @@ class _GreenKuboThermalConductivityFlux:
         self.parent = obj
         self.plot = plot
         self.data_range = data_range
-        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate
-                                * self.parent.units['time'], self.data_range)
+        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
     def _autocorrelation_time(self):
         """ Claculate the flux autocorrelation time to ensure correct sampling """
@@ -57,10 +56,10 @@ class _GreenKuboThermalConductivityFlux:
 
         # prepare the prefactor for the integral
         numerator = 1
-        denominator = 3 * (self.data_range / 2 - 1) * self.parent.temperature ** 2 * constants.boltzmann_constant \
-                      * self.parent.volume * self.parent.units['length'] ** 3
+        denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
+                      * self.parent.volume # we use boltzman constant in the units provided.
 
-        # not sure why I need the /2 in data range...
+        # TODO: I had a /2 in data range. I removed it. I think it was wrong.
         prefactor = numerator / denominator
 
         flux = self.load_flux_matrix()
@@ -69,28 +68,11 @@ class _GreenKuboThermalConductivityFlux:
 
         sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
 
-        # # main loop for computation
-        # for i in tqdm(range(loop_range)):
-        #     jacf = np.zeros(2 * self.data_range - 1)  # Define the empty JACF array
-        #     jacf += (signal.correlate(flux[:, 0][i:i + self.data_range],
-        #                               flux[:, 0][i:i + self.data_range],
-        #                               mode='full', method='fft') +
-        #              signal.correlate(flux[:, 1][i:i + self.data_range],
-        #                               flux[:, 1][i:i + self.data_range],
-        #                               mode='full', method='fft') +
-        #              signal.correlate(flux[:, 2][i:i + self.data_range],
-        #                               flux[:, 2][i:i + self.data_range],
-        #                               mode='full', method='fft'))
-        #
-        #     # Cut off the second half of the acf
-        #     jacf = jacf[int((len(jacf) / 2)):]
-        #     if self.plot:
-        #         averaged_jacf += jacf
-        #
-        #     integral = np.trapz(jacf, x=self.time)
-        #     sigma.append(integral)
-
         sigma = prefactor * np.array(sigma)
+
+        # convert to SI units.
+        prefactor_units = self.parent.units['energy']/self.parent.units['length']/self.parent.units['time']
+        sigma = prefactor_units*sigma
 
         if self.plot:
             averaged_jacf /= max(averaged_jacf)

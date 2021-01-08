@@ -247,15 +247,16 @@ class ProjectFlux(methods.ProjectMethods):
         """
 
         def _convert_time(time_array):
-            # removes the time offset and adjustes units
-            return (time_array - self.time_0) * self.units['time']
-
-        def _convert_heat_units(c_flux_thermal_array):
-            # adjustes units for heatflux
-            return c_flux_thermal_array * self.units['energy'] * self.units['length'] / self.units['time']
-
-        conversions_dict = {"c_flux_thermal": _convert_heat_units,
-                            "time": _convert_time}
+            # removes the time offset
+            return (time_array - self.time_0) # * self.units['time']
+        #
+        # def _convert_heat_units(c_flux_thermal_array):
+        #     # adjustes units for heatflux
+        #     return c_flux_thermal_array * self.units['energy'] * self.units['length'] / self.units['time']
+        #
+        # conversions_dict = {"c_flux_thermal": _convert_heat_units,
+        #                     "time": _convert_time}
+        conversions_dict = {"time": _convert_time}
 
         for lammps_var, column_num in self.properties.items():
             # grab the corresponding column and set it as numbers
