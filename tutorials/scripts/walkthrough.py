@@ -17,12 +17,12 @@ Molten_NaCl.add_experiment(experiment_name="NaCl_1400K",
 NaCl_1400K = Molten_NaCl.experiments['NaCl_1400K']  # The nice way
 
 # Add data to the experiment
-NaCl_1400K.add_data(trajectory_file='trajectory_files/NaCl_1400K.dump') 
+NaCl_1400K.add_data(trajectory_file='../data/trajectory_files/NaCl_1400K.dump')
 
 
 NaCl_1400K.unwrap_coordinates()
-NaCl_1400K._collect_memory_information()
-NaCl_1400K._save_class()
+NaCl_1400K.collect_memory_information()
+NaCl_1400K.save_class()
 
 print('\n number of configs \n', NaCl_1400K.number_of_configurations)
 
