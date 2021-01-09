@@ -145,7 +145,7 @@ class GreenKuboThermalConductivity(Analysis):
             self._plot_data()  # Plot the data if necessary
 
     def run_analysis(self):
-        """ Run a diffusion coefficient analysis
+        """ Run thermal conductivity calculation analysis
 
         The thermal conductivity is computed at this step.
         """
