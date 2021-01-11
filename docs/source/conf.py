@@ -5,7 +5,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../mdsuite/'))
+sys.path.insert(0, os.path.abspath('../../'))
 html_theme = 'sphinx_rtd_theme'
 import sphinx_rtd_theme
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
@@ -28,6 +28,7 @@ master_doc = 'index'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.napoleon',
     'sphinx.ext.autosummary',
     'sphinx.ext.githubpages',
     'sphinx.ext.intersphinx',
@@ -48,6 +49,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+autodoc_default_flags = ['members', 'private-members',
+                         'inherited-members', 'show-inheritance']
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -56,6 +59,7 @@ exclude_patterns = []
 #
 html_theme = 'sphinx_rtd_theme'
 html_logo = 'images/logo.png'
+html_favicon = 'images/logo.png'
 html_theme_options={
         'logo_only': True,
         'display_version': False,

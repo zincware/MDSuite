@@ -1,7 +1,4 @@
 import setuptools
-from setuptools import find_packages
-from distutils.core import setup, Extension
-from Cython.Build import cythonize
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
@@ -25,11 +22,14 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.6',
     install_requires=['seaborn',
-                      'h5py',
+                      'h5py>3.0',
                       'numpy',
                       'matplotlib',
                       'scipy',
                       'tqdm',
                       'psutil',
-                      'tensorflow>=2.1',
-                      'numpy'])
+                      'tensorflow>2.1',
+                      'numpy',
+                      'gputil',
+                      'diagrams',
+                      'pubchempy'])

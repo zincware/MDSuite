@@ -1,8 +1,3 @@
-.. MDSuite documentation master file, created by
-   sphinx-quickstart on Tue Sep 29 09:25:40 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to MDSuite's documentation!
 ===================================
 
@@ -23,15 +18,7 @@ hear from our users.
    _usage/installation
    _usage/quickstart
    _theory/theory_introduction
+   _usage/modules_and_classes/modules_and_classes
    _theory/database_structure
    _usage/tools
-
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   _usage/experiment

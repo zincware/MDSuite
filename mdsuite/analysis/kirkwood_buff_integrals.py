@@ -1,4 +1,6 @@
-""" Class for the calculation of the coordinated numbers """
+"""
+Class for the calculation of the coordinated numbers
+"""
 
 import numpy as np
 import os
@@ -15,20 +17,8 @@ from mdsuite.utils.meta_functions import apply_savgol_filter
 
 
 class KirkwoodBuffIntegral(Analysis):
-    """ Class for the calculation of the Kikrwood-Buff integrals
-
-    The potential of mean-force is a measure of the binding strength between atomic species in a system. Mathematically
-    one may write
-
-    .. math::
-
-        g(r) = e^{-\frac{w^{(2)}(r)}{k_{B}T}}
-
-    Which, due to us having direct access to the radial distribution functions, compute as
-
-    .. math::
-
-        w^{(2)}(r) = -k_{B}Tln(g(r))
+    """
+    Class for the calculation of the Kikrwood-Buff integrals
 
     Attributes
     ----------
@@ -64,9 +54,10 @@ class KirkwoodBuffIntegral(Analysis):
                         List of data of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
-                 analysis_name='Potential_of_Mean_Force'):
-        """ Python constructor for the class
+    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$G(\mathbf{r})$',
+                 analysis_name='Kirkwood-Buff_Integral'):
+        """
+        Python constructor for the class
 
         Parameters
         ----------
@@ -98,43 +89,55 @@ class KirkwoodBuffIntegral(Analysis):
         self.kb_integral = None                                               # Kirkwood-Buff integral for the rdf
 
     def _autocorrelation_time(self):
-        """ Not needed in this analysis """
+        """
+        Not needed in this analysis
+        """
         raise NotApplicableToAnalysis
 
     def _get_rdf_data(self):
-        """ Fill the data_files list with filenames of the rdf data """
+        """
+        Fill the data_files list with filenames of the rdf data
+        """
         files = os.listdir(self.data_directory)  # load the directory contents
         for item in files:
             if item[-32:] == 'radial_distribution_function.npy':
                 self.data_files.append(item)
 
     def _load_rdf_from_file(self):
-        """ Load the raw rdf data from a directory """
+        """
+        Load the raw rdf data from a directory
+        """
 
         self.radii, self.rdf = np.load(f'{self.data_directory}/{self.file_to_study}', allow_pickle=True)
 
     def _calculate_kb_integral(self):
-        """ calculate the Kirkwood-Buff integral"""
+        """
+        calculate the Kirkwood-Buff integral
+        """
 
         self.kb_integral = []  # empty the integration data
 
         for i in range(1, len(self.radii)):
-            self.kb_integral.append(4*np.pi*(np.trapz(self.rdf[i], x=self.radii[i]) - 1)*(self.radii[i])**2)
+            self.kb_integral.append(4*np.pi*(np.trapz((self.rdf[1:i] - 1)*(self.radii[1:i])**2, x=self.radii[1:i])))
 
     def run_analysis(self):
-        """ Calculate the potential of mean-force and perform error analysis """
+        """
+        Calculate the potential of mean-force and perform error analysis
+        """
 
         self._get_rdf_data()  # fill the data array with data
 
         for data in self.data_files:
-            self.file_to_study = data      # Set the file to study
+            self.file_to_study = data        # Set the file to study
             self.species_tuple = data[:-33]  # set the tuple
-            self._load_rdf_from_file()     # Load the rdf data for the set file
-            self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
+            self._load_rdf_from_file()       # Load the rdf data for the set file
+            self._calculate_kb_integral()    # Integrate the rdf and calculate the KB integral
+
+            # Save if necessary
             if self.save:
                 self._save_data(f"{self.analysis_name}_{self.species_tuple}", [self.radii, self.kb_integral])
+            # Plot if necessary
             if self.plot:
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
-                plt.clf()
 
