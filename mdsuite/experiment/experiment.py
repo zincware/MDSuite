@@ -372,6 +372,8 @@ class Experiment(methods.ProjectMethods):
             print("No data has been given")
             return  # exit method as nothing more can be done
 
+        self.trajectory_file = trajectory_file  # Update the current class trajectory file
+
         # Check to see if a database exists
         test_db = Path(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5")  # get theoretical path.
         if test_db.exists():
@@ -379,7 +381,6 @@ class Experiment(methods.ProjectMethods):
         else:
             self._build_new_database()
 
-        self.trajectory_file = trajectory_file  # Update the current class trajectory file
         self.collect_memory_information()      # Update the memory information
         self.save_class()                      # Update the class state.
 
