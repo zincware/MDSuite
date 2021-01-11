@@ -42,6 +42,7 @@ class _GreenKuboThermalConductivityFlux:
 
     def __init__(self, obj, plot=False, data_range=500):
         """
+        Python constructor for the experiment class.
 
         Parameters
         ----------
@@ -55,8 +56,7 @@ class _GreenKuboThermalConductivityFlux:
         self.parent = obj
         self.plot = plot
         self.data_range = data_range
-        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate
-                                * self.parent.units['time'], self.data_range)
+        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
     def _autocorrelation_time(self):
         """
@@ -75,15 +75,18 @@ class _GreenKuboThermalConductivityFlux:
 
         # prepare the prefactor for the integral
         numerator = 1
-        denominator = 3 * (self.data_range / 2 - 1) * self.parent.temperature ** 2 * constants.boltzmann_constant \
-                      * self.parent.volume * self.parent.units['length'] ** 3
+        denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
+                      * self.parent.volume # we use boltzman constant in the units provided.
 
-        # not sure why I need the /2 in data range...
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
         sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
         sigma = prefactor * np.array(sigma)
+
+        # convert to SI units.
+        prefactor_units = self.parent.units['energy']/self.parent.units['length']/self.parent.units['time']
+        sigma = prefactor_units*sigma
 
         if self.plot:
             averaged_jacf /= max(averaged_jacf)

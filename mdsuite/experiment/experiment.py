@@ -18,7 +18,6 @@ import warnings
 from pathlib import Path
 import tensorflow as tf
 
-import mdsuite.utils.constants as constants
 import mdsuite.experiment.experiment_methods as methods
 
 # File readers
@@ -406,7 +405,7 @@ class Experiment(methods.ProjectMethods):
         transformation_ufb = unwrap_coordinates.CoordinateUnwrapper(self, species, center_box)  # load the transform.
         transformation_ufb.unwrap_particles()                                                   # unwrap the coordinates
 
-    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False):
+    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
         Load a desired property matrix
 
@@ -420,6 +419,10 @@ class Experiment(methods.ProjectMethods):
                 A slice to select from the database.
         tensor : bool
                 If true, the data will be returned as a tensorflow tensor.
+        scalar : bool
+                If true, the data will be returned as a scalar array
+        sym_matrix : bool
+                If true, data will be returned as as stress tensor format.
 
         Returns
         -------
@@ -458,8 +461,17 @@ class Experiment(methods.ProjectMethods):
                                                         database[item][identifier]['z'][select_slice])),
                                              dtype=tf.float64))
 
-                # Alternatively, return a np.array
-                else:
+                elif sym_matrix:  # return a stress tensor
+                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
+                                                      database[item][identifier]['y'][select_slice],
+                                                      database[item][identifier]['z'][select_slice],
+                                                      database[item][identifier]['xy'][select_slice],
+                                                      database[item][identifier]['xz'][select_slice],
+                                                      database[item][identifier]['yz'][select_slice],)))
+                elif scalar:  # return a scalar
+                    property_matrix.append(database[item][identifier][select_slice])
+
+                else:  # return a numpy array
                     property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
                                                       database[item][identifier]['y'][select_slice],
                                                       database[item][identifier]['z'][select_slice])))
@@ -739,6 +751,13 @@ class Experiment(methods.ProjectMethods):
         print(help(class_compute))
 
     def dump_results_json(self):
+        """
+        Dump a json file.
+
+        Returns
+        -------
+
+        """
         filename = Path(f"{self.storage_path}/{self.analysis_name}.json")
         with open(filename, 'w') as fp:
             json.dump(self.results, fp, indent=4, sort_keys=True)

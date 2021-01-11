@@ -98,8 +98,9 @@ class FileProcessor:
 
         # Set the length of the trajectory TODO: Add smaller "remainder" section to get the last parts of the trajectory
         initial_length = self.project.number_of_configurations - \
-                         self.project.number_of_configurations % \
-                         self.project.batch_size
+                         self.project.number_of_configurations % self.project.batch_size
+
+        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
 
         # Build the database structure
         with hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
@@ -119,28 +120,27 @@ class FileProcessor:
                                                                    initial_length),
                                                       maxshape=(
                                                           len(self.project.species[item]['indices']), None),
-                                                      scaleoffset=5)
+                                                      scaleoffset=10)
+
+                    elif len(columns) == 6:  # symmetric tensor (for stress tensor for example)
+                        database[item].create_group(observable)
+                        for axis in axis_names:
+                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
+                                                                             initial_length),
+                                                                      maxshape=(
+                                                                          len(self.project.species[item]['indices']),
+                                                                          None),
+                                                                      scaleoffset=10)
+
                     else:  # vector
-                        database[item].create_group(observable)  # create a new group for the vector observable
-
-                        # Create x, y and z extendable datasets with scale offset compression.
-                        database[item][observable].create_dataset("x", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                      len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
-
-                        database[item][observable].create_dataset("y", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                      len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
-
-                        database[item][observable].create_dataset("z", (len(self.project.species[item]['indices']),
-                                                                        initial_length),
-                                                                  maxshape=(
-                                                                      len(self.project.species[item]['indices']), None),
-                                                                  scaleoffset=5)
+                        database[item].create_group(observable)
+                        for axis in axis_names[0:3]:
+                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
+                                                                             initial_length),
+                                                                      maxshape=(
+                                                                          len(self.project.species[item]['indices']),
+                                                                          None),
+                                                                      scaleoffset=10)
 
     def resize_database(self):
         """
@@ -188,7 +188,6 @@ class FileProcessor:
         partitioned_configurations = int(len(data) / self.project.number_of_atoms)
 
         for item in self.project.species:
-
             """
             Get the new indices for the positions. This function requires the atoms to be in the same position during
             each configuration. The calculation simply adds multiples of the number of atoms and configurations to the
@@ -197,27 +196,20 @@ class FileProcessor:
             # TODO: Implement a sort algorithm or something of the same kind.
             positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
                                   self.header_lines for i in range(int(partitioned_configurations))]).flatten()
+
             """
             Fill the database
             """
-
-            # Loop over the properties being added.
+            axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
+            # Fill the database
             for property_group, columns in self.project.property_groups.items():
-
-                # Check for scalar and vector properties.
-                if len(columns) == 1:  # scalar
+                num_columns = len(columns)
+                if num_columns == 1:
                     database[item][property_group][:, counter:counter + partitioned_configurations] = \
                         data[positions][:, columns[0]].astype(float).reshape(
                             (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-                else:  # vector
-                    database[item][property_group]["x"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[0]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-
-                    database[item][property_group]["y"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[1]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-
-                    database[item][property_group]["z"][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[2]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                else:
+                    for column, axis in zip(columns, axis_names):
+                        database[item][property_group][axis][:, counter:counter + partitioned_configurations] = \
+                            data[positions][:, column].astype(float).reshape(
+                                (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
