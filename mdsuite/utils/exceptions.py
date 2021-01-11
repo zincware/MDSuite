@@ -21,3 +21,11 @@ class NotApplicableToAnalysis(Exception):
 class CannotPerformThisAnalysis(Exception):
     """ Thrown when analysis cannot be reliably performed given the data """
     pass
+
+
+class NoGPUInSystem(Exception):
+    """
+    Thrown during system analysis when GPUs are being searched for.
+    """
+    def __init__(self):
+        Exception.__init__(self, "No GPUs detected, continuing without GPU support")
