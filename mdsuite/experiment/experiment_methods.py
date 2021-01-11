@@ -220,8 +220,10 @@ class ProjectMethods:
         """
         
         units = {
-            "metal": {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19},
-            "real": {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / constants.avogadro_constant},
+            "metal": {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19, 'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5},
+            "real":  {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / constants.avogadro_constant, 'NkTV2p': 68568.415, 'boltzman':0.0019872067},
         }
+
+        # NkTV2p conversion of NkT/V to pressure, unclear to me, but from LAMMPS code.
 
         return units[units_system]

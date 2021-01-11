@@ -13,6 +13,7 @@ from mdsuite.analysis.radial_distribution_function import RadialDistributionFunc
 from mdsuite.analysis.coordination_number_calculation import CoordinationNumbers
 from mdsuite.analysis.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.analysis.kirkwood_buff_integrals import KirkwoodBuffIntegral
+from mdsuite.analysis.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
@@ -23,6 +24,7 @@ dict_classes_computations = {
     'CoordinationNumbers': CoordinationNumbers,
     'PotentialOfMeanForce': PotentialOfMeanForce,
     'KirkwoodBuffIntegral': KirkwoodBuffIntegral,
+    'GreenKuboThermalConductivity': GreenKuboThermalConductivity,
 }
 
 
