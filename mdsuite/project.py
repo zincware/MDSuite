@@ -68,7 +68,7 @@ class Project:
         self.description = None  # A short description of the project
         self.storage_path = storage_path  # Tell me where to store this data
 
-        self.experiments = {}  # experiments added to this project
+        self.experiments = {}  # type: dict[str, Experiment]  #experiments added to this project
 
         # Check for project directory, if none exist, create a new one
         test_dir = Path(f"{self.storage_path}/{self.name}")
