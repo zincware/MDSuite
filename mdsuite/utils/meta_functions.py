@@ -19,6 +19,7 @@ import numpy as np
 from scipy.signal import savgol_filter
 
 import mdsuite.utils.constants as constants
+from mdsuite.utils.exceptions import NoGPUInSystem
 
 
 def get_dimensionality(box):
@@ -59,14 +60,18 @@ def get_machine_properties():
     machine_properties = {}
     available_memory = psutil.virtual_memory().available  # RAM available
     total_cpu_cores = psutil.cpu_count(logical=True)  # CPU cores available
-    total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
 
     # Update the machine properties dictionary
     machine_properties['cpu'] = total_cpu_cores
     machine_properties['memory'] = available_memory
     machine_properties['gpu'] = {}
-    for gpu in total_gpu_devices:
-        machine_properties['gpu'][gpu.id] = gpu.name
+
+    try:
+        total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
+        for gpu in total_gpu_devices:
+            machine_properties['gpu'][gpu.id] = gpu.name
+    except NoGPUInSystem:
+        raise NoGPUInSystem
 
     return machine_properties
 
@@ -116,13 +121,13 @@ def optimize_batch_size(filepath, number_of_configurations):
 
     computer_statistics = get_machine_properties()  # Get computer statistics
 
-    file_size = os.path.getsize(filepath)                                   # Get the size of the file
-    memory_per_configuration = 8*file_size / number_of_configurations       # get the memory per configuration
-    database_memory = 0.2 * computer_statistics['memory']                   # We take 20% of the available memory
+    file_size = os.path.getsize(filepath)  # Get the size of the file
+    memory_per_configuration = 8 * file_size / number_of_configurations  # get the memory per configuration
+    database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
     # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
-    if 8*file_size < database_memory:
+    if 8 * file_size < database_memory:
         return int(number_of_configurations)
 
     # Set the batch size to 1000 at most. Prevents unwanted problems from arising for large computers.
@@ -130,9 +135,9 @@ def optimize_batch_size(filepath, number_of_configurations):
         return 1000
 
     else:
-        nearest_batch_amount = np.floor(number_of_configurations/initial_batch_number)
+        nearest_batch_amount = np.floor(number_of_configurations / initial_batch_number)
 
-        return int(number_of_configurations/nearest_batch_amount)
+        return int(number_of_configurations / nearest_batch_amount)
 
 
 def linear_fitting_function(x, a, b):
@@ -177,9 +182,9 @@ def simple_file_read(filename):
             Data read in by the function.
     """
 
-    data_array = []                          # define empty data array
-    with open(filename, 'r+') as f:          # Open the file for reading
-        for line in f:                       # Loop over the lines
+    data_array = []  # define empty data array
+    with open(filename, 'r+') as f:  # Open the file for reading
+        for line in f:  # Loop over the lines
             data_array.append(line.split())  # Split the lines by whitespace and add to data array
 
     return data_array
@@ -202,9 +207,9 @@ def timeit(f):
     @wraps(f)
     def wrap(*args, **kw):
         """ Function to wrap a method and time its execution """
-        ts = time()                                        # get the initial time
-        result = f(*args, **kw)                            # run the function.
-        te = time()                                        # get the time after the function as run.
+        ts = time()  # get the initial time
+        result = f(*args, **kw)  # run the function.
+        te = time()  # get the time after the function as run.
         print(f'func:{f.__name__} took: {(te - ts)} sec')  # print the outcome.
 
         return result
