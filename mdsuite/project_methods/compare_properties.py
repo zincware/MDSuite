@@ -1,10 +1,19 @@
-""" Methods for the project class to use """
+"""
+Methods for the project class to use
+
+Summary
+-------
+"""
 
 class CompareProperties:
-    """ Methods used by the project class to compare physical properties of the experiments """
+    """
+    Methods used by the project class to compare physical properties of the experiments
+    """
 
     def __init__(self):
-        """ Python constructor """
+        """
+        Python constructor
+        """
 
         self.x_data = None
         self.y_data_property = None

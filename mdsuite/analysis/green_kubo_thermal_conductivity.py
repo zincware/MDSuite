@@ -1,9 +1,9 @@
 """
 Class for the calculation of the Green-Kubo thermal conductivity.
 
-Author: Samuel Tovey; Francisco Torres-Herrador
-
-Description: This module contains the code for the Green-Kubo thermal conductivity class. This class is called by the
+Summary
+-------
+This module contains the code for the Green-Kubo thermal conductivity class. This class is called by the
 Experiment class and instantiated when the user calls the Experiment.green_kubo_thermal_conductivity method.
 The methods in class can then be called by the Experiment.green_kubo_thermal_conductivity method and all necessary
 calculations performed.
@@ -30,19 +30,56 @@ warnings.filterwarnings("ignore")
 
 
 class GreenKuboThermalConductivity(Analysis):
-    """ Class for the Green-Kubo Thermal conductivity implementation
+    """
+    Class for the Green-Kubo Thermal conductivity implementation
 
-    additional attrbs:
-        plot
-        singular
-        distinct
-        species
-        data_range
+    Attributes
+    ----------
+    obj :  object
+            Experiment class to call from
+    plot : bool
+            if true, plot the data
+    data_range :
+            Number of configurations to use in each ensemble
+    save :
+            If true, data will be saved after the analysis
+    x_label : str
+            X label of the data when plotted
+    y_label : str
+            Y label of the data when plotted
+    analysis_name : str
+            Name of the analysis
+    time : np.array
+            Array of the time.
+    correlation_time : int
+            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
+            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
     def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
                  save=True, analysis_name='green_kubo_thermal_conductivity'):
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
+        """
+        Class for the Green-Kubo Thermal conductivity implementation
+
+        Attributes
+        ----------
+        obj :  object
+                Experiment class to call from
+        plot : bool
+                if true, plot the data
+        data_range :
+                Number of configurations to use in each ensemble
+        save :
+                If true, data will be saved after the analysis
+        x_label : str
+                X label of the data when plotted
+        y_label : str
+                Y label of the data when plotted
+        analysis_name : str
+                Name of the analysis
+        """
+        super().__init__(obj,plot, save, data_range, x_label, y_label, analysis_name)
+
         self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
                                         self.parent.batch_size
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
@@ -50,13 +87,19 @@ class GreenKuboThermalConductivity(Analysis):
         self.correlation_time = 1
 
     def _autocorrelation_time(self):
-        """ calculate the current autocorrelation time for correct sampling """
-        pass
+        """
+        calculate the current autocorrelation time for correct sampling
+        """
+        raise NotImplementedError
 
     def _calculate_system_current(self):
-        """ Calculate the thermal current of the system
+        """
+        Calculate the thermal current of the system
 
-        :return: system_current (numpy array) -- thermal current of the system as a vector of shape (n_confs, 3)
+        Returns
+        -------
+        system_current : np.array
+                thermal current of the system as a vector of shape (n_confs, 3)
         """
 
         ## TODO: re-implement for thermal conductivity.
@@ -96,7 +139,9 @@ class GreenKuboThermalConductivity(Analysis):
         return system_current
 
     def _calculate_thermal_conductivity(self):
-        """ Calculate the thermal conductivity in the system """
+        """
+        Calculate the thermal conductivity in the system
+        """
 
         system_current = self._calculate_system_current()  # get the thermal current
 

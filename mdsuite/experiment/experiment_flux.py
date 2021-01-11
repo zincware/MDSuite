@@ -1,8 +1,6 @@
 """
-Author: Samuel Tovey ; Francisco Torres
-Affiliation: Institute for Computational Physics, University of Stuttgart
-Contact: stovey@icp.uni-stuttgart.de ; tovey.samuel@gmail.com
-Purpose: Class functionality of the program
+Summary
+-------
 """
 
 import os
@@ -22,7 +20,8 @@ import mdsuite.experiment.experiment_methods as methods
 from mdsuite.analysis.flux_analyses import _GreenKuboThermalConductivityFlux
 
 class ProjectFlux(methods.ProjectMethods):
-    """ Experiment from simulation
+    """
+    Experiment from simulation
 
     Attributes:
 
@@ -88,7 +87,7 @@ class ProjectFlux(methods.ProjectMethods):
         self.units = self.units_to_si(units)
 
         if not self.new_project:
-            self._load_class()
+            self.load_class()
         else:
             self.build_database()
 
@@ -218,7 +217,7 @@ class ProjectFlux(methods.ProjectMethods):
 
                     counter += self.batch_size
 
-        self._save_class()
+        self.save_class()
 
         print(f"\n ** Database has been constructed and saved for {self.analysis_name}  ** \n")
 
@@ -326,4 +325,4 @@ class ProjectFlux(methods.ProjectMethods):
         print(data_range)
         calculation_ehic = _GreenKuboThermalConductivityFlux(self, data_range=data_range, plot=plot)
         calculation_ehic._compute_thermal_conductivity()
-        self._save_class()
+        self.save_class()

@@ -1,4 +1,20 @@
-""" Class for the calculation of the coordinated numbers """
+""" Class for the calculation of the coordinated numbers
+
+Summary
+-------
+The potential of mean-force is a measure of the binding strength between atomic species in a system. Mathematically
+    one may write
+
+    .. math::
+
+        g(r) = e^{-\frac{w^{(2)}(r)}{k_{B}T}}
+
+    Which, due to us having direct access to the radial distribution functions, compute as
+
+    .. math::
+
+        w^{(2)}(r) = -k_{B}Tln(g(r))
+"""
 
 import numpy as np
 import os
@@ -15,20 +31,11 @@ from mdsuite.utils.meta_functions import apply_savgol_filter
 
 
 class PotentialOfMeanForce(Analysis):
-    """ Class for the calculation of the potential of mean-force
+    """
+    Class for the calculation of the potential of mean-force
 
     The potential of mean-force is a measure of the binding strength between atomic species in a system. Mathematically
     one may write
-
-    .. math::
-
-        g(r) = e^{-\frac{w^{(2)}(r)}{k_{B}T}}
-
-    Which, due to us having direct access to the radial distribution functions, compute as
-
-    .. math::
-
-        w^{(2)}(r) = -k_{B}Tln(g(r))
 
     Attributes
     ----------
@@ -66,7 +73,8 @@ class PotentialOfMeanForce(Analysis):
 
     def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
                  analysis_name='Potential_of_Mean_Force'):
-        """ Python constructor for the class
+        """
+        Python constructor for the class
 
         Parameters
         ----------
@@ -99,38 +107,54 @@ class PotentialOfMeanForce(Analysis):
         self.indices = None                                                   # Indices of the pomf range
 
     def _get_rdf_data(self):
-        """ Fill the data_files list with filenames of the rdf data """
+        """
+        Fill the data_files list with filenames of the rdf data
+        """
         files = os.listdir(self.data_directory)  # load the directory contents
         for item in files:
             if item[-32:] == 'radial_distribution_function.npy':
                 self.data_files.append(item)
 
     def _load_rdf_from_file(self):
-        """ Load the raw rdf data from a directory """
+        """
+        Load the raw rdf data from a directory
+        """
 
         self.radii, self.rdf = np.load(f'{self.data_directory}/{self.file_to_study}', allow_pickle=True)
 
     def _autocorrelation_time(self):
-        """ Not needed in this analysis """
+        """
+        Not needed in this analysis
+        """
         raise NotApplicableToAnalysis
 
     def _calculate_potential_of_mean_force(self):
-        """ Calculate the potential of mean force """
+        """
+        Calculate the potential of mean force
+        """
 
         self.pomf = -1*boltzmann_constant*self.parent.temperature*np.log(self.rdf)
 
     def _get_max_values(self):
-        """ Calculate the maximums of the rdf """
+        """
+        Calculate the maximums of the rdf
+        """
         filtered_data = apply_savgol_filter(self.pomf)  # Apply a filter to the data to smooth curve
         peaks = find_peaks(filtered_data)[0]               # Find the maximums in the filtered dataset
 
         return [peaks[0], peaks[1]]
 
     def _find_minimum(self):
-        """ Find the minimum of the pomf function
+        """
+        Find the minimum of the pomf function
 
         This function calls an implementation of the Golden-section search algorithm to determine the minimum of the
         potential of mean-force function.
+
+        Returns
+        -------
+        pomf_indices : list
+                Location of the minimums of the pomf values.
         """
 
         peaks = self._get_max_values()  # get the peaks of the data post-filtering
@@ -144,7 +168,9 @@ class PotentialOfMeanForce(Analysis):
         return pomf_indices
 
     def _get_pomf_value(self):
-        """ Use a min-finding algorithm to calculate the potential of mean force value """
+        """
+        Use a min-finding algorithm to calculate the potential of mean force value
+        """
 
         self.indices = self._find_minimum()  # update the class with the minimum value indices
 
@@ -156,12 +182,16 @@ class PotentialOfMeanForce(Analysis):
         self.parent.potential_of_mean_force_values[self.species_tuple] = [pomf_value, pomf_error]
 
     def _plot_fits(self):
-        """ Plot the predicted minimum value before parsing the other data for plotting """
+        """
+        Plot the predicted minimum value before parsing the other data for plotting
+        """
         plt.plot(self.radii, self.pomf, label=f'{self.species_tuple}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
     def run_analysis(self):
-        """ Calculate the potential of mean-force and perform error analysis """
+        """
+        Calculate the potential of mean-force and perform error analysis
+        """
 
         self._get_rdf_data()  # fill the data array with data
 
