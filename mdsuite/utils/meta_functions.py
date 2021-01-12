@@ -18,7 +18,7 @@ import GPUtil
 import numpy as np
 from scipy.signal import savgol_filter
 
-import mdsuite.utils.constants as constants
+from mdsuite.utils.units import golden_ratio
 from mdsuite.utils.exceptions import NoGPUInSystem
 
 
@@ -264,8 +264,8 @@ def golden_section_search(data, a, b):
     """
 
     # Define the golden ratio identities
-    phi_a = 1 / constants.golden_ratio
-    phi_b = 1 / (constants.golden_ratio ** 2)
+    phi_a = 1 / golden_ratio
+    phi_b = 1 / (golden_ratio ** 2)
 
     # Get the initial range and caluclate the maximum number of steps to be performed.
     h = a - b

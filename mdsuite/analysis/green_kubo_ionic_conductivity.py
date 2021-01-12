@@ -17,7 +17,7 @@ import warnings
 from tqdm import tqdm
 
 # Import MDSuite modules
-import mdsuite.utils.constants as constants
+from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 from mdsuite.analysis.analysis import Analysis
 
@@ -125,8 +125,8 @@ class GreenKuboIonicConductivity(Analysis):
         """
 
         # Calculate the prefactor
-        numerator = (constants.elementary_charge ** 2) * (self.parent.units['length'] ** 2)
-        denominator = 3 * constants.boltzmann_constant * self.parent.temperature * self.parent.volume * \
+        numerator = (elementary_charge ** 2) * (self.parent.units['length'] ** 2)
+        denominator = 3 * boltzmann_constant * self.parent.temperature * self.parent.volume * \
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
