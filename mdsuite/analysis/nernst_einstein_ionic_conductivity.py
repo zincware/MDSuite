@@ -2,7 +2,9 @@
 
 class NernstEinsteinIonicConductivity:
     """ Class for the calculation of the Nernst-Einstein ionic conductivity """
-    raise NotImplementedError
+    def __init__(self):
+
+        raise NotImplementedError
 # truth_array = [[bool(self.diffusion_coefficients["Einstein"]["Singular"]),
 #                         bool(self.diffusion_coefficients["Einstein"]["Distinct"])],
 #                        [bool(self.diffusion_coefficients["Green-Kubo"]["Singular"]),

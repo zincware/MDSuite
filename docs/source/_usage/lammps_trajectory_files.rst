@@ -1,4 +1,3 @@
-:orphan:
 Lammps Trajectory Reader Class Documentation
 ============================================
 

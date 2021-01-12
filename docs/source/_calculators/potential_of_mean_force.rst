@@ -1,5 +1,4 @@
-:orphan:
-Potential of Mean-Force Class Documentation
+Potential of Mean-Force Class
 ============================================
 
 .. autoclass:: mdsuite.analysis.potential_of_mean_force.PotentialOfMeanForce

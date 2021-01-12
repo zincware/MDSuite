@@ -144,7 +144,8 @@ class FileProcessor:
 
     def resize_database(self):
         """
-        Resize the database skeleton
+        Resize the database skeleton.
+
         """
 
         # Get the number of additional configurations TODO: Again add support for collecting the remainder.

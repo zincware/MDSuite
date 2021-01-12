@@ -1,5 +1,4 @@
-:orphan:
-Nernst-Einstein Ionic Conductivity Class Documentation
+Nernst-Einstein Ionic Conductivity Class
 ======================================================
 
 .. autoclass:: mdsuite.analysis.nernst_einstein_ionic_conductivity.NernstEinsteinIonicConductivity

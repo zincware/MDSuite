@@ -1,5 +1,4 @@
-:orphan:
-Analysis Class Documentation
+Analysis Class
 ============================
 
 .. autoclass:: mdsuite.analysis.analysis.Analysis

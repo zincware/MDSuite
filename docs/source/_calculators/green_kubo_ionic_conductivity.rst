@@ -1,5 +1,4 @@
-:orphan:
-Green-Kubo Ionic Conductivity Class Documentation
+Green-Kubo Ionic Conductivity Class
 =======================================================
 
 .. autoclass:: mdsuite.analysis.green_kubo_ionic_conductivity.GreenKuboIonicConductivity

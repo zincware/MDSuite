@@ -1,5 +1,4 @@
-:orphan:
-Unwrap Coordinates Class Documentation
+Unwrap Coordinates Class
 ======================================
 
 .. autoclass:: mdsuite.transformations.unwrap_coordinates.CoordinateUnwrapper
