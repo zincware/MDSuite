@@ -44,4 +44,41 @@ print the coordinates of the unwrapped positions by:
         NaCl.write_xyz(property='Unwrapped_Positions')
 
 This call would save an xyz file in the working directory under the name NaCl_Unwrapped_Positions.xyz.
-                
+
+
+THIS NEEDS TO BE REFACTORED
+
+Transformation Classes
+----------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   _usage/unwrap_coordinates
+
+
+File IO
+-------
+
+.. toctree::
+   :maxdepth: 1
+
+   _usage/file_read
+   _usage/lammps_trajectory_files
+
+
+Utilities
+---------
+.. toctree::
+   :maxdepth: 1
+
+   _usage/meta_functions
+
+
+Other
+---------
+.. toctree::
+   :maxdepth: 1
+
+   _usage/coordination_number_calculation
+   _usage/flux_analyses

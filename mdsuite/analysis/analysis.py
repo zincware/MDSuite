@@ -40,6 +40,7 @@ class Analysis:
     machine_properties : dict
             Devices available to MDSuite during analysis run. Has the following structure
             {'memory': x bytes, 'cpus': n_of_cores, 'gpus': name_of_gpu}
+
     """
 
     def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None):
@@ -54,6 +55,7 @@ class Analysis:
         x_label
         y_label
         analysis_name
+
         """
 
         self.parent = obj                   # Experiment object to get properties from
@@ -190,14 +192,13 @@ class Analysis:
         raise NotImplementedError
 
     def run_analysis(self):
-        """ Run the appropriate analysis
-
+        """
+        Run the appropriate analysis
         Should follow the general outline detailed below:
-
         self._autocorrelation_time()  # Calculate the relevant autocorrelation time
         self._analysis()  # Can be diffusion coefficients or whatever is being calculated, but run the calculation
-        self._error_analysis  # Run an error analysis, could be done during the calculation, or may have to be for the
-                                sake of memory.
+        self._error_analysis  # Run an error analysis, could be done during the calculation, or may have to be for the sake of memory.
         self._update_experiment  # Update the main experiment class with the calculated properties
+
         """
         raise NotImplementedError  # Implement in the child class

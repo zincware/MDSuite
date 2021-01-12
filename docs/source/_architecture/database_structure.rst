@@ -1,4 +1,3 @@
-:orphan:
 Database structure
 ==================
 

@@ -1,4 +1,3 @@
-:orphan:
 MDSuite Theory
 ==============
 
@@ -34,13 +33,16 @@ which can solve for these properties using such a flux file.
 Structural Properties:
 ^^^^^^^^^^^^^^^^^^^^^^
 
-* `Radial distribution function <radial_distribution_function.html>`_
-* `Coordination numbers <calculate_coordination_numbers.html>`_
-* `Structure factor <structure_factor.html>`_
-* `Kirkwood-Buff Integrals <kirkwood_buff_integrals.html>`_
-* `Phonon spectrum <phonon_spectrum.html>`_
-* `Potential of mean-force <potential_of_mean_force.html>`_
-* `Isothermal compressibility <isothermal_compressibility.html>`_
+.. toctree::
+   :maxdepth: 1
+
+   _theory/radial_distribution_function
+   _theory/coordination_numbers
+   _theory/structure_factor
+   _theory/kirkwood_buff_integrals
+   _theory/phonon_spectrum
+   _theory/potential_of_mean_force
+   _theory/isothermal_compressibility
 
 Each of these analysis have very similar interfaces and take similar arguments. In each case, if the arguments are not
 changed, the analysis will return figures of the analysis and .npy data files stored inside the experiment directory.
@@ -56,17 +58,32 @@ implemented in the package, is not directly related to a single calculation.
 Computational Topics:
 ^^^^^^^^^^^^^^^^^^^^^
 
-* `Tensor operations in MDSuite <tensor_operations_in_mdsuite.html>`_
-* `HDF5 data structure <hdf5_data_structure.html>`_
-* `Autocorrelation in MDSuite <autocorrelation_in_mdsuite.html>`_
+.. toctree::
+   :maxdepth: 1
+
+   _theory/tensor_operations_in_mdsuite
+   _theory/hdf5_data_structure
+   _theory/autocorrelation_in_mdsuite
+   _theory/ensemble_average
+
 
 Theoretical Concepts:
 ^^^^^^^^^^^^^^^^^^^^^
 
-* `The Fluctuation-Dissipation Theorem <fluctuation_dissipation_theorem.html>`_
-* `Green-Kubo relations <green_kubo_relations.html>`_
-* `Einstein type calculations <einstein_calculations.html>`_
-* `Onsager coefficients and dynamics in MD simulations <onsager_coefficients_and_dynamics_in_md_simulations.html>`_
+.. toctree::
+   :maxdepth: 1
+
+   _theory/fluctuation_dissipation_theorem
+   _theory/green_kubo_relations
+   _theory/einstein_calculations
+   _theory/onsager_coefficients_and_dynamics_in_md_simulations
+   _theory/diffusion_coefficients
+   _theory/ionic_conductivity
+   _theory/viscosity
+   _theory/thermal_conductivity
+
+
+
 
 Final Words
 -----------

@@ -1,7 +1,6 @@
-:orphan:
 Flux Analyses Class Documentation
 =================================
 
-.. autoclass:: mdsuite.analysis.flux_analysis._GreenKuboThermalConductivityFlux
+.. autoclass:: mdsuite.analysis.flux_analyses._GreenKuboThermalConductivityFlux
     :members:
     :private-members:

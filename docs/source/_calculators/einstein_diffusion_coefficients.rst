@@ -1,5 +1,4 @@
-:orphan:
-Einstein Diffusion Coefficients Documentation
+Einstein Diffusion Coefficients
 =============================================
 
 .. autoclass:: mdsuite.analysis.einstein_diffusion_coefficients.EinsteinDiffusionCoefficients
