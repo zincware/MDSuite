@@ -6,7 +6,7 @@ if __name__ == '__main__':
                         storage_path=".",
                         temperature=70.0,
                         time_step=4,
-                        filename="../flux.dat",
+                        filename="../flux_1.dat",
                         units='real')
 
     argon.green_kubo_thermal_conductivity(data_range=8000, plot=False)
