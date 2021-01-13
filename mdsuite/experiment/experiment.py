@@ -407,7 +407,7 @@ class Experiment(methods.ProjectMethods):
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
-        Load a desired property matrix
+        Load a desired property matrix.
 
         Parameters
         ----------
@@ -427,7 +427,7 @@ class Experiment(methods.ProjectMethods):
         Returns
         -------
         property_matrix : np.array, tf.tensor
-                Tensor of the property to be studied. Format depends on **kwargs
+                Tensor of the property to be studied. Format depends on kwargs.
         """
 
         # If no species list is given, use all species in the Experiment class instance.

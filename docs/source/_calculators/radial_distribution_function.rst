@@ -1,5 +1,4 @@
-:orphan:
-Radial Distribution Function Class Documentation
+Radial Distribution Function Class
 ================================================
 
 .. autoclass:: mdsuite.analysis.radial_distribution_function.RadialDistributionFunction

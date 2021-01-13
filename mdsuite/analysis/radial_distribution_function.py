@@ -134,7 +134,7 @@ class RadialDistributionFunction(Analysis):
 
             To get the real r_ij matrix for one timestep you can use the following:
                 r_ij_mat = np.zeros((n_atoms, n_atoms, 3))
-                r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(*args)
+                r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(``*args``)
                 r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
 
         """

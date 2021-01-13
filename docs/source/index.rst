@@ -15,10 +15,10 @@ hear from our users.
    :maxdepth: 1
    :caption: Contents:
 
-   _usage/installation
-   _usage/quickstart
-   _theory/theory_introduction
-   _usage/modules_and_classes/modules_and_classes
-   _theory/database_structure
-   _usage/tools
-   _usage/experiment
+   installation
+   quickstart
+   theory_introduction
+   modules_and_classes
+   _architecture/database_structure
+   tools
+

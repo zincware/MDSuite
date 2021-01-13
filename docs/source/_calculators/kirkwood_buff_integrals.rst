@@ -1,5 +1,4 @@
-:orphan:
-Kirkwood-Buff Integrals Class Documentation
+Kirkwood-Buff Integrals Class
 ===========================================
 
 .. autoclass:: mdsuite.analysis.kirkwood_buff_integrals.KirkwoodBuffIntegral

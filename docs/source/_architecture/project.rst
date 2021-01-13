@@ -1,5 +1,4 @@
-:orphan:
-Project Class Documentation
+Project Class
 ===========================
 
 .. autoclass:: mdsuite.project.Project
