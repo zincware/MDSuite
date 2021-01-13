@@ -105,9 +105,7 @@ class _GreenKuboThermalConductivityFlux:
         """
         Load the flux matrix
 
-        Returns
-        -------
-        Matrix of the property flux
+        :return: Matrix of the property flux
         """
         identifiers = [f'c_flux_thermal[{i + 1}]' for i in range(3)]
         matrix_data = []

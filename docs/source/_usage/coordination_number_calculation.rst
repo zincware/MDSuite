@@ -1,4 +1,3 @@
-:orphan:
 Coordination Number Class Documentation
 =======================================
 

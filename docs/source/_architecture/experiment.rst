@@ -1,5 +1,4 @@
-:orphan:
-Experiment Class Documentation
+Experiment Class
 ==============================
 
 .. autoclass:: mdsuite.experiment.experiment.Experiment

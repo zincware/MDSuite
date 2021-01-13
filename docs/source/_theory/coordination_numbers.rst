@@ -1,4 +1,3 @@
-:orphan:
 Coordination Numbers
 ====================
 
