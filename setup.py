@@ -22,7 +22,7 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.6',
     install_requires=['seaborn',
-                      'h5py>3',
+                      'h5py>3.0',
                       'numpy',
                       'matplotlib',
                       'scipy',
