@@ -2,6 +2,7 @@
 Python module for the experiment class
 """
 import pickle
+import sys
 
 import h5py as hf
 import pubchempy as pcp
@@ -21,6 +22,8 @@ from diagrams.generic.database import SQL
 
 import mdsuite.utils.constants as constants
 from mdsuite import data as static_data
+
+from mdsuite.utils.units import units_dict
 
 class ProjectMethods:
     """
@@ -198,9 +201,10 @@ class ProjectMethods:
     @staticmethod
     def units_to_si(units_system):
         """
-        Passes the given dimension to SI units.
+        Returns a dictionary with equivalences from the unit system given by a string to SI.
+        Along with some constants in the unit system provided (boltzman, or other conversions).
+        Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit system.
 
-        It is easier to work in SI units always, to avoid mistakes.
 
         Parameters
         ----------
@@ -217,13 +221,17 @@ class ProjectMethods:
 
         >>> units_to_si('metal')
         {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19}
+        >>> units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19, 'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
         """
-        
-        units = {
-            "metal": {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19, 'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5},
-            "real":  {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / constants.avogadro_constant, 'NkTV2p': 68568.415, 'boltzman':0.0019872067},
-        }
 
-        # NkTV2p conversion of NkT/V to pressure, unclear to me, but from LAMMPS code.
-
-        return units[units_system]
+        if isinstance(units_system, dict):
+            return units_system
+        else:
+            try:
+                units = units_dict[units_system]() # executes the function to return the appropriate dictionary.
+            except KeyError:
+                print(f'The unit system provided is not implemented...')
+                print(f'The available systems are: ')
+                [print(key) for key, _ in units_dict.items()]
+                sys.exit(-1)
+        return units
