@@ -19,7 +19,7 @@ from tqdm import tqdm
 # Import MDSuite modules
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -27,7 +27,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboIonicConductivity(Analysis):
+class GreenKuboIonicConductivity(Calculator):
     """ Class for the Green-Kubo ionic conductivity implementation
 
     Attributes

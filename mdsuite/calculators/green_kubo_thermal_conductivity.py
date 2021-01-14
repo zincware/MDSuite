@@ -21,7 +21,7 @@ from tqdm import tqdm
 # Import MDSuite modules
 import mdsuite.utils.constants as constants
 
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -29,7 +29,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboThermalConductivity(Analysis):
+class GreenKuboThermalConductivity(Calculator):
     """
     Class for the Green-Kubo Thermal conductivity implementation
 

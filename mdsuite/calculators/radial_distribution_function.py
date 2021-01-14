@@ -20,7 +20,7 @@ from tqdm import tqdm
 import tensorflow as tf
 import itertools
 
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -28,7 +28,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class RadialDistributionFunction(Analysis):
+class RadialDistributionFunction(Calculator):
     """ Class for the calculation of the radial distribution function
 
     Attributes

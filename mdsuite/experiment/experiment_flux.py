@@ -17,7 +17,7 @@ tqdm.monitor_interval = 0
 
 import mdsuite.utils.meta_functions as meta_functions
 import mdsuite.experiment.experiment_methods as methods
-from mdsuite.analysis.flux_analyses import _GreenKuboThermalConductivityFlux
+from mdsuite.calculators.flux_analyses import _GreenKuboThermalConductivityFlux
 
 class ProjectFlux(methods.ProjectMethods):
     """

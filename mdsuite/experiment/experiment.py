@@ -23,18 +23,18 @@ import mdsuite.experiment.experiment_methods as methods
 # File readers
 from mdsuite.file_io.lammps_trajectory_files import LAMMPSTrajectoryFile
 
-# Analysis modules
-from mdsuite.analysis import einstein_diffusion_coefficients
-from mdsuite.analysis import green_kubo_diffusion_coefficients
-from mdsuite.analysis import green_kubo_ionic_conductivity
-from mdsuite.analysis import einstein_helfand_ionic_conductivity
-from mdsuite.analysis import radial_distribution_function
-from mdsuite.analysis import coordination_number_calculation
-from mdsuite.analysis import potential_of_mean_force
-from mdsuite.analysis import kirkwood_buff_integrals
-from mdsuite.analysis import structure_factor
+# Calculator modules
+from mdsuite.calculators import einstein_diffusion_coefficients
+from mdsuite.calculators import green_kubo_diffusion_coefficients
+from mdsuite.calculators import green_kubo_ionic_conductivity
+from mdsuite.calculators import einstein_helfand_ionic_conductivity
+from mdsuite.calculators import radial_distribution_function
+from mdsuite.calculators import coordination_number_calculation
+from mdsuite.calculators import potential_of_mean_force
+from mdsuite.calculators import kirkwood_buff_integrals
+from mdsuite.calculators import structure_factor
 
-from mdsuite.analysis.computations_dict import dict_classes_computations
+from mdsuite.calculators.computations_dict import dict_classes_computations
 
 # Transformation modules
 from mdsuite.transformations import unwrap_coordinates
