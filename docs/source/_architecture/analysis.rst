@@ -1,6 +1,6 @@
-Analysis Class
+Calculator Class
 ============================
 
-.. autoclass:: mdsuite.analysis.analysis.Analysis
+.. autoclass:: mdsuite.analysis.analysis.Calculator
     :members:
     :private-members:

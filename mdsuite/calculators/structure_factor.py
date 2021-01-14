@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # MDSuite imports
 from mdsuite.utils.constants import *
 from mdsuite.utils.exceptions import *
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
@@ -19,7 +19,7 @@ from mdsuite import data as static_data
 from importlib.resources import open_text
 
 
-class StructureFactor(Analysis):
+class StructureFactor(Calculator):
     """ Class for the calculation of the total structure factor for X-ray scattering
         using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
         scattering vector Q < 25 * 1/Angstrom

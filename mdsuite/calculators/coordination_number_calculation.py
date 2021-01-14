@@ -12,13 +12,13 @@ from scipy.signal import find_peaks
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
 
-class CoordinationNumbers(Analysis):
+class CoordinationNumbers(Calculator):
     """
     Class for the calculation of coordination numbers
 
