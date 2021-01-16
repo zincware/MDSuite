@@ -26,7 +26,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class _GreenKuboThermalConductivityFlux:
+class GreenKuboThermalConductivityFlux:
     """
     Class for the Einstein diffusion coefficient implementation
 
@@ -62,10 +62,10 @@ class _GreenKuboThermalConductivityFlux:
         """
         Calculate the flux autocorrelation time to ensure correct sampling
         """
-        raise NotImplementedError
+        pass
 
     @timeit
-    def _compute_thermal_conductivity(self):
+    def _calculate_thermal_conductivity(self):
         """
         Compute the thermal conductivity
         """
@@ -107,11 +107,19 @@ class _GreenKuboThermalConductivityFlux:
 
         :return: Matrix of the property flux
         """
-        identifiers = [f'c_flux_thermal[{i + 1}]' for i in range(3)]
+        # TODO: re-implement
+        identifier = 'Flux_Thermal'
         matrix_data = []
 
-        for identifier in identifiers:
-            column_data = self.parent.load_column(identifier)
-            matrix_data.append(column_data)
-        matrix_data = np.array(matrix_data).T  # transpose such that [timestep, dimension]
+        matrix_data = self.parent.load_matrix(identifier)
+        matrix_data = np.squeeze(matrix_data)
         return matrix_data
+
+    def run_analysis(self):
+        """ Run thermal conductivity calculation analysis
+
+        The thermal conductivity is computed at this step.
+        """
+        self._autocorrelation_time()  # get the autocorrelation time
+
+        self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients

@@ -6,11 +6,29 @@ Summary
 """
 
 from mdsuite.file_io.file_read import FileProcessor
-from mdsuite.utils.constants import lammps_properties_dict
+# from mdsuite.file_io.file_io_dict import lammps_traj
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
+import numpy as np
+
+lammps_traj = {
+    "Positions": ['x', 'y', 'z'],
+    "Scaled_Positions": ['xs', 'ys', 'zs'],
+    "Unwrapped_Positions": ['xu', 'yu', 'zu'],
+    "Scaled_Unwrapped_Positions": ['xsu', 'ysu', 'zsu'],
+    "Velocities": ['vx', 'vy', 'vz'],
+    "Forces": ['fx', 'fy', 'fz'],
+    "Box_Images": ['ix', 'iy', 'iz'],
+    "Dipole_Orientation_Magnitude": ['mux', 'muy', 'muz'],
+    "Angular_Velocity_Spherical": ['omegax', 'omegay', 'omegaz'],
+    "Angular_Velocity_Non_Spherical": ['angmomx', 'angmomy', 'angmomz'],
+    "Torque": ['tqx', 'tqy', 'tqz'],
+    "KE": ["c_KE"],
+    "PE": ["c_PE"],
+    "Stress": ['c_Stress[1]', 'c_Stress[2]', 'c_Stress[3]', 'c_Stress[4]', 'c_Stress[5]', 'c_Stress[6]']
+}
 
 
 class LAMMPSTrajectoryFile(FileProcessor):
@@ -131,7 +149,8 @@ class LAMMPSTrajectoryFile(FileProcessor):
             Get the available properties for analysis
         """
         header_line = first_configuration[8]  # the header line in the trajectory
-        properties_summary = self._get_column_properties(header_line)  # get column properties
+        column_dict_properties = self._get_column_properties(header_line)  # get column properties
+        self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)  # Get the observable groups
 
         """
             Get the box size from the first simulation cell
@@ -151,58 +170,70 @@ class LAMMPSTrajectoryFile(FileProcessor):
             self.project.volume = box[0] * box[1] * box[2]
             self.project.species = species_summary
             self.project.number_of_atoms = number_of_atoms
-            self.project.properties = properties_summary
+            # self.project.properties = properties_summary
             self.project.number_of_configurations += number_of_configurations
             self.project.sample_rate = sample_rate
 
         else:
             self.project.batch_size = batch_size
-            return [number_of_atoms, list(species_summary), box, number_of_configurations]
+            # return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
     @staticmethod
     def _get_column_properties(header_line):
-        header_line = header_line[4:]
-        properties_summary = {variable: idx + 2 for idx, variable in enumerate(header_line)}
+        header_line = header_line[2:]
+        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
         return properties_summary
 
-    def _extract_properties(self):
-        """
-        Construct generalized property array
-
-        Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
-        class.
-
-        agrs:
-            properties_dict (dict) -- A dictionary of all the available properties in the trajectory. This dictionary is
-            built only from the LAMMPS symbols and therefore must be again processed to extract the useful information.
-
-        returns:
-            trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
-            values of the dictionary keys correspond to the array location of the specific piece of data in the set.
-        """
-
-        # grab the properties present in the current case
-        properties_dict = self.project.properties
-
-        # for each property label (position, velocity,etc) in the lammps definition
-        for property_label, property_names in lammps_properties_dict.items():
-            # for each coordinate for a given property label (position: x, y, z), get idx and the name
-            for idx, property_name in enumerate(property_names):
-                if property_name in properties_dict.keys():  # if this name (x) is in the input file properties
-                    # we change the lammps_properties_dict replacing the string of the property name by the column name
-                    lammps_properties_dict[property_label][idx] = properties_dict[property_name]
-
-        # trajectory_properties only needs the labels with the integer columns, then we one copy those
-        trajectory_properties = {}
-        for property_label, properties_columns in lammps_properties_dict.items():
-            if all([isinstance(property_column, int) for property_column in properties_columns]):
-                trajectory_properties[property_label] = properties_columns
-
-        print("I have found the following properties with the columns in []: ")
-        [print(key, value) for key, value in trajectory_properties.items()]
-
-        return trajectory_properties
 
     def _read_lammpstrj(self):
         """ Process a lammps trajectory file """
         pass
+
+    def process_configurations(self, data, database, counter):
+        """
+        Process the available data
+
+        Called during the main database creation. This function will calculate the number of configurations
+        within the raw data and process it.
+
+        Parameters
+        ----------
+        data : np.array
+                Array of the raw data for N configurations.
+
+        database : object
+                Database in which to store the data.
+
+        counter : int
+                Which configuration to start from.
+        """
+
+        # Re-calculate the number of available configurations for analysis
+        partitioned_configurations = int(len(data) / self.project.number_of_atoms)
+
+        for item in self.project.species:
+            """
+            Get the new indices for the positions. This function requires the atoms to be in the same position during
+            each configuration. The calculation simply adds multiples of the number of atoms and configurations to the
+            position of each atom in order to read the correct part of the file.
+            """
+            # TODO: Implement a sort algorithm or something of the same kind.
+            positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
+                                  self.header_lines for i in range(int(partitioned_configurations))]).flatten()
+
+            """
+            Fill the database
+            """
+            axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
+            # Fill the database
+            for property_group, columns in self.project.property_groups.items():
+                num_columns = len(columns)
+                if num_columns == 1:
+                    database[item][property_group][:, counter:counter + partitioned_configurations] = \
+                        data[positions][:, columns[0]].astype(float).reshape(
+                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+                else:
+                    for column, axis in zip(columns, axis_names):
+                        database[item][property_group][axis][:, counter:counter + partitioned_configurations] = \
+                            data[positions][:, column].astype(float).reshape(
+                                (len(self.project.species[item]['indices']), partitioned_configurations), order='F')

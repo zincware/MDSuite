@@ -17,7 +17,7 @@ import numpy as np
 from pathlib import Path
 import pickle
 
-from mdsuite.experiment.experiment import Experiment
+# from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read
 
 

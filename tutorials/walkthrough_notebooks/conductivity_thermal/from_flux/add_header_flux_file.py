@@ -120,4 +120,4 @@ def add_header(filename, lammpsfilename, keep_copy=True):
         print("Job's Done! header replaced")
 
 if __name__=='__main__':
-    add_header('../flux_1.dat', '../log.lammps')
+    add_header('../flux_1.lmp_flux', '../argon.lammps')

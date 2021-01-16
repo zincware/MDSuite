@@ -21,7 +21,7 @@ import h5py as hf
 # Import MDSuite modules
 import mdsuite.utils.meta_functions as meta_functions
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -29,7 +29,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class EinsteinHelfandIonicConductivity(Analysis):
+class EinsteinHelfandIonicConductivity(Calculator):
     """
     Class for the Einstein-Helfand Ionic Conductivity
 

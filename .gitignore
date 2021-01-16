@@ -149,3 +149,7 @@ mdsuite/cython_extensions/*.c
 
 # build documentation
 docs/build
+
+# LAMMPS trajectories and flux files
+*.lmp_flux
+*.lmp_traj

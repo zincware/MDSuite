@@ -8,9 +8,10 @@ Summary
 import matplotlib.pyplot as plt
 
 from mdsuite.utils.meta_functions import *
+import abc
 
 
-class Analysis:
+class Calculator(metaclass=abc.ABCMeta):
     """
     Parent class for analysis modules
 
@@ -191,6 +192,7 @@ class Analysis:
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
     def run_analysis(self):
         """
         Run the appropriate analysis
