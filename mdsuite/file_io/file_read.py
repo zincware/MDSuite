@@ -5,12 +5,12 @@ Summary
 -------
 """
 
-import numpy as np
-
 import h5py as hf
+import numpy as np
+from tqdm import tqdm
+import abc
 
-
-class FileProcessor:
+class FileProcessor(metaclass=abc.ABCMeta):
     """
     Parent class for file reading and processing
 
@@ -69,19 +69,14 @@ class FileProcessor:
 
         return np.array(configurations_data)
 
-    def _extract_properties(self):
-        """
-        Get property groups from the trajectory
-        """
-
-        raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
-
+    @abc.abstractmethod
     def process_trajectory_file(self):
         """
         Get property groups from the trajectory
         """
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
+
 
     def build_database_skeleton(self):
         """
@@ -93,8 +88,6 @@ class FileProcessor:
         include the separation of species, atoms, and properties. For a full description of the data structure,
         look into the documentation.
         """
-
-        self.project.property_groups = self._extract_properties()  # Get the observable groups
 
         # Set the length of the trajectory TODO: Add smaller "remainder" section to get the last parts of the trajectory
         initial_length = self.project.number_of_configurations - \
@@ -166,6 +159,7 @@ class FileProcessor:
                     database[species][observable]['y'].resize(resize_factor, 1)
                     database[species][observable]['z'].resize(resize_factor, 1)
 
+    @abc.abstractmethod
     def process_configurations(self, data, database, counter):
         """
         Process the available data
@@ -185,32 +179,63 @@ class FileProcessor:
                 Which configuration to start from.
         """
 
-        # Re-calculate the number of available configurations for analysis
-        partitioned_configurations = int(len(data) / self.project.number_of_atoms)
 
-        for item in self.project.species:
-            """
-            Get the new indices for the positions. This function requires the atoms to be in the same position during
-            each configuration. The calculation simply adds multiples of the number of atoms and configurations to the
-            position of each atom in order to read the correct part of the file.
-            """
-            # TODO: Implement a sort algorithm or something of the same kind.
-            positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
-                                  self.header_lines for i in range(int(partitioned_configurations))]).flatten()
 
-            """
-            Fill the database
-            """
-            axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
-            # Fill the database
-            for property_group, columns in self.project.property_groups.items():
-                num_columns = len(columns)
-                if num_columns == 1:
-                    database[item][property_group][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[0]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-                else:
-                    for column, axis in zip(columns, axis_names):
-                        database[item][property_group][axis][:, counter:counter + partitioned_configurations] = \
-                            data[positions][:, column].astype(float).reshape(
-                                (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
+    @staticmethod
+    def _extract_properties(database_correspondance_dict, column_dict_properties):
+        """
+        Construct generalized property array
+
+        Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
+        class.
+
+        agrs:
+            properties_dict (dict) -- A dictionary of all the available properties in the trajectory. This dictionary is
+            built only from the LAMMPS symbols and therefore must be again processed to extract the useful information.
+
+        returns:
+            trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
+            values of the dictionary keys correspond to the array location of the specific piece of data in the set.
+        """
+
+        # for each property label (position, velocity,etc) in the lammps definition
+        for property_label, property_names in database_correspondance_dict.items():
+            # for each coordinate for a given property label (position: x, y, z), get idx and the name
+            for idx, property_name in enumerate(property_names):
+                if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
+                    # we change the lammps_properties_dict replacing the string of the property name by the column name
+                    database_correspondance_dict[property_label][idx] = column_dict_properties[property_name]
+
+        # trajectory_properties only needs the labels with the integer columns, then we one copy those
+        trajectory_properties = {}
+        for property_label, properties_columns in database_correspondance_dict.items():
+            if all([isinstance(property_column, int) for property_column in properties_columns]):
+                trajectory_properties[property_label] = properties_columns
+
+        print("I have found the following properties with the columns in []: ")
+        [print(key, value) for key, value in trajectory_properties.items()]
+
+        return trajectory_properties
+
+    def fill_database(self, counter=0):
+        """
+        Loads data into a hdf5 database
+
+        Parameters
+        ----------
+        trajectory_reader : object
+                Instance of a trajectory reader class.
+
+        counter : int
+                Number of configurations that have been read in.
+        """
+
+        loop_range = int(
+            (self.project.number_of_configurations - counter) / self.project.batch_size)  # loop range for the data.
+        with hf.File("{0}/{1}/{1}.hdf5".format(self.project.storage_path, self.project.analysis_name),
+                     "r+") as database:
+            with open(self.project.trajectory_file) as f:
+                for _ in tqdm(range(loop_range), ncols=70):
+                    batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data
+                    self.process_configurations(batch_data, database, counter)  # process the trajectory
+                    counter += self.project.batch_size  # Update counter
