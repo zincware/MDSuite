@@ -10,13 +10,13 @@ import matplotlib.pyplot as plt
 # MDSuite imports
 from mdsuite.utils.constants import *
 from mdsuite.utils.exceptions import *
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
 
-class KirkwoodBuffIntegral(Analysis):
+class KirkwoodBuffIntegral(Calculator):
     """
     Class for the calculation of the Kikrwood-Buff integrals
 

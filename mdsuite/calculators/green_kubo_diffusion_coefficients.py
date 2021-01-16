@@ -20,7 +20,7 @@ import itertools
 import multiprocessing as mp
 
 # Import mdsuite packages
-from mdsuite.analysis.analysis import Analysis
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -28,7 +28,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboDiffusionCoefficients(Analysis):
+class GreenKuboDiffusionCoefficients(Calculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
 
