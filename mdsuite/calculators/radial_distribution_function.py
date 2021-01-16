@@ -132,7 +132,7 @@ class RadialDistributionFunction(Calculator):
         -------
             generator object which results all distances for the current batch of timesteps
 
-            To get the real r_ij matrix for one timestep you can use the following:
+            To get the real r_ij matrix for one time_step you can use the following:
                 r_ij_mat = np.zeros((n_atoms, n_atoms, 3))
                 r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(``*args``)
                 r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
@@ -146,7 +146,7 @@ class RadialDistributionFunction(Calculator):
                 Returns a vector of size (2, None) insted of a tuple of two values like np.triu_indices
             """
             bool_mat = tf.ones((n_atoms, n_atoms), dtype=tf.bool)
-            # Just construct a boolean true matrix the size of one timestep
+            # Just construct a boolean true matrix the size of one time_step
             indices = tf.where(~tf.linalg.band_part(bool_mat, -1, 0))
             # Get the indices of the lower triangle (without diagonals)
             indices = tf.cast(indices, dtype=tf.int32)  # Get the correct dtype

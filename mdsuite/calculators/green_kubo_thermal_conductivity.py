@@ -90,7 +90,7 @@ class GreenKuboThermalConductivity(Calculator):
         """
         calculate the current autocorrelation time for correct sampling
         """
-        raise NotImplementedError
+        pass
 
     def _calculate_system_current(self):
         """
@@ -101,8 +101,6 @@ class GreenKuboThermalConductivity(Calculator):
         system_current : np.array
                 thermal current of the system as a vector of shape (n_confs, 3)
         """
-
-        ## TODO: re-implement for thermal conductivity.
 
         velocity_matrix = self.parent.load_matrix("Velocities")  # Load the velocity matrix
         stress_tensor = self.parent.load_matrix("Stress", sym_matrix=True)
