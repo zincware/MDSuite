@@ -7,6 +7,7 @@ Summary
 
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 import h5py as hf
 
@@ -110,32 +111,25 @@ class Calculator(metaclass=abc.ABCMeta):
                                 self.parent.number_of_configurations)
 
         # Get the single frame memory usage in bytes
-        serial_memory_usage = max(memory_usage) * self.data_range
-        parallel_memory_usage = sum(memory_usage) * self.data_range
+        serial_memory_usage = max(memory_usage)
+        parallel_memory_usage = sum(memory_usage)
+        parallel_members = len(memory_usage)
 
         # Update the batch_size attribute
-        self.batch_size['Serial'] = int(np.floor(self.machine_properties['memory'] / serial_memory_usage))
-        self.batch_size['Parallel'] = int(np.floor(self.machine_properties['memory'] / parallel_memory_usage))
+        max_batch_size_serial = int(np.floor(self.machine_properties['memory'] / serial_memory_usage))
+        max_batch_size_parallel = int(np.floor(self.machine_properties['memory'] / parallel_memory_usage))
 
-        if self.batch_size['Serial'] * self.data_range > self.parent.number_of_configurations:
-            self.batch_size['Serial'] = int(np.floor(self.parent.number_of_configurations / self.data_range))
-        if self.batch_size['Parallel'] * self.data_range > self.parent.number_of_configurations:
-            self.batch_size['Parallel'] = int(np.floor(self.parent.number_of_configurations / self.data_range))
+        self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations/max_batch_size_serial).astype(int)
+        self.batch_size['Serial'] = np.ceil(self.parent.number_of_configurations/self.n_batches['Serial']).astype(int)
 
-        # Update the n_batches attribute
-        self.n_batches['Serial'] = np.floor((self.parent.number_of_configurations / self.data_range) /
-                                            self.batch_size['Serial'])
-        self.n_batches['Parallel'] = np.floor((self.parent.number_of_configurations / self.data_range) /
-                                              self.batch_size['Parallel'])
-
-        print(self.batch_size['Serial'])
+        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations / max_batch_size_serial).astype(int)
+        self.batch_size['Parallel'] = np.ceil(self.parent.number_of_configurations / self.n_batches['Serial']).astype(int)
 
     def _calculate_batch_loop(self):
         """
         Calculate the batch loop parameters
         """
-        self.batch_loop = int(self.batch_size[self.batch_type] -
-                              np.round(self.batch_size[self.batch_type] * self.correlation_time / self.data_range))
+        self.batch_loop = np.floor((self.batch_size[self.batch_type] - self.data_range)/(self.correlation_time + 1)) + 1
 
     def _load_batch(self, batch_number, item=None):
         """
@@ -153,12 +147,10 @@ class Calculator(metaclass=abc.ABCMeta):
         data array : np.array, tf.tensor
                 This implementation returns a tensor of the species positions.
         """
-        start = batch_number * self.batch_size[self.batch_type] * self.data_range
-        stop = start + self.batch_size[self.batch_type] * self.data_range
+        start = int(batch_number * self.batch_size[self.batch_type])
+        stop = int(start + self.batch_size[self.batch_type])
 
-        return self.parent.load_matrix(self.loaded_property,
-                                       [item],
-                                       select_slice=np.s_[:, start:stop],
+        return self.parent.load_matrix(self.loaded_property, [item], select_slice=np.s_[:, start:stop],
                                        tensor=self.tensor_choice)
 
     def _save_data(self, title, data):
@@ -202,6 +194,22 @@ class Calculator(metaclass=abc.ABCMeta):
         Perform garbage collection after an analysis
         """
         raise NotImplementedError
+
+    def _check_input(self):
+        """
+        Look for user input that would kill the analysis
+
+        Returns
+        -------
+        status: int
+            if 0, check failed, if 1, check passed.
+        """
+        if self.data_range > self.parent.number_of_configurations - self.correlation_time:
+            print("Data range is impossible for this system, reduce and try again")
+
+            return 0
+        else:
+            return 1
 
     @abc.abstractmethod
     def run_analysis(self):

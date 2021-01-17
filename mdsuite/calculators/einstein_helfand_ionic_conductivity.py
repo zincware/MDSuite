@@ -208,4 +208,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self._autocorrelation_time()            # get the correct correlation time
         self._collect_machine_properties()      # collect machine properties and determine batch size
         self._calculate_batch_loop()            # Update the batch loop attribute
-        self._calculate_ionic_conductivity()    # calculate the ionic conductivity
+        status = self._check_input()            # Check for bad input
+        if status == 0:
+            return
+        else:
+            self._calculate_ionic_conductivity()    # calculate the ionic conductivity
