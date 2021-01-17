@@ -116,7 +116,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.correlation_time = 100  # correlation time TODO: do not hard code this.
+        self.correlation_time = 2  # correlation time TODO: do not hard code this.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -169,6 +169,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             # Construct the MSD function
             for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
                 batch = self._load_batch(i, item)  # load a batch of data
+                print(self.batch_loop)
                 for start_index in range(self.batch_loop):
                     start = start_index*self.data_range + self.correlation_time
                     stop = start + self.data_range

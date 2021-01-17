@@ -6,10 +6,13 @@ Summary
 """
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 import h5py as hf
 
 from mdsuite.utils.meta_functions import *
+from mdsuite.utils.exceptions import *
+
 import abc
 
 
@@ -61,24 +64,24 @@ class Calculator(metaclass=abc.ABCMeta):
 
         """
 
-        self.parent = obj                   # Experiment object to get properties from
-        self.data_range = data_range        # Data range over which to evaluate
-        self.plot = plot                    # Whether or not to plot the data and save a figure
-        self.save = save                    # Whether or not to save the calculated data (Default is true)
-        self.loaded_property = None         # Which dataset to load
-        self.parallel = False               # If true, run analysis in parallel
-        self.batch_type = None              # Choose parallel or serial for memory management
-        self.tensor_choice = False          # If true, data is loaded as a tensors
-        self.batch_size = {}                # Size of the batch to use during the analysis
-        self.n_batches = {}                 # Number of batches to be calculated over
-        self.machine_properties = None      # dictionary of machine properties to be evaluated at analysis run-time
-        self.correlation_time = None        # correlation time of the property
+        self.parent = obj  # Experiment object to get properties from
+        self.data_range = data_range  # Data range over which to evaluate
+        self.plot = plot  # Whether or not to plot the data and save a figure
+        self.save = save  # Whether or not to save the calculated data (Default is true)
+        self.loaded_property = None  # Which dataset to load
+        self.parallel = False  # If true, run analysis in parallel
+        self.batch_type = None  # Choose parallel or serial for memory management
+        self.tensor_choice = False  # If true, data is loaded as a tensors
+        self.batch_size = {}  # Size of the batch to use during the analysis
+        self.n_batches = {}  # Number of batches to be calculated over
+        self.machine_properties = None  # dictionary of machine properties to be evaluated at analysis run-time
+        self.correlation_time = None  # correlation time of the property
 
-        self.x_label = x_label              # x label of the figure
-        self.y_label = y_label              # y label of the figure
+        self.x_label = x_label  # x label of the figure
+        self.y_label = y_label  # y label of the figure
         self.analysis_name = analysis_name  # what to save the figure as
 
-        self.database_group = None          # Which database group to save the data in
+        self.database_group = None  # Which database group to save the data in
 
         # Solve for the batch type
         if self.parallel:
@@ -114,24 +117,25 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_size['Serial'] = int(np.floor(self.machine_properties['memory'] / serial_memory_usage))
         self.batch_size['Parallel'] = int(np.floor(self.machine_properties['memory'] / parallel_memory_usage))
 
-        if self.batch_size['Serial']*self.data_range > self.parent.number_of_configurations:
-            self.batch_size['Serial'] = int(np.floor(self.parent.number_of_configurations/self.data_range))
-        if self.batch_size['Parallel']*self.data_range > self.parent.number_of_configurations:
-            self.batch_size['Parallel'] = int(np.floor(self.parent.number_of_configurations/self.data_range))
+        if self.batch_size['Serial'] * self.data_range > self.parent.number_of_configurations:
+            self.batch_size['Serial'] = int(np.floor(self.parent.number_of_configurations / self.data_range))
+        if self.batch_size['Parallel'] * self.data_range > self.parent.number_of_configurations:
+            self.batch_size['Parallel'] = int(np.floor(self.parent.number_of_configurations / self.data_range))
 
         # Update the n_batches attribute
-        self.n_batches['Serial'] = np.floor(((self.parent.number_of_configurations - self.data_range -
-                                             1)/self.data_range) / self.batch_size['Serial']) + 1
-        self.n_batches['Parallel'] = np.floor(((self.parent.number_of_configurations - self.data_range -
-                                                   1)/self.data_range) / self.batch_size['Parallel']) + 1
+        self.n_batches['Serial'] = np.floor((self.parent.number_of_configurations / self.data_range) /
+                                            self.batch_size['Serial'])
+        self.n_batches['Parallel'] = np.floor((self.parent.number_of_configurations / self.data_range) /
+                                              self.batch_size['Parallel'])
+
+        print(self.batch_size['Serial'])
 
     def _calculate_batch_loop(self):
         """
         Calculate the batch loop parameters
         """
-
-        self.batch_loop = int((self.batch_size[self.batch_type] * self.data_range) /
-                              (self.data_range + self.correlation_time))
+        self.batch_loop = int(self.batch_size[self.batch_type] -
+                              np.round(self.batch_size[self.batch_type] * self.correlation_time / self.data_range))
 
     def _load_batch(self, batch_number, item=None):
         """
@@ -171,7 +175,11 @@ class Calculator(metaclass=abc.ABCMeta):
         """
 
         with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r+') as db:
-            db[self.database_group].create_dataset(title, data=data, dtype=float)
+            if title in db[self.database_group].keys():
+                del db[self.database_group][title]
+                db[self.database_group].create_dataset(title, data=data, dtype=float)
+            else:
+                db[self.database_group].create_dataset(title, data=data, dtype=float)
 
     def _plot_data(self, title=None, manual=False):
         """
