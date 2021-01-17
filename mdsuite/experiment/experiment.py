@@ -20,80 +20,59 @@ import tensorflow as tf
 from diagrams import Diagram, Cluster
 from diagrams.aws.compute import ECS
 from diagrams.aws.database import RDS
+from traits.trait_types import self
 
 from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations
+from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
+from mdsuite.utils.exceptions import *
 
 
 class Experiment:
     """
-       Experiment from simulation
-       The central experiment class fundamental to all analysis.
-       Attributes
-       ----------
-       trajectory_file : str
-               A file containing trajectory data of a simulation
-       analysis_name : str
-               The name of the analysis being performed e.g. NaCl_1400K
-       storage_path : str
-               Path to where the data should be stored (best to have  drive capable of storing large files)
-       temperature : float
-               The temperature of the simulation that should be used in some analysis. Necessary as it cannot be easily
-               read in from the simulation data.
-       time_step : float
-               Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
-       volume : float
-               Volume of the simulation box
-       species : dict
-               A dictionary of the species in the system and their properties. Their properties includes
-               index location in the trajectory file, mass of the species as taken from the PubChem
-               database, and the charge taken from the same database. When using these properties, it is
-               best that users confirm this information, with exception to the indices as they are read
-               from the file and will be correct.
-       number_of_atoms : int
-               The total number of atoms in the simulation
+    The central experiment class fundamental to all analysis.
 
+    Attributes
+    ----------
+    trajectory_file : str
+            A file containing trajectory data of a simulation
+    analysis_name : str
+            The name of the analysis being performed e.g. NaCl_1400K
+    storage_path : str
+            Path to where the data should be stored (best to have  drive capable of storing large files)
+    temperature : float
+            The temperature of the simulation that should be used in some analysis. Necessary as it cannot be easily
+            read in from the simulation data.
+    time_step : float
+            Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+    volume : float
+            Volume of the simulation box
+    species : dict
+            A dictionary of the species in the system and their properties. Their properties includes
+            index location in the trajectory file, mass of the species as taken from the PubChem
+            database, and the charge taken from the same database. When using these properties, it is
+            best that users confirm this information, with exception to the indices as they are read
+            from the file and will be correct.
+    number_of_atoms : int
+            The total number of atoms in the simulation
+   """
 
-       properties : dict
-   class Experiment():
-               Properties in the trajectory available for analysis, not important for understanding
-
-
-       property_groups : dict
-       def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
-               Property groups, e.g Forces, Positions, Velocities, Torques,  along with their
-               location in the trajectory file.
-       dimensions : float
-               Dimensionality of the system e.g. 3.0. This is currently not used anywhere in a useful way.
-               It is called in the calculations of some properties, but these properties cannot really be
-               calculated in any dimension other than 3 at the moment. Therefore this attribute is here
-               mostly for future functionality.
-       box_array : list
-               Box lengths of the simulation, e.g [13.1, 22, 8.0]. It should be noted that at the moment
-               only cuboid structures can be used. If a non-rectangular box is parsed, the code will
-               read it in as a cuboid.
-       number_of_configurations : int
-               The number of configurations in the trajectory
-       units : dict
-               A dictionary of the to-SI unit conversion depending on the units used during the simulation.
-               In this code we stick to LAMMPS units conventions.
-       diffusion_coefficients : dict
-               A dictionary of diffusion coefficients including from Einstein and Green-Kubo,
-               and split again into singular and distinct coefficients.
-       ionic_conductivity : dict
-               Ionic conductivity of the system given by several different calculations including the
-               Green-Kubo approach, the Einstein-Helfand approach, the Nernst-Einstein, and the Corrected
-               Nernst-Einstein approaches.
-       thermal_conductivity : dict
-               The thermal conductivity of the material. Can be calculated from a flux file or from local
-               atomic energies. These different values are stored as key: value pairs in the dictionary.
-       """
-
-def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
+    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
         """
         Initialise the experiment class.
+
+        Attributes
+        ----------
+        analysis_name : str
+                The name of the analysis being performed e.g. NaCl_1400K
+        storage_path : str
+                Path to where the data should be stored (best to have  drive capable of storing large files)
+        temperature : float
+                The temperature of the simulation that should be used in some analysis.
+        time_step : float
+                Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
         """
 
         # Taken upon instantiation
@@ -105,6 +84,46 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
         self.number_of_configurations = 0  # Number of configurations in the trajectory.
+        self.number_of_atoms = None  # Number of atoms in the simulation.
+        self.time_dimensions = None  # Good question
+        self.species = None  # Species dictionary.
+        self.box_array = None  # Box vectors.
+        self.dimensions = None  # Dimensionality of the system.
+        self.trajectory_file = None  # Name of the trajectory file.
+        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
+        self.batch_size = None  # Number of configurations in each batch.
+        self.volume = None  # Volume of the system.
+        self.properties = None  # Properties measured in the simulation.
+        self.property_groups = None  # Names of the properties measured in the simulation
+
+        # File related properties
+        self.file_format = None  # format of the file being studied
+        self.file_type = None  # type of file being studied, per-atom, or flux
+        self.filepath = None  # Path to trajectory file
+
+        # Analysis Results  -- We will make this separate, but all attributes should be defined here.
+        self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
+                                       "Green-Kubo": {"Singular": {}, "Distinct": {}}}
+        self.ionic_conductivity = {"Einstein-Helfand": {},
+                                   "Green-Kubo": {},
+                                   "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
+                                   "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
+        self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
+        self.coordination_numbers = {}
+        self.potential_of_mean_force_values = {}
+        self.radial_distribution_function_state = False  # Set true if this has been calculated
+        self.kirkwood_buff_integral_state = True  # Set true if it has been calculated
+
+        # Dictionary of results
+        self.results = {
+            'diffusion_coefficients': self.diffusion_coefficients,
+            'ionic_conductivity': self.ionic_conductivity,
+            'thermal_conductivity': self.thermal_conductivity,
+            'coordination_numbers': self.coordination_numbers,
+            'potential_of_mean_force_values': self.potential_of_mean_force_values,
+            'radial_distribution_function': self.radial_distribution_function_state,
+            'kirkwood_buff_integral': self.kirkwood_buff_integral_state
+        }
 
         # Memory properties
         self.memory_requirements = {}
@@ -171,9 +190,10 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         --------
         Pass from metal units of time (ps) to SI
 
-        >>> units_to_si('metal')
+        >>> self.units_to_si('metal')
         {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19}
-        >>> units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19, 'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
+        >>> self.units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
+        'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
         """
 
         if isinstance(units_system, dict):
@@ -210,15 +230,41 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         try:
             class_compute = dict_classes_computations[computation_name]
         except KeyError:
-            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
             print(f'{computation_name} not found')
             print(f'Available computations are:')
             [print(key) for key in dict_classes_computations.keys()]
-            sys.exit(1)
+            return
 
         object_compute = class_compute(self, **kwargs)
         object_compute.run_analysis()
         self.save_class()
+
+    def perform_transformation(self, transformation_name, **kwargs):
+        """
+        Perform a transformation on the system.
+
+        Parameters
+        ----------
+        transformation_name : str
+                Name of the transformation to perform.
+        **kwargs
+                Other arguments associated with the transformation.
+
+        Returns
+        -------
+        Update of the database.
+        """
+
+        try:
+            transformation = transformations_dict[transformation_name]
+        except KeyError:
+            print(f'{transformation_name} not found')
+            print(f'Available transformations are:')
+            [print(key) for key in transformations_dict.keys()]
+            return
+
+        transformation_run = transformation(self, **kwargs)
+        transformation_run.run_transformation()  # perform the transformation
 
     def _build_model(self):
         """
@@ -281,6 +327,8 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
 
         Parameters
         ----------
+        file_format :
+                Foramt of the file being read in. Default is lammpstraj
         trajectory_file : str
                 Trajectory file to be process and added to the database.
         """
@@ -323,7 +371,6 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         try:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
-            # TODO: maybe this exception can be done better, but I dont know enough about handling exceptions.
             print(f'{file_format} not found')
             print(f'Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
@@ -334,7 +381,7 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         """
         Add information to the species dictionary
 
-        A fundamental part of this package is species specific analysis. Therefore, the mendeleev python package is
+        A fundamental part of this package is species specific analysis. Therefore, the Pubchempy package is
         used to add important species specific information to the class. This will include the charge of the ions which
         will be used in conductivity calculations.
 
@@ -351,13 +398,13 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
 
         # If gathering the data from the PSE file was not successful try to get it from Pubchem via pubchempy
         for element in self.species:
-            if not 'mass' in self.species[element]:
+            if 'mass' not in self.species[element]:
                 try:
                     temp = pcp.get_compounds(element, 'name')
                     temp[0].to_dict(properties=['atoms', 'bonds', 'exact_mass', 'molecular_weight', 'elements'])
                     self.species[element]['mass'] = temp[0].molecular_weight
                     print(temp[0].exact_mass)
-                except:
+                except ElementMassAssignedZero:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
@@ -380,6 +427,11 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
                         for dataset in db[item][group]:  # Loop over the datasets in the group
                             memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
                         self.memory_requirements[item][group] = memory  # Update the dictionary.
+                for group in list(db[item].keys()):  # Loop over property groups
+                    memory = 0  # Dummy variable for memory
+                    for dataset in db[item][group]:  # Loop over the datasets in the group
+                        memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
+                    self.memory_requirements[item][group] = memory  # Update the dictionary.
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
@@ -422,7 +474,7 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
                     print("We first have to unwrap the coordinates... Doing this now")
-                    self.unwrap_coordinates(species=[item])  # perform the coordinate unwrapping.
+                    self.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
 
                 # Check if the desired property is in the database.
                 if identifier not in database[item]:
@@ -459,6 +511,13 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
             return property_matrix  # return the full tensor object.
 
     def build_dictionary_results(self):
+        """
+        Build the results dictionary
+
+        Returns
+        -------
+        Updates the class state.
+        """
         # Properties of the experiment
         # TODO: maybe we could put all of this in a single structure.
         # self.system_measurements = {}         #  Properties measured during the analysis.
@@ -496,3 +555,17 @@ def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=
         filename = Path(f"{self.storage_path}/{self.analysis_name}.json")
         with open(filename, 'w') as fp:
             json.dump(self.results, fp, indent=4, sort_keys=True)
+
+    def _update_database(self, trajectory_reader):
+        """
+        Update the database when new data is added to a pre-existing experiment.
+
+        Parameters
+        ----------
+        trajectory_reader
+
+        Returns
+        -------
+
+        """
+        pass

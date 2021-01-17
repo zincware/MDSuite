@@ -115,14 +115,17 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
         self.correlation_time = 100  # correlation time TODO: do not hard code this.
 
+        if species is None:
+            self.species = list(self.parent.species)
         # Check for unwrapped coordinates and unwrap if not stored already.
         with hf.File(f"{obj.storage_path}/{obj.analysis_name}/{obj.analysis_name}.hdf5", "r+") as database:
-            for item in species:
+            for item in self.species:
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:
                     print("Unwrapping coordinates")
-                    obj.unwrap_coordinates(species=[item])  # perform the coordinate unwrapping.
+                    obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
+
 
     def _autocorrelation_time(self):
         """
@@ -163,7 +166,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
             # Construct the MSD function
             for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-                batch = self._load_batch(i, [item])  # load a batch of data
+                batch = self._load_batch(i, item)  # load a batch of data
                 for start_index in range(self.batch_loop):
                     start = start_index*self.data_range + self.correlation_time
                     stop = start + self.data_range

@@ -107,9 +107,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:
                     print("Unwrapping coordinates")
-                    obj.unwrap_coordinates(species=[item])  # perform the coordinate unwrapping.
+                    obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
-
 
     def _autocorrelation_time(self):
         """

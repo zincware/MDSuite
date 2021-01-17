@@ -149,7 +149,7 @@ class Calculator(metaclass=abc.ABCMeta):
         stop = start + self.batch_size[self.batch_type] * self.data_range
 
         return self.parent.load_matrix(self.loaded_property,
-                                       item,
+                                       [item],
                                        select_slice=np.s_[:, start:stop],
                                        tensor=self.tensor_choice)
 

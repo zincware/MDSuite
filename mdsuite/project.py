@@ -17,7 +17,7 @@ import numpy as np
 from pathlib import Path
 import pickle
 
-# from mdsuite.experiment.experiment import Experiment
+from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read
 
 
@@ -171,7 +171,7 @@ class Project:
         # If the experiment does not exists, instantiate a new Experiment
         new_experiment = Experiment(experiment_name,
                                     storage_path=f"{self.storage_path}/{self.name}",
-                                    timestep=timestep,
+                                    time_step=timestep,
                                     units=units,
                                     temperature=temperature)
 
