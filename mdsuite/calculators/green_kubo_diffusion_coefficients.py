@@ -99,7 +99,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 500  # correlation time of the velocities.
+        self.correlation_time = 1  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -135,7 +135,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
         for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-            batch = self._load_batch(i, [item])  # load a batch of data
+            batch = self._load_batch(i, item)  # load a batch of data
 
             for start_index in range(self.batch_loop):
                 start = start_index*self.data_range + self.correlation_time

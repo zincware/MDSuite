@@ -44,3 +44,10 @@ class NoGPUInSystem(Exception):
     """
     def __init__(self):
         Exception.__init__(self, "No GPUs detected, continuing without GPU support")
+
+
+class DatasetExists(Exception):
+    """
+    Thrown if a dataset in a hdf5 database already exists
+    """
+    pass
