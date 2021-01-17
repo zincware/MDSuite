@@ -27,7 +27,7 @@ NaCl_1400K.save_class()
 print('\n number of configs \n', NaCl_1400K.number_of_configurations)
 
 #################
-# Analysis part #
+# Calculator part #
 #################
 
 # Do the diffusion analysis with your experiment
