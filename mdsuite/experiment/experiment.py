@@ -27,9 +27,71 @@ from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 
 
-class Experiment():
+class Experiment:
+    """
+       Experiment from simulation
+       The central experiment class fundamental to all analysis.
+       Attributes
+       ----------
+       trajectory_file : str
+               A file containing trajectory data of a simulation
+       analysis_name : str
+               The name of the analysis being performed e.g. NaCl_1400K
+       storage_path : str
+               Path to where the data should be stored (best to have  drive capable of storing large files)
+       temperature : float
+               The temperature of the simulation that should be used in some analysis. Necessary as it cannot be easily
+               read in from the simulation data.
+       time_step : float
+               Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+       volume : float
+               Volume of the simulation box
+       species : dict
+               A dictionary of the species in the system and their properties. Their properties includes
+               index location in the trajectory file, mass of the species as taken from the PubChem
+               database, and the charge taken from the same database. When using these properties, it is
+               best that users confirm this information, with exception to the indices as they are read
+               from the file and will be correct.
+       number_of_atoms : int
+               The total number of atoms in the simulation
 
-    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
+
+       properties : dict
+   class Experiment():
+               Properties in the trajectory available for analysis, not important for understanding
+
+
+       property_groups : dict
+       def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
+               Property groups, e.g Forces, Positions, Velocities, Torques,  along with their
+               location in the trajectory file.
+       dimensions : float
+               Dimensionality of the system e.g. 3.0. This is currently not used anywhere in a useful way.
+               It is called in the calculations of some properties, but these properties cannot really be
+               calculated in any dimension other than 3 at the moment. Therefore this attribute is here
+               mostly for future functionality.
+       box_array : list
+               Box lengths of the simulation, e.g [13.1, 22, 8.0]. It should be noted that at the moment
+               only cuboid structures can be used. If a non-rectangular box is parsed, the code will
+               read it in as a cuboid.
+       number_of_configurations : int
+               The number of configurations in the trajectory
+       units : dict
+               A dictionary of the to-SI unit conversion depending on the units used during the simulation.
+               In this code we stick to LAMMPS units conventions.
+       diffusion_coefficients : dict
+               A dictionary of diffusion coefficients including from Einstein and Green-Kubo,
+               and split again into singular and distinct coefficients.
+       ionic_conductivity : dict
+               Ionic conductivity of the system given by several different calculations including the
+               Green-Kubo approach, the Einstein-Helfand approach, the Nernst-Einstein, and the Corrected
+               Nernst-Einstein approaches.
+       thermal_conductivity : dict
+               The thermal conductivity of the material. Can be calculated from a flux file or from local
+               atomic energies. These different values are stored as key: value pairs in the dictionary.
+       """
+
+def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
         """
         Initialise the experiment class.
         """
