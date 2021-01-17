@@ -245,7 +245,9 @@ class RadialDistributionFunction(Analysis):
         bin_width = self.cutoff / self.bins
         bin_edges = (np.linspace(0.0, self.cutoff, self.bins) ** 2) * 4 * np.pi * bin_width
 
-        rho = len(self.parent.species[species_split[0]]['indices']) / self.parent.volume  # Density all atoms / total volume
+
+
+        rho = len(self.parent.species[species_split[1]]['indices']) / self.parent.volume  # Density all atoms / total volume
         numerator = species_scale_factor
         denominator = self.n_confs * rho * bin_edges * len(self.parent.species[species_split[0]]['indices'])
         prefactor = numerator / denominator
@@ -285,6 +287,8 @@ class RadialDistributionFunction(Analysis):
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
             rdf.update({names: rdf.get(names) * prefactor})  # Apply the prefactor
             plt.plot(np.linspace(0.0, self.cutoff, self.bins), rdf.get(names))
+            plt.title(names)
+            plt.show()
             if self.save:  # get the species names
                 self._save_data(f'{names}_{self.analysis_name}',
                                 [np.linspace(0.0, self.cutoff, self.bins), rdf.get(names)])

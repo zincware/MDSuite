@@ -133,6 +133,16 @@ class EinsteinDiffusionCoefficients(Analysis):
         """
         pass
 
+    def _optimize_data_range(self):
+        """
+        Optimize the data range of a system using the Einstein method of calculation.
+
+        Returns
+        -------
+        Updates the data_range attribute of the class state
+        """
+        pass
+
     def _single_diffusion_coefficients(self):
         """
         Calculate singular diffusion coefficients
