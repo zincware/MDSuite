@@ -275,8 +275,11 @@ class GreenKuboDiffusionCoefficients(Calculator):
         self._autocorrelation_time()                    # get the correct autocorrelation time
         self._collect_machine_properties()              # collect machine properties and determine batch size
         self._calculate_batch_loop()                    # Update the batch loop attribute
-
-        if self.singular:
-            self._singular_diffusion_coefficients()     # calculate the singular diffusion coefficients
-        if self.distinct:
-            self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
+        status = self._check_input()                    # Check for bad input
+        if status == 0:
+            return
+        else:
+            if self.singular:
+                self._singular_diffusion_coefficients()     # calculate the singular diffusion coefficients
+            if self.distinct:
+                self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients

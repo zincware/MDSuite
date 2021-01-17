@@ -194,5 +194,8 @@ class GreenKuboThermalConductivity(Calculator):
         The thermal conductivity is computed at this step.
         """
         self._autocorrelation_time()  # get the autocorrelation time
-
-        self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
+        status = self._check_input()  # Check for bad input
+        if status == 0:
+            return
+        else:
+            self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients

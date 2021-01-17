@@ -169,9 +169,8 @@ class EinsteinDiffusionCoefficients(Calculator):
             # Construct the MSD function
             for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
                 batch = self._load_batch(i, item)  # load a batch of data
-                print(self.batch_loop)
-                for start_index in range(self.batch_loop):
-                    start = start_index*self.data_range + self.correlation_time
+                for start_index in range(int(self.batch_loop)):
+                    start = start_index + self.correlation_time
                     stop = start + self.data_range
                     window_tensor = batch[:, start:stop]
 
@@ -224,7 +223,11 @@ class EinsteinDiffusionCoefficients(Calculator):
         self._autocorrelation_time()                    # get the autocorrelation time
         self._collect_machine_properties()              # collect machine properties and determine batch size
         self._calculate_batch_loop()                    # Update the batch loop attribute
-        if self.singular:
-            self._single_diffusion_coefficients()       # calculate the singular diffusion coefficients
-        if self.distinct:
-            self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
+        status = self._check_input()                    # Check for bad input
+        if status == 0:
+            return
+        else:
+            if self.singular:
+                self._single_diffusion_coefficients()       # calculate the singular diffusion coefficients
+            if self.distinct:
+                self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
