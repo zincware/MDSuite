@@ -120,7 +120,7 @@ class FileProcessor:
                                                                    initial_length),
                                                       maxshape=(
                                                           len(self.project.species[item]['indices']), None),
-                                                      scaleoffset=10)
+                                                      scaleoffset=5)
 
                     elif len(columns) == 6:  # symmetric tensor (for stress tensor for example)
                         database[item].create_group(observable)
@@ -130,7 +130,7 @@ class FileProcessor:
                                                                       maxshape=(
                                                                           len(self.project.species[item]['indices']),
                                                                           None),
-                                                                      scaleoffset=10)
+                                                                      scaleoffset=5)
 
                     else:  # vector
                         database[item].create_group(observable)
@@ -140,13 +140,12 @@ class FileProcessor:
                                                                       maxshape=(
                                                                           len(self.project.species[item]['indices']),
                                                                           None),
-                                                                      scaleoffset=10)
+                                                                      scaleoffset=5)
 
     def resize_database(self):
         """
         Resize the database skeleton
         """
-
         # Get the number of additional configurations TODO: Again add support for collecting the remainder.
         resize_factor = self.project.number_of_configurations - \
                         self.project.number_of_configurations % \
