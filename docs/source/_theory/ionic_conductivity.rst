@@ -1,4 +1,3 @@
-:orphan:
 Ionic Conductivity
 ==================
 Ionic conductivity describes how charge is conducted by the carriers in a system.

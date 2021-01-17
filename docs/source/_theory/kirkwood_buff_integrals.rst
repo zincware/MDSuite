@@ -1,4 +1,3 @@
-:orphan:
 Kirkwood-Buff Integrals
 =======================
 The Kirkwood-Buff integrals give users information about thermodynamic properties of a system, and are directly related
