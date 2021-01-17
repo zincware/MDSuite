@@ -85,6 +85,7 @@ class GreenKuboThermalConductivity(Calculator):
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
         self.loop_range = self.number_of_configurations - data_range - 1
         self.correlation_time = 1
+        self.database_group = 'thermal_conductivity'  # Which database group to save the data in
 
     def _autocorrelation_time(self):
         """

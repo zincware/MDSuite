@@ -22,7 +22,6 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
 # MDSuite imports
-from mdsuite.utils.constants import *
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
 
@@ -105,6 +104,8 @@ class PotentialOfMeanForce(Calculator):
         self.species_tuple = None                                             # Which species are being studied
         self.pomf = None                                                      # potential of mean force array
         self.indices = None                                                   # Indices of the pomf range
+        self.database_group = 'potential_of_mean_force_values'                # Which database group to save the data in
+
 
     def _get_rdf_data(self):
         """

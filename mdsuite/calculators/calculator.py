@@ -7,6 +7,8 @@ Summary
 
 import matplotlib.pyplot as plt
 
+import h5py as hf
+
 from mdsuite.utils.meta_functions import *
 import abc
 
@@ -75,6 +77,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.x_label = x_label              # x label of the figure
         self.y_label = y_label              # y label of the figure
         self.analysis_name = analysis_name  # what to save the figure as
+
+        self.database_group = None          # Which database group to save the data in
 
         # Solve for the batch type
         if self.parallel:
@@ -166,7 +170,8 @@ class Calculator(metaclass=abc.ABCMeta):
                 Data to be saved.
         """
 
-        np.save(f"{self.parent.storage_path}/{self.parent.analysis_name}/data/{title}.npy", data)
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r+') as db:
+            db[self.database_group].create_dataset(title, data=data, dtype=float)
 
     def _plot_data(self, title=None, manual=False):
         """
@@ -177,14 +182,12 @@ class Calculator(metaclass=abc.ABCMeta):
             title = f"{self.analysis_name}"
 
         if manual:
-            plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{title}.svg",
-                        dpi=600, format='svg')
+            plt.savefig(os.path.join(self.parent.figures_path, f"{title}.svg"), dpi=600, format='svg')
         else:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.legend()  # enable the legend
-            plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{title}.svg",
-                        dpi=600, format='svg')
+            plt.savefig(os.path.join(self.parent.figures_path, f"{title}.svg"), dpi=600, format='svg')
 
     def _perform_garbage_collection(self):
         """
@@ -199,7 +202,7 @@ class Calculator(metaclass=abc.ABCMeta):
         Should follow the general outline detailed below:
         self._autocorrelation_time()  # Calculate the relevant autocorrelation time
         self._analysis()  # Can be diffusion coefficients or whatever is being calculated, but run the calculation
-        self._error_analysis  # Run an error analysis, could be done during the calculation, or may have to be for the sake of memory.
+        self._error_analysis  # Run an error analysis, could be done during the calculation.
         self._update_experiment  # Update the main experiment class with the calculated properties
 
         """

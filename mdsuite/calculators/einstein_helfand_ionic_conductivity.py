@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import warnings
 from scipy.optimize import curve_fit
 import numpy as np
+import os
 
 # Import user packages
 from tqdm import tqdm
@@ -98,11 +99,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.correlation_time = 50                    # Correlation time of the current
         self.species = species                        # species on which to perform the analysis
 
+        self.database_group = 'ionic_conductivity'    # Which database group to save the data in
+
         # Time array for the calculations
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
         # Check for unwrapped coordinates and unwrap if not stored already.
-        with hf.File(f"{obj.storage_path}/{obj.analysis_name}/{obj.analysis_name}.hdf5", "r+") as database:
+
+        with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
             for item in species:
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:

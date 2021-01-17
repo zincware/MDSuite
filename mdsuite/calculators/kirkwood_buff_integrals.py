@@ -4,16 +4,11 @@ Class for the calculation of the coordinated numbers
 
 import numpy as np
 import os
-from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
 # MDSuite imports
-from mdsuite.utils.constants import *
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
-
-from mdsuite.utils.meta_functions import golden_section_search
-from mdsuite.utils.meta_functions import apply_savgol_filter
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -87,6 +82,8 @@ class KirkwoodBuffIntegral(Calculator):
         self.radii = None                                                     # radii of the rdf
         self.species_tuple = None                                             # Which species are being studied
         self.kb_integral = None                                               # Kirkwood-Buff integral for the rdf
+        self.database_group = 'kirkwood_buff_integral'                        # Which database group to save the data in
+
 
     def _autocorrelation_time(self):
         """

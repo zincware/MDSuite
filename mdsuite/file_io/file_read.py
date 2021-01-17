@@ -9,6 +9,8 @@ import h5py as hf
 import numpy as np
 from tqdm import tqdm
 import abc
+import os
+
 
 class FileProcessor(metaclass=abc.ABCMeta):
     """
@@ -95,8 +97,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
 
         # Build the database structure
-        with hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
-                     libver='latest') as database:
+        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'w', libver='latest') as database:
 
             # Loop over the different species.
             for item in self.project.species:
@@ -145,7 +146,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
                         self.project.batch_size
 
         # Open the database and resize the database.
-        with hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'r+',
+        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'r+',
                      libver='latest') as database:
 
             # Loop over species in the database.
@@ -178,7 +179,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
         """
 
     @staticmethod
-    def _extract_properties(database_correspondance_dict, column_dict_properties):
+    def _extract_properties(database_correspondence_dict, column_dict_properties):
         """
         Construct generalized property array
 
@@ -195,16 +196,16 @@ class FileProcessor(metaclass=abc.ABCMeta):
         """
 
         # for each property label (position, velocity,etc) in the lammps definition
-        for property_label, property_names in database_correspondance_dict.items():
+        for property_label, property_names in database_correspondence_dict.items():
             # for each coordinate for a given property label (position: x, y, z), get idx and the name
             for idx, property_name in enumerate(property_names):
                 if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
                     # we change the lammps_properties_dict replacing the string of the property name by the column name
-                    database_correspondance_dict[property_label][idx] = column_dict_properties[property_name]
+                    database_correspondence_dict[property_label][idx] = column_dict_properties[property_name]
 
         # trajectory_properties only needs the labels with the integer columns, then we one copy those
         trajectory_properties = {}
-        for property_label, properties_columns in database_correspondance_dict.items():
+        for property_label, properties_columns in database_correspondence_dict.items():
             if all([isinstance(property_column, int) for property_column in properties_columns]):
                 trajectory_properties[property_label] = properties_columns
 
@@ -226,10 +227,9 @@ class FileProcessor(metaclass=abc.ABCMeta):
                 Number of configurations that have been read in.
         """
 
-        loop_range = int(
-            (self.project.number_of_configurations - counter) / self.project.batch_size)  # loop range for the data.
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.project.storage_path, self.project.analysis_name),
-                     "r+") as database:
+        # loop range for the data.
+        loop_range = int((self.project.number_of_configurations - counter) / self.project.batch_size)
+        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), "r+") as database:
             with open(self.project.trajectory_file) as f:
                 for _ in tqdm(range(loop_range), ncols=70):
                     batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data

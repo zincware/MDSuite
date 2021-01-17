@@ -76,43 +76,44 @@ class Experiment:
         """
 
         # Taken upon instantiation
-        self.analysis_name = analysis_name  # Name of the experiment.
-        self.storage_path = storage_path  # Where to store the data - should have sufficient free space.
-        self.temperature = temperature  # Temperature of the system.
-        self.time_step = time_step  # Timestep chosen for the simulation.
+        self.analysis_name = analysis_name                 # Name of the experiment.
+        self.storage_path = os.path.abspath(storage_path)  # Where to store the data
+        self.temperature = temperature                     # Temperature of the system.
+        self.time_step = time_step                         # Timestep chosen for the simulation.
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
-        self.number_of_configurations = 0  # Number of configurations in the trajectory.
-        self.number_of_atoms = None  # Number of atoms in the simulation.
-        self.time_dimensions = None  # Good question
-        self.species = None  # Species dictionary.
-        self.box_array = None  # Box vectors.
-        self.dimensions = None  # Dimensionality of the system.
-        self.trajectory_file = None  # Name of the trajectory file.
-        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
-        self.batch_size = None  # Number of configurations in each batch.
-        self.volume = None  # Volume of the system.
-        self.properties = None  # Properties measured in the simulation.
-        self.property_groups = None  # Names of the properties measured in the simulation
+        self.number_of_configurations = 0     # Number of configurations in the trajectory.
+        self.number_of_atoms = None           # Number of atoms in the simulation.
+        self.species = None                   # Species dictionary.
+        self.box_array = None                 # Box vectors.
+        self.dimensions = None                # Dimensionality of the system.
+        self.trajectory_file = None           # Name of the trajectory file.
+        self.sample_rate = None               # Rate at which configurations are dumped in the trajectory.
+        self.batch_size = None                # Number of configurations in each batch.
+        self.volume = None                    # Volume of the system.
+        self.properties = None                # Properties measured in the simulation.
+        self.property_groups = None           # Names of the properties measured in the simulation
 
         # File related properties
         self.file_format = None  # format of the file being studied
-        self.file_type = None  # type of file being studied, per-atom, or flux
-        self.filepath = None  # Path to trajectory file
+        self.file_type = None    # type of file being studied, per-atom, or flux
+        self.filepath = None     # Path to trajectory file
+
+        # Internal File paths
+        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
+        self.database_path = os.path.join(self.experiment_path, 'databases')        # path to the databases
+        self.figures_path = os.path.join(self.experiment_path, 'figures')           # path to the figures directory
 
         # Analysis Results  -- We will make this separate, but all attributes should be defined here.
-        self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
-                                       "Green-Kubo": {"Singular": {}, "Distinct": {}}}
-        self.ionic_conductivity = {"Einstein-Helfand": {},
-                                   "Green-Kubo": {},
-                                   "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
-                                   "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
-        self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
-        self.coordination_numbers = {}
-        self.potential_of_mean_force_values = {}
+        self.diffusion_coefficients = None
+        self.ionic_conductivity = None
+        self.thermal_conductivity = None
+        self.coordination_numbers = None
+        self.potential_of_mean_force_values = None
         self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = True  # Set true if it has been calculated
+        self.kirkwood_buff_integral_state = False        # Set true if it has been calculated
+        self.structure_factor_state = False
 
         # Dictionary of results
         self.results = {
@@ -122,7 +123,8 @@ class Experiment:
             'coordination_numbers': self.coordination_numbers,
             'potential_of_mean_force_values': self.potential_of_mean_force_values,
             'radial_distribution_function': self.radial_distribution_function_state,
-            'kirkwood_buff_integral': self.kirkwood_buff_integral_state
+            'kirkwood_buff_integral': self.kirkwood_buff_integral_state,
+            'structure_factor': self.structure_factor_state
         }
 
         # Memory properties
@@ -130,14 +132,15 @@ class Experiment:
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
-
-        self.build_dictionary_results()
+        self.build_dictionary_results()  # expand the analysis results entries
 
     def _load_or_build(self):
-        test_dir = Path(f"{self.storage_path}/{self.analysis_name}")  # get the theoretical directory
+        """
+        Check if the experiment already exists and decide whether to load it or build a new one.
+        """
 
         # Check if the experiment exists and load if it does.
-        if test_dir.exists():
+        if Path(self.experiment_path).exists():
             print("This experiment already exists! I'll load it up now.")
             self.load_class()
         else:
@@ -165,9 +168,9 @@ class Experiment:
         class for later re-loading
         """
 
-        save_file = open(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin", 'wb')  # construct file
+        save_file = open(os.path.join(self.experiment_path, f"{self.analysis_name}.bin"), 'wb')  # construct file
         save_file.write(pickle.dumps(self.__dict__))  # write to file
-        save_file.close()
+        save_file.close()  # close the file
 
     @staticmethod
     def units_to_si(units_system):
@@ -277,16 +280,15 @@ class Experiment:
 
         # Create new analysis directory and change into it
         try:
-            os.mkdir(f'{self.storage_path}/{self.analysis_name}')  # Make the experiment directory
-            os.mkdir(f'{self.storage_path}/{self.analysis_name}/Figures')  # Create a directory to save images
-            os.mkdir(f'{self.storage_path}/{self.analysis_name}/data')  # Create a directory for data
+            os.mkdir(self.experiment_path)  # Make the experiment directory
+            os.mkdir(self.figures_path)     # Create a directory to save images
+            os.mkdir(self.database_path)    # Create a directory for data
 
-        except FileExistsError:  # throw exception if the file exits
+        except FileExistsError:             # throw exception if the file exits
             return
 
-        self.save_class()  # save the class state.
-
-        print(f"** An experiment has been added entitled {self.analysis_name} **")
+        self.save_class()                   # save the class state.
+        print(f"** An experiment has been added titled {self.analysis_name} **")
 
     def print_class_attributes(self):
         """
@@ -311,7 +313,7 @@ class Experiment:
         Print the data structure of the hdf5 dataset
         """
 
-        database = hf.File("{0}/{1}/{1}.hdf5".format(self.filepath, self.analysis_name), "r")
+        database = hf.File(os.path.join(self.database_path, 'database.hdf5'), "r")
         with Diagram("Web Service", show=True, direction='TB'):
             head = RDS("Database")  # set the head database object
             for item in database:
@@ -321,7 +323,7 @@ class Experiment:
                         group_list.append(ECS(property_group))  # construct a list of equal level groups
                 head >> group_list  # append these groups to the head object
 
-    def add_data(self, trajectory_file=None, file_format='lammps_traj'):
+    def add_data(self, trajectory_file=None, file_format='lammpstraj'):
         """
         Add data to the database
 
@@ -343,11 +345,10 @@ class Experiment:
 
         # Check which type of file it is: flux or per atom
         trajectory_reader, file_type = self._get_system_properties(file_format)
-
         self.file_type = file_type  # flux or per atom
 
         # Check to see if a database exists
-        test_db = Path(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5")  # get theoretical path.
+        test_db = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
         if test_db.exists():
             self._update_database(trajectory_reader)
         else:
@@ -360,12 +361,19 @@ class Experiment:
         """
         Build a new database
         """
+
+        # Build the database object for trajectory information
         trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
         trajectory_reader.build_database_skeleton()  # Build the database skeleton
-        trajectory_reader.fill_database()  # Fill the database with trajectory data
+        trajectory_reader.fill_database()            # Fill the database with trajectory data
         if self.file_type == 'traj':
-            self.build_species_dictionary()  # Add data to the species dictionary.
-        self.save_class()  # Update the class state
+            self.build_species_dictionary()          # Add data to the species dictionary.
+
+        # Build database for analysis output
+        with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
+            for key in self.results:
+                db.create_group(key)
+        self.save_class()                            # Update the class state
 
     def _get_system_properties(self, file_format):
         try:
@@ -416,7 +424,7 @@ class Experiment:
         can be performed during analysis.
         """
 
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.storage_path, self.analysis_name), "r+") as db:
+        with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as db:
             for item in self.species:  # Loop over the species keys
                 self.memory_requirements[item] = {}  # construct a new dict entry
                 for group, columns in self.property_groups.items():  # Loop over property groups
@@ -468,7 +476,7 @@ class Experiment:
 
         property_matrix = []  # Define an empty list for the properties to fill
 
-        with hf.File(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
+        with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
             for item in list(species):
 
                 # Unwrap the positions if they need to be unwrapped
@@ -552,7 +560,8 @@ class Experiment:
         -------
 
         """
-        filename = Path(f"{self.storage_path}/{self.analysis_name}.json")
+
+        filename = os.path.join(self.database_path, 'properties.json')
         with open(filename, 'w') as fp:
             json.dump(self.results, fp, indent=4, sort_keys=True)
 

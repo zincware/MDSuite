@@ -9,6 +9,6 @@ from mdsuite.file_io.lammps_trajectory_files import LAMMPSTrajectoryFile
 from mdsuite.file_io.lammps_flux_files import LAMMPSFluxFile
 
 dict_file_io = {
-    'lammps_traj': (LAMMPSTrajectoryFile, 'traj'),
-    'lammps_flux': (LAMMPSFluxFile, 'flux'),
+    'lammpstraj': (LAMMPSTrajectoryFile, 'traj'),
+    'lammpsflux': (LAMMPSFluxFile, 'flux'),
 }

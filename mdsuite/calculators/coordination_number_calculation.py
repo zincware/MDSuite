@@ -93,6 +93,8 @@ class CoordinationNumbers(Calculator):
         self.species_tuple = None  # Which species are being studied - important for the density calculation
         self.indices = None        # indices of the coordination shells being studied
 
+        self.database_group = 'coordination_numbers'  # Which database group to save the data in
+
         # Calculate the rdf if it has not been done already
         if self.parent.radial_distribution_function_state is False:
             self.parent.radial_distribution_function()  # run rdf calculation on all species.
