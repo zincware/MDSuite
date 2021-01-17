@@ -17,7 +17,6 @@ import warnings
 # Import user packages
 from tqdm import tqdm
 import itertools
-import multiprocessing as mp
 
 # Import mdsuite packages
 from mdsuite.calculators.calculator import Calculator
@@ -87,14 +86,16 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
 
-        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
-        self.batch_loop = None               # Number of ensembles in each batch
-        self.parallel = False                # Set the parallel attribute
-        self.tensor_choice = False           # Load data as a tensor
+        self.loaded_property = 'Velocities'             # Property to be loaded for the analysis
+        self.batch_loop = None                          # Number of ensembles in each batch
+        self.parallel = False                           # Set the parallel attribute
+        self.tensor_choice = False                      # Load data as a tensor
 
-        self.singular = singular             # calculate the singular coefficients
-        self.distinct = distinct             # calculate the distinct coefficients
-        self.species = species               # Which species to calculate for
+        self.singular = singular                        # calculate the singular coefficients
+        self.distinct = distinct                        # calculate the distinct coefficients
+        self.species = species                          # Which species to calculate for
+
+        self.database_group = 'diffusion_coefficients'  # Which database group to save the data in
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)

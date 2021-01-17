@@ -58,6 +58,8 @@ class GreenKuboThermalConductivityFlux:
         self.data_range = data_range
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
+        self.database_group = 'thermal-conductivity'  # Which database group to save the data in
+
     def _autocorrelation_time(self):
         """
         Calculate the flux autocorrelation time to ensure correct sampling
@@ -76,7 +78,7 @@ class GreenKuboThermalConductivityFlux:
         # prepare the prefactor for the integral
         numerator = 1
         denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
-                      * self.parent.volume # we use boltzman constant in the units provided.
+                      * self.parent.volume  # we use boltzman constant in the units provided.
 
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
@@ -85,8 +87,8 @@ class GreenKuboThermalConductivityFlux:
         sigma = prefactor * np.array(sigma)
 
         # convert to SI units.
-        prefactor_units = self.parent.units['energy']/self.parent.units['length']/self.parent.units['time']
-        sigma = prefactor_units*sigma
+        prefactor_units = self.parent.units['energy'] / self.parent.units['length'] / self.parent.units['time']
+        sigma = prefactor_units * sigma
 
         if self.plot:
             averaged_jacf /= max(averaged_jacf)

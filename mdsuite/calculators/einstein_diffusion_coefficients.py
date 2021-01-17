@@ -16,6 +16,7 @@ import numpy as np
 import warnings
 import tensorflow as tf
 import h5py as hf
+import os
 
 # Import user packages
 from tqdm import tqdm
@@ -102,14 +103,16 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
 
-        self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded
-        self.batch_loop = None                        # Number of ensembles in each batch
-        self.parallel = False                         # Set the parallel attribute
-        self.tensor_choice = True                     # Load data as a tensor
+        self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
+        self.batch_loop = None                          # Number of ensembles in each batch
+        self.parallel = False                           # Set the parallel attribute
+        self.tensor_choice = True                       # Load data as a tensor
 
-        self.singular = singular                      # calculate singular diffusion if true
-        self.distinct = distinct                      # calculate distinct diffusion if true
-        self.species = species                        # Which species to calculate the diffusion for
+        self.singular = singular                        # calculate singular diffusion if true
+        self.distinct = distinct                        # calculate distinct diffusion if true
+        self.species = species                          # Which species to calculate the diffusion for
+
+        self.database_group = 'diffusion_coefficients'  # Which database group to save the data in
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
@@ -118,14 +121,13 @@ class EinsteinDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.parent.species)
         # Check for unwrapped coordinates and unwrap if not stored already.
-        with hf.File(f"{obj.storage_path}/{obj.analysis_name}/{obj.analysis_name}.hdf5", "r+") as database:
+        with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
             for item in self.species:
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:
                     print("Unwrapping coordinates")
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
-
 
     def _autocorrelation_time(self):
         """

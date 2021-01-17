@@ -150,7 +150,8 @@ class LAMMPSTrajectoryFile(FileProcessor):
         """
         header_line = first_configuration[8]  # the header line in the trajectory
         column_dict_properties = self._get_column_properties(header_line)  # get column properties
-        self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)  # Get the observable groups
+        # Get the observable groups
+        self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)
 
         """
             Get the box size from the first simulation cell
@@ -170,7 +171,6 @@ class LAMMPSTrajectoryFile(FileProcessor):
             self.project.volume = box[0] * box[1] * box[2]
             self.project.species = species_summary
             self.project.number_of_atoms = number_of_atoms
-            # self.project.properties = properties_summary
             self.project.number_of_configurations += number_of_configurations
             self.project.sample_rate = sample_rate
 
@@ -183,7 +183,6 @@ class LAMMPSTrajectoryFile(FileProcessor):
         header_line = header_line[2:]
         properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
         return properties_summary
-
 
     def _read_lammpstrj(self):
         """ Process a lammps trajectory file """

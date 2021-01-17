@@ -10,6 +10,7 @@ propagate on into space.
 """
 
 import numpy as np
+import os
 
 import tensorflow as tf
 import h5py as hf
@@ -152,7 +153,7 @@ class CoordinateUnwrapper(Transformations):
         Collect the methods in the class and unwrap the coordinates
         """
 
-        with hf.File(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
+        with hf.File(os.path.join(self.system.database_path, 'database.hdf5'), "r+") as database:
             for species in self.species:
 
                 # Check if the data has already been unwrapped

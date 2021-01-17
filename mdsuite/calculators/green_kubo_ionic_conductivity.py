@@ -80,10 +80,11 @@ class GreenKuboIonicConductivity(Calculator):
         """
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
 
-        self.loaded_property = 'Velocities'  # property to be loaded for the analysis
-        self.batch_loop = None               # Number of ensembles in each batch
-        self.parallel = True                 # Set the parallel attribute
-        self.tensor_choice = False           # Load data as a tensor
+        self.loaded_property = 'Velocities'         # property to be loaded for the analysis
+        self.batch_loop = None                      # Number of ensembles in each batch
+        self.parallel = True                        # Set the parallel attribute
+        self.tensor_choice = False                  # Load data as a tensor
+        self.database_group = 'ionic_conductivity'  # Which database group to save the data in
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)

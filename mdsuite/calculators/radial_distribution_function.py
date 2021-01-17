@@ -84,6 +84,8 @@ class RadialDistributionFunction(Calculator):
         self.correlation_time = None
         self.loaded_property = 'Positions'
 
+        self.database_group = 'radial_distribution_function'  # Which database group to save the data in
+
         self.loop_range = obj.number_of_configurations - self.data_range - 1
         self.periodic = periodic  # whether or not to apply PBC
         self.images = images  # number of images to include
