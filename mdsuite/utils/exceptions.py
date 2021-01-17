@@ -51,3 +51,9 @@ class DatasetExists(Exception):
     Thrown if a dataset in a hdf5 database already exists
     """
     pass
+
+class RangeExceeded(Exception):
+    """
+    Thrown when the data range asked for exceeds the total number of configurations
+    """
+    pass

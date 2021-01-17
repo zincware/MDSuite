@@ -6,8 +6,9 @@ Summary
 """
 
 import matplotlib.pyplot as plt
+import random
+from scipy.optimize import curve_fit
 import numpy as np
-import sys
 
 import h5py as hf
 
@@ -210,6 +211,83 @@ class Calculator(metaclass=abc.ABCMeta):
             return 0
         else:
             return 1
+
+    def _optimize_einstein_data_range(self, data):
+        """
+        Optimize the data range of a system using the Einstein method of calculation.
+
+        Parameters
+        ----------
+        data : np.array (2, data_range)
+                MSD to study
+
+        Returns
+        -------
+        Updates the data_range attribute of the class state
+        """
+
+        def func(x, m, a):
+            return m*x + a
+
+        # get the logarithmic dataset
+        log_y = np.log10(data[0])
+        log_x = np.log10(data[1])
+
+        end_index = int(len(log_y) - 1)
+        start_index = int(0.4*len(log_y))
+
+        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear regime
+
+        if 0.85 < popt[0] < 1.15:
+            self.loop_condition = True
+
+        else:
+            try:
+                self.data_range = int(1.1*self.data_range)
+                self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
+                                        self.data_range)
+                # end the calculation if the data range exceeds the relevant bounds
+                if self.data_range > self.parent.number_of_configurations - self.correlation_time:
+                    print("Trajectory not long enough to perform analysis.")
+                    raise RangeExceeded
+            except RangeExceeded:
+                raise RangeExceeded
+
+    def _fit_einstein_curve(self, data):
+        """
+        Fit operation for Einstein calculations
+
+        Parameters
+        ----------
+        data : list
+                x and y data for the fitting [np.array, np.array] of (2, data_range)
+
+        Returns
+        -------
+        fit results : list
+                A tuple list with the fit value along with the error of the fit
+        """
+
+        fits = []  # define an empty fit array so errors may be extracted
+
+        def func(x, a):
+            return x + a
+
+        # get the logarithmic dataset
+        log_y = np.log10(data[1][1:])
+        log_x = np.log10(data[0][1:])
+
+        min_end_index, max_end_index = int(0.7*len(log_y)), int(len(log_y) - 1)
+        min_start_index, max_start_index = int(0.4*len(log_y)), int(0.6*len(log_y))
+
+        for _ in range(100):
+            end_index = random.randint(min_end_index, max_end_index)        # get a random end point
+            start_index = random.randint(min_start_index, max_start_index)  # get a random start point
+
+            popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
+            fits.append(10**popt[0])
+
+        return [np.mean(fits), np.std(fits)]
 
     @abc.abstractmethod
     def run_analysis(self):

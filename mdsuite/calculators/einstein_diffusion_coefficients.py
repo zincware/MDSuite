@@ -17,6 +17,7 @@ import warnings
 import tensorflow as tf
 import h5py as hf
 import os
+import sys
 
 # Import user packages
 from tqdm import tqdm
@@ -24,6 +25,7 @@ from tqdm import tqdm
 # Import MDSuite packages
 import mdsuite.utils.meta_functions as meta_functions
 from mdsuite.calculators.calculator import Calculator
+from mdsuite.utils.exceptions import *
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -74,7 +76,8 @@ class EinsteinDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=200, save=True,
-                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients'):
+                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients',
+                 optimize=False):
         """
 
         Parameters
@@ -99,6 +102,8 @@ class EinsteinDiffusionCoefficients(Calculator):
                 Y label of the data when plotted
         analysis_name : str
                 Name of the analysis
+        optimize : bool
+                If true, the data range will be optimized
         """
 
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
@@ -113,6 +118,9 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = species                          # Which species to calculate the diffusion for
 
         self.database_group = 'diffusion_coefficients'  # Which database group to save the data in
+
+        self.loop_condition = False                     # Condition used when data range optimizing
+        self.optimize = optimize                        # optimize the data range
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
@@ -138,17 +146,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         pass
 
-    def _optimize_data_range(self):
-        """
-        Optimize the data range of a system using the Einstein method of calculation.
-
-        Returns
-        -------
-        Updates the data_range attribute of the class state
-        """
-        pass
-
-    def _single_diffusion_coefficients(self):
+    def _single_diffusion_coefficients(self, item, parse=False):
         """
         Calculate singular diffusion coefficients
 
@@ -158,46 +156,44 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         # Loop over each atomic species to calculate self-diffusion
-        for item in list(self.species):
-            msd_array = np.zeros(self.data_range)  # define empty msd array
+        msd_array = np.zeros(self.data_range)  # define empty msd array
 
-            # Calculate the prefactor
-            numerator = self.parent.units['length'] ** 2
-            denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
-            prefactor = numerator / denominator
+        # Calculate the prefactor
+        numerator = self.parent.units['length'] ** 2
+        denominator = (self.parent.units['time'] * len(self.parent.species[item]['indices'])) * 6
+        prefactor = numerator / denominator
 
-            # Construct the MSD function
-            for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-                batch = self._load_batch(i, item)  # load a batch of data
-                for start_index in range(int(self.batch_loop)):
-                    start = start_index + self.correlation_time
-                    stop = start + self.data_range
-                    window_tensor = batch[:, start:stop]
+        # Construct the MSD function
+        for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
+            batch = self._load_batch(i, item)  # load a batch of data
+            for start_index in range(int(self.batch_loop)):
+                start = start_index + self.correlation_time
+                stop = start + self.data_range
+                window_tensor = batch[:, start:stop]
 
-                    # Calculate the msd
-                    msd = (window_tensor - (
-                        tf.repeat(tf.expand_dims(window_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
+                # Calculate the msd
+                msd = (window_tensor - (
+                    tf.repeat(tf.expand_dims(window_tensor[:, 0], 1), self.data_range, axis=1))) ** 2
 
-                    # Sum over trajectory and then coordinates and apply averaging and prefactors
-                    msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
-                    msd_array += np.array(msd)  # Update the averaged function
+                # Sum over trajectory and then coordinates and apply averaging and prefactors
+                msd = prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
+                msd_array += np.array(msd)  # Update the averaged function
 
-            msd_array /= int(self.n_batches['Serial'])*self.batch_loop  # Apply the batch/loop average
+        msd_array /= int(self.n_batches['Serial'])*self.batch_loop  # Apply the batch/loop average
 
-            popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
-            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = [popt[0], np.square(np.diag(pcov))[0]]
-
-            # Update the plot if required
-            if self.plot:
-                plt.plot(np.array(self.time) * self.parent.units['time'], msd_array, label=item)
-
-            # Save the array if required
-            if self.save:
-                self._save_data(f"{item}_{self.analysis_name}", [self.time, msd_array])
-
-        # Save a figure if required
+        # Update the plot if required
         if self.plot:
-            self._plot_data()
+            plt.plot(np.array(self.time) * self.parent.units['time'], msd_array, label=item)
+
+        # Save the array if required
+        if self.save:
+            self._save_data(f"{item}_{self.analysis_name}", [self.time, msd_array])
+
+        if parse:
+            return [self.time, msd_array]
+        else:
+            result = self._fit_einstein_curve([self.time, msd_array])
+            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = result
 
     def _distinct_diffusion_coefficients(self):
         """
@@ -210,6 +206,44 @@ class EinsteinDiffusionCoefficients(Calculator):
         # TODO: Implement this function
         raise NotImplementedError
 
+    def _simple_calculation(self):
+        """
+        Run standard diffusion calculations without range optimization
+        """
+
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._calculate_batch_loop()  # Update the batch loop attribute
+        status = self._check_input()  # Check for bad input
+        if status == 0:
+            return
+
+        if self.singular:
+            for item in self.species:
+                self._single_diffusion_coefficients(item)    # calculate the singular diffusion coefficients
+            # Save a figure if required
+            if self.plot:
+                self._plot_data()
+
+        if self.distinct:
+            self._distinct_diffusion_coefficients()  # calculate the distinct diffusion coefficients
+
+    def _optimized_calculation(self):
+        """
+        Run an range optimized calculation
+        """
+
+        # Optimize the data_range parameter
+        for item in self.species:
+            while not self.loop_condition:
+                self._collect_machine_properties()  # collect machine properties and determine batch size
+                self._calculate_batch_loop()  # Update the batch loop attribute
+                data = self._single_diffusion_coefficients(item, parse=True)
+                self._optimize_einstein_data_range(data=data)
+
+            self.loop_condition = False
+            result = self._fit_einstein_curve(data)  # get the final fits
+            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = result
+
     def run_analysis(self):
         """
         Run a diffusion coefficient analysis
@@ -220,14 +254,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         calculated at start times, taken over correlation times.
         """
 
-        self._autocorrelation_time()                    # get the autocorrelation time
-        self._collect_machine_properties()              # collect machine properties and determine batch size
-        self._calculate_batch_loop()                    # Update the batch loop attribute
-        status = self._check_input()                    # Check for bad input
-        if status == 0:
-            return
+        if self.optimize:
+            self._optimized_calculation()  # run an optimized calculation
         else:
-            if self.singular:
-                self._single_diffusion_coefficients()       # calculate the singular diffusion coefficients
-            if self.distinct:
-                self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
+            self._simple_calculation()     # run a simply calculation
+
