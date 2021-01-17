@@ -77,7 +77,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
 
-
     def build_database_skeleton(self):
         """
         Build skeleton of the hdf5 database
@@ -177,8 +176,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
         counter : int
                 Which configuration to start from.
         """
-
-
 
     @staticmethod
     def _extract_properties(database_correspondance_dict, column_dict_properties):

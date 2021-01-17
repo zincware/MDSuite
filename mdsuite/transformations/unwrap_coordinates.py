@@ -14,14 +14,16 @@ import numpy as np
 import tensorflow as tf
 import h5py as hf
 
+from mdsuite.transformations.transformations import Transformations
 
-class CoordinateUnwrapper:
+
+class CoordinateUnwrapper(Transformations):
     """
     Class to unwrap particle coordinates
 
-    Parameters
+    Attributes
     ----------
-    obj, system : object
+    system : object
             The parent class from which data will be read and in which it will be saved.
 
     species : list
@@ -47,23 +49,33 @@ class CoordinateUnwrapper:
             Mask to select and transform crossed data.
     """
 
-    def __init__(self, obj, species, center_box):
+    def __init__(self, obj, species, center_box=True):
         """
         Standard constructor
+
+        Parameters
+        ----------
+        obj : object
+                Experiment object to use and update.
+        species : list
+                List of species to perform unwrapping on
+        center_box : bool
+                If true, the box coordinates will be centered before the unwrapping occurs
         """
 
-        self.system = obj                               # assign the system attribute
-        self.storage_path = self.system.storage_path    # get the storage path of the database
+        super().__init__()
+        self.system = obj  # assign the system attribute
+        self.storage_path = self.system.storage_path  # get the storage path of the database
         self.analysis_name = self.system.analysis_name  # get the analysis name
 
-        self.box_array = self.system.box_array          # re-assign the box array for cleaner code
-        self.species = species                          # re-assign species
+        self.box_array = self.system.box_array  # re-assign the box array for cleaner code
+        self.species = species  # re-assign species
         if species is None:
-            self.species = self.system.species
-        self.center_box = center_box                    # Check if the box needs to be centered
+            self.species = list(self.system.species)
+        self.center_box = center_box  # Check if the box needs to be centered
 
-        self.data = None                                # data to be unwrapped
-        self.mask = None                                # image number mask
+        self.data = None  # data to be unwrapped
+        self.mask = None  # image number mask
 
     def _center_box(self):
         """
@@ -105,8 +117,8 @@ class CoordinateUnwrapper:
 
         # Find all distance greater than half a box length and set them to integers.
         self.mask = tf.cast(tf.cast(tf.greater_equal(abs(distance_tensor),
-                                        np.array(self.box_array)/2),
-                                        dtype=tf.int16), dtype=tf.float64)
+                                                     np.array(self.box_array) / 2),
+                                    dtype=tf.int16), dtype=tf.float64)
 
         self.mask = tf.multiply(tf.sign(distance_tensor), self.mask)  # get the correct image sign
 
@@ -118,7 +130,7 @@ class CoordinateUnwrapper:
         Apply the image mask to the trajectory for the unwrapping
         """
 
-        scaled_mask = self.mask*tf.convert_to_tensor(self.box_array, dtype=tf.float64)  # get the scaled mask
+        scaled_mask = self.mask * tf.convert_to_tensor(self.box_array, dtype=tf.float64)  # get the scaled mask
 
         self.data = self.data - scaled_mask  # apply the scaling
 
@@ -128,7 +140,7 @@ class CoordinateUnwrapper:
         """
 
         database_object[species].create_group("Unwrapped_Positions")  # Create a new group
-        dimensions = ['x', 'y', 'z']                                  # labels for the database entry
+        dimensions = ['x', 'y', 'z']  # labels for the database entry
 
         # Store the data in the x, y, and z database groups.
         for i in range(3):
@@ -141,7 +153,7 @@ class CoordinateUnwrapper:
         """
 
         with hf.File(f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.hdf5", "r+") as database:
-            for species in self.system.species:
+            for species in self.species:
 
                 # Check if the data has already been unwrapped
                 if "Unwrapped_Positions" in database[species].keys():
@@ -153,9 +165,15 @@ class CoordinateUnwrapper:
                     if self.center_box:
                         self._center_box()
 
-                    self._build_image_mask()                             # build the image mask
-                    self._apply_mask()                                   # Apply the mask and unwrap the coordinates
+                    self._build_image_mask()  # build the image mask
+                    self._apply_mask()  # Apply the mask and unwrap the coordinates
                     self._save_unwrapped_coordinates(database, species)  # save the newly unwrapped coordinates
 
         self.system.collect_memory_information()  # update the memory dictionary with the unwrapped coordinates
-        self.system.save_class()                  # update the class state
+        self.system.save_class()  # update the class state
+
+    def run_transformation(self):
+        """
+        Perform the transformation.
+        """
+        self.unwrap_particles()  # run the transformation

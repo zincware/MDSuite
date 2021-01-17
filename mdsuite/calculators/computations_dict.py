@@ -28,5 +28,3 @@ dict_classes_computations = {
     'GreenKuboThermalConductivity': GreenKuboThermalConductivity,
     'GreenKuboThermalConductivityFlux': GreenKuboThermalConductivityFlux,
 }
-
-
