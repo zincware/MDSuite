@@ -20,7 +20,6 @@ import tensorflow as tf
 from diagrams import Diagram, Cluster
 from diagrams.aws.compute import ECS
 from diagrams.aws.database import RDS
-from traits.trait_types import self
 
 from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations
@@ -412,7 +411,7 @@ class Experiment:
                     temp[0].to_dict(properties=['atoms', 'bonds', 'exact_mass', 'molecular_weight', 'elements'])
                     self.species[element]['mass'] = temp[0].molecular_weight
                     print(temp[0].exact_mass)
-                except ElementMassAssignedZero:
+                except (ElementMassAssignedZero, IndexError):
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
@@ -435,11 +434,6 @@ class Experiment:
                         for dataset in db[item][group]:  # Loop over the datasets in the group
                             memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
                         self.memory_requirements[item][group] = memory  # Update the dictionary.
-                for group in list(db[item].keys()):  # Loop over property groups
-                    memory = 0  # Dummy variable for memory
-                    for dataset in db[item][group]:  # Loop over the datasets in the group
-                        memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                    self.memory_requirements[item][group] = memory  # Update the dictionary.
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
