@@ -322,7 +322,7 @@ class Experiment:
                         group_list.append(ECS(property_group))  # construct a list of equal level groups
                 head >> group_list  # append these groups to the head object
 
-    def add_data(self, trajectory_file=None, file_format='lammpstraj'):
+    def add_data(self, trajectory_file=None, file_format='lammps_traj'):
         """
         Add data to the database
 

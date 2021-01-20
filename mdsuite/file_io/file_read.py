@@ -5,11 +5,7 @@ Summary
 -------
 """
 
-import h5py as hf
-import numpy as np
-from tqdm import tqdm
 import abc
-import os
 
 
 class FileProcessor(metaclass=abc.ABCMeta):
@@ -40,48 +36,22 @@ class FileProcessor(metaclass=abc.ABCMeta):
         self.project = obj  # Experiment class instance to add to.
         self.header_lines = header_lines  # Number of header lines in the given file format.
 
-    def read_configurations(self, number_of_configurations, file_object):
-        """
-        Read in a number of configurations from a file file
-
-        Parameters
-        ----------
-        number_of_configurations : int
-                Number of configurations to be read in.
-        file_object : obj
-                File object to be read from.
-
-        Returns
-        -------
-        configuration data : np.array
-                Data read in from the file object.
-        """
-
-        configurations_data = []  # Define the empty data array
-
-        for i in range(number_of_configurations):
-
-            # Skip header lines.
-            for j in range(self.header_lines):
-                file_object.readline()
-
-            # Read the data into the arrays.
-            for k in range(self.project.number_of_atoms):
-                configurations_data.append(file_object.readline().split())
-
-        return np.array(configurations_data)
-
     @abc.abstractmethod
     def process_trajectory_file(self):
         """
         Get property groups from the trajectory
+        This method is dependent on the code that generated the file. So it should be implemented in a grandchild class.
         """
 
-        raise NotImplementedError("Implemented in child class")  # Raise error if this class method is called directly
+        return
 
+    @abc.abstractmethod
     def build_database_skeleton(self):
         """
-        Build skeleton of the hdf5 database
+        Build skeleton of the hdf5 database.py
+
+        This method is dependent on the type of data (atoms, flux, etc.), therefore it should be implemented in a child
+        class.
 
         Gathers all of the properties of the system using the relevant functions. Following the gathering
         of the system properties, this function will read through the first configuration of the dataset, and
@@ -89,94 +59,25 @@ class FileProcessor(metaclass=abc.ABCMeta):
         include the separation of species, atoms, and properties. For a full description of the data structure,
         look into the documentation.
         """
-
-        # Set the length of the trajectory TODO: Add smaller "remainder" section to get the last parts of the trajectory
-        initial_length = self.project.number_of_configurations - \
-                         self.project.number_of_configurations % self.project.batch_size
-
-        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
-
-        # Build the database structure
-        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'w', libver='latest') as database:
-
-            # Loop over the different species.
-            for item in self.project.species:
-                database.create_group(item)  # create a hdf5 group in the database
-
-                # Loop over the properties available from the simulation.
-                for observable, columns in self.project.property_groups.items():
-
-                    # Check if the property is scalar of vector to correctly structure the dataset
-                    if len(columns) == 1:  # scalar
-                        # Create dataset directly in the species group using extendable ds and scale offset compression.
-                        database[item].create_dataset(observable, (len(self.project.species[item]['indices']),
-                                                                   initial_length),
-                                                      maxshape=(
-                                                          len(self.project.species[item]['indices']), None),
-                                                      scaleoffset=5)
-
-                    elif len(columns) == 6:  # symmetric tensor (for stress tensor for example)
-                        database[item].create_group(observable)
-                        for axis in axis_names:
-                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
-                                                                             initial_length),
-                                                                      maxshape=(
-                                                                          len(self.project.species[item]['indices']),
-                                                                          None),
-                                                                      scaleoffset=5)
-
-                    else:  # vector
-                        database[item].create_group(observable)
-                        for axis in axis_names[0:3]:
-                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
-                                                                             initial_length),
-                                                                      maxshape=(
-                                                                          len(self.project.species[item]['indices']),
-                                                                          None),
-                                                                      scaleoffset=5)
-
-    def resize_database(self):
-        """
-        Resize the database skeleton.
-
-        """
-        # Get the number of additional configurations TODO: Again add support for collecting the remainder.
-        resize_factor = self.project.number_of_configurations - \
-                        self.project.number_of_configurations % \
-                        self.project.batch_size
-
-        # Open the database and resize the database.
-        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'r+',
-                     libver='latest') as database:
-
-            # Loop over species in the database.
-            for species in self.project.species:
-
-                # Loop over property being added to  and resize the datasets.
-                for observable in self.project.property_groups:
-                    database[species][observable]['x'].resize(resize_factor, 1)
-                    database[species][observable]['y'].resize(resize_factor, 1)
-                    database[species][observable]['z'].resize(resize_factor, 1)
+        return
 
     @abc.abstractmethod
-    def process_configurations(self, data, database, counter):
+    def fill_database(self, counter=0):
         """
-        Process the available data
-
-        Called during the main database creation. This function will calculate the number of configurations
-        within the raw data and process it.
+        Loads data into a hdf5 database.
+        This method is dependent on the type of data (atoms, flux, etc.), therefore it should be implemented in a child
+        class.
 
         Parameters
         ----------
-        data : np.array
-                Array of the raw data for N configurations.
-
-        database : object
-                Database in which to store the data.
+        trajectory_reader : object
+                Instance of a trajectory reader class.
 
         counter : int
-                Which configuration to start from.
+                Number of configurations that have been read in.
         """
+
+        return
 
     @staticmethod
     def _extract_properties(database_correspondence_dict, column_dict_properties):
@@ -214,24 +115,15 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         return trajectory_properties
 
-    def fill_database(self, counter=0):
+    @staticmethod
+    def _get_column_properties(header_line, skip_words=0):
         """
-        Loads data into a hdf5 database
+        Given a line of text with the header, split it, enumerate and put in a dictionary.
+        This is used to create the column - variable correspondance (see self._extract_properties)
 
-        Parameters
-        ----------
-        trajectory_reader : object
-                Instance of a trajectory reader class.
-
-        counter : int
-                Number of configurations that have been read in.
+        :param header_line: str
+        :return: dict
         """
-
-        # loop range for the data.
-        loop_range = int((self.project.number_of_configurations - counter) / self.project.batch_size)
-        with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), "r+") as database:
-            with open(self.project.trajectory_file) as f:
-                for _ in tqdm(range(loop_range), ncols=70):
-                    batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data
-                    self.process_configurations(batch_data, database, counter)  # process the trajectory
-                    counter += self.project.batch_size  # Update counter
+        header_line = header_line[skip_words:]
+        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
+        return properties_summary
