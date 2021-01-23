@@ -9,6 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
+import h5py as hf
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -103,10 +104,9 @@ class CoordinationNumbers(Calculator):
         """
         Fill the data_files list with filenames of the rdf data
         """
-        files = os.listdir(self.data_directory)                   # load the directory contents
-        for item in files:                                        # loop over the files
-            if item[-32:] == 'radial_distribution_function.npy':  # Look for the correct file name
-                self.data_files.append(item)                      #  Append to the data_file attribute
+        with hf.File(self.parent.database_path, 'r') as db:
+            for item in db['radial_distribution_function']:           # loop over the files
+                self.data_files.append(item)                          #  Append to the data_file attribute
 
     def _get_density(self):
         """
@@ -123,8 +123,9 @@ class CoordinationNumbers(Calculator):
         """
         Load the raw rdf data from a directory
         """
-        # Load the numpy data
-        self.radii, self.rdf = np.load(f'{self.data_directory}/{self.file_to_study}', allow_pickle=True)
+
+        with hf.File(self.parent.database_path, 'r') as db:
+            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):
         """
@@ -235,7 +236,7 @@ class CoordinationNumbers(Calculator):
         self._get_rdf_data()                  # fill the data array with data
         for data in self.data_files:          # Loop over all existing RDFs
             self.file_to_study = data         # set the working file
-            self.species_tuple = data[:-33]   # set the tuple
+            self.species_tuple = data[:-29]   # set the tuple
             self._load_rdf_from_file()        # load the data from it
             self._integrate_rdf()             # integrate the rdf
             self._find_minimums()             # get the minimums of the rdf being studied
