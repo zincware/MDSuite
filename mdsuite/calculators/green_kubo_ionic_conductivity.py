@@ -88,7 +88,7 @@ class GreenKuboIonicConductivity(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 100  # correlation time of the system current.
+        self.correlation_time = 1  # correlation time of the system current.
 
     def _autocorrelation_time(self):
         """
@@ -113,7 +113,7 @@ class GreenKuboIonicConductivity(Calculator):
 
         species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
 
-        system_current = np.zeros((self.batch_size['Parallel']*self.data_range, 3))  # instantiate the current array
+        system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
         # Calculate the total system current
         for i in range(len(velocity_matrix)):
             system_current += np.array(np.sum(velocity_matrix[i][:, 0:], axis=0)) * species_charges[i]
@@ -136,8 +136,8 @@ class GreenKuboIonicConductivity(Calculator):
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
             batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
-            for start_index in range(self.batch_loop):                                   # loop over ensembles in batch
-                start = int(start_index*self.data_range + self.correlation_time)         # get start index
+            for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
+                start = int(start_index + self.correlation_time)         # get start index
                 stop = int(start + self.data_range)                                      # get stop index
                 system_current = np.array(batch)[start:stop]                             # load data from batch array
 

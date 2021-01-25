@@ -295,5 +295,6 @@ class RadialDistributionFunction(Calculator):
                 self._save_data(f'{names}_{self.analysis_name}',
                                 [np.linspace(0.0, self.cutoff, self.bins), rdf.get(names)])
 
+        self.parent.radial_distribution_function_state=True  # update the state
         if self.plot:
             self._plot_data()  # Plot the data if necessary

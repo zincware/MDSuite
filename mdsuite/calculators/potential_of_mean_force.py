@@ -20,6 +20,7 @@ import numpy as np
 import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
+import h5py as hf
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -27,6 +28,7 @@ from mdsuite.calculators.calculator import Calculator
 
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
+from mdsuite.utils.units import boltzmann_constant
 
 
 class PotentialOfMeanForce(Calculator):
@@ -111,17 +113,17 @@ class PotentialOfMeanForce(Calculator):
         """
         Fill the data_files list with filenames of the rdf data
         """
-        files = os.listdir(self.data_directory)  # load the directory contents
-        for item in files:
-            if item[-32:] == 'radial_distribution_function.npy':
-                self.data_files.append(item)
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+            for item in db['radial_distribution_function']:  # loop over the files
+                self.data_files.append(item)  # Append to the data_file attribute
 
     def _load_rdf_from_file(self):
         """
         Load the raw rdf data from a directory
         """
 
-        self.radii, self.rdf = np.load(f'{self.data_directory}/{self.file_to_study}', allow_pickle=True)
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):
         """
