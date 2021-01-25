@@ -9,7 +9,7 @@ import h5py as hf
 import numpy as np
 from tqdm import tqdm
 
-from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size
 
@@ -20,7 +20,7 @@ lammps_flux = {
 }
 
 
-class LAMMPSFluxFile(FileProcessor):
+class LAMMPSFluxFile(FluxFile):
     """
     Child class for the lammps file reader to read Flux files from LAMMPS.
 
@@ -121,108 +121,3 @@ class LAMMPSFluxFile(FileProcessor):
         else:
             self.project.batch_size = batch_size
             # return [1, 1, 1, number_of_configurations]
-
-    @staticmethod
-    def _get_column_properties(header_line):
-        header_line = header_line[4:]
-        properties_summary = {variable: idx + 2 for idx, variable in enumerate(header_line)}
-        return properties_summary
-
-    def build_database_skeleton(self):
-        """
-        We need to override the method because the flux files have a different structure
-        """
-        database = hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
-                           libver='latest')
-        axis_names = ('x', 'y', 'z')
-
-        # Build the database structure
-        database.create_group('1')
-        for property_in, columns in self.project.property_groups.items():
-            if len(columns) == 1:
-                database['1'].create_dataset(property_in, (self.project.number_of_configurations -
-                                                           self.project.number_of_configurations % self.project.batch_size,),
-                                             compression="gzip", compression_opts=9)
-            elif len(columns) == 3:
-                database['1'].create_group(property_in)
-                for axis in axis_names:
-                    database['1'][property_in].create_dataset(axis, (self.project.number_of_configurations -
-                                                                     self.project.number_of_configurations % self.project.batch_size,),
-                                                              compression="gzip", compression_opts=9)
-
-    def fill_database(self, counter=0):
-
-        loop_range = int(
-            (self.project.number_of_configurations - counter) / self.project.batch_size)  # loop range for the data.
-        with hf.File("{0}/{1}/{1}.hdf5".format(self.project.storage_path, self.project.analysis_name),
-                     "r+") as database:
-            with open(self.project.trajectory_file) as f:
-                for _ in tqdm(range(loop_range), ncols=70):
-                    batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data
-                    self.process_configurations(batch_data, database, counter)  # process the trajectory
-                    counter += self.project.batch_size  # Update counter
-
-    @staticmethod
-    def _get_column_properties(header_line):
-        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
-        return properties_summary
-
-    def read_configurations(self, number_of_configurations, file_object):
-        """
-        Read in a number of configurations from a file file
-
-        Parameters
-        ----------
-        number_of_configurations : int
-                Number of configurations to be read in.
-        file_object : obj
-                File object to be read from.
-
-        Returns
-        -------
-        configuration data : np.array
-                Data read in from the file object.
-        """
-
-        configurations_data = []  # Define the empty data array
-
-        # Skip header lines.
-        [file_object.readline() for _ in range(self.header_lines)]
-
-        for i in range(number_of_configurations):
-            # Read the data into the arrays.
-            configurations_data.append(file_object.readline().split())
-
-        return np.array(configurations_data)
-
-    def process_configurations(self, data, database, counter):
-        """
-        Process the available data
-
-        Called during the main database creation. This function will calculate the number of configurations
-        within the raw data and process it.
-
-        Parameters
-        ----------
-        data : np.array
-                Array of the raw data for N configurations.
-
-        database : object
-                Database in which to store the data.
-
-        counter : int
-                Which configuration to start from.
-        """
-
-        """
-        Fill the database
-        """
-        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
-        # Fill the database
-        for property_group, columns in self.project.property_groups.items():
-            num_columns = len(columns)
-            if num_columns == 1:
-                database['1'][property_group][:] = data[:, columns[0]].astype(float)
-            else:
-                for column, axis in zip(columns, axis_names):
-                    database['1'][property_group][axis][:] = data[:, column].astype(float)
