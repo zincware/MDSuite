@@ -6,6 +6,7 @@ import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
+import h5py as hf
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -99,16 +100,16 @@ class StructureFactor(Calculator):
         """
         Fill the data_files list with filenames of the rdf data
         """
-        files = os.listdir(self.data_directory)  # load the directory contents
-        for item in files:
-            if item[-32:] == 'radial_distribution_function.npy':
-                self.data_files.append(item)
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+            for item in db['radial_distribution_function']:  # loop over the files
+                self.data_files.append(item)  # Append to the data_file attribute
 
     def _load_rdf_from_file(self):
         """
         Load the raw rdf data from a directory
         """
-        self.radii, self.rdf = np.load(f'{self.data_directory}/{self.file_to_study}', allow_pickle=True)
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):
         """
@@ -116,7 +117,8 @@ class StructureFactor(Calculator):
         """
         raise NotApplicableToAnalysis
 
-    def gauss(self, a, b, scattering_scalar):
+    @staticmethod
+    def gauss(a, b, scattering_scalar):
         """
         Calculates the gauss functions that are required for the atomic form factors
         """
@@ -138,11 +140,11 @@ class StructureFactor(Calculator):
                 print("Impossible input")
                 return
             el_frame = self.coeff_atomic_formfactor.loc[self.coeff_atomic_formfactor['Element'] == el_key]
-            atomic_form_fac = self.gauss(el_frame.iloc[0, 1], el_frame.iloc[0, 2], scattering_scalar) + \
-                              self.gauss(el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar) + \
-                              self.gauss(el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar) + \
-                              self.gauss(el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar) + \
-                              el_frame.iloc[0, 9]
+            atomic_form_fac = (self.gauss(el_frame.iloc[0, 1], el_frame.iloc[0, 2], scattering_scalar) +
+                               self.gauss(el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar) +
+                               self.gauss(el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar) +
+                               self.gauss(el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar) +
+                               el_frame.iloc[0, 9])
             atomic_form_di[el] = {}
             atomic_form_di[el]['atomic_form_factor'] = atomic_form_fac
         return atomic_form_di
@@ -159,7 +161,7 @@ class StructureFactor(Calculator):
         """
         Calculates the particle densities for all the speies in the species dictionary and add it to the species
         dictionary
-		"""
+        """
         for el in self.obj.species:
             self.obj.species[el]['particle_density'] = len(self.obj.species[el]['indices']) / (self.obj.box_array[0] *
                                                                                                self.obj.box_array[1] *

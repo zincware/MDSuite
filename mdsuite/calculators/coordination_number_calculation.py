@@ -98,13 +98,13 @@ class CoordinationNumbers(Calculator):
 
         # Calculate the rdf if it has not been done already
         if self.parent.radial_distribution_function_state is False:
-            self.parent.radial_distribution_function()  # run rdf calculation on all species.
+            self.parent.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)  # run rdf calculation.
 
     def _get_rdf_data(self):
         """
         Fill the data_files list with filenames of the rdf data
         """
-        with hf.File(self.parent.database_path, 'r') as db:
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
             for item in db['radial_distribution_function']:           # loop over the files
                 self.data_files.append(item)                          #  Append to the data_file attribute
 
@@ -124,7 +124,7 @@ class CoordinationNumbers(Calculator):
         Load the raw rdf data from a directory
         """
 
-        with hf.File(self.parent.database_path, 'r') as db:
+        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
             self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):
@@ -235,6 +235,7 @@ class CoordinationNumbers(Calculator):
 
         self._get_rdf_data()                  # fill the data array with data
         for data in self.data_files:          # Loop over all existing RDFs
+            print(data)
             self.file_to_study = data         # set the working file
             self.species_tuple = data[:-29]   # set the tuple
             self._load_rdf_from_file()        # load the data from it
@@ -244,7 +245,8 @@ class CoordinationNumbers(Calculator):
 
             # Save the data if required
             if self.save:
-                self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.integral_data])
+                self._save_data(f"{self.species_tuple}_{self.analysis_name}", [np.array(self.radii[1:]),
+                                                                               np.array(self.integral_data)])
 
             # Plot the data if required
             if self.plot:

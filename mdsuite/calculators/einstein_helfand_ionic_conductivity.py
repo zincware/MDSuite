@@ -64,7 +64,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
     """
 
-    def __init__(self, obj, plot=True, species=None, data_range=500, save=True,
+    def __init__(self, obj, plot=True, data_range=500, save=True,
                  x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity'):
         """
         Python constructor
@@ -96,8 +96,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.parallel = True                          # Set the parallel attribute
         self.tensor_choice = True                     # Load data as a tensor
 
-        self.correlation_time = 50                    # Correlation time of the current
-        self.species = species                        # species on which to perform the analysis
+        self.correlation_time = 1                     # Correlation time of the current
+        self.species = list(obj.species)              # species on which to perform the analysis
 
         self.database_group = 'ionic_conductivity'    # Which database group to save the data in
 
@@ -107,7 +107,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # Check for unwrapped coordinates and unwrap if not stored already.
 
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
-            for item in species:
+            for item in self.species:
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:
                     print("Unwrapping coordinates")
@@ -151,7 +151,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         charge_tuple = []              # define empty array for the charges
         for charge in system_charges:  # loop over each species charge
             # Build a tensor of charges allowing for memory management.
-            charge_tuple.append(tf.ones([self.batch_size['Parallel']*self.data_range, 3], dtype=tf.float64) * charge)
+            charge_tuple.append(tf.ones([self.batch_size['Parallel'], 3], dtype=tf.float64) * charge)
 
         charge_tensor = tf.stack(charge_tuple)                # stack the tensors into a single object
         dipole_moment *= charge_tensor                        # Multiply the dipole moment tensor by the system charges
@@ -174,8 +174,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):          # Loop over batches
             batch = self._calculate_translational_dipole(self._load_batch(i))     # get the ionic current
-            for start_index in range(self.batch_loop):                            # Loop over ensembles
-                start = int(start_index*self.data_range + self.correlation_time)  # get start configuration
+            for start_index in range(int(self.batch_loop)):                            # Loop over ensembles
+                start = int(start_index + self.correlation_time)                  # get start configuration
                 stop = int(start + self.data_range)                               # get the stop configuration
                 window_tensor = batch[start:stop]                                 # select data from the batch tensor
 

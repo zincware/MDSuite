@@ -151,7 +151,7 @@ class Calculator(metaclass=abc.ABCMeta):
         start = int(batch_number * self.batch_size[self.batch_type])
         stop = int(start + self.batch_size[self.batch_type])
 
-        return self.parent.load_matrix(self.loaded_property, [item], select_slice=np.s_[:, start:stop],
+        return self.parent.load_matrix(self.loaded_property, item, select_slice=np.s_[:, start:stop],
                                        tensor=self.tensor_choice)
 
     def _save_data(self, title, data):
