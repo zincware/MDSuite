@@ -5,7 +5,7 @@ Summary
 -------
 """
 
-from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.file_io.trajectory_files import TrajectoryFile
 # from mdsuite.file_io.file_io_dict import lammps_traj
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
@@ -31,7 +31,7 @@ lammps_traj = {
 }
 
 
-class LAMMPSTrajectoryFile(FileProcessor):
+class LAMMPSTrajectoryFile(TrajectoryFile):
     """
     Child class for the lammps file reader.
 
@@ -149,7 +149,7 @@ class LAMMPSTrajectoryFile(FileProcessor):
             Get the available properties for analysis
         """
         header_line = first_configuration[8]  # the header line in the trajectory
-        column_dict_properties = self._get_column_properties(header_line)  # get column properties
+        column_dict_properties = self._get_column_properties(header_line, skip_words=2)  # get column properties, skip the two first words which are not in the columns (ITEM: ATOMS)
         # Get the observable groups
         self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)
 
@@ -178,61 +178,3 @@ class LAMMPSTrajectoryFile(FileProcessor):
             self.project.batch_size = batch_size
             # return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
-    @staticmethod
-    def _get_column_properties(header_line):
-        header_line = header_line[2:]
-        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
-        return properties_summary
-
-    def _read_lammpstrj(self):
-        """ Process a lammps trajectory file """
-        pass
-
-    def process_configurations(self, data, database, counter):
-        """
-        Process the available data
-
-        Called during the main database creation. This function will calculate the number of configurations
-        within the raw data and process it.
-
-        Parameters
-        ----------
-        data : np.array
-                Array of the raw data for N configurations.
-
-        database : object
-                Database in which to store the data.
-
-        counter : int
-                Which configuration to start from.
-        """
-
-        # Re-calculate the number of available configurations for analysis
-        partitioned_configurations = int(len(data) / self.project.number_of_atoms)
-
-        for item in self.project.species:
-            """
-            Get the new indices for the positions. This function requires the atoms to be in the same position during
-            each configuration. The calculation simply adds multiples of the number of atoms and configurations to the
-            position of each atom in order to read the correct part of the file.
-            """
-            # TODO: Implement a sort algorithm or something of the same kind.
-            positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
-                                  self.header_lines for i in range(int(partitioned_configurations))]).flatten()
-
-            """
-            Fill the database
-            """
-            axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
-            # Fill the database
-            for property_group, columns in self.project.property_groups.items():
-                num_columns = len(columns)
-                if num_columns == 1:
-                    database[item][property_group][:, counter:counter + partitioned_configurations] = \
-                        data[positions][:, columns[0]].astype(float).reshape(
-                            (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
-                else:
-                    for column, axis in zip(columns, axis_names):
-                        database[item][property_group][axis][:, counter:counter + partitioned_configurations] = \
-                            data[positions][:, column].astype(float).reshape(
-                                (len(self.project.species[item]['indices']), partitioned_configurations), order='F')
