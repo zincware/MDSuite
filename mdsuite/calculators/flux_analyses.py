@@ -83,7 +83,7 @@ class GreenKuboThermalConductivityFlux:
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
-        sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
+        sigma, averaged_jacf = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
         sigma = prefactor * np.array(sigma)
 
         # convert to SI units.
@@ -92,7 +92,7 @@ class GreenKuboThermalConductivityFlux:
 
         if self.plot:
             averaged_jacf /= max(averaged_jacf)
-            plt.plot(self.time, averaged_jacf)
+            plt.plot(self.time*self.parent.units['time'], averaged_jacf)
             plt.xlabel("Time (s)")
             plt.ylabel("Normalized Current Autocorrelation Function")
             plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
