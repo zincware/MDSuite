@@ -123,7 +123,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_translational_dipole(self, data):
+    def _calculate_integrated_current(self, data):
         """
         Calculate the translational dipole of the system
 
@@ -164,29 +164,17 @@ class EinsteinHelfandIonicConductivity(Calculator):
         Calculate the conductivity
         """
 
-        dipole_msd_array = np.zeros(self.data_range)  # Initialize the msd array
-
         # Calculate the prefactor
         numerator = (self.parent.units['length'] ** 2) * (elementary_charge ** 2)
         denominator = 6 * self.parent.units['time'] * (self.parent.volume * self.parent.units['length'] ** 3) * \
                       self.parent.temperature * boltzmann_constant
         prefactor = numerator / denominator
 
-        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):          # Loop over batches
-            batch = self._calculate_translational_dipole(self._load_batch(i))     # get the ionic current
-            for start_index in range(int(self.batch_loop)):                            # Loop over ensembles
-                start = int(start_index + self.correlation_time)                  # get start configuration
-                stop = int(start + self.data_range)                               # get the stop configuration
-                window_tensor = batch[start:stop]                                 # select data from the batch tensor
-
-                # Calculate the msd and multiply by the prefactor
-                msd = (window_tensor - (
-                    tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
-                msd = prefactor * tf.reduce_sum(msd, axis=1)
-
-                dipole_msd_array += np.array(msd)  # Update the total array
+        dipole_msd_array = self.msd_operation_EH(type_batches='Parallel')
 
         dipole_msd_array /= int(self.n_batches['Parallel']*self.batch_loop)  # scale by the number of batches
+
+        dipole_msd_array *= prefactor
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
         self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0]/100]
