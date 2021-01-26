@@ -96,7 +96,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self, velocity_matrix):
+    def _calculate_system_current(self, batch):
         """
         Calculate the ionic current of the system
 
@@ -111,6 +111,7 @@ class GreenKuboIonicConductivity(Calculator):
                 ionic current of the system as a vector of shape (n_confs, 3)
         """
 
+        velocity_matrix = self._load_batch(batch, property_to_load='Velocity')
         species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
 
         system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
@@ -135,7 +136,7 @@ class GreenKuboIonicConductivity(Calculator):
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
-            batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
+            batch = self._calculate_system_current(batch=i)  # get the ionic current batch
             for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
                 start = int(start_index + self.correlation_time)         # get start index
                 stop = int(start + self.data_range)                                      # get stop index

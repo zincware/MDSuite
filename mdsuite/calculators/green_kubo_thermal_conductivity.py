@@ -86,6 +86,8 @@ class GreenKuboThermalConductivity(Calculator):
         self.loop_range = self.number_of_configurations - data_range - 1
         self.correlation_time = 1
         self.database_group = 'thermal_conductivity'  # Which database group to save the data in
+        self.loaded_properties = {'Velocities', 'Stress','ke','pe'}         # property to be loaded for the analysis
+
 
     def _autocorrelation_time(self):
         """
@@ -93,7 +95,7 @@ class GreenKuboThermalConductivity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self):
+    def _calculate_system_current(self, i):
         """
         Calculate the thermal current of the system
 
@@ -103,8 +105,10 @@ class GreenKuboThermalConductivity(Calculator):
                 thermal current of the system as a vector of shape (n_confs, 3)
         """
 
-        velocity_matrix = self.parent.load_matrix("Velocities")  # Load the velocity matrix
-        stress_tensor = self.parent.load_matrix("Stress", sym_matrix=True)
+        velocity_matrix = self._load_batch("Velocities")  # Load the velocity matrix
+        stress_tensor = self._load_batch("Stress", sym_matrix=True)
+        pe = self._load_batch("PE", scalar=True)
+        ke = self._load_batch("KE", scalar=True)
 
         # define phi as product stress tensor * velocity matrix.
         # It is done by components to take advantage of the symmetric matrix.
@@ -121,9 +125,6 @@ class GreenKuboThermalConductivity(Calculator):
         phi = np.dstack([phi_x, phi_y, phi_z])
 
         phi_sum_atoms = phi.sum(axis=0) / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
-
-        ke = self.parent.load_matrix("KE", scalar=True)
-        pe = self.parent.load_matrix("PE", scalar=True)
 
         # ke_total = np.sum(ke, axis=0) # to check it was the same, can be removed.
         # pe_total = np.sum(pe, axis=0)
@@ -142,8 +143,6 @@ class GreenKuboThermalConductivity(Calculator):
         Calculate the thermal conductivity in the system
         """
 
-        system_current = self._calculate_system_current()  # get the thermal current
-
         # prepare the prefactor for the integral
         numerator = 1
         denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
@@ -153,25 +152,35 @@ class GreenKuboThermalConductivity(Calculator):
         prefactor = numerator / denominator
 
 
-        sigma = []
+
+        sigma, parsed_autocorrelation = self.__convolution_operation()
+
+        sigma = []  # define an empty sigma list
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
-        for i in tqdm(range(0, self.loop_range, self.correlation_time), ncols=100):
-            jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
 
-            # Calculate the current autocorrelation
-            jacf += (signal.correlate(system_current[:, 0][i:i + self.data_range],
-                                      system_current[:, 0][i:i + self.data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(system_current[:, 1][i:i + self.data_range],
-                                      system_current[:, 1][i:i + self.data_range],
-                                      mode='full', method='fft') +
-                     signal.correlate(system_current[:, 2][i:i + self.data_range],
-                                      system_current[:, 2][i:i + self.data_range],
-                                      mode='full', method='fft'))
+        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
+            batch = self._calculate_system_current(i)  # get the ionic current batch
+            for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
+                start = int(start_index + self.correlation_time)  # get start index
+                stop = int(start + self.data_range)  # get stop index
+                system_current = np.array(batch)[start:stop]  # load data from batch array
 
-            jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
-            parsed_autocorrelation += jacf
-            sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
+                jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
+
+                # Calculate the current autocorrelation
+                jacf += (signal.correlate(system_current[:, 0],
+                                          system_current[:, 0],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 1],
+                                          system_current[:, 1],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 2],
+                                          system_current[:, 2],
+                                          mode='full', method='auto'))
+
+                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
+                parsed_autocorrelation += jacf  # update parsed function
+                sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
 
         # convert to SI units.
         prefactor_units = self.parent.units['energy']/self.parent.units['length']/self.parent.units['time']
