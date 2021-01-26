@@ -176,7 +176,7 @@ class GreenKuboThermalConductivity(Calculator):
         self._collect_machine_properties()    # collect machine properties and determine batch size
         self._calculate_batch_loop()          # Update the batch loop attribute
         status = self._check_input()          # Check for bad input
-        if status == 0:
+        if status == -1:
             return
         else:
             self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
