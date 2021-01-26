@@ -21,4 +21,19 @@ hear from our users.
    modules_and_classes
    _architecture/database_structure
    tools
+   walkthrough
 
+Why MDSuite?
+------------
+With all the post-processing codes out there why should you use MDSuite? Aside
+from the easytp use interface and large range of analysis available, MDSuite has
+a number of great features beneath the surface that give us an edge.
+
+What's New?
+-----------
+
+What's Next?
+------------
+
+Further Resources
+------------------
