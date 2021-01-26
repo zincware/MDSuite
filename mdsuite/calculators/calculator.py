@@ -209,9 +209,9 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.data_range > self.parent.number_of_configurations - self.correlation_time:
             print("Data range is impossible for this system, reduce and try again")
 
-            return 0
+            return -1
         else:
-            return 1
+            return 0
 
     def _optimize_einstein_data_range(self, data):
         """
