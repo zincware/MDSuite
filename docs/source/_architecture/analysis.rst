@@ -1,6 +1,6 @@
 Calculator Class
 ============================
 
-.. autoclass:: mdsuite.analysis.analysis.Calculator
+.. autoclass:: mdsuite.calculators.calculator.Calculator
     :members:
     :private-members:

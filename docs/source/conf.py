@@ -39,6 +39,7 @@ extensions = [
     'matplotlib.sphinxext.plot_directive',
     'numpydoc',
     'sphinx_copybutton',
+    'nbsphinx',
 ]
 
 # Generate the API documentation when building
