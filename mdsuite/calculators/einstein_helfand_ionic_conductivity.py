@@ -190,6 +190,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
         self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0]/100]
+        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0]/100)])
 
         # Update the plot if required
         if self.plot:

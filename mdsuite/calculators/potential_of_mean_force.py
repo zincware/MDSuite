@@ -182,7 +182,8 @@ class PotentialOfMeanForce(Calculator):
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])/np.sqrt(2)
 
         # Update the experiment class
-        self.parent.potential_of_mean_force_values[self.species_tuple] = [pomf_value, pomf_error]
+        self._update_properties_file(item=self.species_tuple, data= [str(pomf_value), str(pomf_error)])
+
 
     def _plot_fits(self):
         """

@@ -61,13 +61,15 @@ class FluxFile(FileProcessor):
             for property_in, columns in self.project.property_groups.items():
                 if len(columns) == 1:
                     database['1'].create_dataset(property_in, (self.project.number_of_configurations -
-                                                               self.project.number_of_configurations % self.project.batch_size,),
+                                                               self.project.number_of_configurations %
+                                                               self.project.batch_size,),
                                                  compression="gzip", compression_opts=9)
                 elif len(columns) == 3:
                     database['1'].create_group(property_in)
                     for axis in axis_names:
                         database['1'][property_in].create_dataset(axis, (self.project.number_of_configurations -
-                                                                         self.project.number_of_configurations % self.project.batch_size,),
+                                                                         self.project.number_of_configurations %
+                                                                         self.project.batch_size,),
                                                                   compression="gzip", compression_opts=9)
 
     def fill_database(self, counter=0):

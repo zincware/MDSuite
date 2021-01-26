@@ -87,12 +87,12 @@ class CoordinationNumbers(Calculator):
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
         self.file_to_study = None  # Which rdf to use in the analysis at a time
         self.data_directory = f'{obj.storage_path}/{obj.analysis_name}/data'  # where to store the data
-        self.data_files = []       # array of the files in data directory
-        self.rdf = None            # rdf being studied
-        self.radii = None          # radii of the rdf
+        self.data_files = []  # array of the files in data directory
+        self.rdf = None  # rdf being studied
+        self.radii = None  # radii of the rdf
         self.integral_data = None  # integrated rdf being studied
         self.species_tuple = None  # Which species are being studied - important for the density calculation
-        self.indices = None        # indices of the coordination shells being studied
+        self.indices = None  # indices of the coordination shells being studied
 
         self.database_group = 'coordination_numbers'  # Which database group to save the data in
 
@@ -105,8 +105,8 @@ class CoordinationNumbers(Calculator):
         Fill the data_files list with filenames of the rdf data
         """
         with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
-            for item in db['radial_distribution_function']:           # loop over the files
-                self.data_files.append(item)                          #  Append to the data_file attribute
+            for item in db['radial_distribution_function']:  # loop over the files
+                self.data_files.append(item)  # Append to the data_file attribute
 
     def _get_density(self):
         """
@@ -143,7 +143,7 @@ class CoordinationNumbers(Calculator):
             # Integrate the function up to the bin.
             self.integral_data.append(np.trapz((np.array(self.radii[1:i]) ** 2) * self.rdf[1:i], x=self.radii[1:i]))
 
-        density = self._get_density()                                            # calculate the density
+        density = self._get_density()  # calculate the density
         self.integral_data = np.array(self.integral_data) * 4 * np.pi * density  # Scale the result by the density
 
     def _get_max_values(self):
@@ -156,7 +156,7 @@ class CoordinationNumbers(Calculator):
                 If an exception is not raised, the function will return a list of peaks in the rdf.
         """
 
-        filtered_data = apply_savgol_filter(self.rdf)     # filter the data
+        filtered_data = apply_savgol_filter(self.rdf)  # filter the data
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
         # Check that more than one peak exists. If not, the GS search cannot be performed.
@@ -201,13 +201,18 @@ class CoordinationNumbers(Calculator):
         first_shell_error = np.std([self.integral_data[self.indices[0][0]],
                                     self.integral_data[self.indices[0][1]]]) / np.sqrt(2)
 
-        second_shell = np.mean([self.integral_data[self.indices[1][0]], self.integral_data[self.indices[1][1]]])
+        second_shell = np.mean([self.integral_data[self.indices[1][0]], self.integral_data[self.indices[1][1]]]) - \
+                       first_shell
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
         # update the experiment class
         self.parent.coordination_numbers[self.species_tuple] = {'first_shell': [first_shell, first_shell_error],
                                                                 'second_shell': [second_shell, second_shell_error]}
+        self._update_properties_file(item=self.species_tuple, sub_item='first_shell', add=True,
+                                     data=[str(first_shell), str(first_shell_error)])
+        self._update_properties_file(item=self.species_tuple, sub_item='second_shell', add=True,
+                                     data=[str(second_shell), str(second_shell_error)])
 
     def _plot_coordination_shells(self):
         """
@@ -233,14 +238,14 @@ class CoordinationNumbers(Calculator):
         Calculate the coordination numbers and perform error analysis
         """
 
-        self._get_rdf_data()                  # fill the data array with data
-        for data in self.data_files:          # Loop over all existing RDFs
+        self._get_rdf_data()  # fill the data array with data
+        for data in self.data_files:  # Loop over all existing RDFs
             print(data)
-            self.file_to_study = data         # set the working file
-            self.species_tuple = data[:-29]   # set the tuple
-            self._load_rdf_from_file()        # load the data from it
-            self._integrate_rdf()             # integrate the rdf
-            self._find_minimums()             # get the minimums of the rdf being studied
+            self.file_to_study = data  # set the working file
+            self.species_tuple = data[:-29]  # set the tuple
+            self._load_rdf_from_file()  # load the data from it
+            self._integrate_rdf()  # integrate the rdf
+            self._find_minimums()  # get the minimums of the rdf being studied
             self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment class
 
             # Save the data if required

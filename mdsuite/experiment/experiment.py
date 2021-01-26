@@ -17,6 +17,7 @@ import h5py as hf
 import numpy as np
 import pubchempy as pcp
 import tensorflow as tf
+import yaml
 from diagrams import Diagram, Cluster
 from diagrams.aws.compute import ECS
 from diagrams.aws.database import RDS
@@ -104,27 +105,9 @@ class Experiment:
         self.database_path = os.path.join(self.experiment_path, 'databases')        # path to the databases
         self.figures_path = os.path.join(self.experiment_path, 'figures')           # path to the figures directory
 
-        # Analysis Results  -- We will make this separate, but all attributes should be defined here.
-        self.diffusion_coefficients = None
-        self.ionic_conductivity = None
-        self.thermal_conductivity = None
-        self.coordination_numbers = None
-        self.potential_of_mean_force_values = None
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False        # Set true if it has been calculated
         self.structure_factor_state = False
-
-        # Dictionary of results
-        self.results = {
-            'diffusion_coefficients': self.diffusion_coefficients,
-            'ionic_conductivity': self.ionic_conductivity,
-            'thermal_conductivity': self.thermal_conductivity,
-            'coordination_numbers': self.coordination_numbers,
-            'potential_of_mean_force_values': self.potential_of_mean_force_values,
-            'radial_distribution_function': self.radial_distribution_function_state,
-            'kirkwood_buff_integral': self.kirkwood_buff_integral_state,
-            'structure_factor': self.structure_factor_state
-        }
 
         # Memory properties
         self.memory_requirements = {}
@@ -372,6 +355,21 @@ class Experiment:
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
             for key in self.results:
                 db.create_group(key)
+
+        # Instantiate YAML file for system properties
+        with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
+            data = {'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
+                                               'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
+            'ionic_conductivity': {},
+            'thermal_conductivity': {},
+            'coordination_numbers': {'Coordination_Numbers': {}},
+            'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
+            'radial_distribution_function': {},
+            'kirkwood_buff_integral': {},
+            'structure_factor': {}}
+
+            yaml.dump(data, f)
+
         self.save_class()                            # Update the class state
 
     def _get_system_properties(self, file_format):
@@ -550,19 +548,6 @@ class Experiment:
             'radial_distribution_function': self.radial_distribution_function_state,
             'kirkwood_buff_integral': self.kirkwood_buff_integral_state
         }
-
-    def dump_results_json(self):
-        """
-        Dump a json file.
-
-        Returns
-        -------
-
-        """
-
-        filename = os.path.join(self.database_path, 'properties.json')
-        with open(filename, 'w') as fp:
-            json.dump(self.results, fp, indent=4, sort_keys=True)
 
     def _update_database(self, trajectory_reader):
         """
