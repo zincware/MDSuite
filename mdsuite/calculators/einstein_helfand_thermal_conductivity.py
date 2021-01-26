@@ -157,7 +157,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         return dipole_moment
 
-    def _calculate_ionic_conductivity(self):
+    def _calculate_thermal_conductivity(self):
         """
         Calculate the conductivity
         """
