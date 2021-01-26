@@ -8,8 +8,7 @@ Summary
 import matplotlib.pyplot as plt
 import random
 from scipy.optimize import curve_fit
-import numpy as np
-
+import yaml
 import h5py as hf
 
 from mdsuite.utils.meta_functions import *
@@ -287,7 +286,34 @@ class Calculator(metaclass=abc.ABCMeta):
             popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
             fits.append(10**popt[0])
 
-        return [np.mean(fits), np.std(fits)]
+        return [str(np.mean(fits)), str(np.std(fits))]
+
+    def _update_properties_file(self, item=None, sub_item=None, data=None, add=False):
+        """
+        Update the system properties YAML file.
+        """
+
+        # Check if data has been given
+        if data is None:
+            print("No data provided")
+            return
+
+        with open(os.path.join(self.parent.database_path, 'system_properties.yaml')) as pfr:
+            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+
+        with open(os.path.join(self.parent.database_path, 'system_properties.yaml'), 'w') as pfw:
+            if item is None:
+                properties[self.database_group][self.analysis_name] = data
+            elif sub_item is None:
+                properties[self.database_group][self.analysis_name][item] = data
+            else:
+                if add:
+                    properties[self.database_group][self.analysis_name][item] = {}
+                    properties[self.database_group][self.analysis_name][item][sub_item] = data
+                else:
+                    properties[self.database_group][self.analysis_name][item][sub_item] = data
+
+            yaml.dump(properties, pfw)
 
     @abc.abstractmethod
     def run_analysis(self):
