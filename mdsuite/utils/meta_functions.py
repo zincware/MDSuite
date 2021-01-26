@@ -127,12 +127,12 @@ def optimize_batch_size(filepath, number_of_configurations):
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
     # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
-    if 8 * file_size < database_memory:
+    if 8000 * file_size < database_memory:
         return int(number_of_configurations)
 
     # Set the batch size to 1000 at most. Prevents unwanted problems from arising for large computers.
-    elif initial_batch_number > 1000:
-        return 1000
+    elif initial_batch_number > 100:
+        return 100
 
     else:
         nearest_batch_amount = np.floor(number_of_configurations / initial_batch_number)
