@@ -432,11 +432,11 @@ class Experiment:
                         for dataset in db[item][group]:  # Loop over the datasets in the group
                             memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
                         self.memory_requirements[item][group] = memory  # Update the dictionary.
-                for group in db[item].keys():
-                    memory = 0  # Dummy variable for memory
-                    for dataset in db[item][group]:  # Loop over the datasets in the group
-                        memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                    self.memory_requirements[item][group] = memory  # Update the dictionary.
+                # for group in db[item].keys():
+                #     memory = 0  # Dummy variable for memory
+                #     for dataset in db[item][group]:  # Loop over the datasets in the group
+                #         memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
+                #     self.memory_requirements[item][group] = memory  # Update the dictionary.
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """

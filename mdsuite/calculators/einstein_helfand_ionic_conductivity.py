@@ -8,21 +8,21 @@ Experiment.einstein_helfand_ionic_conductivity method. The methods in class can 
 Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
 
-import matplotlib.pyplot as plt
-import warnings
-from scipy.optimize import curve_fit
-import numpy as np
 import os
+import warnings
 
+import h5py as hf
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from scipy.optimize import curve_fit
 # Import user packages
 from tqdm import tqdm
-import tensorflow as tf
-import h5py as hf
 
 # Import MDSuite modules
 import mdsuite.utils.meta_functions as meta_functions
-from mdsuite.utils.units import elementary_charge, boltzmann_constant
 from mdsuite.calculators.calculator import Calculator
+from mdsuite.utils.units import elementary_charge, boltzmann_constant
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -92,14 +92,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
 
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
-        self.batch_loop = None                        # Number of ensembles in a batch
-        self.parallel = True                          # Set the parallel attribute
-        self.tensor_choice = True                     # Load data as a tensor
+        self.batch_loop = None  # Number of ensembles in a batch
+        self.parallel = True  # Set the parallel attribute
+        self.tensor_choice = True  # Load data as a tensor
 
-        self.correlation_time = 1                     # Correlation time of the current
-        self.species = list(obj.species)              # species on which to perform the analysis
+        self.correlation_time = 1  # Correlation time of the current
+        self.species = list(obj.species)  # species on which to perform the analysis
 
-        self.database_group = 'ionic_conductivity'    # Which database group to save the data in
+        self.database_group = 'ionic_conductivity'  # Which database group to save the data in
 
         # Time array for the calculations
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
@@ -123,7 +123,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_integrated_current(self, data):
+    def _calculate_integrated_current(self, i):
         """
         Calculate the translational dipole of the system
 
@@ -139,22 +139,22 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_moment : tf.tensor
                 Return the dipole moment for the batch
         """
-
-        counter = 0                                             # set a counter variable
-        for tensor in data:                                     # Loop over the species positions
+        data = self._load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
+        counter = 0  # set a counter variable
+        for tensor in data:  # Loop over the species positions
             data[counter] = tf.math.reduce_sum(tensor, axis=0)  # Sum over the positions of the atoms
-            counter += 1                                        # update the counter
-        dipole_moment = tf.convert_to_tensor(data)              # Convert the results to a tf.tensor
+            counter += 1  # update the counter
+        dipole_moment = tf.convert_to_tensor(data)  # Convert the results to a tf.tensor
 
         # Build the charge tensor for assignment
         system_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # load species charge
-        charge_tuple = []              # define empty array for the charges
+        charge_tuple = []  # define empty array for the charges
         for charge in system_charges:  # loop over each species charge
             # Build a tensor of charges allowing for memory management.
             charge_tuple.append(tf.ones([self.batch_size['Parallel'], 3], dtype=tf.float64) * charge)
 
-        charge_tensor = tf.stack(charge_tuple)                # stack the tensors into a single object
-        dipole_moment *= charge_tensor                        # Multiply the dipole moment tensor by the system charges
+        charge_tensor = tf.stack(charge_tuple)  # stack the tensors into a single object
+        dipole_moment *= charge_tensor  # Multiply the dipole moment tensor by the system charges
         dipole_moment = tf.reduce_sum(dipole_moment, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment
@@ -172,13 +172,13 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         dipole_msd_array = self.msd_operation_EH(type_batches='Parallel')
 
-        dipole_msd_array /= int(self.n_batches['Parallel']*self.batch_loop)  # scale by the number of batches
+        dipole_msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
 
         dipole_msd_array *= prefactor
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
-        self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0]/100]
-        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0]/100)])
+        self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0] / 100]
+        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0] / 100)])
 
         # Update the plot if required
         if self.plot:
@@ -194,11 +194,11 @@ class EinsteinHelfandIonicConductivity(Calculator):
         Collect methods and run analysis
         """
 
-        self._autocorrelation_time()            # get the correct correlation time
-        self._collect_machine_properties()      # collect machine properties and determine batch size
-        self._calculate_batch_loop()            # Update the batch loop attribute
-        status = self._check_input()            # Check for bad input
+        self._autocorrelation_time()  # get the correct correlation time
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._calculate_batch_loop()  # Update the batch loop attribute
+        status = self._check_input()  # Check for bad input
         if status == -1:
             return
         else:
-            self._calculate_ionic_conductivity()    # calculate the ionic conductivity
+            self._calculate_ionic_conductivity()  # calculate the ionic conductivity
