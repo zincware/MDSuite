@@ -169,7 +169,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if self.plot:
             self._plot_data(title=f'{self.analysis_name}_{item}')
 
-        return [np.mean(coefficient_array), np.std(coefficient_array)/np.sqrt(len(coefficient_array))]
+        return [str(np.mean(coefficient_array)), str(np.std(coefficient_array)/np.sqrt(len(coefficient_array)))]
 
     def _singular_diffusion_coefficients(self):
         """
@@ -179,6 +179,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         for item in self.species:                                                        # loop over species
             result = self._singular_diffusion_calculation(item=item)                     # get the diffusion coefficient
             self.parent.diffusion_coefficients["Green-Kubo"]["Singular"][item] = result  # Update the class
+            self._update_properties_file(item='Singular', sub_item=item, data=result)
 
         # Run the plot data method if needed
         if self.plot:

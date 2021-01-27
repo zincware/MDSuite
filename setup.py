@@ -32,4 +32,5 @@ setuptools.setup(
                       'numpy',
                       'gputil',
                       'diagrams',
-                      'pubchempy'])
+                      'pubchempy',
+                      'PyYAML'])

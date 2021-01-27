@@ -17,11 +17,13 @@ code the documentation will grow to incorporate the theoretical background for t
 Dynamic Properties:
 ^^^^^^^^^^^^^^^^^^^
 
-* `Self diffusion coefficients <diffusion_coefficients.html>`_
-* `Distinct diffusion coefficients <diffusion_coefficients.html>`_
-* `Ionic conductivity <ionic_conductivity.html>`_
-* `Viscosity <viscosity.html>`_
-* `Thermal conductivity <thermal_conductivity.html>`_
+.. toctree::
+    :maxdepth: 1
+
+    _theory/diffusion_coefficients
+    _theory/ionic_conductivity
+    _theory/viscosity
+    _theory/thermal_conductivity
 
 For each of these calculations we have implemented several types of calculations depending on what data is available in
 the experiment. These two methods are often referred to as the Green-Kubo methods, where an autocorrelation function
