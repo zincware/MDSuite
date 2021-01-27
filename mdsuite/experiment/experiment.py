@@ -305,7 +305,7 @@ class Experiment:
                         group_list.append(ECS(property_group))  # construct a list of equal level groups
                 head >> group_list  # append these groups to the head object
 
-    def add_data(self, trajectory_file=None, file_format='lammps_traj'):
+    def add_data(self, trajectory_file=None, file_format='lammps_traj', rename_cols=None):
         """
         Add data to the database
 
@@ -332,20 +332,20 @@ class Experiment:
         # Check to see if a database exists
         test_db = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
         if test_db.exists():
-            self._update_database(trajectory_reader)
+            self._update_database(trajectory_reader, rename_cols)
         else:
-            self._build_new_database(trajectory_reader)
+            self._build_new_database(trajectory_reader, rename_cols)
 
         self.collect_memory_information()  # Update the memory information
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader):
+    def _build_new_database(self, trajectory_reader,rename_cols):
         """
         Build a new database
         """
 
         # Build the database object for trajectory information
-        trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
+        trajectory_reader.process_trajectory_file(rename_cols=rename_cols)  # get properties of the trajectory and update the class
         trajectory_reader.build_database_skeleton()  # Build the database skeleton
         trajectory_reader.fill_database()            # Fill the database with trajectory data
         if self.file_type == 'traj':
@@ -432,11 +432,11 @@ class Experiment:
                         for dataset in db[item][group]:  # Loop over the datasets in the group
                             memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
                         self.memory_requirements[item][group] = memory  # Update the dictionary.
-                for group in db[item].keys():
-                    memory = 0  # Dummy variable for memory
-                    for dataset in db[item][group]:  # Loop over the datasets in the group
-                        memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                    self.memory_requirements[item][group] = memory  # Update the dictionary.
+                # for group in db[item].keys():
+                #     memory = 0  # Dummy variable for memory
+                #     for dataset in db[item][group]:  # Loop over the datasets in the group
+                #         memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
+                #     self.memory_requirements[item][group] = memory  # Update the dictionary.
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
@@ -549,7 +549,7 @@ class Experiment:
             'kirkwood_buff_integral': self.kirkwood_buff_integral_state
         }
 
-    def _update_database(self, trajectory_reader):
+    def _update_database(self, trajectory_reader, rename_cols):
         """
         Update the database when new data is added to a pre-existing experiment.
 

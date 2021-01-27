@@ -13,7 +13,7 @@ from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
 import numpy as np
 
-lammps_traj = {
+var_names = {
     "Positions": ['x', 'y', 'z'],
     "Scaled_Positions": ['xs', 'ys', 'zs'],
     "Unwrapped_Positions": ['xu', 'yu', 'zu'],
@@ -55,21 +55,27 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         super().__init__(obj, header_lines)  # fill the parent class
         self.lammpstraj = lammpstraj  # lammps file to read from.
 
-    def process_trajectory_file(self, update_class=True):
+    def process_trajectory_file(self, update_class=True, rename_cols=None):
         """ Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
 
-        Parameters
-        ----------
-        update_class : bool
+
+        :param update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
                 updated with new information. This is necessary on the first run of data addition to the database. After
                 this point, when new data is added, this is no longer required as other methods will take care of
                 updating the properties that change with new data. In fact, it will set the number of configurations to
                 only the new data, which will be wrong.
+        :param rename_cols: dict
+                If the user names the varibles in a different way compared with the standard defined above, they may pass
+                a dictionary with the new values for the keys. {'Stress':['sxx', 'syy', 'szz']}
         """
+
+        # user custom names for variables.
+        if rename_cols is not None:
+            var_names.update(rename_cols)
 
         """
             Define necessary dicts and variables
@@ -151,7 +157,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         header_line = first_configuration[8]  # the header line in the trajectory
         column_dict_properties = self._get_column_properties(header_line, skip_words=2)  # get column properties, skip the two first words which are not in the columns (ITEM: ATOMS)
         # Get the observable groups
-        self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)
+        self.project.property_groups = self._extract_properties(var_names, column_dict_properties)
 
         """
             Get the box size from the first simulation cell
