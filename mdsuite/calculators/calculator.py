@@ -372,10 +372,10 @@ class Calculator(metaclass=abc.ABCMeta):
         return sigma, parsed_autocorrelation
 
     def msd_operation_EH(self, type_batches):
-        dipole_msd_array = np.zeros(self.data_range)  # Initialize the msd array
+        msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
         for i in tqdm(range(int(self.n_batches[type_batches])), ncols=70):  # Loop over batches
-            batch = self._calculate_integrated_current(self._load_batch(i))  # get the ionic current
+            batch = self._calculate_integrated_current(i)  # get the ionic current
             for start_index in range(int(self.batch_loop)):  # Loop over ensembles
                 start = int(start_index + self.correlation_time)  # get start configuration
                 stop = int(start + self.data_range)  # get the stop configuration
@@ -386,13 +386,5 @@ class Calculator(metaclass=abc.ABCMeta):
                     tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
                 msd = tf.reduce_sum(msd, axis=1)
 
-                dipole_msd_array += np.array(msd)  # Update the total array
-        return dipole_msd_array
-
-    @abc.abstractmethod
-    def _calculate_system_current(self, i):
-        pass
-
-    @abc.abstractmethod
-    def _calculate_integrated_current(self, param):
-        pass
+                msd_array += np.array(msd)  # Update the total array
+        return msd_array
