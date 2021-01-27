@@ -61,27 +61,35 @@ class FluxFile(FileProcessor):
             for property_in, columns in self.project.property_groups.items():
                 if len(columns) == 1:
                     database['1'].create_dataset(property_in, (self.project.number_of_configurations -
-                                                               self.project.number_of_configurations % self.project.batch_size,),
+                                                               self.project.number_of_configurations %
+                                                               self.project.batch_size,),
                                                  compression="gzip", compression_opts=9)
                 elif len(columns) == 3:
                     database['1'].create_group(property_in)
                     for axis in axis_names:
                         database['1'][property_in].create_dataset(axis, (self.project.number_of_configurations -
-                                                                         self.project.number_of_configurations % self.project.batch_size,),
+                                                                         self.project.number_of_configurations %
+                                                                         self.project.batch_size,),
                                                                   compression="gzip", compression_opts=9)
 
     def fill_database(self, counter=0):
 
-        loop_range = int(
-            (self.project.number_of_configurations - counter) / self.project.batch_size)  # loop range for the data.
+        # loop range for the data.
+        loop_range = int((self.project.number_of_configurations - counter) / self.project.batch_size)
+        skip_header = 0
         with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), "r+") as database:
             with open(self.project.trajectory_file) as f:
                 for _ in tqdm(range(loop_range), ncols=70):
-                    batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data
+                    if skip_header == 0:
+                        batch_data = self.read_configurations(self.project.batch_size, f,
+                                                              skip=True)  # load the batch data
+                    else:
+                        batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch data
                     self.process_configurations(batch_data, database, counter)  # process the trajectory
-                    counter += self.project.batch_size  # Update counter
+                    skip_header = 1  # turn off the header skip
+                    counter += len(batch_data)  # Update counter
 
-    def read_configurations(self, number_of_configurations, file_object):
+    def read_configurations(self, number_of_configurations, file_object, skip = False):
         """
         Read in a number of configurations from a file file
 
@@ -100,8 +108,9 @@ class FluxFile(FileProcessor):
 
         configurations_data = []  # Define the empty data array
 
-        # Skip header lines.
-        [file_object.readline() for _ in range(self.header_lines)]
+        if skip:
+            # Skip header lines.
+            [file_object.readline() for _ in range(self.header_lines)]
 
         for i in range(number_of_configurations):
             # Read the data into the arrays.
@@ -136,7 +145,7 @@ class FluxFile(FileProcessor):
         for property_group, columns in self.project.property_groups.items():
             num_columns = len(columns)
             if num_columns == 1:
-                database['1'][property_group][:] = data[:, columns[0]].astype(float)
+                database['1'][property_group][counter:counter + len(data)] = data[:, columns[0]].astype(float)
             else:
                 for column, axis in zip(columns, axis_names):
-                    database['1'][property_group][axis][:] = data[:, column].astype(float)
+                    database['1'][property_group][axis][counter:counter + len(data)] = data[:, column].astype(float)

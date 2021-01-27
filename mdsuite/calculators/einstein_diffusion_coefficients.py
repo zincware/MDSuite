@@ -11,21 +11,18 @@ calculations performed.
 
 # Python standard packages
 import matplotlib.pyplot as plt
-from scipy.optimize import curve_fit
 import numpy as np
 import warnings
-import tensorflow as tf
-import h5py as hf
 import os
-import sys
 
 # Import user packages
 from tqdm import tqdm
+import h5py as hf
+import tensorflow as tf
+import yaml
 
 # Import MDSuite packages
-import mdsuite.utils.meta_functions as meta_functions
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.utils.exceptions import *
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -193,7 +190,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             return [self.time, msd_array]
         else:
             result = self._fit_einstein_curve([self.time, msd_array])
-            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = result
+            self._update_properties_file(item='Singular', sub_item=item, data=result)
 
     def _distinct_diffusion_coefficients(self):
         """
@@ -242,7 +239,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
             self.loop_condition = False
             result = self._fit_einstein_curve(data)  # get the final fits
-            self.parent.diffusion_coefficients["Einstein"]["Singular"][item] = result
+            self._update_properties_file(item='Singular', sub_item=item, data=result)
 
     def run_analysis(self):
         """

@@ -157,6 +157,7 @@ class GreenKuboThermalConductivity(Calculator):
         sigma = prefactor * prefactor_units * np.array(sigma)
 
         self.parent.thermal_conductivity["Green-Kubo"] = np.mean(sigma)
+        self._update_properties_file(data=str(np.mean(sigma)))
 
         plt.plot(self.time, parsed_autocorrelation)  # Add a plot
 

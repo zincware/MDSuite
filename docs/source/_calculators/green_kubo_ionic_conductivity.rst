@@ -1,6 +1,6 @@
 Green-Kubo Ionic Conductivity Class
 =======================================================
 
-.. autoclass:: mdsuite.analysis.green_kubo_ionic_conductivity.GreenKuboIonicConductivity
+.. autoclass:: mdsuite.calculators.green_kubo_ionic_conductivity.GreenKuboIonicConductivity
     :members:
     :private-members:
