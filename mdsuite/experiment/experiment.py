@@ -76,37 +76,37 @@ class Experiment:
         """
 
         # Taken upon instantiation
-        self.analysis_name = analysis_name                 # Name of the experiment.
+        self.analysis_name = analysis_name  # Name of the experiment.
         self.storage_path = os.path.abspath(storage_path)  # Where to store the data
-        self.temperature = temperature                     # Temperature of the system.
-        self.time_step = time_step                         # Timestep chosen for the simulation.
+        self.temperature = temperature  # Temperature of the system.
+        self.time_step = time_step  # Timestep chosen for the simulation.
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
-        self.number_of_configurations = 0     # Number of configurations in the trajectory.
-        self.number_of_atoms = None           # Number of atoms in the simulation.
-        self.species = None                   # Species dictionary.
-        self.box_array = None                 # Box vectors.
-        self.dimensions = None                # Dimensionality of the system.
-        self.trajectory_file = None           # Name of the trajectory file.
-        self.sample_rate = None               # Rate at which configurations are dumped in the trajectory.
-        self.batch_size = None                # Number of configurations in each batch.
-        self.volume = None                    # Volume of the system.
-        self.properties = None                # Properties measured in the simulation.
-        self.property_groups = None           # Names of the properties measured in the simulation
+        self.number_of_configurations = 0  # Number of configurations in the trajectory.
+        self.number_of_atoms = None  # Number of atoms in the simulation.
+        self.species = None  # Species dictionary.
+        self.box_array = None  # Box vectors.
+        self.dimensions = None  # Dimensionality of the system.
+        self.trajectory_file = None  # Name of the trajectory file.
+        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
+        self.batch_size = None  # Number of configurations in each batch.
+        self.volume = None  # Volume of the system.
+        self.properties = None  # Properties measured in the simulation.
+        self.property_groups = None  # Names of the properties measured in the simulation
 
         # File related properties
         self.file_format = None  # format of the file being studied
-        self.file_type = None    # type of file being studied, per-atom, or flux
-        self.filepath = None     # Path to trajectory file
+        self.file_type = None  # type of file being studied, per-atom, or flux
+        self.filepath = None  # Path to trajectory file
 
         # Internal File paths
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
-        self.database_path = os.path.join(self.experiment_path, 'databases')        # path to the databases
-        self.figures_path = os.path.join(self.experiment_path, 'figures')           # path to the figures directory
+        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
+        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = False        # Set true if it has been calculated
+        self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
         # Memory properties
@@ -115,6 +115,9 @@ class Experiment:
         # Check if the experiment exists and load if it does.
         self._load_or_build()
         self.build_dictionary_results()  # expand the analysis results entries
+
+        # Run Computations
+        self.run_computation = self.RunComputation(self)
 
     def _load_or_build(self):
         """
@@ -193,7 +196,7 @@ class Experiment:
                 sys.exit(-1)
         return units
 
-    def run_computation(self, computation_name, **kwargs):
+    class RunComputation:
         """ Run a computation
 
         The type of computation will be stored in a dictionary.
@@ -211,6 +214,48 @@ class Experiment:
                 The ionic conductivity in units of S/cm
 
         """
+
+        def __init__(self, parent):
+            self.parent = parent
+            for key in dict_classes_computations:
+                self.__setattr__(key, dict_classes_computations[key])
+
+        def __getattribute__(self, item):
+            """Call via function
+            You cann call the computation via a function and autocompletion
+            >>> Experiment.run_computation.EinsteinDiffusionCoefficients(plot=True)
+            """
+            try:
+                class_compute = dict_classes_computations[item]
+            except KeyError:
+                return super().__getattribute__(item)
+
+            def func(**kwargs):
+                self.compute(class_compute, **kwargs)
+
+            return func
+
+        def __call__(self, computation_name, **kwargs):
+            """Call directly
+            You can call the computation directly via
+            >>> Experiment.run_computation("EinsteinDiffusionCoefficients", plot=True)
+            """
+            try:
+                class_compute = dict_classes_computations[computation_name]
+            except KeyError:
+                print(f'{computation_name} not found')
+                print(f'Available computations are:')
+                [print(key) for key in dict_classes_computations.keys()]
+                return
+
+            self.compute(class_compute, **kwargs)
+
+        def compute(self, class_compute, **kwargs):
+            object_compute = class_compute(self.parent, **kwargs)
+            object_compute.run_analysis()
+            self.parent.save_class()
+
+    def run_computation(self, computation_name, **kwargs):
 
         try:
             class_compute = dict_classes_computations[computation_name]
@@ -263,13 +308,13 @@ class Experiment:
         # Create new analysis directory and change into it
         try:
             os.mkdir(self.experiment_path)  # Make the experiment directory
-            os.mkdir(self.figures_path)     # Create a directory to save images
-            os.mkdir(self.database_path)    # Create a directory for data
+            os.mkdir(self.figures_path)  # Create a directory to save images
+            os.mkdir(self.database_path)  # Create a directory for data
 
-        except FileExistsError:             # throw exception if the file exits
+        except FileExistsError:  # throw exception if the file exits
             return
 
-        self.save_class()                   # save the class state.
+        self.save_class()  # save the class state.
         print(f"** An experiment has been added titled {self.analysis_name} **")
 
     def print_class_attributes(self):
@@ -347,9 +392,9 @@ class Experiment:
         # Build the database object for trajectory information
         trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
         trajectory_reader.build_database_skeleton()  # Build the database skeleton
-        trajectory_reader.fill_database()            # Fill the database with trajectory data
+        trajectory_reader.fill_database()  # Fill the database with trajectory data
         if self.file_type == 'traj':
-            self.build_species_dictionary()          # Add data to the species dictionary.
+            self.build_species_dictionary()  # Add data to the species dictionary.
 
         # Build database for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
@@ -360,17 +405,17 @@ class Experiment:
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
             data = {'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
                                                'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
-            'ionic_conductivity': {},
-            'thermal_conductivity': {},
-            'coordination_numbers': {'Coordination_Numbers': {}},
-            'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
-            'radial_distribution_function': {},
-            'kirkwood_buff_integral': {},
-            'structure_factor': {}}
+                    'ionic_conductivity': {},
+                    'thermal_conductivity': {},
+                    'coordination_numbers': {'Coordination_Numbers': {}},
+                    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
+                    'radial_distribution_function': {},
+                    'kirkwood_buff_integral': {},
+                    'structure_factor': {}}
 
             yaml.dump(data, f)
 
-        self.save_class()                            # Update the class state
+        self.save_class()  # Update the class state
 
     def _get_system_properties(self, file_format):
         try:
