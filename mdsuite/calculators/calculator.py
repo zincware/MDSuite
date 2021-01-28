@@ -122,8 +122,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations/max_batch_size_serial).astype(int)
         self.batch_size['Serial'] = np.ceil(self.parent.number_of_configurations/self.n_batches['Serial']).astype(int)
 
-        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations / max_batch_size_serial).astype(int)
-        self.batch_size['Parallel'] = np.ceil(self.parent.number_of_configurations / self.n_batches['Serial']).astype(int)
+        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations / max_batch_size_parallel).astype(int)
+        self.batch_size['Parallel'] = np.ceil(self.parent.number_of_configurations / self.n_batches['Parallel']).astype(int)
 
     def _calculate_batch_loop(self):
         """

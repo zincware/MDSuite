@@ -89,7 +89,7 @@ class FluxFile(FileProcessor):
                     skip_header = 1  # turn off the header skip
                     counter += len(batch_data)  # Update counter
 
-    def read_configurations(self, number_of_configurations, file_object, skip = False):
+    def read_configurations(self, number_of_configurations, file_object, skip=False):
         """
         Read in a number of configurations from a file file
 
