@@ -312,7 +312,7 @@ class Experiment:
         Parameters
         ----------
         file_format :
-                Foramt of the file being read in. Default is lammpstraj
+                Format of the file being read in. Default is lammpstraj
         trajectory_file : str
                 Trajectory file to be process and added to the database.
         """

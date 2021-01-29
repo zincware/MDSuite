@@ -56,7 +56,8 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         self.lammpstraj = lammpstraj  # lammps file to read from.
 
     def process_trajectory_file(self, update_class=True):
-        """ Get additional information from the trajectory file
+        """
+        Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
