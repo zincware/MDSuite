@@ -2,6 +2,11 @@
 Class for database objects and all of their operations
 """
 
+import h5py as hf
+import os
+
+from mdsuite.utils.exceptions import *
+
 
 class Database:
     """
@@ -13,26 +18,26 @@ class Database:
 
     Attributes
     ----------
-    type : str
+    architecture : str
                 The type of the database implemented, either a simulation database, or an analysis database.
     name : str
             The name of the database in question.
     """
 
-    def __init__(self, type='simulation', name='database'):
+    def __init__(self, architecture='simulation', name='database'):
         """
         Constructor for the database class.
 
         Parameters
         ----------
-        type : str
+        architecture : str
                 The type of the database implemented, either a simulation database, or an analysis database.
         name : str
                 The name of the database in question.
         """
 
-        self.type = type  # type of database
-        self.name = name  # name of the database
+        self.architecture = architecture  # architecture of database
+        self.name = name                  # name of the database
 
     def add_data(self):
         """
@@ -44,25 +49,74 @@ class Database:
         """
         pass
 
-    def _resize_dataset(self):
+    def _resize_dataset(self, dataset: dict):
         """
         Resize a dataset so more data can be added
 
+        Parameters
+        ----------
+        dataset : dict
+                path to the dataset that needs to be resized. e.g. {'Na': 'velocities'} will resize all 'x', 'y', and
+                'z' datasets.
+
         Returns
         -------
 
         """
-        pass
+        # ensure the database already exists
+        try:
+            database = hf.File(self.name, 'r+')
+        except DatabaseDoesNotExist:
+            raise DatabaseDoesNotExist
 
-    def _initialize_database(self):
+        # construct the operations dict
+        operations = {}
+
+        for group in dataset:
+            if isinstance(dataset[group], int):
+                operations[group] = dataset[group]
+            else:
+                for subgroup in dataset[group]:
+                    db_path = os.path.join(group, subgroup)
+                    operations[db_path] = dataset[group][subgroup]
+
+        for identifier in operations:
+            for data in database[identifier]:
+                data.resize(operations[identifier], 1)
+
+    def _initialize_database(self, structure: dict):
         """
         Build a database with a general structure
 
+        Parameters
+        ----------
+        structure : dict
+                General structure of the dictionary with relevant dataset sizes.
+                e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
+                In this case, the last value in the tuple corresponds to the number of components that wil be parsed
+                to the database.
         Returns
         -------
 
         """
-        pass
+        for item in structure:
+
+    def _add_group_structure(self, structure: dict):
+        """
+        Add a simple group structure to a database.
+
+        Parameters
+        ----------
+        structure : dict
+                Structure of a single property to be added to the database.
+                e.g. {'Na': {'Forces': (200, 5000, 3)}}
+
+        Returns
+        -------
+
+        """
+        # check for parent group existence
+        # add groups and datasets
 
     def _get_memory_information(self, groups=None):
         """
