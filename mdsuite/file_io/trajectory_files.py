@@ -7,6 +7,7 @@ Summary
 
 import abc
 import os
+from typing import TextIO
 
 import h5py as hf
 import numpy as np
@@ -44,7 +45,29 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         self.header_lines = header_lines  # Number of header lines in the given file format.
         super().__init__(obj, header_lines)  # fill the parent class
 
-    def read_configurations(self, number_of_configurations, file_object):
+    def _read_header(self, f: TextIO, offset: int=0):
+        """
+        Read n header lines in starting from line offset.
+
+        Parameters
+        ----------
+        f : TextIO
+                File object to read from
+        offset : int
+                Number of lines to skip before reading in the header
+        Returns
+        -------
+        header : list
+                list of data in the header
+        """
+
+        # Skip the offset data
+        for i in range(offset):
+            f.readline()
+
+        return [next(f).split() for _ in range(self.header_lines]  # Get the first header
+
+    def read_configurations(self, number_of_configurations, file_object, skip=True):
         """
         Read in a number of configurations from a file
 
@@ -65,9 +88,10 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         for i in range(number_of_configurations):
 
-            # Skip header lines.
-            for j in range(self.header_lines):
-                file_object.readline()
+            if skip:
+                # Skip header lines.
+                for j in range(self.header_lines):
+                    file_object.readline()
 
             # Read the data into the arrays.
             for k in range(self.project.number_of_atoms):
@@ -160,9 +184,6 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        trajectory_reader : object
-                Instance of a trajectory reader class.
-
         counter : int
                 Number of configurations that have been read in.
         """
