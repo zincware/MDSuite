@@ -43,18 +43,46 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
     header_lines : int
             Number of header lines in the file format (lammps = 9)
 
-    lammpstraj : str
+    file_path : str
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, lammpstraj=None):
+    def __init__(self, obj, header_lines=9, file_path=None):
         """
         Python class constructor
         """
 
         super().__init__(obj, header_lines)  # fill the parent class
-        self.lammpstraj = lammpstraj  # lammps file to read from.
+        self.file_path = file_path           # lammps file to read from.
+        self.data = None                     #  first two configurations
 
+    def _get_number_of_atoms(self):
+        """
+        Get the number of atoms
+
+        Returns
+        -------
+
+        """
+        pass
+
+    def _get_number_of_configurations(self):
+        """
+        Get the number of configurations
+        Returns
+        -------
+
+        """
+        pass
+
+    def _get_time_information(self):
+        """
+        Get time information.
+
+        Returns
+        -------
+
+        """
     def process_trajectory_file(self, update_class=True):
         """
         Get additional information from the trajectory file
@@ -76,7 +104,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             Define necessary dicts and variables
         """
         species_summary = {}  # For storing the species or types of molecules
-        n_lines_header_block = 9  # Standard header block of a lammpstraj file
+        n_lines_header_block = 9  # Standard header block of a file_path file
 
         """
             Get the properties of each configuration
@@ -86,13 +114,10 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             """
                 Get header files for analysis
             """
-            head = [next(f).split() for _ in range(n_lines_header_block)]  # Get the first header
+            header = self._read_header(f)  # read in the header
             f.seek(0)  # Go back to the start of the file
-            number_of_atoms = int(head[3][0])  # Calculate the number of atoms
+            number_of_atoms = int(header[3][0])  # Calculate the number of atoms
 
-            """
-                Fill data arrays with the first two configurations to get simulation properties
-            """
             # Get first configuration
             first_configuration = [next(f).split() for _ in range(number_of_atoms + n_lines_header_block)]
 
