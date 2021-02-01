@@ -28,7 +28,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             Number of header lines in the file format being read.
     """
 
-    def __init__(self, obj, header_lines):
+    def __init__(self, obj, header_lines, file_path):
         """
         Python constructor
 
@@ -41,9 +41,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 Number of header lines in the given file format.
         """
 
-        self.project = obj  # Experiment class instance to add to.
-        self.header_lines = header_lines  # Number of header lines in the given file format.
-        super().__init__(obj, header_lines)  # fill the parent class
+        super().__init__(obj, header_lines, file_path)  # fill the parent class
 
     def _read_header(self, f: TextIO, offset: int=0):
         """
@@ -65,7 +63,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         for i in range(offset):
             f.readline()
 
-        return [next(f).split() for _ in range(self.header_lines]  # Get the first header
+        return [next(f).split() for _ in range(self.header_lines)]  # Get the first header
 
     def read_configurations(self, number_of_configurations, file_object, skip=True):
         """

@@ -95,10 +95,10 @@ class Database:
 
         """
 
-        database = hf.File(self.name, 'w')  # open the database
-        for item in structure:
-            self._add_group_structure(item, database)  # add the groups to the database
-            self._add_dataset(item, database)          # add a dataset to the groups
+        database = hf.File(self.name, 'w')              # open the database
+        self._add_group_structure(structure, database)  # add the groups to the database
+        self._add_dataset(structure, database)          # add a dataset to the groups
+        database.close()                                # close the database
 
     def _build_path_input(self, structure: dict):
         """
@@ -154,8 +154,6 @@ class Database:
 
         Parameters
         ----------
-        Parameters
-        ----------
         structure : dict
                 Structure of a single property to be added to the database.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
@@ -168,28 +166,30 @@ class Database:
         """
 
         architecture = self._build_path_input(structure)  # get the correct file path
-        dataset_information = list(architecture.values())[0]  # get the tuple information
-        dataset_path = list(architecture)[0]  # get the dataset path in the database
 
-        # Check for a type error in the dataset information
-        try:
-            if type(dataset_information) is not tuple:
-                print("Invalid input for dataset generation")
+        for item in architecture:
+            dataset_information = architecture[item]  # get the tuple information
+            dataset_path = item                       # get the dataset path in the database
+
+            # Check for a type error in the dataset information
+            try:
+                if type(dataset_information) is not tuple:
+                    print("Invalid input for dataset generation")
+                    raise TypeError
+            except TypeError:
                 raise TypeError
-        except TypeError:
-            raise TypeError
 
-        # get the correct maximum shape for the dataset -- changes if a system property or an atomic property
-        if len(dataset_information[:-1]) == 1:
-            max_shape = (None,)
-        else:
-            max_shape = (dataset_information[0], None)
+            # get the correct maximum shape for the dataset -- changes if a system property or an atomic property
+            if len(dataset_information[:-1]) == 1:
+                max_shape = (None,)
+            else:
+                max_shape = (dataset_information[0], None)
 
-        for i in range(dataset_information[-1]):
-            database[dataset_path].create_dataset(str(i),
-                                                  dataset_information[:-1],
-                                                  maxshape=max_shape,
-                                                  scaleoffset=5)
+            for i in range(dataset_information[-1]):
+                database[dataset_path].create_dataset(str(i),
+                                                      dataset_information[:-1],
+                                                      maxshape=max_shape,
+                                                      scaleoffset=5)
 
     def _add_group_structure(self, structure: dict, database: hf.File):
         """
@@ -213,12 +213,11 @@ class Database:
 
         # Build file paths for the addition.
         architecture = self._build_path_input(structure=structure)
-
-        if list(architecture)[0] in database:
-            print("Group structure already exists")
-            return
-        else:
-            database.create_group(list(architecture)[0])
+        for item in list(architecture):
+            if item in database:
+                print("Group structure already exists")
+            else:
+                database.create_group(item)
 
     def _get_memory_information(self, groups=None):
         """

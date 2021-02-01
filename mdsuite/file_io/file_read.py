@@ -20,7 +20,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
             Number of header lines in the file format being read.
     """
 
-    def __init__(self, obj, header_lines):
+    def __init__(self, obj, header_lines, file_path):
         """
         Python constructor
 
@@ -35,6 +35,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         self.project = obj  # Experiment class instance to add to.
         self.header_lines = header_lines  # Number of header lines in the given file format.
+        self.file_path = file_path   # path to the file being read
 
     @abc.abstractmethod
     def process_trajectory_file(self):
