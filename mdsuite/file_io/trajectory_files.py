@@ -43,7 +43,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         super().__init__(obj, header_lines, file_path)  # fill the parent class
 
-    def _read_header(self, f: TextIO, offset: int=0):
+    def _read_header(self, f: TextIO, offset: int = 0):
         """
         Read n header lines in starting from line offset.
 
@@ -65,12 +65,14 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         return [next(f).split() for _ in range(self.header_lines)]  # Get the first header
 
-    def read_configurations(self, number_of_configurations, file_object, skip=True):
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = True):
         """
         Read in a number of configurations from a file
 
         Parameters
         ----------
+        skip : bool
+                If true, the header lines will be skipped, if not, the returned data will include the headers.
         number_of_configurations : int
                 Number of configurations to be read in.
         file_object : obj

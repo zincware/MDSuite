@@ -6,6 +6,7 @@ Summary
 """
 
 import abc
+from typing import TextIO
 
 
 class FileProcessor(metaclass=abc.ABCMeta):
@@ -76,6 +77,28 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         counter : int
                 Number of configurations that have been read in.
+        """
+
+        return
+
+    @abc.abstractmethod
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = True):
+        """
+        Read in a number of configurations from a file
+
+        Parameters
+        ----------
+        skip : bool
+                If true, the header lines will be skipped, if not, the returned data will include the headers.
+        number_of_configurations : int
+                Number of configurations to be read in.
+        file_object : obj
+                File object to be read from.
+
+        Returns
+        -------
+        configuration data : np.array
+                Data read in from the file object.
         """
 
         return

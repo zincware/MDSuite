@@ -21,6 +21,7 @@ import yaml
 from diagrams import Diagram, Cluster
 from diagrams.aws.compute import ECS
 from diagrams.aws.database import RDS
+from tqdm import tqdm
 
 from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations
@@ -29,6 +30,7 @@ from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
+from mdsuite.file_io.file_read import FileProcessor
 
 
 class Experiment:
@@ -37,8 +39,6 @@ class Experiment:
 
     Attributes
     ----------
-    trajectory_file : str
-            A file containing trajectory data of a simulation
     analysis_name : str
             The name of the analysis being performed e.g. NaCl_1400K
     storage_path : str
@@ -77,31 +77,31 @@ class Experiment:
         """
 
         # Taken upon instantiation
-        self.analysis_name = analysis_name                 # Name of the experiment.
+        self.analysis_name = analysis_name  # Name of the experiment.
         self.storage_path = os.path.abspath(storage_path)  # Where to store the data
-        self.temperature = temperature                     # Temperature of the system.
-        self.time_step = time_step                         # Timestep chosen for the simulation.
+        self.temperature = temperature  # Temperature of the system.
+        self.time_step = time_step  # Timestep chosen for the simulation.
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
-        self.number_of_configurations = 0     # Number of configurations in the trajectory.
-        self.number_of_atoms = None           # Number of atoms in the simulation.
-        self.species = None                   # Species dictionary.
-        self.box_array = None                 # Box vectors.
-        self.dimensions = None                # Dimensionality of the system.
-        self.sample_rate = None               # Rate at which configurations are dumped in the trajectory.
-        self.batch_size = None                # Number of configurations in each batch.
-        self.volume = None                    # Volume of the system.
-        self.properties = None                # Properties measured in the simulation.
-        self.property_groups = None           # Names of the properties measured in the simulation
+        self.number_of_configurations = 0  # Number of configurations in the trajectory.
+        self.number_of_atoms = None  # Number of atoms in the simulation.
+        self.species = None  # Species dictionary.
+        self.box_array = None  # Box vectors.
+        self.dimensions = None  # Dimensionality of the system.
+        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
+        self.batch_size = None  # Number of configurations in each batch.
+        self.volume = None  # Volume of the system.
+        self.properties = None  # Properties measured in the simulation.
+        self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
-        self.database_path = os.path.join(self.experiment_path, 'databases')        # path to the databases
-        self.figures_path = os.path.join(self.experiment_path, 'figures')           # path to the figures directory
+        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
+        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = False        # Set true if it has been calculated
+        self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
         # Memory properties
@@ -256,13 +256,13 @@ class Experiment:
         # Create new analysis directory and change into it
         try:
             os.mkdir(self.experiment_path)  # Make the experiment directory
-            os.mkdir(self.figures_path)     # Create a directory to save images
-            os.mkdir(self.database_path)    # Create a directory for data
+            os.mkdir(self.figures_path)  # Create a directory to save images
+            os.mkdir(self.database_path)  # Create a directory for data
 
-        except FileExistsError:             # throw exception if the file exits
+        except FileExistsError:  # throw exception if the file exits
             return
 
-        self.save_class()                   # save the class state.
+        self.save_class()  # save the class state.
         print(f"** An experiment has been added titled {self.analysis_name} **")
 
     def print_class_attributes(self):
@@ -318,31 +318,48 @@ class Experiment:
         # Load the file reader and the database object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
         database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
-        
+
         # Check to see if a database exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
-        
+
         if database_path.exists():
-            pass  #self._update_database(trajectory_reader)
+            pass  # self._update_database(trajectory_reader)
         else:
             self._build_new_database(trajectory_reader, file_type, database)
 
         self.collect_memory_information()  # Update the memory information
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader, file_type, database):
+    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database):
         """
         Build a new database
         """
 
-        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
-        database._initialize_database(architecture)                 # initialize the database
+        header_lines = trajectory_reader.header_lines  # get the header lines constant for later use
 
+        architecture = trajectory_reader.process_trajectory_file()          # get properties of the trajectory file
+        database.initialize_database(architecture)                          # initialize the database
+        db_object = database.open()                                         # Open a database object
+        batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
+        counter = 0                                                         # instantiate counter
+
+        for item in self.species:
+            structure = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms -
+                                  header_lines for i in range(int(partitioned_configurations))]).flatten()
+
+        database.close(db_object)  # Close the object
+        f_object = open(trajectory_file, 'r')  # open the trajectory file
+        for _ in tqdm(range(batch_range)):
+            data = trajectory_reader.read_configurations(self.batch_size, f_object)
+            database.add_data(data=data,
+                              structure=structure,
+                              database=database,
+                              start_index=counter,
+                              batch_size=self.batch_size)
+            counter += self.batch_size
 
         """
         # Build the database object for trajectory information
-        trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
-        trajectory_reader.build_database_skeleton()  # Build the database skeleton
         trajectory_reader.fill_database()            # Fill the database with trajectory data
         if file_type == 'traj':
             self.build_species_dictionary()          # Add data to the species dictionary.
@@ -366,7 +383,7 @@ class Experiment:
             yaml.dump(data, f)
         
         """
-        self.save_class()                            # Update the class state
+        self.save_class()  # Update the class state
 
     def _load_trajectory_reader(self, file_format, trajectory_file):
         try:
