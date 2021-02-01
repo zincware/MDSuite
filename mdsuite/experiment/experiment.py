@@ -148,8 +148,7 @@ class Experiment:
         save_file.write(pickle.dumps(self.__dict__))  # write to file
         save_file.close()  # close the file
 
-    @staticmethod
-    def units_to_si(units_system):
+    def units_to_si(self, units_system):
         """
         Returns a dictionary with equivalences from the unit system given by a string to SI.
         Along with some constants in the unit system provided (boltzman, or other conversions).
@@ -317,7 +316,7 @@ class Experiment:
             return  # exit method as nothing more can be done
 
         # Load the file reader and the database object
-        trajectory_reader, file_type = self._load_trajectory_reader(file_format)
+        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
         database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
         
         # Check to see if a database exists
@@ -336,7 +335,8 @@ class Experiment:
         Build a new database
         """
 
-        trajectory_reader.process_trajectory_file()  # get properties of the trajectory and update the class
+        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        database._initialize_database(architecture)                 # initialize the database
 
 
         """
@@ -368,7 +368,7 @@ class Experiment:
         """
         self.save_class()                            # Update the class state
 
-    def _load_trajectory_reader(self, file_format):
+    def _load_trajectory_reader(self, file_format, trajectory_file):
         try:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
@@ -376,7 +376,7 @@ class Experiment:
             print(f'Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
-        return class_file_io(self), file_type
+        return class_file_io(self, file_path=trajectory_file), file_type
 
     def build_species_dictionary(self):
         """
@@ -388,14 +388,14 @@ class Experiment:
 
         """
         with open_text(static_data, 'PubChemElements_all.json') as json_file:
-            PSE = json.loads(json_file.read())
+            pse = json.loads(json_file.read())
 
         # Try to get the species data from the Periodic System of Elements file
         for element in self.species:
             self.species[element]['charge'] = [0.0]
-            for entry in PSE:
-                if PSE[entry][1] == element:
-                    self.species[element]['mass'] = [float(PSE[entry][3])]
+            for entry in pse:
+                if pse[entry][1] == element:
+                    self.species[element]['mass'] = [float(pse[entry][3])]
 
         # If gathering the data from the PSE file was not successful try to get it from Pubchem via pubchempy
         for element in self.species:
