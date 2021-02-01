@@ -4,6 +4,8 @@ Class for database objects and all of their operations
 
 import h5py as hf
 import os
+import numpy as np
+from typing import TextIO
 
 from mdsuite.utils.exceptions import *
 
@@ -39,15 +41,76 @@ class Database:
         self.architecture = architecture  # architecture of database
         self.name = name  # name of the database
 
-    def add_data(self):
+    def open(self, mode: str = 'a'):
         """
-        Add a set of data to the database.
+        Open the database
+
+        Parameters
+        ----------
+        name : str
+                Name of the database to open
+        mode : str
+                Mode in which to open the database
 
         Returns
         -------
-
+        database : hf.File
+                returns a database object
         """
-        pass
+
+        return hf.File(self.name, mode)
+
+    @staticmethod
+    def close(database: hf.File):
+        """
+        Close the database
+
+        Parameters
+        ----------
+        database : hf.File
+                Database to close
+
+        Returns
+        -------
+        Closes the database object
+        """
+
+        database.close()
+
+    @staticmethod
+    def add_data(data: np.array, structure: dict, database: hf.File,
+                 start_index: int, batch_size: int):
+        """
+        Add a set of data to the database.
+
+        Parameters
+        ----------
+        batch_size : int
+                Number of configurations in each batch
+        start_index : int
+                Point in database from which to start filling.
+        database : hf.File
+                Database in which to store the data
+        structure : dict
+                Structure of the data to be loaded into the database e.g.
+                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
+        data : np.array
+                Data to be loaded in.
+
+        Returns
+        -------
+        Adds data to the database
+        """
+        # Loop over items
+        stop_index = start_index + batch_size  # get the stop index
+        for item in structure:
+            indices = structure[item]['indices']
+            columns = np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1]]
+            length = structure[item]['length']
+            column_length = len(structure[item]['columns'])
+            database[item][:, start_index:stop_index] = data[indices][columns].astype(float).reshape(length,
+                                                                                                     batch_size,
+                                                                                                     column_length)
 
     def _resize_dataset(self, structure: dict):
         """
@@ -76,7 +139,7 @@ class Database:
             for data in database[identifier]:
                 data.resize(architecture[identifier], 1)
 
-    def _initialize_database(self, structure: dict):
+    def initialize_database(self, structure: dict):
         """
         Build a database with a general structure.
 
@@ -95,10 +158,10 @@ class Database:
 
         """
 
-        database = hf.File(self.name, 'w')              # open the database
-        self._add_group_structure(structure, database)  # add the groups to the database
-        self._add_dataset(structure, database)          # add a dataset to the groups
-        database.close()                                # close the database
+        database = hf.File(self.name, 'w')  # open the database
+        # self._add_group_structure(structure, database)  # add the groups to the database
+        self._add_dataset(structure, database)  # add a dataset to the groups
+        database.close()  # close the database
 
     def _build_path_input(self, structure: dict):
         """
@@ -124,7 +187,7 @@ class Database:
 
         Examples
         --------
-        >>> self._build_path_input(structure = {'Na': {'Forces': (200, 5000, 3)})
+        >>> self._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
         {'Na/Forces': (200, 5000, 3)}
         >>> self._build_path_input(structure={'Na': {'velocities' 100}})
         {'Na/Velocities': 100}
@@ -169,7 +232,7 @@ class Database:
 
         for item in architecture:
             dataset_information = architecture[item]  # get the tuple information
-            dataset_path = item                       # get the dataset path in the database
+            dataset_path = item  # get the dataset path in the database
 
             # Check for a type error in the dataset information
             try:
@@ -183,13 +246,12 @@ class Database:
             if len(dataset_information[:-1]) == 1:
                 max_shape = (None,)
             else:
-                max_shape = (dataset_information[0], None)
+                max_shape = list(dataset_information)
+                max_shape[1] = None
+                max_shape = tuple(max_shape)
 
-            for i in range(dataset_information[-1]):
-                database[dataset_path].create_dataset(str(i),
-                                                      dataset_information[:-1],
-                                                      maxshape=max_shape,
-                                                      scaleoffset=5)
+            database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5)
+        print(database['Na']['Positions'])
 
     def _add_group_structure(self, structure: dict, database: hf.File):
         """
