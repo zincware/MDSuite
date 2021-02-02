@@ -178,7 +178,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         for item in self.species:                                                        # loop over species
             result = self._singular_diffusion_calculation(item=item)                     # get the diffusion coefficient
-            self.parent.diffusion_coefficients["Green-Kubo"]["Singular"][item] = result  # Update the class
             self._update_properties_file(item='Singular', sub_item=item, data=result)
 
         # Run the plot data method if needed

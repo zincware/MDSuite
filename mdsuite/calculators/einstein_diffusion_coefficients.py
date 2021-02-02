@@ -190,6 +190,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             return [self.time, msd_array]
         else:
             result = self._fit_einstein_curve([self.time, msd_array])
+            print(result)
             self._update_properties_file(item='Singular', sub_item=item, data=result)
 
     def _distinct_diffusion_coefficients(self):

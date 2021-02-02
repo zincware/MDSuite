@@ -64,19 +64,9 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def fill_database(self, counter=0):
+    def build_file_structure(self):
         """
-        Loads data into a hdf5 database.
-        This method is dependent on the type of data (atoms, flux, etc.), therefore it should be implemented in a child
-        class.
-
-        Parameters
-        ----------
-        trajectory_reader : object
-                Instance of a trajectory reader class.
-
-        counter : int
-                Number of configurations that have been read in.
+        Build a skeleton of the file so that the database class can process it correctly.
         """
 
         return

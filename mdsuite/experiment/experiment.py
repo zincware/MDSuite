@@ -104,6 +104,16 @@ class Experiment:
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
+        self.results = [
+            'diffusion_coefficients',
+            'ionic_conductivity',
+            'thermal_conductivity',
+            'coordination_numbers',
+            'potential_of_mean_force_values',
+            'radial_distribution_function',
+            'kirkwood_buff_integral'
+        ]
+
         # Memory properties
         self.memory_requirements = {}
 
@@ -325,9 +335,9 @@ class Experiment:
         if database_path.exists():
             pass  # self._update_database(trajectory_reader)
         else:
-            self._build_new_database(trajectory_reader, file_type, database)
+            self._build_new_database(trajectory_reader, trajectory_file, database)
 
-        self.collect_memory_information()  # Update the memory information
+        self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
     def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database):
@@ -335,34 +345,25 @@ class Experiment:
         Build a new database
         """
 
-        header_lines = trajectory_reader.header_lines  # get the header lines constant for later use
-
         architecture = trajectory_reader.process_trajectory_file()          # get properties of the trajectory file
         database.initialize_database(architecture)                          # initialize the database
         db_object = database.open()                                         # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
         counter = 0                                                         # instantiate counter
+        structure = trajectory_reader.build_file_structure()                # build the file structure
 
-        for item in self.species:
-            structure = np.array([np.array(self.species[item]['indices']) + i * self.number_of_atoms -
-                                  header_lines for i in range(int(partitioned_configurations))]).flatten()
-
-        database.close(db_object)  # Close the object
         f_object = open(trajectory_file, 'r')  # open the trajectory file
         for _ in tqdm(range(batch_range)):
             data = trajectory_reader.read_configurations(self.batch_size, f_object)
             database.add_data(data=data,
                               structure=structure,
-                              database=database,
+                              database=db_object,
                               start_index=counter,
                               batch_size=self.batch_size)
             counter += self.batch_size
 
-        """
-        # Build the database object for trajectory information
-        trajectory_reader.fill_database()            # Fill the database with trajectory data
-        if file_type == 'traj':
-            self.build_species_dictionary()          # Add data to the species dictionary.
+        database.close(db_object)  # Close the object
+        f_object.close()
         
         # Build database for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
@@ -381,8 +382,7 @@ class Experiment:
             'kirkwood_buff_integral': {},
             'structure_factor': {}}
             yaml.dump(data, f)
-        
-        """
+
         self.save_class()  # Update the class state
 
     def _load_trajectory_reader(self, file_format, trajectory_file):
@@ -488,6 +488,7 @@ class Experiment:
 
         with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
             for item in list(species):
+                path = os.path.join(item, identifier)
 
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
@@ -502,25 +503,15 @@ class Experiment:
                 # If the tensor kwarg is True, return a tensor.
                 if tensor:
                     property_matrix.append(
-                        tf.convert_to_tensor(np.dstack((database[item][identifier]['x'][select_slice],
-                                                        database[item][identifier]['y'][select_slice],
-                                                        database[item][identifier]['z'][select_slice])),
-                                             dtype=tf.float64))
+                        tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
 
                 elif sym_matrix:  # return a stress tensor
-                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
-                                                      database[item][identifier]['y'][select_slice],
-                                                      database[item][identifier]['z'][select_slice],
-                                                      database[item][identifier]['xy'][select_slice],
-                                                      database[item][identifier]['xz'][select_slice],
-                                                      database[item][identifier]['yz'][select_slice],)))
+                    property_matrix.append(database[path][select_slice])
                 elif scalar:  # return a scalar
-                    property_matrix.append(database[item][identifier][select_slice])
+                    property_matrix.append(database[path][select_slice])
 
                 else:  # return a numpy array
-                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
-                                                      database[item][identifier]['y'][select_slice],
-                                                      database[item][identifier]['z'][select_slice])))
+                    property_matrix.append(database[path][select_slice])
 
         # Check if the property loaded was a scalar.
         if len(property_matrix) == 1:
