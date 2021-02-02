@@ -79,12 +79,14 @@ class Database:
 
     @staticmethod
     def add_data(data: np.array, structure: dict, database: hf.File,
-                 start_index: int, batch_size: int):
+                 start_index: int, batch_size: int, tensor: bool = False):
         """
         Add a set of data to the database.
 
         Parameters
         ----------
+        tensor : bool
+                If true, this will skip the type enforcement
         batch_size : int
                 Number of configurations in each batch
         start_index : int
@@ -105,12 +107,15 @@ class Database:
         stop_index = start_index + batch_size  # get the stop index
         for item in structure:
             indices = structure[item]['indices']
-            columns = np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1]]
+            columns = np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]
             length = structure[item]['length']
             column_length = len(structure[item]['columns'])
-            database[item][:, start_index:stop_index] = data[indices][columns].astype(float).reshape(length,
-                                                                                                     batch_size,
-                                                                                                     column_length)
+            if tensor:
+                database[item][:, start_index:stop_index] = data[:, :, 0:3]
+            else:
+                database[item][:, start_index:stop_index] = data[indices][columns].astype(float).reshape(length,
+                                                                                                         batch_size,
+                                                                                                         column_length)
 
     def _resize_dataset(self, structure: dict):
         """
@@ -159,8 +164,7 @@ class Database:
         """
 
         database = hf.File(self.name, 'w')  # open the database
-        # self._add_group_structure(structure, database)  # add the groups to the database
-        self._add_dataset(structure, database)  # add a dataset to the groups
+        self.add_dataset(structure, database)  # add a dataset to the groups
         database.close()  # close the database
 
     def _build_path_input(self, structure: dict):
@@ -205,7 +209,7 @@ class Database:
 
         return architecture
 
-    def _add_dataset(self, structure: dict, database: hf.File):
+    def add_dataset(self, structure: dict, database: hf.File):
         """
         Add a dataset of the necessary size to the database
 
@@ -251,7 +255,6 @@ class Database:
                 max_shape = tuple(max_shape)
 
             database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5)
-        print(database['Na']['Positions'])
 
     def _add_group_structure(self, structure: dict, database: hf.File):
         """
@@ -281,7 +284,7 @@ class Database:
             else:
                 database.create_group(item)
 
-    def _get_memory_information(self, groups=None):
+    def get_memory_information(self, groups=None):
         """
         Get memory information from the database
 
@@ -295,4 +298,35 @@ class Database:
         -------
 
         """
-        pass
+
+        database = hf.File(self.name)
+
+        memory_database = {}
+        for item in database:
+            for ds in database[item]:
+                memory_database[os.path.join(item, ds)] = database[item][ds].nbytes
+
+        return memory_database
+
+    def check_existence(self, path: str):
+        """
+        Check to see if a dataset is in the database
+
+        Parameters
+        ----------
+        path : str
+                Path to the desired dataset
+
+        Returns
+        -------
+        response : bool
+                If true, the path exists, else, it does not.
+        """
+        database_object = hf.File(self.name, 'r')
+        if path in database_object:
+            response = True
+        else:
+            response = False
+        database_object.close()
+
+        return response

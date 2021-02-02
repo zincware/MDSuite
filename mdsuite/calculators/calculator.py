@@ -107,8 +107,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.machine_properties = get_machine_properties()  # load the machine properties
         memory_usage = []
         for item in self.parent.memory_requirements:
-            memory_usage.append(self.parent.memory_requirements[item][self.loaded_property] /
-                                self.parent.number_of_configurations)
+            if self.loaded_property in item:
+                memory_usage.append(self.parent.memory_requirements[item])
 
         # Get the single frame memory usage in bytes
         serial_memory_usage = max(memory_usage)
