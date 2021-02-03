@@ -54,7 +54,7 @@ class GreenKuboThermalConductivity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\cdotm^{2}/s^{2}$)',
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\\cdot m^{2}/s^{2}$)',
                  save=True, analysis_name='green_kubo_thermal_conductivity'):
         """
         Class for the Green-Kubo Thermal conductivity implementation
