@@ -1,9 +1,9 @@
 """
-Class for the calculation of the einstein diffusion coefficients.
+Class for the calculation of viscosity.
 
 Summary
 -------
-This module contains the code for the thermal conductivity class. This class is called by the
+This module contains the code for the viscosity class. This class is called by the
 Experiment class and instantiated when the user calls the ... method.
 The methods in class can then be called by the ... method and all necessary
 calculations performed.
@@ -28,7 +28,7 @@ warnings.filterwarnings("ignore")
 
 class GreenKuboViscosityFlux:
     """
-    Class for the Einstein diffusion coefficient implementation
+    Class for the computation of viscosity based on GK formulation for flux files.
 
     Attributes
     ----------
