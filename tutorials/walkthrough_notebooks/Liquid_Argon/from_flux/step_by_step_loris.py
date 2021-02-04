@@ -10,7 +10,7 @@ except ImportError:
 
 c = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-jfile = tc.i_o.TableFile('../flux_1_cepstral.lmp_flux', group_vectors=True)
+jfile = tc.i_o.TableFile('../flux_1.lmp_flux', group_vectors=True)
 
 jfile.read_datalines(start_step=0, NSTEPS=0, select_ckeys=['flux', 'temp'])
 
