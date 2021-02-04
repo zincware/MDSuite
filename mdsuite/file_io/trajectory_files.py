@@ -90,7 +90,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         initial_length = self.project.number_of_configurations - \
                          self.project.number_of_configurations % self.project.batch_size
 
-        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
+        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz', 'yx', 'zx', 'zy')
 
         # Build the database structure
         with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'w', libver='latest') as database:
@@ -111,19 +111,10 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                                                           len(self.project.species[item]['indices']), None),
                                                       scaleoffset=5)
 
-                    elif len(columns) == 6:  # symmetric tensor (for stress tensor for example)
+                    else:  # vector or matrix (symmetric or not)
+                        n_cols = len(columns)
                         database[item].create_group(observable)
-                        for axis in axis_names:
-                            database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
-                                                                             initial_length),
-                                                                      maxshape=(
-                                                                          len(self.project.species[item]['indices']),
-                                                                          None),
-                                                                      scaleoffset=5)
-
-                    else:  # vector
-                        database[item].create_group(observable)
-                        for axis in axis_names[0:3]:
+                        for axis in axis_names[0:n_cols]:
                             database[item][observable].create_dataset(axis, (len(self.project.species[item]['indices']),
                                                                              initial_length),
                                                                       maxshape=(
