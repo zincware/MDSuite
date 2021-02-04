@@ -35,6 +35,7 @@ def convolution(loop_range, flux, data_range, time):
     """
 
     sigma = np.empty((loop_range,))  # define an empty array
+    averaged_jacf = np.zeros(data_range)
 
     # main loop for computation
     for i in tqdm(range(loop_range)):
@@ -54,5 +55,6 @@ def convolution(loop_range, flux, data_range, time):
 
         integral = np.trapz(acf, x=time)
         sigma[i] = integral
+        averaged_jacf += acf
 
-    return sigma
+    return sigma, averaged_jacf
