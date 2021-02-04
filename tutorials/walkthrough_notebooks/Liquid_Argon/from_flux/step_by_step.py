@@ -9,7 +9,7 @@ if __name__ == '__main__':
         shutil.rmtree('Argon_70')
     except FileNotFoundError:
         pass
-    argon = Experiment(analysis_name="Argon_70",
+    argon = Experiment(analysis_name="Argon_94",
                              storage_path=".",
                              temperature=94.4,
                              time_step=2,
