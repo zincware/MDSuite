@@ -252,7 +252,8 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _fit_einstein_curve(self, data):
+    @staticmethod
+    def _fit_einstein_curve(data):
         """
         Fit operation for Einstein calculations
 
@@ -269,22 +270,22 @@ class Calculator(metaclass=abc.ABCMeta):
 
         fits = []  # define an empty fit array so errors may be extracted
 
-        def func(x, a):
-            return x + a
+        def func(x, m, a):
+            return m*x + a
 
         # get the logarithmic dataset
         log_y = np.log10(data[1][1:])
         log_x = np.log10(data[0][1:])
 
-        min_end_index, max_end_index = int(0.7*len(log_y)), int(len(log_y) - 1)
-        min_start_index, max_start_index = int(0.4*len(log_y)), int(0.6*len(log_y))
+        min_end_index, max_end_index = int(0.8*len(log_y)), int(len(log_y) - 1)
+        min_start_index, max_start_index = int(0.3*len(log_y)), int(0.5*len(log_y))
 
         for _ in range(100):
             end_index = random.randint(min_end_index, max_end_index)        # get a random end point
             start_index = random.randint(min_start_index, max_start_index)  # get a random start point
 
             popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
-            fits.append(10**popt[0])
+            fits.append(10**popt[1])
 
         return [str(np.mean(fits)), str(np.std(fits))]
 

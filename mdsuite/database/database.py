@@ -111,11 +111,12 @@ class Database:
             length = structure[item]['length']
             column_length = len(structure[item]['columns'])
             if tensor:
-                database[item][:, start_index:stop_index] = data[:, :, 0:3]
+                database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
             else:
-                database[item][:, start_index:stop_index] = data[indices][columns].astype(float).reshape(length,
-                                                                                                         batch_size,
-                                                                                                         column_length)
+                database[item][:, start_index:stop_index, :] = data[indices][columns].astype(float).reshape((length,
+                                                                                                        batch_size,
+                                                                                                        column_length),
+                                                                                                            order='F')
 
     def _resize_dataset(self, structure: dict):
         """
