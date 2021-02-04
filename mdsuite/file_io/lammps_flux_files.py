@@ -16,7 +16,8 @@ from mdsuite.utils.meta_functions import optimize_batch_size
 var_names = {
     "Temperature": ["temp"],
     "Time": ["time"],
-    "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]']
+    "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
+    "Stress_visc": ['pxy', 'pxz', 'pyz'],
 }
 
 
