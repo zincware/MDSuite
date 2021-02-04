@@ -4,7 +4,7 @@ import shutil
 
 import mdsuite as mds # Cool name for professionalism purposes
 
-new_case = False
+new_case = True
 
 if new_case:
     try:
@@ -21,7 +21,7 @@ if new_case:
 
 # argon.help_computations_args('EinsteinDiffusionCoefficients') # auxiliary function to help on the extra arguments
 # argon.run_computation('EinsteinDiffusionCoefficients', species=list(argon.species.keys()),data_range=50, plot=False, singular=True, distinct=False)
-argon.run_computation('GreenKuboThermalConductivity', data_range=12000, plot=True)
+argon.run_computation('GreenKuboThermalConductivity', data_range=19980, plot=True)
 # argon.help_computations_args('GreenKuboDiffusionCoefficients')
 print(argon.results)
 # argon.dump_results_json()

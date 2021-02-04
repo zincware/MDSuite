@@ -582,6 +582,7 @@ class Experiment:
         self.potential_of_mean_force_values = {}
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = True  # Set true if it has been calculated
+        self.viscosity =  {'Global': {"Green-Kubo": {}}}
 
         # Dictionary of results
         self.results = {
@@ -591,7 +592,8 @@ class Experiment:
             'coordination_numbers': self.coordination_numbers,
             'potential_of_mean_force_values': self.potential_of_mean_force_values,
             'radial_distribution_function': self.radial_distribution_function_state,
-            'kirkwood_buff_integral': self.kirkwood_buff_integral_state
+            'kirkwood_buff_integral': self.kirkwood_buff_integral_state,
+            'viscosity': self.viscosity
         }
 
     def _update_database(self, trajectory_reader, rename_cols):
