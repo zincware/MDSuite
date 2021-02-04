@@ -72,8 +72,6 @@ class GreenKuboThermalConductivityFlux:
         Compute the thermal conductivity
         """
 
-        if self.plot:
-            averaged_jacf = np.zeros(self.data_range)
 
         # prepare the prefactor for the integral
         numerator = 1
@@ -83,7 +81,7 @@ class GreenKuboThermalConductivityFlux:
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
         loop_range = len(flux) - self.data_range - 1  # Define the loop range
-        sigma = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
+        sigma, averaged_jacf  = convolution(loop_range=loop_range, flux=flux, data_range=self.data_range, time=self.time)
         sigma = prefactor * np.array(sigma)
 
         # convert to SI units.
