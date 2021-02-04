@@ -108,7 +108,7 @@ class CoordinateUnwrapper(Transformations):
                 Returns the tensor of distances in time.
         """
 
-        return self.data[:, 1:] - self.data[:, :-1]
+        return self.data[:, 1:, :] - self.data[:, :-1, :]
 
     def _build_image_mask(self):
         """
@@ -171,6 +171,8 @@ class CoordinateUnwrapper(Transformations):
                 # Center the data if required
                 if self.center_box:
                     self._center_box()
+
+                self.data = tf.convert_to_tensor(self.data)
 
                 self._build_image_mask()  # build the image mask
                 self._apply_mask()  # Apply the mask and unwrap the coordinates
