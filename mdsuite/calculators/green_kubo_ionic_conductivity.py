@@ -96,7 +96,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self, velocity_matrix):
+    def _calculate_system_current(self, batch):
         """
         Calculate the ionic current of the system
 
@@ -111,6 +111,7 @@ class GreenKuboIonicConductivity(Calculator):
                 ionic current of the system as a vector of shape (n_confs, 3)
         """
 
+        velocity_matrix = self._load_batch(batch, property_to_load='Velocity')
         species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
 
         system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
@@ -131,32 +132,9 @@ class GreenKuboIonicConductivity(Calculator):
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
-        sigma = []                                          # define an empty sigma list
-        parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
+        sigma, parsed_autocorrelation = self.convolution_operation(type_batches='Parallel')
 
-        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
-            batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
-            for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
-                start = int(start_index + self.correlation_time)         # get start index
-                stop = int(start + self.data_range)                                      # get stop index
-                system_current = np.array(batch)[start:stop]                             # load data from batch array
-
-                jacf = np.zeros(2 * self.data_range - 1)                                 # Define the empty jacf array
-
-                # Calculate the current autocorrelation
-                jacf += (signal.correlate(system_current[:, 0],
-                                          system_current[:, 0],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 1],
-                                          system_current[:, 1],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 2],
-                                          system_current[:, 2],
-                                          mode='full', method='auto'))
-
-                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
-                parsed_autocorrelation += jacf      # update parsed function
-                sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
+        sigma = prefactor * sigma
 
         # update the experiment class
         self.parent.ionic_conductivity["Green-Kubo"] = [np.mean(sigma) / 100, (np.std(sigma)/np.sqrt(len(sigma)))/100]
@@ -182,7 +160,7 @@ class GreenKuboIonicConductivity(Calculator):
         self._collect_machine_properties()    # collect machine properties and determine batch size
         self._calculate_batch_loop()          # Update the batch loop attribute
         status = self._check_input()          # Check for bad input
-        if status == 0:
+        if status == -1:
             return
         else:
             self._calculate_ionic_conductivity()  # calculate the ionic conductivity
