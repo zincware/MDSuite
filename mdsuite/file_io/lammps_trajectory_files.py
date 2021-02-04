@@ -61,14 +61,15 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
 
-
-        :param update_class : bool
+        Parameters
+        ----------
+        update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
                 updated with new information. This is necessary on the first run of data addition to the database. After
                 this point, when new data is added, this is no longer required as other methods will take care of
                 updating the properties that change with new data. In fact, it will set the number of configurations to
                 only the new data, which will be wrong.
-        :param rename_cols: dict
+        rename_cols: dict
                 If the user names the varibles in a different way compared with the standard defined above, they may pass
                 a dictionary with the new values for the keys. {'Stress':['sxx', 'syy', 'szz']}
         """
