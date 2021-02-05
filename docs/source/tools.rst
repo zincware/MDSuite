@@ -81,4 +81,3 @@ Other
    :maxdepth: 1
 
    _usage/coordination_number_calculation
-   _usage/flux_analyses

@@ -1,6 +1,6 @@
 Flux Analyses Class Documentation
 =================================
 
-.. autoclass:: mdsuite.calculators.flux_analyses._GreenKuboThermalConductivityFlux
+.. autoclass:: mdsuite.calculators.flux_analyses.GreenKuboThermalConductivityFlux
     :members:
     :private-members:
