@@ -5,7 +5,7 @@ The thermal conductivity :math:`\kappa`  refers to the ability of a material to 
 is carried by phonons, electrons and photons. In the case of non-metallic materials, the transport through phonons is dominant, and
 it is the one simulated in traditional MD.
 In MDSuite, this property can be computed in two different ways:
-i) :ref:`_theory/thermal_conductivity:Green-Kubo` formulation from trajectories and ii) :ref:`_theory/thermal_conductivity:Einstein-Helfand` method from trajectories.
+i) :ref:`_theory/green_kubo_relations:Green-Kubo Relations` formulation and ii) :ref:`_theory/einstein_calculations:Einstein Relations` method.
 These two methods are based on Equilibrium Molecular Dynamics (EMD).
 
 Green-Kubo
@@ -24,7 +24,7 @@ where :math:`V` is the volume of the system, :math:`k_b` is the Boltzman constan
     \mathbf{J}(t) = \frac{1}{V} \left[ \sum_{i=1}^{N_{atoms}} e_i \vec{v}_i - \sum_{i=1}^{N_{atoms}} \mathbf{S}_i \vec{v}_i \right]
 
 in this case, :math:`e_i`,  :math:`\vec{v}_i` and  :math:`\mathbf{S}_i` are the energy, the velocity vector and
-the stress tensor of atom :math:`i`, respectively. The energy of the atom computed intenally by MDSuite adding the contributions of potential and kinetic.
+the stress tensor of atom :math:`i`, respectively. The energy of the atom computed internally by MDSuite adding the contributions of potential and kinetic.
 
 In principle, the summation over atoms can be done
 at several points of the calculation. In the case of MDSuite, we perform the summation for each part of the ensemble

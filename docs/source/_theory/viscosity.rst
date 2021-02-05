@@ -3,7 +3,7 @@ Viscosity
 
 The viscosity :math:`\mu` of a fluid refers to its resistance to be deformed at a given rate.
 In MDSuite, this property can be computed in two different ways:
-i) :ref:`_theory/thermal_conductivity:Green-Kubo` formulation from trajectories and ii) :ref:`_theory/thermal_conductivity:Einstein-Helfand` method from trajectories.
+i) :ref:`_theory/green_kubo_relations:Green-Kubo Relations` and ii) :ref:`_theory/einstein_calculations:Einstein Relations`.
 These two methods are based on Equilibrium Molecular Dynamics (EMD).
 
 Green-Kubo
@@ -12,27 +12,34 @@ Assuming that there is not a preferential direction, the equation to compute vis
 
 .. math::
 
-    \kappa = \frac{V}{3 k_B T^2} \int \langle \mathbf{J}(0) \cdot \mathbf{J}(t) \rangle \mathrm{d} t
+
+    \kappa = \frac{V}{3 k_B T} \int \langle P_{a,b}(0) \cdot P_{a,b}(t) \rangle \mathrm{d} t \qquad (a \neq b \in \{x,y,z\})
 
 where :math:`V` is the volume of the system, :math:`k_b` is the Boltzman constant, :math:`T` is the temperature and
-:math:`\mathbf{J}` is the heat-flux at time :math:`t`. The heat-flux term :math:`\mathbf{J}` is computed as follows:
+:math:`P_{a,b}(t)` are the off-diagonal components of the stress tensor at time :math:`t`.
+
+The :math:`P_{a,b}(t)` can be computed from the contributions of each atom as:
 
 .. math::
 
-    \mathbf{J}(t) = \frac{1}{V} \left[ \sum_{i=1}^{N_{atoms}} e_i \vec{v}_i - \sum_{i=1}^{N_{atoms}} \mathbf{S}_i \vec{v}_i \right]
+    P_{a,b} = \frac{\sum_{i=1}^{N_{atoms}} m^i v_{a}^i v_{b}^i}{V} + \frac{\sum_{i=1}^{N_{atoms}} r_{a}^i f_{b}^i}{V}
 
-in this case, :math:`e_i`,  :math:`\vec{v}_i` and  :math:`\mathbf{S}_i` are the energy, the velocity vector and
-the stress tensor of atom :math:`i`, respectively. The energy of the atom computed intenally by MDSuite adding the contributions of potential and kinetic.
+And, actually, the two contributions from the summations are equal to minus the stress tensor, so the previous expression can be written as: 
+
+.. math::
+
+    P_{a,b}\cdot V = \sum_{i=1}^{N_{atoms}} m^i v_{a}^i v_{b}^i + \sum_{i=1}^{N_{atoms}} r_{a}^i f_{b}^i = -\sum_{i=1}^{N_{atoms}} \mathbf{S}_{a,b}^i
+
+:math:`\mathbf{S}_{i,a,b}` is the off-diagonal components of the stress tensor of atom :math:`i`. This quantity can be easily extracted from MD codes. 
 
 In principle, the summation over atoms can be done
 at several points of the calculation. In the case of MDSuite, we perform the summation for each part of the ensemble
 average and integrate over the average over atoms. This is so that a nice smooth and accurate function may be integrated
 over, and then several of these can be averaged to get a final diffusion coefficient with a reasonable estimate for error.
 We will save a discussion of the general Green-Kubo approach to calculations for the
-`Green-Kubo Relations <green_kubo_relations.html>`_ section.
+:ref:`_theory/green_kubo_relations:Green-Kubo Relations` section.
 
-When using trajectory files, the user must provide the aforementioned quantities. However, for flux files, the heat-flux :math:`\mathbf{J}`
-should be pre-computed. This is typically done by the MD simulation code.
+When using trajectory files, the user must provide the aforementioned quantities. However, for flux files, the off-diagonal components of the pressure tensor can be printed directly. 
 
 Einstein-Helfand
 ---------------------------
@@ -41,9 +48,16 @@ Einstein-Helfand method can be used to compute the thermal conductivity :footcit
 
 .. math::
 
-    \kappa = \frac{1}{V k_B T^2} \lim_{t \to \infty} \frac{1}{2t} \langle [\mathbf{R}(t)-\mathbf{R}(0)]\cdot[\mathbf{R}(t)-\mathbf{R}(0)]  \rangle
+    \kappa = \frac{1}{V k_B T} \lim_{t \to \infty} \frac{1}{2t} \langle [L_{a,b}^i(t)-L_{a,b}^i(0)]^2  \rangle
 
-Where :math:`\mathbf{R}(t)` is the integrated heat-flux at time :math:`t`. The angled brackets denote
+where :math:`L_{a,b}(t)` is defined as
+
+.. math::
+
+    L_{a,b}^i(t) = p_{a}^i(t) \cdot r^i_b(t)
+
+where :math:`p_{a}^i` and :math:`r_{b}(t)` are the momentum and position of particle :math:`i`.
+The angled brackets denote
 an ensemble average over a trajectory, which is to say one should perform this averaging over different sets of data. In
 practice, this is done by selecting a time range over which the analysis will be performed, and then performing it over
 this time starting at different initial configurations
