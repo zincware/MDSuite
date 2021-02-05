@@ -16,7 +16,6 @@ hear from our users.
    :caption: Contents:
 
    installation
-   walkthrough
    theory_introduction
    modules_and_classes
    _architecture/database_structure

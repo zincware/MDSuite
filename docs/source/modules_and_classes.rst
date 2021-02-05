@@ -30,5 +30,6 @@ Calculators
    _calculators/potential_of_mean_force
    _calculators/radial_distribution_function
    _calculators/structure_factor
+   _calculators/flux_analyses
 
 
