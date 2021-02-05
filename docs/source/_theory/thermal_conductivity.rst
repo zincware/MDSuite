@@ -45,8 +45,7 @@ Einstein-Helfand method can be used to compute the thermal conductivity :footcit
 
     \kappa = \frac{1}{V k_B T^2} \lim_{t \to \infty} \frac{1}{2t} \langle [\mathbf{R}(t)-\mathbf{R}(0)]\cdot[\mathbf{R}(t)-\mathbf{R}(0)]  \rangle
 
-Where :math:`\mathbf{r}(t)` is the position of a particle at time t, :math:`\tau` is a shift forwards in time,
-:math:`d` is the dimensionality of the system, and :math:`D` is the diffusion coefficient. The angled brackets denote
+Where :math:`\mathbf{R}(t)` is the integrated heat-flux at time :math:`t`. The angled brackets denote
 an ensemble average over a trajectory, which is to say one should perform this averaging over different sets of data. In
 practice, this is done by selecting a time range over which the analysis will be performed, and then performing it over
 this time starting at different initial configurations

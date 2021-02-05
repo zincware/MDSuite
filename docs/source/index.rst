@@ -22,6 +22,7 @@ hear from our users.
    _architecture/database_structure
    tools
    walkthrough
+   bibliography
 
 Why MDSuite?
 ------------
