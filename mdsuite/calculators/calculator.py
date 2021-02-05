@@ -389,6 +389,5 @@ class Calculator(metaclass=abc.ABCMeta):
                 msd_array += np.array(msd)  # Update the total array
         return msd_array
 
-    @abc.abstractmethod
     def _calculate_system_current(self, i):
         pass
