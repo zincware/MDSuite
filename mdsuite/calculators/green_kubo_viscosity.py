@@ -126,7 +126,7 @@ class GreenKuboViscosity(Calculator):
         # Since lammps gives the stress in pressure*volume, then we need to add to the denominator volume**2,
         # this is why the numerator becomes 1, and volume appears in the denominator.
         numerator = 1  # self.parent.volume
-        denominator = (self.data_range - 1) * self.parent.temperature * self.parent.units[
+        denominator =  3 * (self.data_range - 1) * self.parent.temperature * self.parent.units[
             'boltzman'] * self.parent.volume  # we use boltzman constant in the units provided.
 
         prefactor = numerator / denominator
