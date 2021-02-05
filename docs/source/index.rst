@@ -16,12 +16,11 @@ hear from our users.
    :caption: Contents:
 
    installation
-   quickstart
+   walkthrough
    theory_introduction
    modules_and_classes
    _architecture/database_structure
    tools
-   walkthrough
    bibliography
 
 Why MDSuite?
