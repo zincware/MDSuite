@@ -153,3 +153,10 @@ docs/build
 # LAMMPS trajectories and flux files
 *.lmp_flux
 *.lmp_traj
+
+
+# MDSuite cases
+*.bin
+*.yaml
+*.hdf5
+*.pdf
