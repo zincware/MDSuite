@@ -122,7 +122,7 @@ def optimize_batch_size(filepath, number_of_configurations):
     computer_statistics = get_machine_properties()  # Get computer statistics
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
-    memory_per_configuration = 8 * file_size / number_of_configurations  # get the memory per configuration
+    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
     database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
     initial_batch_number = int(database_memory / memory_per_configuration)  # trivial batch allocation
 
@@ -301,3 +301,30 @@ def golden_section_search(data, a, b):
         return a, d
     else:
         return c, b
+
+
+def round_down(a, b):
+    """
+    Function to get the nearest lower divisor.
+
+    If b%a is not 0, this method may be called to get the nearest number to a that makes b%a zero.
+
+    Parameters
+    ----------
+    a : int
+            divisor
+    b : int
+            target number
+
+    Returns
+    -------
+    divisor : int
+            nearest number to a that divides into b evenly.
+    """
+
+    remainder = 1  # initialize a remainder
+    while remainder != 0:
+        remainder = b % a
+        a -= 1
+
+    return a

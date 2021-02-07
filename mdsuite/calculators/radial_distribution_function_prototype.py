@@ -30,7 +30,8 @@ warnings.filterwarnings("ignore")
 
 
 class RadialDistributionFunction(Calculator, ABC):
-    """ Class for the calculation of the radial distribution function
+    """
+    Class for the calculation of the radial distribution function
 
     Attributes
     ----------
@@ -57,7 +58,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __init__(self, obj, plot=True, bins=500, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
                  y_label='g(r)', analysis_name='radial_distribution_function', periodic=True, images=1, start=0,
-                 stop=None, n_confs=1000, n_batches=20):
+                 stop=None, n_confs=1000):
         """
 
         Attributes
@@ -77,45 +78,79 @@ class RadialDistributionFunction(Calculator, ABC):
         analysis_name : str
                 Name of the analysis
         """
-
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
-        self.parent = obj
-        self.bins = bins
-        self.cutoff = cutoff
-        self.correlation_time = None
-        self.loaded_property = 'Positions'
-
+        self.parent = obj  # Experiment class to update
+        self.bins = bins  # Number of bins to use in the histogram
+        self.cutoff = cutoff  # Cutoff for the RDF
+        self.correlation_time = None  # Correlation time -- not relevant here
+        self.loaded_property = 'Positions'  # Which database property to load
         self.database_group = 'radial_distribution_function'  # Which database group to save the data in
 
-        self.loop_range = obj.number_of_configurations - self.data_range - 1
         self.periodic = periodic  # whether or not to apply PBC
         self.images = images  # number of images to include
-        self.start = start
-        self.n_confs = n_confs
-        if n_batches == -1:
-            self.n_batches = n_confs
-        else:
-            self.n_batches = n_batches
+        self.start = start  # Which configuration to start at
+        self.stop = stop  # Which configuration to stop at
+        self.n_confs = n_confs  # Number of configurations to use
 
+        # Perform checks
         if stop is None:
             self.stop = obj.number_of_configurations
-        else:
-            self.stop = stop
 
         if self.cutoff is None:
             self.cutoff = self.parent.box_array[0] / 2  # set cutoff to half box size if no set
+
+        # Set calculation specific parameters
+        self.bin_range = [0, self.cutoff]  # set the bin range
+        self.index_list = [i for i in range(len(self.parent.species.keys()))]  # Get the indices of the species
+        self.sample_configurations = np.linspace(self.start,
+                                                 self.stop,
+                                                 self.n_confs,
+                                                 dtype=np.int)  # choose sampled configurations
+        self.key_list = [self._get_species_names(x) for x in
+                         list(itertools.combinations_with_replacement(self.index_list, r=2))]  # Select combinations
+        self.rdf = {name: np.zeros(self.bins) for name in self.key_list}  # instantiate the rdf tuples
 
     def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
         raise NotImplementedError
 
     def _load_positions(self, indices):
-        """ Load the positions matrix
+        """
+        Load the positions matrix
 
         This function is here to optimize calculation speed
         """
 
         return self.parent.load_matrix("Positions", select_slice=np.s_[:, indices], tensor=True)
+
+    def _get_species_names(self, species_tuple):
+        """ Get the correct names of the species being studied
+
+        :argument species_tuple (tuple) -- The species tuple i.e (1, 2) corresponding to the rdf being calculated
+
+        :returns names (string) -- Prefix for the saved file
+        """
+
+        species = list(self.parent.species)  # load all of the species
+
+        return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
+
+    def _correct_batch_size(self):
+        """
+        Correct the batch size calculation
+
+        In the case of RDF calculations, the number of batches need only run over the total number of configurations
+        desired by the user. Therefore, the typical memory management system e
+        Returns
+        -------
+        Update class attributes
+        """
+        # Check to see if batching is necessary for the desired number of configurations
+        if self.batch_size['Parallel'] > 5 * self.n_confs:
+            self.batch_size['Parallel'] = self.n_confs
+            self.n_batches['Parallel'] = 1
+        else:
+            self.n_batches["Parallel"] = np.ceil(self.n_confs / self.batch_size['Parallel']).astype(int)
 
     @staticmethod
     def get_neighbour_list(positions, cell=None, batch_size=None):
@@ -125,21 +160,21 @@ class RadialDistributionFunction(Calculator, ABC):
         Parameters
         ----------
         positions: tf.Tensor
-            Tensor with shape (n_timesteps, n_atoms, 3) representing the coordinates
+            Tensor with shape (n_confs, n_atoms, 3) representing the coordinates
         cell: list
             If periodic boundary conditions are used, please supply the cell dimensions, e.g. [13.97, 13.97, 13.97].
             If the cell is provided minimum image convention will be applied!
         batch_size: int
-            Has to be evenly divisible by the the number of timesteps.
+            Has to be evenly divisible by the the number of configurations.
 
         Returns
         -------
-            generator object which results all distances for the current batch of timesteps
+        generator object which results all distances for the current batch of time steps
 
-            To get the real r_ij matrix for one time_step you can use the following:
-                r_ij_mat = np.zeros((n_atoms, n_atoms, 3))
-                r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(``*args``)
-                r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
+        To get the real r_ij matrix for one time_step you can use the following:
+            r_ij_mat = np.zeros((n_atoms, n_atoms, 3))
+            r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(``*args``)
+            r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
 
         """
 
@@ -185,7 +220,9 @@ class RadialDistributionFunction(Calculator, ABC):
 
     @staticmethod
     def _apply_system_cutoff(tensor, cutoff):
-        """ Enforce a cutoff on a tensor """
+        """
+        Enforce a cutoff on a tensor
+        """
 
         cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
 
@@ -200,20 +237,9 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return tf.histogram_fixed_width(distance_tensor, bin_range, nbins)
 
-    def _get_species_names(self, species_tuple):
-        """ Get the correct names of the species being studied
-
-        :argument species_tuple (tuple) -- The species tuple i.e (1, 2) corresponding to the rdf being calculated
-
-        :returns names (string) -- Prefix for the saved file
-        """
-
-        species = list(self.parent.species)  # load all of the species
-
-        return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
-
     def get_pair_indices(self, len_elements, index_list):
-        """Get the indicies of the pairs for rdf calculation
+        """
+        Get the indicies of the pairs for rdf calculation
 
         Parameters
         ----------
@@ -239,64 +265,32 @@ class RadialDistributionFunction(Calculator, ABC):
             indices = background[slice(*row_slice), slice(*col_slice)]  # Get the indices for the pairs in the r_ij_mat
             yield indices[indices != -1].flatten(), names  # Remove placeholders
 
-    def _calculate_prefactor(self, species):
-        """ Calculate the relevant prefactor for the analysis """
+    def _calculate_histograms(self):
+        """
+        Build the rdf dictionary up with histogram data
 
-        species_scale_factor = 1
-        species_split = species.split("_")
-        if species_split[0] == species_split[1]:
-            species_scale_factor = 2
+        Returns
+        -------
+        update the class state
+        """
+        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches["Parallel"]), ncols=70):
 
-        # Calculate the prefactor of the system being studied
-        bin_width = self.cutoff / self.bins
-        bin_edges = (np.linspace(0.0, self.cutoff, self.bins) ** 2) * 4 * np.pi * bin_width
-
-        rho = len(self.parent.species[species_split[1]]['indices']) / self.parent.volume  # Density all atoms / total volume
-        numerator = species_scale_factor
-        denominator = self.n_confs * rho * bin_edges * len(self.parent.species[species_split[0]]['indices'])
-        prefactor = numerator / denominator
-
-        return prefactor
+            positions = self._load_positions(i)    # Load the batch of positions
+            # print(positions[0][:, -1])
+            positions_tensor = tf.concat(positions, axis=0)     # Combine all elements in one tensor
+            positions_tensor = tf.transpose(positions_tensor, (1, 0, 2))     # Change to (time steps, n_atoms, coords)
+            r_ij_mat = next(self.get_neighbour_list(positions_tensor, cell=self.parent.box_array))  # Compute all distance vectors
+            for pair, names in self.get_pair_indices([len(x) for x in positions], self.index_list):  # Iterate over all pairs
+                distance_tensor = tf.norm(tf.gather(r_ij_mat, pair, axis=1), axis=2)            # Compute all distances
+                distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)
+                # print(names)
+                self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range, nbins=self.bins),
+                                       dtype=float)
 
     def run_analysis(self):
         """
         Perform the rdf analysis
         """
 
-        #self._collect_machine_properties()              # collect machine properties and determine batch size
-
-        bin_range = [0, self.cutoff]  # set the bin range
-        index_list = [i for i in range(len(self.parent.species.keys()))]  # Get the indices of the species e.g. [0, 1, 2, 3]
-
-        sample_configs = np.linspace(self.start, self.stop, self.n_confs, dtype=np.int)  # choose sampled configurations
-
-        key_list = [self._get_species_names(x) for x in list(itertools.combinations_with_replacement(index_list, r=2))]  # Select combinations of species
-
-        rdf = {name: np.zeros(self.bins) for name in key_list}  # e.g {"Na_Cl": [0, 0, 0, 0]}
-
-        for i in tqdm(np.array_split(sample_configs, self.n_batches), ncols=70):
-            positions = self._load_positions(i)    # Load the batch of positions
-            # print(positions[0][:, -1])
-            tmp = tf.concat(positions, axis=0)     # Combine all elements in one tensor
-            tmp = tf.transpose(tmp, (1, 0, 2))     # Change to (timesteps, n_atoms, cart)
-            r_ij_mat = next(self.get_neighbour_list(tmp, cell=self.parent.box_array))  # Compute all distance vectors
-            for pair, names in self.get_pair_indices([len(x) for x in positions], index_list):  # Iterate over all pairs
-                distance_tensor = tf.norm(tf.gather(r_ij_mat, pair, axis=1), axis=2)            # Compute all distances
-                distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)
-                # print(names)
-                rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=bin_range, nbins=self.bins),
-                                       dtype=float)
-
-        for names in key_list:
-            prefactor = self._calculate_prefactor(names)  # calculate the prefactor
-            rdf.update({names: rdf.get(names) * prefactor})  # Apply the prefactor
-            plt.plot(np.linspace(0.0, self.cutoff, self.bins), rdf.get(names))
-            plt.title(names)
-            plt.show()
-            if self.save:  # get the species names
-                self._save_data(f'{names}_{self.analysis_name}',
-                                [np.linspace(0.0, self.cutoff, self.bins), rdf.get(names)])
-
-        self.parent.radial_distribution_function_state=True  # update the state
-        if self.plot:
-            self._plot_data()  # Plot the data if necessary
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._correct_batch_size()  # correct the batch size for the RDF calculation

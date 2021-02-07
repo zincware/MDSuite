@@ -89,17 +89,16 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 Name of the analysis
         """
 
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+        # parse to the parent class
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
 
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
-        self.batch_loop = None  # Number of ensembles in a batch
-        self.parallel = True  # Set the parallel attribute
-        self.tensor_choice = True  # Load data as a tensor
+        self.batch_loop = None                        # Number of ensembles in a batch
+        self.tensor_choice = True                     # Load data as a tensor
+        self.correlation_time = 1                     # Correlation time of the current
+        self.species = list(obj.species)              # species on which to perform the analysis
 
-        self.correlation_time = 1  # Correlation time of the current
-        self.species = list(obj.species)  # species on which to perform the analysis
-
-        self.database_group = 'ionic_conductivity'  # Which database group to save the data in
+        self.database_group = 'ionic_conductivity'    # Which database group to save the data in
 
         # Time array for the calculations
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
@@ -177,8 +176,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_msd_array *= prefactor
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
-        self.parent.ionic_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0] / 100]
-        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0] / 100)])
+        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0]/100)])
 
         # Update the plot if required
         if self.plot:
