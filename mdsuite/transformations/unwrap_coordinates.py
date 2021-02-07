@@ -16,6 +16,7 @@ import tensorflow as tf
 import h5py as hf
 
 from mdsuite.transformations.transformations import Transformations
+from mdsuite.database.database import Database
 
 
 class CoordinateUnwrapper(Transformations):
@@ -107,7 +108,7 @@ class CoordinateUnwrapper(Transformations):
                 Returns the tensor of distances in time.
         """
 
-        return self.data[:, 1:] - self.data[:, :-1]
+        return self.data[:, 1:, :] - self.data[:, :-1, :]
 
     def _build_image_mask(self):
         """
@@ -135,42 +136,50 @@ class CoordinateUnwrapper(Transformations):
 
         self.data = self.data - scaled_mask  # apply the scaling
 
-    def _save_unwrapped_coordinates(self, database_object, species):
+    def _save_unwrapped_coordinates(self, database_object, species, database):
         """
         Save the unwrapped coordinates
         """
 
-        database_object[species].create_group("Unwrapped_Positions")  # Create a new group
-        dimensions = ['x', 'y', 'z']  # labels for the database entry
-
-        # Store the data in the x, y, and z database groups.
-        for i in range(3):
-            database_object[species]["Unwrapped_Positions"].create_dataset(dimensions[i],
-                                                                           data=np.array(self.data[:, :, i]))
+        path = os.path.join(species, 'Unwrapped_Positions')
+        dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
+        database.add_dataset(dataset_structure, database_object)  # add the dataset to the database as resizeable
+        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
+        database.add_data(data=self.data,
+                          structure=data_structure,
+                          database=database_object,
+                          start_index=0,
+                          batch_size=np.shape(self.data)[1],
+                          tensor=True)
 
     def unwrap_particles(self):
         """
         Collect the methods in the class and unwrap the coordinates
         """
 
-        with hf.File(os.path.join(self.system.database_path, 'database.hdf5'), "r+") as database:
-            for species in self.species:
+        database = Database(name=os.path.join(self.system.database_path, "database.hdf5"), architecture='simulation')
+        db_object = database.open()  # open a database object
+        for species in self.species:
 
-                # Check if the data has already been unwrapped
-                if "Unwrapped_Positions" in database[species].keys():
-                    print(f"Unwrapped positions exists for {species}, using the saved coordinates")
-                else:
-                    self._load_data(species)  # load the data to be unwrapped
+            exists = database.check_existence(os.path.join(species, "Unwrapped_Positions"))
+            # Check if the data has already been unwrapped
+            if exists:
+                print(f"Unwrapped positions exists for {species}, using the saved coordinates")
+            else:
+                self._load_data(species)  # load the data to be unwrapped
 
-                    # Center the data if required
-                    if self.center_box:
-                        self._center_box()
+                # Center the data if required
+                if self.center_box:
+                    self._center_box()
 
-                    self._build_image_mask()  # build the image mask
-                    self._apply_mask()  # Apply the mask and unwrap the coordinates
-                    self._save_unwrapped_coordinates(database, species)  # save the newly unwrapped coordinates
+                self.data = tf.convert_to_tensor(self.data)
 
-        self.system.collect_memory_information()  # update the memory dictionary with the unwrapped coordinates
+                self._build_image_mask()  # build the image mask
+                self._apply_mask()  # Apply the mask and unwrap the coordinates
+                self._save_unwrapped_coordinates(db_object, species, database)  # save the newly unwrapped coordinates
+
+        database.close(db_object)
+        self.system.memory_requirements = database.get_memory_information()
         self.system.save_class()  # update the class state
 
     def run_transformation(self):

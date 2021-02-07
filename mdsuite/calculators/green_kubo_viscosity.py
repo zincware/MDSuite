@@ -1,22 +1,22 @@
 """
-Class for the calculation of the Green-Kubo viscosity.
+Class for the calculation of the Green-Kubo ionic conductivity.
 
 Summary
--------
-This module contains the code for the Green-Kubo viscosity class. This class is called by the
+This module contains the code for the Green-Kubo viscsity class. This class is called by the
 """
 
+import matplotlib.pyplot as plt
+from scipy import signal
+import numpy as np
 import warnings
 
-# Python standard packages
-import matplotlib.pyplot as plt
-import numpy as np
 # Import user packages
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import Calculator
-
 # Import MDSuite modules
+from mdsuite.utils.units import boltzmann_constant, elementary_charge
+
+from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 plt.style.use('bmh')
@@ -24,9 +24,8 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboViscosity(Calculator):
-    """
-    Class for the Green-Kubo viscosity implementation
+class GreenKuboIonicConductivity(Calculator):
+    """ Class for the Green-Kubo ionic conductivity implementation
 
     Attributes
     ----------
@@ -44,6 +43,10 @@ class GreenKuboViscosity(Calculator):
             Y label of the data when plotted
     analysis_name : str
             Name of the analysis
+    loaded_property : str
+            Property loaded from the database for the analysis
+    batch_loop : int
+            Number of ensembles in each batch
     time : np.array
             Array of the time.
     correlation_time : int
@@ -51,10 +54,9 @@ class GreenKuboViscosity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\\cdot m^{2}/s^{2}$)',
-                 save=True, analysis_name='green_kubo_thermal_conductivity'):
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label=r'SACF ($C^{2}\cdot m^{2}/s^{2}$)',
+                 save=True, analysis_name='green_kubo_viscosity'):
         """
-        Class for the Green-Kubo Viscosity implementation
 
         Attributes
         ----------
@@ -75,25 +77,30 @@ class GreenKuboViscosity(Calculator):
         """
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
 
-        self.number_of_configurations = self.parent.number_of_configurations - self.parent.number_of_configurations % \
-                                        self.parent.batch_size
-        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.loop_range = self.number_of_configurations - data_range - 1
-        self.correlation_time = 1
-        self.database_group = 'viscosity'  # Which database group to save the data in
-        self.loaded_properties = {'Velocities', 'Stress', 'ke', 'pe'}  # property to be loaded for the analysis
-        self.loaded_property = 'Velocities'
-        self.parallel = True
+        self.loaded_property = 'Velocities'         # property to be loaded for the analysis
+        self.batch_loop = None                      # Number of ensembles in each batch
+        self.parallel = True                        # Set the parallel attribute
+        self.tensor_choice = False                  # Load data as a tensor
+        self.database_group = 'viscosity'           # Which database group to save the data in
 
+        # Time array
+        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
+        self.correlation_time = 1  # correlation time of the system current.
+        
     def _autocorrelation_time(self):
         """
         calculate the current autocorrelation time for correct sampling
         """
         pass
 
-    def _calculate_system_current(self, i):
+    def _calculate_system_current(self, velocity_matrix):
         """
-        Calculate the thermal current of the system
+        Calculate the ionic current of the system
+
+        Parameters
+        ----------
+        velocity_matrix : np.array
+                tensor of system velocities for use in the current calculation
 
         Returns
         -------
@@ -144,6 +151,7 @@ class GreenKuboViscosity(Calculator):
         plt.plot(self.time, parsed_autocorrelation)  # Add a plot
 
         parsed_autocorrelation /= max(parsed_autocorrelation)  # Get the normalized autocorrelation plot data
+
         if self.save:
             self._save_data(f'{self.analysis_name}', [self.time, parsed_autocorrelation])
 
@@ -151,15 +159,15 @@ class GreenKuboViscosity(Calculator):
             self._plot_data()  # Plot the data if necessary
 
     def run_analysis(self):
-        """ Run thermal conductivity calculation analysis
-
-        The thermal conductivity is computed at this step.
         """
-        self._autocorrelation_time()  # get the autocorrelation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
-        self._calculate_batch_loop()  # Update the batch loop attribute
-        status = self._check_input()  # Check for bad input
-        if status == -1:
+        call relevant methods and run analysis
+        """
+
+        self._autocorrelation_time()          # get the autocorrelation time
+        self._collect_machine_properties()    # collect machine properties and determine batch size
+        self._calculate_batch_loop()          # Update the batch loop attribute
+        status = self._check_input()          # Check for bad input
+        if status == 0:
             return
         else:
-            self._calculate_viscosity()  # calculate the singular diffusion coefficients
+            self._calculate_ionic_conductivity()  # calculate the ionic conductivity
