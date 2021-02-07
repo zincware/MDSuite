@@ -40,7 +40,16 @@ extensions = [
     'numpydoc',
     'sphinx_copybutton',
     'nbsphinx',
+    'sphinx.ext.autosectionlabel',
+    'sphinxcontrib.bibtex'
 ]
+
+# Avoid name clashing
+autosectionlabel_prefix_document = True
+
+# Bibtex files for bibliography
+
+bibtex_bibfiles = ['refs.bib']
 
 # Generate the API documentation when building
 autosummary_generate = True
