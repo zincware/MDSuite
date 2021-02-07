@@ -19,7 +19,7 @@ hear from our users.
    quickstart
    theory_introduction
    modules_and_classes
-   _architecture/database_structure
+   _architecture/data_structures
    tools
    walkthrough
 

@@ -78,17 +78,16 @@ class GreenKuboIonicConductivity(Calculator):
         analysis_name : str
                 Name of the analysis
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
+
+        # update parent class
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
 
         self.loaded_property = 'Velocities'         # property to be loaded for the analysis
         self.batch_loop = None                      # Number of ensembles in each batch
-        self.parallel = True                        # Set the parallel attribute
         self.tensor_choice = False                  # Load data as a tensor
         self.database_group = 'ionic_conductivity'  # Which database group to save the data in
-
-        # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1  # correlation time of the system current.
+        self.correlation_time = 1                   # correlation time of the system current.
 
     def _autocorrelation_time(self):
         """
@@ -136,11 +135,10 @@ class GreenKuboIonicConductivity(Calculator):
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
             batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
-            for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
-                start = int(start_index + self.correlation_time)         # get start index
+            for start_index in range(int(self.batch_loop)):                              # loop over ensembles in batch
+                start = int(start_index + self.correlation_time)                         # get start index
                 stop = int(start + self.data_range)                                      # get stop index
                 system_current = np.array(batch)[start:stop]                             # load data from batch array
-
                 jacf = np.zeros(2 * self.data_range - 1)                                 # Define the empty jacf array
 
                 # Calculate the current autocorrelation
@@ -159,7 +157,6 @@ class GreenKuboIonicConductivity(Calculator):
                 sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
 
         # update the experiment class
-        self.parent.ionic_conductivity["Green-Kubo"] = [np.mean(sigma) / 100, (np.std(sigma)/np.sqrt(len(sigma)))/100]
         self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma)/np.sqrt(len(sigma)))/100)])
 
         plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
