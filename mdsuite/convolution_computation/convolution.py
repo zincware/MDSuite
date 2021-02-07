@@ -35,7 +35,8 @@ def convolution(loop_range, flux, data_range, time):
     """
 
     sigma = np.empty((loop_range,))  # define an empty array
-    parsed_autocorrelation = np.zeros(data_range)  # Define the parsed array
+    averaged_jacf = np.zeros(data_range)
+
 
     # main loop for computation
     for i in tqdm(range(loop_range)):
@@ -53,9 +54,9 @@ def convolution(loop_range, flux, data_range, time):
         # Cut off the second half of the acf
         acf = acf[int((len(acf) / 2)):]
 
-        parsed_autocorrelation += acf  # update parsed function
-
         integral = np.trapz(acf, x=time)
         sigma[i] = integral
+        averaged_jacf += acf
 
-    return sigma, parsed_autocorrelation
+    return sigma, averaged_jacf
+
