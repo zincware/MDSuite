@@ -5,16 +5,20 @@ Summary
 -------
 """
 
-import matplotlib.pyplot as plt
+import abc
 import random
+
 from scipy.optimize import curve_fit
 import yaml
 import h5py as hf
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from scipy import signal
+from scipy.optimize import curve_fit
+from tqdm import tqdm
 
-from mdsuite.utils.meta_functions import *
 from mdsuite.utils.exceptions import *
-
-import abc
+from mdsuite.utils.meta_functions import *
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -141,9 +145,9 @@ class Calculator(metaclass=abc.ABCMeta):
         Calculate the batch loop parameters
         """
         self.batch_loop = np.floor(
-            (self.batch_size[self.batch_type]) / (self.correlation_time + 1)) + 1
+            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
-    def _load_batch(self, batch_number, item=None):
+    def _load_batch(self, batch_number, property_to_load, item=None, scalar=False, sym_matrix=False):
         """
         Load a batch of data
 
@@ -162,8 +166,8 @@ class Calculator(metaclass=abc.ABCMeta):
         start = int(batch_number * self.batch_size[self.batch_type])
         stop = int(start + self.batch_size[self.batch_type])
 
-        return self.parent.load_matrix(self.loaded_property, item, select_slice=np.s_[:, start:stop],
-                                       tensor=self.tensor_choice)
+        return self.parent.load_matrix(property_to_load, item, select_slice=np.s_[:, start:stop],
+                                       tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix)
 
     def _save_data(self, title, data):
         """
@@ -219,9 +223,9 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.data_range > self.parent.number_of_configurations - self.correlation_time:
             print("Data range is impossible for this system, reduce and try again")
 
-            return 0
+            return -1
         else:
-            return 1
+            return 0
 
     def _optimize_einstein_data_range(self, data):
         """
@@ -254,6 +258,7 @@ class Calculator(metaclass=abc.ABCMeta):
             -------
 
             """
+
             return m * x + a
 
         # get the logarithmic dataset
@@ -299,6 +304,22 @@ class Calculator(metaclass=abc.ABCMeta):
         fits = []  # define an empty fit array so errors may be extracted
 
         def func(x, m, a):
+            """
+            Standard linear function for fitting.
+
+            Parameters
+            ----------
+            x : list/np.array
+                    x axis data for the fit
+            m : float
+                    gradient of the line
+            a : float
+                    scalar offset, also the y-intercept for those who did not get much maths in school.
+
+            Returns
+            -------
+
+            """
             return m * x + a
 
         # get the logarithmic dataset
@@ -307,6 +328,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
         min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
+
 
         for _ in range(100):
             end_index = random.randint(min_end_index, max_end_index)  # get a random end point
@@ -356,3 +378,68 @@ class Calculator(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError  # Implement in the child class
+
+    def convolution_operation(self, type_batches):
+        """
+        This function performs the actual autocorrelation computation.
+        It is has been put here because it is the same function for every GK calculation.
+
+        :param type_batches: Serial or Parallel.
+        :return: sigma: list with the integrated property.
+        :return: parsed_autocorrelation: np array with the sum of the autocorrelations, used to see convergence.
+        """
+        sigma = []  # define an empty sigma list
+        parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
+
+        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
+            batch = self._calculate_system_current(i)  # get the ionic current batch
+            for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
+                start = int(start_index + self.correlation_time)  # get start index
+                stop = int(start + self.data_range)  # get stop index
+                system_current = np.array(batch)[start:stop]  # load data from batch array
+
+                jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
+
+                # Calculate the current autocorrelation
+                jacf += (signal.correlate(system_current[:, 0],
+                                          system_current[:, 0],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 1],
+                                          system_current[:, 1],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 2],
+                                          system_current[:, 2],
+                                          mode='full', method='auto'))
+
+                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
+                parsed_autocorrelation += jacf  # update parsed function
+                sigma.append(np.trapz(jacf, x=self.time))  # Update the conductivity array
+        return sigma, parsed_autocorrelation
+
+    def msd_operation_EH(self, type_batches):
+        """
+        A function that needs a docstring
+        Parameters
+        ----------
+        type_batches
+
+        Returns
+        -------
+
+        """
+        msd_array = np.zeros(self.data_range)  # Initialize the msd array
+
+        for i in tqdm(range(int(self.n_batches[type_batches])), ncols=70):  # Loop over batches
+            batch = self._calculate_integrated_current(i)  # get the ionic current
+            for start_index in range(int(self.batch_loop)):  # Loop over ensembles
+                start = int(start_index + self.correlation_time)  # get start configuration
+                stop = int(start + self.data_range)  # get the stop configuration
+                window_tensor = batch[start:stop]  # select data from the batch tensor
+
+                # Calculate the msd and multiply by the prefactor
+                msd = (window_tensor - (
+                    tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
+                msd = tf.reduce_sum(msd, axis=1)
+
+                msd_array += np.array(msd)  # Update the total array
+        return msd_array

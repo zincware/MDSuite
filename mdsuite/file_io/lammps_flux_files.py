@@ -13,7 +13,7 @@ from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size
 
-lammps_flux = {
+var_names = {
     "Temperature": ["temp"],
     "Time": ["time"],
     "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]']
@@ -45,7 +45,7 @@ class LAMMPSFluxFile(FluxFile):
         self.project.volume = None
         self.project.number_of_atoms = None
 
-    def process_trajectory_file(self, update_class=True):
+    def process_trajectory_file(self, update_class=True, rename_cols=None):
         """ Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
@@ -60,6 +60,10 @@ class LAMMPSFluxFile(FluxFile):
                 updating the properties that change with new data. In fact, it will set the number of configurations to
                 only the new data, which will be wrong.
         """
+
+        # user custom names for variables.
+        if rename_cols is not None:
+            var_names.update(rename_cols)
 
         n_lines_header = 0  # number of lines of header
         with open(self.project.trajectory_file) as f:
@@ -79,7 +83,7 @@ class LAMMPSFluxFile(FluxFile):
 
         # Find properties available for analysis
         column_dict_properties = self._get_column_properties(header_line)  # get column properties
-        self.project.property_groups = self._extract_properties(lammps_flux,
+        self.project.property_groups = self._extract_properties(var_names,
                                                                 column_dict_properties)  # Get the observable groups
 
         batch_size = optimize_batch_size(self.project.trajectory_file, number_of_configurations)

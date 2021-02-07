@@ -14,12 +14,6 @@ from mdsuite.file_io.file_read import FileProcessor
 # from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size
 
-lammps_flux = {
-    "Temperature": ["temp"],
-    "Time": ["time"],
-    "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]']
-}
-
 
 class FluxFile(FileProcessor):
     """
@@ -52,7 +46,7 @@ class FluxFile(FileProcessor):
         """
         # database = hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
         #                    libver='latest')
-        axis_names = ('x', 'y', 'z')
+        axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz', 'yx', 'zx', 'zy')
 
         with hf.File(os.path.join(self.project.database_path, 'database.hdf5'), 'w', libver='latest') as database:
             # Build the database structure
@@ -63,9 +57,10 @@ class FluxFile(FileProcessor):
                                                                self.project.number_of_configurations %
                                                                self.project.batch_size,),
                                                  compression="gzip", compression_opts=9)
-                elif len(columns) == 3:
+                else:
+                    n_cols = len(columns)
                     database['1'].create_group(property_in)
-                    for axis in axis_names:
+                    for axis in axis_names[0:n_cols]:
                         database['1'][property_in].create_dataset(axis, (self.project.number_of_configurations -
                                                                          self.project.number_of_configurations %
                                                                          self.project.batch_size,),

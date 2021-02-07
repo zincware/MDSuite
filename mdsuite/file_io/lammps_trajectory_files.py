@@ -11,7 +11,7 @@ from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
 
-lammps_traj = {
+var_names = {
     "Positions": ['x', 'y', 'z'],
     "Scaled_Positions": ['xs', 'ys', 'zs'],
     "Unwrapped_Positions": ['xu', 'yu', 'zu'],
@@ -60,6 +60,10 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         Returns
         -------
+
+        # user custom names for variables.
+        if rename_cols is not None:
+            var_names.update(rename_cols)
 
         """
 

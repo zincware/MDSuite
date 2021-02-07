@@ -99,9 +99,9 @@ class Project:
         """
 
         # Check the file type and read accordingly
-        if description[-3:] is "txt":
+        if description[-3:] == "txt":
             self.description = "".join(np.array(simple_file_read(description)).flatten())
-        elif description[-2:] is "md":
+        elif description[-2:] == "md":
             self.description = "".join(np.array(simple_file_read(description)).flatten())
         else:
             self.description = description

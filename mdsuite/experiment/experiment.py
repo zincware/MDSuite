@@ -89,6 +89,7 @@ class Experiment:
         self.species = None  # Species dictionary.
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the system.
+
         self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
         self.batch_size = None  # Number of configurations in each batch.
         self.volume = None  # Volume of the system.
@@ -119,6 +120,9 @@ class Experiment:
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
+
+        # Run Computations
+        self.run_computation = self.RunComputation(self)
 
     def _load_or_build(self):
         """
@@ -196,7 +200,7 @@ class Experiment:
                 sys.exit(-1)
         return units
 
-    def run_computation(self, computation_name, **kwargs):
+    class RunComputation:
         """ Run a computation
 
         The type of computation will be stored in a dictionary.
@@ -214,6 +218,48 @@ class Experiment:
                 The ionic conductivity in units of S/cm
 
         """
+
+        def __init__(self, parent):
+            self.parent = parent
+            for key in dict_classes_computations:
+                self.__setattr__(key, dict_classes_computations[key])
+
+        def __getattribute__(self, item):
+            """Call via function
+            You cann call the computation via a function and autocompletion
+            >>> Experiment.run_computation.EinsteinDiffusionCoefficients(plot=True)
+            """
+            try:
+                class_compute = dict_classes_computations[item]
+            except KeyError:
+                return super().__getattribute__(item)
+
+            def func(**kwargs):
+                self.compute(class_compute, **kwargs)
+
+            return func
+
+        def __call__(self, computation_name, **kwargs):
+            """Call directly
+            You can call the computation directly via
+            >>> Experiment.run_computation("EinsteinDiffusionCoefficients", plot=True)
+            """
+            try:
+                class_compute = dict_classes_computations[computation_name]
+            except KeyError:
+                print(f'{computation_name} not found')
+                print(f'Available computations are:')
+                [print(key) for key in dict_classes_computations.keys()]
+                return
+
+            self.compute(class_compute, **kwargs)
+
+        def compute(self, class_compute, **kwargs):
+            object_compute = class_compute(self.parent, **kwargs)
+            object_compute.run_analysis()
+            self.parent.save_class()
+
+    def run_computation(self, computation_name, **kwargs):
 
         try:
             class_compute = dict_classes_computations[computation_name]
@@ -308,7 +354,7 @@ class Experiment:
                         group_list.append(ECS(property_group))  # construct a list of equal level groups
                 head >> group_list  # append these groups to the head object
 
-    def add_data(self, trajectory_file=None, file_format='lammps_traj'):
+    def add_data(self, trajectory_file=None, file_format='lammps_traj', rename_cols=None):
         """
         Add data to the database
 
@@ -381,6 +427,7 @@ class Experiment:
                     'radial_distribution_function': {},
                     'kirkwood_buff_integral': {},
                     'structure_factor': {}}
+
             yaml.dump(data, f)
 
         self.save_class()  # Update the class state
@@ -445,11 +492,11 @@ class Experiment:
                         for dataset in db[item][group]:  # Loop over the datasets in the group
                             memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
                         self.memory_requirements[item][group] = memory  # Update the dictionary.
-                for group in db[item].keys():
-                    memory = 0  # Dummy variable for memory
-                    for dataset in db[item][group]:  # Loop over the datasets in the group
-                        memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                    self.memory_requirements[item][group] = memory  # Update the dictionary.
+                # for group in db[item].keys():
+                #     memory = 0  # Dummy variable for memory
+                #     for dataset in db[item][group]:  # Loop over the datasets in the group
+                #         memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
+                #     self.memory_requirements[item][group] = memory  # Update the dictionary.
 
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
