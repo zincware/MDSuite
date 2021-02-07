@@ -54,7 +54,8 @@ class Calculator(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None):
+    def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
+                 parallel=False):
         """
 
         Parameters
@@ -74,7 +75,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.plot = plot  # Whether or not to plot the data and save a figure
         self.save = save  # Whether or not to save the calculated data (Default is true)
         self.loaded_property = None  # Which dataset to load
-        self.parallel = False  # If true, run analysis in parallel
+        self.parallel = parallel  # If true, run analysis in parallel
         self.batch_type = None  # Choose parallel or serial for memory management
         self.tensor_choice = False  # If true, data is loaded as a tensors
         self.batch_size = {}  # Size of the batch to use during the analysis
@@ -111,24 +112,33 @@ class Calculator(metaclass=abc.ABCMeta):
         self.machine_properties = get_machine_properties()  # load the machine properties
         memory_usage = []
         for item in self.parent.memory_requirements:
-            memory_usage.append(self.parent.memory_requirements[item][self.loaded_property] /
-                                self.parent.number_of_configurations)
+            if self.loaded_property in item:
+                memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
 
         # Get the single frame memory usage in bytes
         serial_memory_usage = max(memory_usage)
         parallel_memory_usage = sum(memory_usage)
-        parallel_members = len(memory_usage)
 
         # Update the batch_size attribute
-        max_batch_size_serial = int(np.floor(self.machine_properties['memory'] / serial_memory_usage))
-        max_batch_size_parallel = int(np.floor(self.machine_properties['memory'] / parallel_memory_usage))
+        max_batch_size_serial = int(np.floor(0.1*self.machine_properties['memory'] / serial_memory_usage))
+        max_batch_size_parallel = int(np.floor(0.1*self.machine_properties['memory'] / parallel_memory_usage))
 
-        self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations / max_batch_size_serial).astype(int)
-        self.batch_size['Serial'] = np.ceil(self.parent.number_of_configurations / self.n_batches['Serial']).astype(int)
+        if max_batch_size_serial > self.parent.number_of_configurations:
+            self.batch_size['Serial'] = self.parent.number_of_configurations
 
-        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations / max_batch_size_serial).astype(int)
-        self.batch_size['Parallel'] = np.ceil(self.parent.number_of_configurations / self.n_batches['Serial']).astype(
-            int)
+        else:
+            self.batch_size['Serial'] = max_batch_size_serial
+        
+        self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations /
+                                           (self.batch_size['Serial'])).astype(int)
+
+        if max_batch_size_parallel > self.parent.number_of_configurations:
+            self.batch_size['Parallel'] = self.parent.number_of_configurations
+        else:
+            self.batch_size['Parallel'] = max_batch_size_parallel
+
+        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations /
+                                             (self.batch_size['Parallel'])).astype(int)
 
     def _calculate_batch_loop(self):
         """
@@ -232,6 +242,23 @@ class Calculator(metaclass=abc.ABCMeta):
         """
 
         def func(x, m, a):
+            """
+            Standard linear function for fitting.
+
+            Parameters
+            ----------
+            x : list/np.array
+                    x axis data for the fit
+            m : float
+                    gradient of the line
+            a : float
+                    scalar offset, also the y-intercept for those who did not get much maths in school.
+
+            Returns
+            -------
+
+            """
+
             return m * x + a
 
         # get the logarithmic dataset
@@ -258,7 +285,8 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _fit_einstein_curve(self, data):
+    @staticmethod
+    def _fit_einstein_curve(data):
         """
         Fit operation for Einstein calculations
 
@@ -275,22 +303,39 @@ class Calculator(metaclass=abc.ABCMeta):
 
         fits = []  # define an empty fit array so errors may be extracted
 
-        def func(x, a):
-            return x + a
+        def func(x, m, a):
+            """
+            Standard linear function for fitting.
+
+            Parameters
+            ----------
+            x : list/np.array
+                    x axis data for the fit
+            m : float
+                    gradient of the line
+            a : float
+                    scalar offset, also the y-intercept for those who did not get much maths in school.
+
+            Returns
+            -------
+
+            """
+            return m * x + a
 
         # get the logarithmic dataset
         log_y = np.log10(data[1][1:])
         log_x = np.log10(data[0][1:])
 
-        min_end_index, max_end_index = int(0.7 * len(log_y)), int(len(log_y) - 1)
-        min_start_index, max_start_index = int(0.4 * len(log_y)), int(0.6 * len(log_y))
+        min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
+        min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
+
 
         for _ in range(100):
             end_index = random.randint(min_end_index, max_end_index)  # get a random end point
             start_index = random.randint(min_start_index, max_start_index)  # get a random start point
 
             popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
-            fits.append(10 ** popt[0])
+            fits.append(10 ** popt[1])
 
         return [str(np.mean(fits)), str(np.std(fits))]
 
@@ -372,6 +417,16 @@ class Calculator(metaclass=abc.ABCMeta):
         return sigma, parsed_autocorrelation
 
     def msd_operation_EH(self, type_batches):
+        """
+        A function that needs a docstring
+        Parameters
+        ----------
+        type_batches
+
+        Returns
+        -------
+
+        """
         msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
         for i in tqdm(range(int(self.n_batches[type_batches])), ncols=70):  # Loop over batches

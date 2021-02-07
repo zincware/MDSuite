@@ -99,7 +99,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1  # correlation time of the velocities.
+        self.correlation_time = 500  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -178,7 +178,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         for item in self.species:                                                        # loop over species
             result = self._singular_diffusion_calculation(item=item)                     # get the diffusion coefficient
-            self.parent.diffusion_coefficients["Green-Kubo"]["Singular"][item] = result  # Update the class
             self._update_properties_file(item='Singular', sub_item=item, data=result)
 
         # Run the plot data method if needed

@@ -2,10 +2,7 @@
 Class for the calculation of the Green-Kubo ionic conductivity.
 
 Summary
-This module contains the code for the Green-Kubo ionic conductivity class. This class is called by the
-Experiment class and instantiated when the user calls the Experiment.green_kubo_ionic_conductivity method.
-The methods in class can then be called by the Experiment.green_kubo_ionic_conductivity method and all necessary
-calculations performed.
+This module contains the code for the Green-Kubo viscsity class. This class is called by the
 """
 
 import matplotlib.pyplot as plt
@@ -57,8 +54,8 @@ class GreenKuboIonicConductivity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label=r'JACF ($C^{2}\cdot m^{2}/s^{2}$)',
-                 save=True, analysis_name='green_kubo_ionic_conductivity'):
+    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label=r'SACF ($C^{2}\cdot m^{2}/s^{2}$)',
+                 save=True, analysis_name='green_kubo_viscosity'):
         """
 
         Attributes
@@ -78,16 +75,17 @@ class GreenKuboIonicConductivity(Calculator):
         analysis_name : str
                 Name of the analysis
         """
-
-        # update parent class
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
 
         self.loaded_property = 'Velocities'         # property to be loaded for the analysis
         self.batch_loop = None                      # Number of ensembles in each batch
+        self.parallel = True                        # Set the parallel attribute
         self.tensor_choice = False                  # Load data as a tensor
-        self.database_group = 'ionic_conductivity'  # Which database group to save the data in
+        self.database_group = 'viscosity'           # Which database group to save the data in
+
+        # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1                   # correlation time of the system current.
+        self.correlation_time = 1  # correlation time of the system current.
 
     def _autocorrelation_time(self):
         """
@@ -95,7 +93,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self, batch):
+    def _calculate_system_current(self, velocity_matrix):
         """
         Calculate the ionic current of the system
 
@@ -110,7 +108,6 @@ class GreenKuboIonicConductivity(Calculator):
                 ionic current of the system as a vector of shape (n_confs, 3)
         """
 
-        velocity_matrix = self._load_batch(batch, property_to_load='Velocity')
         species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
 
         system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
@@ -131,10 +128,35 @@ class GreenKuboIonicConductivity(Calculator):
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
-        sigma, parsed_autocorrelation = self.convolution_operation(type_batches='Parallel')
-        sigma *= prefactor
+        sigma = []                                          # define an empty sigma list
+        parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
+
+        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
+            batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
+            for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
+                start = int(start_index + self.correlation_time)         # get start index
+                stop = int(start + self.data_range)                                      # get stop index
+                system_current = np.array(batch)[start:stop]                             # load data from batch array
+
+                jacf = np.zeros(2 * self.data_range - 1)                                 # Define the empty jacf array
+
+                # Calculate the current autocorrelation
+                jacf += (signal.correlate(system_current[:, 0],
+                                          system_current[:, 0],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 1],
+                                          system_current[:, 1],
+                                          mode='full', method='auto') +
+                         signal.correlate(system_current[:, 2],
+                                          system_current[:, 2],
+                                          mode='full', method='auto'))
+
+                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
+                parsed_autocorrelation += jacf      # update parsed function
+                sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
 
         # update the experiment class
+        self.parent.ionic_conductivity["Green-Kubo"] = [np.mean(sigma) / 100, (np.std(sigma)/np.sqrt(len(sigma)))/100]
         self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma)/np.sqrt(len(sigma)))/100)])
 
         plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
@@ -157,7 +179,7 @@ class GreenKuboIonicConductivity(Calculator):
         self._collect_machine_properties()    # collect machine properties and determine batch size
         self._calculate_batch_loop()          # Update the batch loop attribute
         status = self._check_input()          # Check for bad input
-        if status == -1:
+        if status == 0:
             return
         else:
             self._calculate_ionic_conductivity()  # calculate the ionic conductivity

@@ -21,6 +21,7 @@ import yaml
 from diagrams import Diagram, Cluster
 from diagrams.aws.compute import ECS
 from diagrams.aws.database import RDS
+from tqdm import tqdm
 
 from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations
@@ -28,6 +29,8 @@ from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.exceptions import *
+from mdsuite.database.database import Database
+from mdsuite.file_io.file_read import FileProcessor
 
 
 class Experiment:
@@ -36,8 +39,6 @@ class Experiment:
 
     Attributes
     ----------
-    trajectory_file : str
-            A file containing trajectory data of a simulation
     analysis_name : str
             The name of the analysis being performed e.g. NaCl_1400K
     storage_path : str
@@ -88,17 +89,12 @@ class Experiment:
         self.species = None  # Species dictionary.
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the system.
-        self.trajectory_file = None  # Name of the trajectory file.
+
         self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
         self.batch_size = None  # Number of configurations in each batch.
         self.volume = None  # Volume of the system.
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
-
-        # File related properties
-        self.file_format = None  # format of the file being studied
-        self.file_type = None  # type of file being studied, per-atom, or flux
-        self.filepath = None  # Path to trajectory file
 
         # Internal File paths
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
@@ -109,12 +105,21 @@ class Experiment:
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
+        self.results = [
+            'diffusion_coefficients',
+            'ionic_conductivity',
+            'thermal_conductivity',
+            'coordination_numbers',
+            'potential_of_mean_force_values',
+            'radial_distribution_function',
+            'kirkwood_buff_integral'
+        ]
+
         # Memory properties
         self.memory_requirements = {}
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
-        self.build_dictionary_results()  # expand the analysis results entries
 
         # Run Computations
         self.run_computation = self.RunComputation(self)
@@ -157,8 +162,7 @@ class Experiment:
         save_file.write(pickle.dumps(self.__dict__))  # write to file
         save_file.close()  # close the file
 
-    @staticmethod
-    def units_to_si(units_system):
+    def units_to_si(self, units_system):
         """
         Returns a dictionary with equivalences from the unit system given by a string to SI.
         Along with some constants in the unit system provided (boltzman, or other conversions).
@@ -357,7 +361,7 @@ class Experiment:
         Parameters
         ----------
         file_format :
-                Foramt of the file being read in. Default is lammpstraj
+                Format of the file being read in. Default is file_path
         trajectory_file : str
                 Trajectory file to be process and added to the database.
         """
@@ -367,34 +371,45 @@ class Experiment:
             print("No data has been given")
             return  # exit method as nothing more can be done
 
-        self.file_format = file_format
-        self.trajectory_file = trajectory_file  # Update the current class trajectory file
-
-        # Check which type of file it is: flux or per atom
-        trajectory_reader, file_type = self._get_system_properties(file_format)
-        self.file_type = file_type  # flux or per atom
+        # Load the file reader and the database object
+        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
+        database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
 
         # Check to see if a database exists
-        test_db = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
-        if test_db.exists():
-            self._update_database(trajectory_reader, rename_cols)
-        else:
-            self._build_new_database(trajectory_reader, rename_cols)
+        database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
-        self.collect_memory_information()  # Update the memory information
+        if database_path.exists():
+            pass  # self._update_database(trajectory_reader)
+        else:
+            self._build_new_database(trajectory_reader, trajectory_file, database)
+
+        self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader,rename_cols):
+    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database):
         """
         Build a new database
         """
 
-        # Build the database object for trajectory information
-        trajectory_reader.process_trajectory_file(rename_cols=rename_cols)  # get properties of the trajectory and update the class
-        trajectory_reader.build_database_skeleton()  # Build the database skeleton
-        trajectory_reader.fill_database()  # Fill the database with trajectory data
-        if self.file_type == 'traj':
-            self.build_species_dictionary()  # Add data to the species dictionary.
+        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        database.initialize_database(architecture)  # initialize the database
+        db_object = database.open()  # Open a database object
+        batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
+        counter = 0  # instantiate counter
+        structure = trajectory_reader.build_file_structure()  # build the file structure
+
+        f_object = open(trajectory_file, 'r')  # open the trajectory file
+        for _ in tqdm(range(batch_range)):
+            data = trajectory_reader.read_configurations(self.batch_size, f_object)
+            database.add_data(data=data,
+                              structure=structure,
+                              database=db_object,
+                              start_index=counter,
+                              batch_size=self.batch_size)
+            counter += self.batch_size
+
+        database.close(db_object)  # Close the object
+        f_object.close()
 
         # Build database for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
@@ -417,7 +432,7 @@ class Experiment:
 
         self.save_class()  # Update the class state
 
-    def _get_system_properties(self, file_format):
+    def _load_trajectory_reader(self, file_format, trajectory_file):
         try:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
@@ -425,7 +440,7 @@ class Experiment:
             print(f'Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
-        return class_file_io(self), file_type
+        return class_file_io(self, file_path=trajectory_file), file_type
 
     def build_species_dictionary(self):
         """
@@ -437,14 +452,14 @@ class Experiment:
 
         """
         with open_text(static_data, 'PubChemElements_all.json') as json_file:
-            PSE = json.loads(json_file.read())
+            pse = json.loads(json_file.read())
 
         # Try to get the species data from the Periodic System of Elements file
         for element in self.species:
             self.species[element]['charge'] = [0.0]
-            for entry in PSE:
-                if PSE[entry][1] == element:
-                    self.species[element]['mass'] = [float(PSE[entry][3])]
+            for entry in pse:
+                if pse[entry][1] == element:
+                    self.species[element]['mass'] = [float(pse[entry][3])]
 
         # If gathering the data from the PSE file was not successful try to get it from Pubchem via pubchempy
         for element in self.species:
@@ -520,6 +535,7 @@ class Experiment:
 
         with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
             for item in list(species):
+                path = os.path.join(item, identifier)
 
                 # Unwrap the positions if they need to be unwrapped
                 if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
@@ -534,78 +550,18 @@ class Experiment:
                 # If the tensor kwarg is True, return a tensor.
                 if tensor:
                     property_matrix.append(
-                        tf.convert_to_tensor(np.dstack((database[item][identifier]['x'][select_slice],
-                                                        database[item][identifier]['y'][select_slice],
-                                                        database[item][identifier]['z'][select_slice])),
-                                             dtype=tf.float64))
+                        tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
 
                 elif sym_matrix:  # return a stress tensor
-                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
-                                                      database[item][identifier]['y'][select_slice],
-                                                      database[item][identifier]['z'][select_slice],
-                                                      database[item][identifier]['xy'][select_slice],
-                                                      database[item][identifier]['xz'][select_slice],
-                                                      database[item][identifier]['yz'][select_slice],)))
+                    property_matrix.append(database[path][select_slice])
                 elif scalar:  # return a scalar
-                    property_matrix.append(database[item][identifier][select_slice])
+                    property_matrix.append(database[path][select_slice])
 
                 else:  # return a numpy array
-                    property_matrix.append(np.dstack((database[item][identifier]['x'][select_slice],
-                                                      database[item][identifier]['y'][select_slice],
-                                                      database[item][identifier]['z'][select_slice])))
+                    property_matrix.append(database[path][select_slice])
 
         # Check if the property loaded was a scalar.
         if len(property_matrix) == 1:
             return property_matrix[0]  # return the scalar dataset
         else:
             return property_matrix  # return the full tensor object.
-
-    def build_dictionary_results(self):
-        """
-        Build the results dictionary
-
-        Returns
-        -------
-        Updates the class state.
-        """
-        # Properties of the experiment
-        # TODO: maybe we could put all of this in a single structure.
-        # self.system_measurements = {}         #  Properties measured during the analysis.
-        self.diffusion_coefficients = {"Einstein": {"Singular": {}, "Distinct": {}},
-                                       "Green-Kubo": {"Singular": {}, "Distinct": {}}}
-        self.ionic_conductivity = {"Einstein-Helfand": {},
-                                   "Green-Kubo": {},
-                                   "Nernst-Einstein": {"Einstein": None, "Green-Kubo": None},
-                                   "Corrected Nernst-Einstein": {"Einstein": None, "Green-Kubo": None}}
-        self.thermal_conductivity = {'Global': {"Green-Kubo": {}}}
-        self.coordination_numbers = {}
-        self.potential_of_mean_force_values = {}
-        self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = True  # Set true if it has been calculated
-        self.viscosity =  {'Global': {"Green-Kubo": {}}}
-
-        # Dictionary of results
-        self.results = {
-            'diffusion_coefficients': self.diffusion_coefficients,
-            'ionic_conductivity': self.ionic_conductivity,
-            'thermal_conductivity': self.thermal_conductivity,
-            'coordination_numbers': self.coordination_numbers,
-            'potential_of_mean_force_values': self.potential_of_mean_force_values,
-            'radial_distribution_function': self.radial_distribution_function_state,
-            'kirkwood_buff_integral': self.kirkwood_buff_integral_state,
-            'viscosity': self.viscosity
-        }
-
-    def _update_database(self, trajectory_reader, rename_cols):
-        """
-        Update the database when new data is added to a pre-existing experiment.
-
-        Parameters
-        ----------
-        trajectory_reader
-
-        Returns
-        -------
-
-        """
-        pass

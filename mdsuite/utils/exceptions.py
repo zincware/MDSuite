@@ -42,6 +42,7 @@ class NoGPUInSystem(Exception):
     """
     Thrown during system analysis when GPUs are being searched for.
     """
+
     def __init__(self):
         Exception.__init__(self, "No GPUs detected, continuing without GPU support")
 
@@ -52,8 +53,19 @@ class DatasetExists(Exception):
     """
     pass
 
+
 class RangeExceeded(Exception):
     """
     Thrown when the data range asked for exceeds the total number of configurations
     """
     pass
+
+
+class DatabaseDoesNotExist(Exception):
+    """
+    Thrown when a preexisting database object is called but none exists
+    """
+    def __init__(self):
+        """ Constructor method """
+        self.message = "Database does not exists"
+        super().__init__(self.message)
