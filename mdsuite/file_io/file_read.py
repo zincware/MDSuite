@@ -6,6 +6,7 @@ Summary
 """
 
 import abc
+from typing import TextIO
 
 
 class FileProcessor(metaclass=abc.ABCMeta):
@@ -20,7 +21,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
             Number of header lines in the file format being read.
     """
 
-    def __init__(self, obj, header_lines):
+    def __init__(self, obj, header_lines, file_path):
         """
         Python constructor
 
@@ -35,6 +36,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         self.project = obj  # Experiment class instance to add to.
         self.header_lines = header_lines  # Number of header lines in the given file format.
+        self.file_path = file_path   # path to the file being read
 
     @abc.abstractmethod
     def process_trajectory_file(self):
@@ -62,19 +64,31 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def fill_database(self, counter=0):
+    def build_file_structure(self):
         """
-        Loads data into a hdf5 database.
-        This method is dependent on the type of data (atoms, flux, etc.), therefore it should be implemented in a child
-        class.
+        Build a skeleton of the file so that the database class can process it correctly.
+        """
+
+        return
+
+    @abc.abstractmethod
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = True):
+        """
+        Read in a number of configurations from a file
 
         Parameters
         ----------
-        trajectory_reader : object
-                Instance of a trajectory reader class.
+        skip : bool
+                If true, the header lines will be skipped, if not, the returned data will include the headers.
+        number_of_configurations : int
+                Number of configurations to be read in.
+        file_object : obj
+                File object to be read from.
 
-        counter : int
-                Number of configurations that have been read in.
+        Returns
+        -------
+        configuration data : np.array
+                Data read in from the file object.
         """
 
         return

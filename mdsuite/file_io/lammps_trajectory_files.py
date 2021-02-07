@@ -6,12 +6,10 @@ Summary
 """
 
 from mdsuite.file_io.trajectory_files import TrajectoryFile
-# from mdsuite.file_io.file_io_dict import lammps_traj
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
-import numpy as np
 
 lammps_traj = {
     "Positions": ['x', 'y', 'z'],
@@ -43,20 +41,149 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
     header_lines : int
             Number of header lines in the file format (lammps = 9)
 
-    lammpstraj : str
+    file_path : str
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, lammpstraj=None):
+    def __init__(self, obj, header_lines=9, file_path=None):
         """
         Python class constructor
         """
 
-        super().__init__(obj, header_lines)  # fill the parent class
-        self.lammpstraj = lammpstraj  # lammps file to read from.
+        super().__init__(obj, header_lines, file_path)  # fill the parent class
+
+        self.f_object = open(self.file_path)  # file object
+
+    def _get_number_of_atoms(self):
+        """
+        Get the number of atoms
+
+        Returns
+        -------
+
+        """
+
+        header = self._read_header(self.f_object)  # get the first header data
+        self.f_object.seek(0)  # go back to the start of the file
+
+        return int(header[3][0])
+
+    def _get_number_of_configurations(self, number_of_atoms: int):
+        """
+        Get the number of configurations
+
+        Parameters
+        ----------
+        number_of_atoms : int
+                Number of atoms in each of the trajectories
+        Returns
+        -------
+
+        """
+        number_of_lines = line_counter(self.file_path)  # get the number of lines in the file
+
+        return int(number_of_lines / (number_of_atoms + self.header_lines))
+
+    def _get_time_information(self, number_of_atoms: int):
+        """
+        Get time information.
+
+        Parameters
+        ----------
+        number_of_atoms : int
+                Number of atoms in each trajectory
+
+        Returns
+        -------
+
+        """
+        header = self._read_header(self.f_object)  # get the first header
+        time_0 = float(header[1][0])  # Time in first configuration
+        header = self._read_header(self.f_object, offset=number_of_atoms)  # get the second header
+        time_1 = float(header[1][0])  # Time in second configuration
+        self.f_object.seek(0)  # return to first line in file
+
+        return time_1 - time_0
+
+    def _get_species_information(self, number_of_atoms: int):
+        """
+        Get the initial species information
+
+        Parameters
+        ----------
+        number_of_atoms : int
+                Number of atoms in each configuration
+        """
+        species_summary = {}  # instantiate the species summary
+        header = self._read_header(self.f_object)  # get the header data
+
+        # Look for the element keyword
+        try:
+            # Look for element keyword in trajectory.
+            if "element" in header[8]:
+                element_index = header[8].index("element") - 2
+
+            # Look for type keyword if element is not present.
+            elif "type" in header[8]:
+                element_index = header[8].index('type') - 2
+
+            # Raise an error if no identifying keywords are found.
+            else:
+                raise NoElementInDump
+        except NoElementInDump:
+            print("Insufficient species or type identification available.")
+            return
+
+        column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
+        property_groups = self._extract_properties(lammps_traj, column_dict_properties)
+
+        box = [(float(header[5][1]) - float(header[5][0])),
+               (float(header[6][1]) - float(header[6][0])),
+               (float(header[7][1]) - float(header[7][0]))]
+
+        # Loop over atoms in first configuration.
+        for i in range(number_of_atoms):
+            line = self.f_object.readline().split()
+            if line[element_index] not in species_summary:
+                species_summary[line[element_index]] = {}
+                species_summary[line[element_index]]['indices'] = []
+
+            # Update the index of the atom in the summary.
+            species_summary[line[element_index]]['indices'].append(i + self.header_lines)
+
+        return species_summary, box, property_groups
+
+    @staticmethod
+    def _build_architecture(species_summary: dict, property_groups: dict, number_of_atoms: int,
+                            number_of_configurations: int):
+        """
+        Build the database architecture for use by the database class
+
+        Parameters
+        ----------
+        species_summary : dict
+                Species summary passed to the experiment class
+        property_groups : dict
+                Property information passed to the experiment class
+        number_of_atoms : int
+                Number of atoms in each configurations
+        number_of_configurations : int
+                Number of configurations in the file
+
+        """
+        architecture = {}  # instantiate the database architecture dictionary
+        for species in species_summary:
+            architecture[species] = {}
+            for observable in property_groups:
+                architecture[species][observable] = (len(species_summary[species]['indices']),
+                                                     number_of_configurations,
+                                                     len(property_groups[observable]))
+
+        return architecture
 
     def process_trajectory_file(self, update_class=True):
-        """ Get additional information from the trajectory file
+        """
+        Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
@@ -69,101 +196,19 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 this point, when new data is added, this is no longer required as other methods will take care of
                 updating the properties that change with new data. In fact, it will set the number of configurations to
                 only the new data, which will be wrong.
+
+        Returns
+        -------
+        architecture : dict
+                Database architecture to be used by the class to build a new database.
         """
 
-        """
-            Define necessary dicts and variables
-        """
-        species_summary = {}  # For storing the species or types of molecules
-        n_lines_header_block = 9  # Standard header block of a lammpstraj file
+        number_of_atoms = self._get_number_of_atoms()  # get the number of atoms
+        number_of_configurations = self._get_number_of_configurations(number_of_atoms)  # get number of configurations
+        sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
+        batch_size = optimize_batch_size(self.file_path, number_of_configurations)  # get the batch size
+        species_summary, box, property_groups = self._get_species_information(number_of_atoms)  # get information
 
-        """
-            Get the properties of each configuration
-        """
-        with open(self.project.trajectory_file) as f:
-
-            """
-                Get header files for analysis
-            """
-            head = [next(f).split() for _ in range(n_lines_header_block)]  # Get the first header
-            f.seek(0)  # Go back to the start of the file
-            number_of_atoms = int(head[3][0])  # Calculate the number of atoms
-
-            """
-                Fill data arrays with the first two configurations to get simulation properties
-            """
-            # Get first configuration
-            first_configuration = [next(f).split() for _ in range(number_of_atoms + n_lines_header_block)]
-
-            # Get the second configuration
-            second_configuration = [next(f).split() for _ in range(number_of_atoms + n_lines_header_block)]
-
-            """
-                Calculate time properties of the simulation. Specifically, how often the configurations were dumped
-                into the trajectory file. Very important for time calculations.
-            """
-            time_0 = float(first_configuration[1][0])  # Time in first configuration
-            time_1 = float(second_configuration[1][0])  # Time in second configuration
-            sample_rate = time_1 - time_0  # Chnage in time between the configurations
-
-        """
-            Calculate configuration and line properties of the simulation and determine the batch size
-        """
-        number_of_lines = line_counter(self.project.trajectory_file)  # get the number of lines in the file
-        number_of_configurations = int(number_of_lines / (number_of_atoms + n_lines_header_block))  # n of timesteps
-        batch_size = optimize_batch_size(self.project.trajectory_file, number_of_configurations)  # get the batch size
-
-        """
-            Get the position of the element keyword so that any format can be given. 
-        """
-        try:
-            # Look for element keyword in trajectory.
-            if "element" in first_configuration[8]:
-                element_index = first_configuration[8].index("element") - 2
-
-            # Look for type keyword if element is not present.
-            elif "type" in first_configuration[8]:
-                element_index = first_configuration[8].index('type') - 2
-
-            # Raise an error if no identifying keywords are found.
-            else:
-                raise NoElementInDump
-        except NoElementInDump:
-            print("Insufficient species or type identification available.")
-
-        """
-            Get the species properties of the elements in the trajectory
-        """
-        # Loop over atoms in first configuration.
-        for i in range(9, number_of_atoms + 9):
-
-            # Check if the species is already in the summary.
-            if first_configuration[i][element_index] not in species_summary:
-                species_summary[first_configuration[i][element_index]] = {}
-                species_summary[first_configuration[i][element_index]]['indices'] = []
-
-            # Update the index of the atom in the summary.
-            species_summary[first_configuration[i][element_index]]['indices'].append(i)
-
-        """
-            Get the available properties for analysis
-        """
-        header_line = first_configuration[8]  # the header line in the trajectory
-        column_dict_properties = self._get_column_properties(header_line, skip_words=2)  # get column properties, skip the two first words which are not in the columns (ITEM: ATOMS)
-        # Get the observable groups
-        self.project.property_groups = self._extract_properties(lammps_traj, column_dict_properties)
-
-        """
-            Get the box size from the first simulation cell
-        """
-        # TODO: Add this to the trajectory storing so that changing box sizes can be used
-        box = [(float(first_configuration[5][1]) - float(first_configuration[5][0])),
-               (float(first_configuration[6][1]) - float(first_configuration[6][0])),
-               (float(first_configuration[7][1]) - float(first_configuration[7][0]))]
-
-        """
-            Update the class properties with those calculated above. 
-        """
         if update_class:
             self.project.batch_size = batch_size
             self.project.dimensions = get_dimensionality(box)
@@ -173,8 +218,10 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             self.project.number_of_atoms = number_of_atoms
             self.project.number_of_configurations += number_of_configurations
             self.project.sample_rate = sample_rate
+            self.project.property_groups = property_groups
 
         else:
             self.project.batch_size = batch_size
             # return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
+        return self._build_architecture(species_summary, property_groups, number_of_atoms, number_of_configurations)

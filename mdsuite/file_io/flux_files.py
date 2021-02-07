@@ -33,17 +33,16 @@ class FluxFile(FileProcessor):
     header_lines : int
             Number of header lines in the file format (lammps = 9)
 
-    lammpstraj : str
+    file_path : str
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, lammpstraj=None):
+    def __init__(self, obj, header_lines=9, file_path=None):
         """
         Python class constructor
         """
 
-        super().__init__(obj, header_lines)  # fill the parent class
-        self.lammpstraj = lammpstraj  # lammps file to read from.
+        super().__init__(obj, header_lines, file_path)  # fill the parent class
         self.project.volume = None
         self.project.number_of_atoms = None
 
@@ -89,7 +88,7 @@ class FluxFile(FileProcessor):
                     skip_header = 1  # turn off the header skip
                     counter += len(batch_data)  # Update counter
 
-    def read_configurations(self, number_of_configurations, file_object, skip = False):
+    def read_configurations(self, number_of_configurations, file_object, skip=False):
         """
         Read in a number of configurations from a file file
 
