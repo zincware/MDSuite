@@ -426,7 +426,8 @@ class Experiment:
                     'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
                     'radial_distribution_function': {},
                     'kirkwood_buff_integral': {},
-                    'structure_factor': {}}
+                    'structure_factor': {},
+                    'viscosity':{}}
 
             yaml.dump(data, f)
 
