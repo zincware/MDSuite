@@ -345,12 +345,12 @@ class Experiment:
         Build a new database
         """
 
-        architecture = trajectory_reader.process_trajectory_file()          # get properties of the trajectory file
-        database.initialize_database(architecture)                          # initialize the database
-        db_object = database.open()                                         # Open a database object
+        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        database.initialize_database(architecture)  # initialize the database
+        db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
-        counter = 0                                                         # instantiate counter
-        structure = trajectory_reader.build_file_structure()                # build the file structure
+        counter = 0  # instantiate counter
+        structure = trajectory_reader.build_file_structure()  # build the file structure
 
         f_object = open(trajectory_file, 'r')  # open the trajectory file
         for _ in tqdm(range(batch_range)):
@@ -364,7 +364,7 @@ class Experiment:
 
         database.close(db_object)  # Close the object
         f_object.close()
-        
+
         # Build database for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
             for key in self.results:
@@ -374,13 +374,13 @@ class Experiment:
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
             data = {'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
                                                'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
-            'ionic_conductivity': {},
-            'thermal_conductivity': {},
-            'coordination_numbers': {'Coordination_Numbers': {}},
-            'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
-            'radial_distribution_function': {},
-            'kirkwood_buff_integral': {},
-            'structure_factor': {}}
+                    'ionic_conductivity': {},
+                    'thermal_conductivity': {},
+                    'coordination_numbers': {'Coordination_Numbers': {}},
+                    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
+                    'radial_distribution_function': {},
+                    'kirkwood_buff_integral': {},
+                    'structure_factor': {}}
             yaml.dump(data, f)
 
         self.save_class()  # Update the class state

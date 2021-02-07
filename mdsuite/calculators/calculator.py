@@ -238,6 +238,22 @@ class Calculator(metaclass=abc.ABCMeta):
         """
 
         def func(x, m, a):
+            """
+            Standard linear function for fitting.
+
+            Parameters
+            ----------
+            x : list/np.array
+                    x axis data for the fit
+            m : float
+                    gradient of the line
+            a : float
+                    scalar offset, also the y-intercept for those who did not get much maths in school.
+
+            Returns
+            -------
+
+            """
             return m * x + a
 
         # get the logarithmic dataset
