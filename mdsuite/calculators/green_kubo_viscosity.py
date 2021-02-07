@@ -86,7 +86,7 @@ class GreenKuboIonicConductivity(Calculator):
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
         self.correlation_time = 1  # correlation time of the system current.
-
+        
     def _autocorrelation_time(self):
         """
         calculate the current autocorrelation time for correct sampling
@@ -105,65 +105,53 @@ class GreenKuboIonicConductivity(Calculator):
         Returns
         -------
         system_current : np.array
-                ionic current of the system as a vector of shape (n_confs, 3)
+                thermal current of the system as a vector of shape (n_confs, 3)
         """
 
-        species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
+        # velocity_matrix = self._load_batch(i, "Velocities")  # Load the velocity matrix
+        stress_tensor = self._load_batch(i, "Stress", sym_matrix=True)
 
-        system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
-        # Calculate the total system current
-        for i in range(len(velocity_matrix)):
-            system_current += np.array(np.sum(velocity_matrix[i][:, 0:], axis=0)) * species_charges[i]
+        # we take the xy, xz, and yz components (negative)
+        phi_x = -stress_tensor[:, :, 3]
+        phi_y = -stress_tensor[:, :, 4]
+        phi_z = -stress_tensor[:, :, 5]
+
+        phi = np.dstack([phi_x, phi_y, phi_z])
+
+        phi_sum_atoms = phi.sum(axis=0)
+
+        system_current = phi_sum_atoms  # returns the same values as in the compute flux of lammps
 
         return system_current
 
-    def _calculate_ionic_conductivity(self):
+    def _calculate_viscosity(self):
         """
-        Calculate the ionic conductivity in the system
+        Calculate the viscosity of the system
         """
 
-        # Calculate the prefactor
-        numerator = (elementary_charge ** 2) * (self.parent.units['length'] ** 2)
-        denominator = 3 * boltzmann_constant * self.parent.temperature * self.parent.volume * \
-                      (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
+        # prepare the prefactor for the integral
+        # Since lammps gives the stress in pressure*volume, then we need to add to the denominator volume**2,
+        # this is why the numerator becomes 1, and volume appears in the denominator.
+        numerator = 1  # self.parent.volume
+        denominator =  3 * (self.data_range - 1) * self.parent.temperature * self.parent.units[
+            'boltzman'] * self.parent.volume  # we use boltzman constant in the units provided.
+
         prefactor = numerator / denominator
 
-        sigma = []                                          # define an empty sigma list
-        parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
+        sigma, parsed_autocorrelation = self.convolution_operation(type_batches='Parallel')
 
-        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):                 # loop over batches
-            batch = self._calculate_system_current(velocity_matrix=self._load_batch(i))  # get the ionic current batch
-            for start_index in range(int(self.batch_loop)):                                   # loop over ensembles in batch
-                start = int(start_index + self.correlation_time)         # get start index
-                stop = int(start + self.data_range)                                      # get stop index
-                system_current = np.array(batch)[start:stop]                             # load data from batch array
+        # convert to SI units.
+        prefactor_units = self.parent.units['pressure'] ** 2 * self.parent.units['length'] ** 3 * self.parent.units[
+            'time'] / self.parent.units['energy']
+        sigma = prefactor * prefactor_units * np.array(sigma)
 
-                jacf = np.zeros(2 * self.data_range - 1)                                 # Define the empty jacf array
+        self.parent.viscosity["Green-Kubo"] = np.mean(sigma)
+        self._update_properties_file(data=str(np.mean(sigma)))
 
-                # Calculate the current autocorrelation
-                jacf += (signal.correlate(system_current[:, 0],
-                                          system_current[:, 0],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 1],
-                                          system_current[:, 1],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 2],
-                                          system_current[:, 2],
-                                          mode='full', method='auto'))
-
-                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
-                parsed_autocorrelation += jacf      # update parsed function
-                sigma.append(prefactor * np.trapz(jacf, x=self.time))  # Update the conductivity array
-
-        # update the experiment class
-        self.parent.ionic_conductivity["Green-Kubo"] = [np.mean(sigma) / 100, (np.std(sigma)/np.sqrt(len(sigma)))/100]
-        self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma)/np.sqrt(len(sigma)))/100)])
-
-        plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
+        plt.plot(self.time, parsed_autocorrelation)  # Add a plot
 
         parsed_autocorrelation /= max(parsed_autocorrelation)  # Get the normalized autocorrelation plot data
 
-        # save the data if necessary
         if self.save:
             self._save_data(f'{self.analysis_name}', [self.time, parsed_autocorrelation])
 

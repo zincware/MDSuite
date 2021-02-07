@@ -75,7 +75,7 @@ class GreenKuboViscosityFlux:
 
         # prepare the prefactor for the integral
         numerator = self.parent.volume
-        denominator = (self.data_range - 1) * self.parent.temperature * self.parent.units['boltzman']  # we use boltzman constant in the units provided.
+        denominator = 3 * (self.data_range - 1) * self.parent.temperature * self.parent.units['boltzman']  # we use boltzman constant in the units provided.
 
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
