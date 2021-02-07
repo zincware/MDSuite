@@ -33,4 +33,5 @@ setuptools.setup(
                       'gputil',
                       'diagrams',
                       'pubchempy',
-                      'PyYAML'])
+                      'PyYAML',
+                      'sphinxcontrib.bibtex'])
