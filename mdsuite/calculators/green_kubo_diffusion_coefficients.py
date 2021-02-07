@@ -99,7 +99,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 100  # correlation time of the velocities.
+        self.correlation_time = 500  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)

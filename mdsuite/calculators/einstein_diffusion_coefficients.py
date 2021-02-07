@@ -121,7 +121,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.correlation_time = 100  # correlation time TODO: do not hard code this.
+        self.correlation_time = 500  # correlation time TODO: do not hard code this.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -192,7 +192,6 @@ class EinsteinDiffusionCoefficients(Calculator):
             return [self.time, msd_array]
         else:
             result = self._fit_einstein_curve([self.time, msd_array])
-            print(result)
             self._update_properties_file(item='Singular', sub_item=item, data=result)
 
     def _distinct_diffusion_coefficients(self):
