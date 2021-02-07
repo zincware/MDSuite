@@ -14,9 +14,10 @@ from mdsuite.calculators.coordination_number_calculation import CoordinationNumb
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
 from mdsuite.calculators.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
-from mdsuite.calculators.flux_analyses import GreenKuboThermalConductivityFlux
+from mdsuite.calculators.flux_thermal import GreenKuboThermalConductivityFlux
 from mdsuite.calculators.structure_factor import StructureFactor
 from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
+from mdsuite.calculators.flux_viscosity import GreenKuboViscosityFlux
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
@@ -31,4 +32,5 @@ dict_classes_computations = {
     'GreenKuboThermalConductivityFlux': GreenKuboThermalConductivityFlux,
     'StructureFactor': StructureFactor,
     'EinsteinHelfandThermalConductivity': EinsteinHelfandThermalConductivity,
+    'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
 }

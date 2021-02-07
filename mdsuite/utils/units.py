@@ -21,14 +21,14 @@ golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 def units_real():
     units = {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / 6.02214076e23,
              'NkTV2p': 68568.415,
-             'boltzman': 0.0019872067, 'temperature':1}
+             'boltzman': 0.0019872067, 'temperature':1, 'pressure':101325.0}
     return units
 
 
 def units_metal():
     units = {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
              'NkTV2p': 1.6021765e6,
-             'boltzman': 8.617343e-5,'temperature':1}
+             'boltzman': 8.617343e-5,'temperature':1, 'pressure':100000}
     return units
 
 
@@ -36,7 +36,7 @@ def units_SI():
     units = {'time': 1, 'length': 1, 'energy': 1,
              'boltzman': 1.380649e-23,
              'avogadro': 6.02214076e23,
-             'elementary_charge': 1.602176634e-19,'temperature':1}
+             'elementary_charge': 1.602176634e-19,'temperature':1, 'pressure':1}
     return units
 
 
