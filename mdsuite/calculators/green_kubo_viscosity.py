@@ -24,7 +24,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboIonicConductivity(Calculator):
+class GreenKuboViscosity(Calculator):
     """ Class for the Green-Kubo ionic conductivity implementation
 
     Attributes
