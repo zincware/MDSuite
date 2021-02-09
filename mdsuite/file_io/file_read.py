@@ -48,22 +48,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def build_database_skeleton(self):
-        """
-        Build skeleton of the hdf5 database.py
-
-        This method is dependent on the type of data (atoms, flux, etc.), therefore it should be implemented in a child
-        class.
-
-        Gathers all of the properties of the system using the relevant functions. Following the gathering
-        of the system properties, this function will read through the first configuration of the dataset, and
-        generate the necessary database structure to allow for the following generation to take place. This will
-        include the separation of species, atoms, and properties. For a full description of the data structure,
-        look into the documentation.
-        """
-        return
-
-    @abc.abstractmethod
     def build_file_structure(self):
         """
         Build a skeleton of the file so that the database class can process it correctly.
