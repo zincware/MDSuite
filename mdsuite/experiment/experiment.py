@@ -474,31 +474,6 @@ class Experiment:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
-    def collect_memory_information(self):
-        """
-        Get information about dataset memory requirements
-
-        This method will simply get the size of all the datasets in the database such that efficient memory management
-        can be performed during analysis.
-        """
-
-        with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as db:
-            for item in self.species:  # Loop over the species keys
-                self.memory_requirements[item] = {}  # construct a new dict entry
-                for group, columns in self.property_groups.items():  # Loop over property groups
-                    if len(columns) == 1:  # if it a scalar quantity
-                        self.memory_requirements[item][group] = db[item][group].nbytes  # Update the dictionary.
-                    else:
-                        memory = 0  # Dummy variable for memory
-                        for dataset in db[item][group]:  # Loop over the datasets in the group
-                            memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                        self.memory_requirements[item][group] = memory  # Update the dictionary.
-                # for group in db[item].keys():
-                #     memory = 0  # Dummy variable for memory
-                #     for dataset in db[item][group]:  # Loop over the datasets in the group
-                #         memory += db[item][group][dataset].nbytes  # Sum over the memory for each dataset
-                #     self.memory_requirements[item][group] = memory  # Update the dictionary.
-
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
         """
         Load a desired property matrix.
