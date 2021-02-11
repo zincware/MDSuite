@@ -9,6 +9,8 @@ The methods in class can then be called by the Experiment.einstein_diffusion_coe
 calculations performed.
 """
 
+import matplotlib
+matplotlib.use('Agg')
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
@@ -162,7 +164,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Construct the MSD function
         for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-            batch = self._load_batch(i, [item])  # load a batch of data
+            batch = self._load_batch(i, item=[item])  # load a batch of data
             if len(batch[0]) < self.data_range:
                 break
             for start_index in range(int(self.batch_loop)):
