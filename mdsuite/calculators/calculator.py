@@ -101,12 +101,17 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError  # Implemented in the child class
 
-    def _collect_machine_properties(self):
+    def _collect_machine_properties(self, scaling_factor: int = 1):
         """
         Collect properties of machine being used.
 
         This method will collect the properties of the machine being used and parse them to the relevant analysis in
         order to optimize the property computation.
+
+        Parameters
+        ----------
+        scaling_factor : int
+                Amount by which an analysis will expand the dataset.
         """
 
         self.machine_properties = get_machine_properties()  # load the machine properties
@@ -116,8 +121,8 @@ class Calculator(metaclass=abc.ABCMeta):
                 memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
 
         # Get the single frame memory usage in bytes
-        serial_memory_usage = max(memory_usage)
-        parallel_memory_usage = sum(memory_usage)
+        serial_memory_usage = scaling_factor*max(memory_usage)
+        parallel_memory_usage = scaling_factor*sum(memory_usage)
 
         # Update the batch_size attribute
         max_batch_size_serial = int(np.floor(0.1*self.machine_properties['memory'] / serial_memory_usage))
