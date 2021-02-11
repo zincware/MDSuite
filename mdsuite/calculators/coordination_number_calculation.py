@@ -139,7 +139,7 @@ class CoordinationNumbers(Calculator):
         """
 
         self.integral_data = []  # empty the integral data array for analysis
-        for i in range(1, len(self.radii)):  # Loop over bins in the rdf
+        for i in range(1, len(self.radii)):  # Loop over number_of_bins in the rdf
             # Integrate the function up to the bin.
             self.integral_data.append(np.trapz((np.array(self.radii[1:i]) ** 2) * self.rdf[1:i], x=self.radii[1:i]))
 

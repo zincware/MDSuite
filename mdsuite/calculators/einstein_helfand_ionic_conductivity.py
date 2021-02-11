@@ -8,6 +8,9 @@ Experiment.einstein_helfand_ionic_conductivity method. The methods in class can 
 Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
 
+import matplotlib
+matplotlib.use('Agg')
+
 import os
 import warnings
 
@@ -138,7 +141,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_moment : tf.tensor
                 Return the dipole moment for the batch
         """
-        data = self._load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
+        data = self._load_batch(i)  # Load the velocity matrix
         counter = 0  # set a counter variable
         for tensor in data:  # Loop over the species positions
             data[counter] = tf.math.reduce_sum(tensor, axis=0)  # Sum over the positions of the atoms
@@ -170,9 +173,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         prefactor = numerator / denominator
 
         dipole_msd_array = self.msd_operation_EH(type_batches='Parallel')
-
         dipole_msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
-
         dipole_msd_array *= prefactor
 
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)

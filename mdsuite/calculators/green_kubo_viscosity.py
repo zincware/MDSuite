@@ -105,7 +105,7 @@ class GreenKuboViscosity(Calculator):
         Returns
         -------
         system_current : np.array
-                thermal current of the system as a vector of shape (n_confs, 3)
+                thermal current of the system as a vector of shape (number_of_configurations, 3)
         """
 
         # velocity_matrix = self._load_batch(i, "Velocities")  # Load the velocity matrix

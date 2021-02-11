@@ -107,10 +107,10 @@ class GreenKuboIonicConductivity(Calculator):
         Returns
         -------
         system_current : np.array
-                ionic current of the system as a vector of shape (n_confs, 3)
+                ionic current of the system as a vector of shape (number_of_configurations, 3)
         """
 
-        velocity_matrix = self._load_batch(batch, property_to_load='Velocity')
+        velocity_matrix = self._load_batch(batch)
         species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
 
         system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
