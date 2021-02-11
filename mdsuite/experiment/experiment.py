@@ -18,9 +18,6 @@ import numpy as np
 import pubchempy as pcp
 import tensorflow as tf
 import yaml
-from diagrams import Diagram, Cluster
-from diagrams.aws.compute import ECS
-from diagrams.aws.database import RDS
 from tqdm import tqdm
 
 from mdsuite import data as static_data

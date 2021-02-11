@@ -8,6 +8,9 @@ Experiment.einstein_helfand_ionic_conductivity method. The methods in class can 
 Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
 
+import matplotlib
+matplotlib.use('Agg')
+
 import os
 import warnings
 

@@ -12,6 +12,8 @@ calculations performed.
 """
 from abc import ABC
 
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
@@ -404,6 +406,7 @@ class RadialDistributionFunction(Calculator, ABC):
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
             plt.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))
             plt.title(names)
+            plt.savefig(f'{names}.eps')
             if self.save:  # get the species names
                 self._save_data(f'{names}_{self.analysis_name}',
                                 [np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names)])
