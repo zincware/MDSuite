@@ -328,3 +328,37 @@ def round_down(a, b):
         a -= 1
 
     return a
+<<<<<<< HEAD
+=======
+
+
+def split_array(data: list, condition):
+    """
+    split an array by a condition
+    Parameters
+    ----------
+    data : list
+            data to split
+    condition : unsure
+            condition on which to split by
+
+    Returns
+    -------
+    split_array : list
+            A list of split up arrays.
+
+    Examples
+    --------
+    >>> a = np.array([1, 2, 3, 10, 20, 30])
+    >>> split_array(a, a < 10)
+    >>> [np.array([1, 2, 3]), np.array([10, 20, 30])]
+
+    """
+
+    initial_split = [data[condition], data[~condition]]  # attempt to split the array
+
+    if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw data
+        return [data[condition]]
+    else:                           # else return the whole array
+        return initial_split
+>>>>>>> 2451921298d258b92671e21320127e24916af511
