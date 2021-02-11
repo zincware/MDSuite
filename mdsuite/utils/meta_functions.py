@@ -361,4 +361,3 @@ def split_array(data: list, condition):
         return [data[condition]]
     else:                           # else return the whole array
         return initial_split
->>>>>>> 2451921298d258b92671e21320127e24916af511
