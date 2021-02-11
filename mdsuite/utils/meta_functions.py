@@ -66,12 +66,12 @@ def get_machine_properties():
     machine_properties['memory'] = available_memory
     machine_properties['gpu'] = {}
 
-    try:
-        total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
-        for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id] = gpu.name
-    except NoGPUInSystem:
-        raise NoGPUInSystem
+    #try:
+    #    total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
+    #    for gpu in total_gpu_devices:
+    #        machine_properties['gpu'][gpu.id] = gpu.name
+    #except NoGPUInSystem:
+    #    raise NoGPUInSystem
 
     return machine_properties
 
