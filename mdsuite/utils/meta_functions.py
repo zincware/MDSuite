@@ -66,12 +66,12 @@ def get_machine_properties():
     machine_properties['memory'] = available_memory
     machine_properties['gpu'] = {}
 
-    try:
-        total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
-        for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id] = gpu.name
-    except NoGPUInSystem:
-        raise NoGPUInSystem
+    #try:
+    #    total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
+    #    for gpu in total_gpu_devices:
+    #        machine_properties['gpu'][gpu.id] = gpu.name
+    #except NoGPUInSystem:
+    #    raise NoGPUInSystem
 
     return machine_properties
 
@@ -328,6 +328,8 @@ def round_down(a, b):
         a -= 1
 
     return a
+<<<<<<< HEAD
+=======
 
 
 def split_array(data: list, condition):
@@ -359,3 +361,4 @@ def split_array(data: list, condition):
         return [data[condition]]
     else:                           # else return the whole array
         return initial_split
+>>>>>>> 2451921298d258b92671e21320127e24916af511
