@@ -19,6 +19,7 @@ from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.calculators.structure_factor import StructureFactor
+from mdsuite.calculators.angular_distribution_function import AngularDistributionFunction
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
@@ -35,4 +36,5 @@ dict_classes_computations = {
     'EinsteinHelfandThermalConductivity': EinsteinHelfandThermalConductivity,
     'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
     'GreenKuboViscosity': GreenKuboViscosity,
+    'AngularDistributionFunction': AngularDistributionFunction,
 }
