@@ -138,7 +138,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_moment : tf.tensor
                 Return the dipole moment for the batch
         """
-        data = self._load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
+        data = self._load_batch(i)  # Load the velocity matrix
         counter = 0  # set a counter variable
         for tensor in data:  # Loop over the species positions
             data[counter] = tf.math.reduce_sum(tensor, axis=0)  # Sum over the positions of the atoms
