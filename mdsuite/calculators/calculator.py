@@ -152,7 +152,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
-    def _load_batch(self, batch_number, property_to_load, item=None, scalar=False, sym_matrix=False):
+    def _load_batch(self, batch_number, loaded_property=None, item=None, scalar=False, sym_matrix=False):
         """
         Load a batch of data
 
@@ -171,7 +171,10 @@ class Calculator(metaclass=abc.ABCMeta):
         start = int(batch_number * self.batch_size[self.batch_type])
         stop = int(start + self.batch_size[self.batch_type])
 
-        return self.parent.load_matrix(property_to_load, item, select_slice=np.s_[:, start:stop],
+        if loaded_property is None:
+            loaded_property = self.loaded_property
+
+        return self.parent.load_matrix(loaded_property, item, select_slice=np.s_[:, start:stop],
                                        tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix)
 
     def _save_data(self, title, data):
