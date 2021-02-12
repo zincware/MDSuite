@@ -66,11 +66,11 @@ def get_machine_properties():
     machine_properties['memory'] = available_memory
     machine_properties['gpu'] = {}
 
-    #try:
+    # try:
     #    total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
     #    for gpu in total_gpu_devices:
     #        machine_properties['gpu'][gpu.id] = gpu.name
-    #except NoGPUInSystem:
+    # except NoGPUInSystem:
     #    raise NoGPUInSystem
 
     return machine_properties
@@ -123,20 +123,18 @@ def optimize_batch_size(filepath, number_of_configurations):
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.1 * computer_statistics['memory']  # We take 20% of the available memory
+    database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
     initial_batch_number = int(database_memory / 5*memory_per_configuration)  # trivial batch allocation
 
     # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
     if 10 * file_size < database_memory:
         return int(number_of_configurations)
 
-    # Set the batch size to 5000 at most. Prevents unwanted problems from arising for large computers.
-    elif initial_batch_number > 5000:
+    # Set max batch size to 5000
+    elif initial_batch_size > 5000:
         return 5000
 
     else:
-        #nearest_batch_amount = np.floor(number_of_configurations / initial_batch_number)
-
         return initial_batch_number
 
 
@@ -357,5 +355,5 @@ def split_array(data: list, condition):
 
     if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw data
         return [data[condition]]
-    else:                           # else return the whole array
+    else:  # else return the whole array
         return initial_split
