@@ -20,6 +20,10 @@ from tqdm import tqdm
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite.experiment.experiment import Experiment
+
 
 class Calculator(metaclass=abc.ABCMeta):
     """
@@ -54,7 +58,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
+    def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
                  parallel=False):
         """
 
