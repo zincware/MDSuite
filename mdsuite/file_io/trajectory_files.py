@@ -65,14 +65,14 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         return [next(f).split() for _ in range(self.header_lines)]  # Get the first header
 
-    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = True):
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, line_length: int):
         """
         Read in a number of configurations from a file
 
         Parameters
         ----------
-        skip : bool
-                If true, the header lines will be skipped, if not, the returned data will include the headers.
+        line_length : int
+                Length of each line of data to be read in. Necessary for instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
         file_object : obj
@@ -84,20 +84,20 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 Data read in from the file object.
         """
 
-        configurations_data = []  # Define the empty data array
+        # Define the empty data array
+        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length), dtype='<U11')
 
+        counter = 0
         for i in range(number_of_configurations):
 
-            if skip:
-                # Skip header lines.
-                for j in range(self.header_lines):
-                    file_object.readline()
+            for j in range(self.header_lines):
+                file_object.readline()
 
             # Read the data into the arrays.
             for k in range(self.project.number_of_atoms):
-                configurations_data.append(file_object.readline().split())
-
-        return np.array(configurations_data)
+                configurations_data[counter] = np.array(list(file_object.readline().split(' ')))
+                counter += 1  # update the counter
+        return configurations_data
 
     def build_file_structure(self):
         """
