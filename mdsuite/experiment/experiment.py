@@ -10,7 +10,7 @@ import json
 import os
 import pickle
 import sys
-from importlib.resources import open_text
+#from importlib.resources import open_text
 from pathlib import Path
 
 import h5py as hf
@@ -448,7 +448,7 @@ class Experiment:
         will be used in conductivity calculations.
 
         """
-        with open_text(static_data, 'PubChemElements_all.json') as json_file:
+        with importlib.resources.open_text(static_data, 'PubChemElements_all.json') as json_file:
             pse = json.loads(json_file.read())
 
         # Try to get the species data from the Periodic System of Elements file
