@@ -13,7 +13,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
 
 from mdsuite import data as static_data
-from importlib.resources import open_text
+#from importlib.resources import open_text
 
 
 class StructureFactor(Calculator):
@@ -93,7 +93,7 @@ class StructureFactor(Calculator):
 
         self.rho = self.obj.number_of_atoms / (self.obj.box_array[0] *
                                                self.obj.box_array[1] * self.obj.box_array[2])  # particle density
-        with open_text(static_data, 'form_fac_coeffs.csv') as file:
+        with importlib.resources.open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
 
     def _get_rdf_data(self):
