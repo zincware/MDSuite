@@ -60,18 +60,17 @@ def get_machine_properties():
     machine_properties = {}
     available_memory = psutil.virtual_memory().available  # RAM available
     total_cpu_cores = psutil.cpu_count(logical=True)  # CPU cores available
-
     # Update the machine properties dictionary
     machine_properties['cpu'] = total_cpu_cores
     machine_properties['memory'] = available_memory
     machine_properties['gpu'] = {}
 
-    # try:
-    #    total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
-    #    for gpu in total_gpu_devices:
-    #        machine_properties['gpu'][gpu.id] = gpu.name
-    # except NoGPUInSystem:
-    #    raise NoGPUInSystem
+    try:
+        total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
+        for gpu in total_gpu_devices:
+            machine_properties['gpu'][gpu.id] = gpu.name
+    except NoGPUInSystem:
+        raise NoGPUInSystem
 
     return machine_properties
 
@@ -123,17 +122,12 @@ def optimize_batch_size(filepath, number_of_configurations):
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.2 * computer_statistics['memory']  # We take 20% of the available memory
-    initial_batch_number = int(database_memory / 5*memory_per_configuration)  # trivial batch allocation
+    database_memory = 0.5 * computer_statistics['memory']  # We take 50% of the available memory
+    initial_batch_number = int(database_memory / (5*memory_per_configuration))  # trivial batch allocation
 
     # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
     if 10 * file_size < database_memory:
         return int(number_of_configurations)
-
-    # Set max batch size to 5000
-    elif initial_batch_number > 5000:
-        return 5000
-
     else:
         return initial_batch_number
 
