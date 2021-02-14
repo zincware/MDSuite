@@ -131,7 +131,7 @@ def optimize_batch_size(filepath, number_of_configurations):
         return int(number_of_configurations)
 
     # Set max batch size to 5000
-    elif initial_batch_size > 5000:
+    elif initial_batch_number > 5000:
         return 5000
 
     else:
