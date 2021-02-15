@@ -70,7 +70,7 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
         yield get_rij_mat(positions, triu_mask, cell)
 
 
-@tf.function
+# @tf.function
 def get_triplets(full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200) -> tf.Tensor:
     """Compute the triple indices within a cutoff
 
