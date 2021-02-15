@@ -79,12 +79,14 @@ class Database:
 
     @staticmethod
     def add_data(data: np.array, structure: dict, database: hf.File,
-                 start_index: int, batch_size: int, tensor: bool = False):
+                 start_index: int, batch_size: int, tensor: bool = False, system_tensor: bool = False):
         """
         Add a set of data to the database.
 
         Parameters
         ----------
+        system_tensor : bool
+                If true, no atom information is looked for when saving
         tensor : bool
                 If true, this will skip the type enforcement
         batch_size : int
@@ -106,17 +108,14 @@ class Database:
         # Loop over items
         stop_index = start_index + batch_size  # get the stop index
         for item in structure:
-            indices = structure[item]['indices']
-            columns = np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]
-            length = structure[item]['length']
-            column_length = len(structure[item]['columns'])
             if tensor:
                 database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
+            elif system_tensor:
+                database[item][start_index:stop_index, :] = data[:, 0:3]
             else:
-                database[item][:, start_index:stop_index, :] = data[indices][columns].astype(float).reshape((length,
-                                                                                                        batch_size,
-                                                                                                        column_length),
-                                                                                                            order='F')
+                database[item][:, start_index:stop_index, :] = data[structure[item]['indices']][
+                    np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                    (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
 
     def _resize_dataset(self, structure: dict):
         """
@@ -249,7 +248,8 @@ class Database:
 
             # get the correct maximum shape for the dataset -- changes if a system property or an atomic property
             if len(dataset_information[:-1]) == 1:
-                max_shape = (None,)
+                vector_length = dataset_information[-1]
+                max_shape = (None, vector_length)
             else:
                 max_shape = list(dataset_information)
                 max_shape[1] = None
