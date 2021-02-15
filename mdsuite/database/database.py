@@ -106,17 +106,12 @@ class Database:
         # Loop over items
         stop_index = start_index + batch_size  # get the stop index
         for item in structure:
-            indices = structure[item]['indices']
-            columns = np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]
-            length = structure[item]['length']
-            column_length = len(structure[item]['columns'])
             if tensor:
                 database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
             else:
-                database[item][:, start_index:stop_index, :] = data[indices][columns].astype(float).reshape((length,
-                                                                                                        batch_size,
-                                                                                                        column_length),
-                                                                                                            order='F')
+                database[item][:, start_index:stop_index, :] = data[structure[item]['indices']][
+                    np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                    (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
 
     def _resize_dataset(self, structure: dict):
         """

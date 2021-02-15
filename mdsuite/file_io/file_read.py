@@ -56,14 +56,14 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = True):
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, line_length: int):
         """
         Read in a number of configurations from a file
 
         Parameters
         ----------
-        skip : bool
-                If true, the header lines will be skipped, if not, the returned data will include the headers.
+        line_length : int
+             Length of each line of data to be read in. Necessary for instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
         file_object : obj
