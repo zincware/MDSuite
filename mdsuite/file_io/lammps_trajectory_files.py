@@ -148,6 +148,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         # Loop over atoms in first configuration.
         for i in range(number_of_atoms):
             line = self.f_object.readline().split()
+            line_length = len(line)
             if line[element_index] not in species_summary:
                 species_summary[line[element_index]] = {}
                 species_summary[line[element_index]]['indices'] = []
@@ -155,7 +156,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             # Update the index of the atom in the summary.
             species_summary[line[element_index]]['indices'].append(i + self.header_lines)
 
-        return species_summary, box, property_groups
+        return species_summary, box, property_groups, line_length
 
     @staticmethod
     def _build_architecture(species_summary: dict, property_groups: dict, number_of_atoms: int,
@@ -211,7 +212,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         number_of_configurations = self._get_number_of_configurations(number_of_atoms)  # get number of configurations
         sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)  # get the batch size
-        species_summary, box, property_groups = self._get_species_information(number_of_atoms)  # get information
+        species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
 
         if update_class:
             self.project.batch_size = batch_size
@@ -228,4 +229,5 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             self.project.batch_size = batch_size
             # return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
-        return self._build_architecture(species_summary, property_groups, number_of_atoms, number_of_configurations)
+        return self._build_architecture(species_summary, property_groups, number_of_atoms, number_of_configurations), \
+               line_length

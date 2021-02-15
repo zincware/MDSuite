@@ -10,7 +10,7 @@ import json
 import os
 import pickle
 import sys
-from importlib.resources import open_text
+#from importlib.resources import open_text
 from pathlib import Path
 
 import h5py as hf
@@ -388,7 +388,7 @@ class Experiment:
         Build a new database
         """
 
-        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        architecture, line_length = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
         database.initialize_database(architecture)  # initialize the database
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
@@ -397,8 +397,7 @@ class Experiment:
 
         f_object = open(trajectory_file, 'r')  # open the trajectory file
         for _ in tqdm(range(batch_range)):
-            data = trajectory_reader.read_configurations(self.batch_size, f_object)
-            database.add_data(data=data,
+            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
                               structure=structure,
                               database=db_object,
                               start_index=counter,
@@ -449,7 +448,7 @@ class Experiment:
         will be used in conductivity calculations.
 
         """
-        with open_text(static_data, 'PubChemElements_all.json') as json_file:
+        with importlib.resources.open_text(static_data, 'PubChemElements_all.json') as json_file:
             pse = json.loads(json_file.read())
 
         # Try to get the species data from the Periodic System of Elements file
