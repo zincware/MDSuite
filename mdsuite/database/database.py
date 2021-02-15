@@ -79,12 +79,14 @@ class Database:
 
     @staticmethod
     def add_data(data: np.array, structure: dict, database: hf.File,
-                 start_index: int, batch_size: int, tensor: bool = False):
+                 start_index: int, batch_size: int, tensor: bool = False, system_tensor: bool = False):
         """
         Add a set of data to the database.
 
         Parameters
         ----------
+        system_tensor : bool
+                If true, no atom information is looked for when saving
         tensor : bool
                 If true, this will skip the type enforcement
         batch_size : int
@@ -108,6 +110,8 @@ class Database:
         for item in structure:
             if tensor:
                 database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
+            elif system_tensor:
+                database[item][start_index:stop_index, :] = data[:, 0:3]
             else:
                 database[item][:, start_index:stop_index, :] = data[structure[item]['indices']][
                     np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
@@ -244,7 +248,8 @@ class Database:
 
             # get the correct maximum shape for the dataset -- changes if a system property or an atomic property
             if len(dataset_information[:-1]) == 1:
-                max_shape = (None,)
+                vector_length = dataset_information[-1]
+                max_shape = (None, vector_length)
             else:
                 max_shape = list(dataset_information)
                 max_shape[1] = None

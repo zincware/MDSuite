@@ -135,6 +135,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
 
+
     def _autocorrelation_time(self):
         """
         Calculate positions autocorrelation time
