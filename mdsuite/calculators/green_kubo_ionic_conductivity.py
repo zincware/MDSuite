@@ -9,16 +9,17 @@ calculations performed.
 """
 
 import matplotlib.pyplot as plt
-from scipy import signal
+import os
 import numpy as np
 import warnings
 
 # Import user packages
 from tqdm import tqdm
+import h5py as hf
 
 # Import MDSuite modules
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-
+from mdsuite.database.database import Database
 from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -82,12 +83,21 @@ class GreenKuboIonicConductivity(Calculator):
         # update parent class
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
 
-        self.loaded_property = 'Velocities'         # property to be loaded for the analysis
-        self.batch_loop = None                      # Number of ensembles in each batch
-        self.tensor_choice = False                  # Load data as a tensor
+        self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
+        self.batch_loop = None  # Number of ensembles in each batch
+        self.tensor_choice = False  # Load data as a tensor
         self.database_group = 'ionic_conductivity'  # Which database group to save the data in
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1                   # correlation time of the system current.
+        self.correlation_time = 1  # correlation time of the system current.
+
+        # Check for unwrapped coordinates and unwrap if not stored already.
+        with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
+            # Unwrap the positions if they need to be unwrapped
+            if self.loaded_property not in database:
+                print("Calculating the ionic current")
+                self._calculate_system_current()
+                print("Current calculation is finished and stored in the database, proceeding with analysis")
+
 
     def _autocorrelation_time(self):
         """
@@ -95,30 +105,67 @@ class GreenKuboIonicConductivity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self, batch):
+    def _calculate_system_current(self):
         """
         Calculate the ionic current of the system
 
-        Parameters
-        ----------
-        velocity_matrix : np.array
-                tensor of system velocities for use in the current calculation
-
         Returns
         -------
-        system_current : np.array
-                ionic current of the system as a vector of shape (number_of_configurations, 3)
+        Updates the simulation database with the ionic current property
         """
 
-        velocity_matrix = self._load_batch(batch)
-        species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]  # build charge array
+        # collect machine properties and determine batch size
+        self._collect_machine_properties(group_property='Velocities')
+        n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
+        remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
 
-        system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
-        # Calculate the total system current
-        for i in range(len(velocity_matrix)):
-            system_current += np.array(np.sum(velocity_matrix[i][:, 0:], axis=0)) * species_charges[i]
+        # add a dataset in the database and prepare the structure
+        database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
+        db_object = database.open()  # open a database
+        path = os.path.join('Ionic_Current', 'Ionic_Current')  # name of the new database
+        dataset_structure = {path: (self.parent.number_of_configurations, 3)}
+        database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
+        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
-        return system_current
+        # process the batches
+        for i in tqdm(range(int(n_batches)), ncols=70):
+            velocity_matrix = self._load_batch(i, loaded_property='Velocities')  # load a batch of data
+            # build charge array
+            species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
+
+            system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
+            # Calculate the total system current
+            for j in range(len(velocity_matrix)):
+                system_current += np.array(np.sum(velocity_matrix[j][:, 0:], axis=0)) * species_charges[j]
+
+            database.add_data(data=system_current,
+                              structure=data_structure,
+                              database=db_object,
+                              start_index=i,
+                              batch_size=self.batch_size['Parallel'],
+                              system_tensor=True)
+
+        # fetch remainder if worth while
+        if remainder > 0:
+            start = self.parent.number_of_configurations - remainder
+            velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
+                                                      tensor=self.tensor_choice, scalar=False, sym_matrix=False)
+            # build charge array
+            species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
+
+            system_current = np.zeros((len(velocity_matrix), 3))  # instantiate the current array
+            # Calculate the total system current
+            for j in range(len(velocity_matrix)):
+                system_current += np.array(np.sum(velocity_matrix[j][:, 0:], axis=0)) * species_charges[j]
+
+            database.add_data(data=system_current,
+                              structure=data_structure,
+                              database=db_object,
+                              start_index=start,
+                              batch_size=remainder,
+                              system_tensor=True)
+        database.close(db_object)  # close the database
+        self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
 
     def _calculate_ionic_conductivity(self):
         """
@@ -131,11 +178,12 @@ class GreenKuboIonicConductivity(Calculator):
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
-        sigma, parsed_autocorrelation = self.convolution_operation(type_batches='Parallel')
+        db_path = os.path.join(self.loaded_property, self.loaded_property)
+        sigma, parsed_autocorrelation = self.convolution_operation(group=db_path)
         sigma *= prefactor
 
         # update the experiment class
-        self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma)/np.sqrt(len(sigma)))/100)])
+        self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma) / np.sqrt(len(sigma))) / 100)])
 
         plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
 
@@ -153,10 +201,10 @@ class GreenKuboIonicConductivity(Calculator):
         call relevant methods and run analysis
         """
 
-        self._autocorrelation_time()          # get the autocorrelation time
-        self._collect_machine_properties()    # collect machine properties and determine batch size
-        self._calculate_batch_loop()          # Update the batch loop attribute
-        status = self._check_input()          # Check for bad input
+        self._autocorrelation_time()  # get the autocorrelation time
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._calculate_batch_loop()  # Update the batch loop attribute
+        status = self._check_input()  # Check for bad input
         if status == -1:
             return
         else:
