@@ -10,7 +10,6 @@ import json
 import os
 import pickle
 import sys
-from importlib.resources import open_text
 from pathlib import Path
 
 import h5py as hf
@@ -257,6 +256,18 @@ class Experiment:
             self.parent.save_class()
 
     def run_computation(self, computation_name, **kwargs):
+        """
+        Run a computation
+
+        Parameters
+        ----------
+        computation_name
+        kwargs
+
+        Returns
+        -------
+
+        """
 
         try:
             class_compute = dict_classes_computations[computation_name]
@@ -388,7 +399,7 @@ class Experiment:
         Build a new database
         """
 
-        architecture = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        architecture, line_length = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
         database.initialize_database(architecture)  # initialize the database
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
@@ -397,8 +408,7 @@ class Experiment:
 
         f_object = open(trajectory_file, 'r')  # open the trajectory file
         for _ in tqdm(range(batch_range)):
-            data = trajectory_reader.read_configurations(self.batch_size, f_object)
-            database.add_data(data=data,
+            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
                               structure=structure,
                               database=db_object,
                               start_index=counter,
@@ -424,7 +434,7 @@ class Experiment:
                     'radial_distribution_function': {},
                     'kirkwood_buff_integral': {},
                     'structure_factor': {},
-                    'viscosity':{}}
+                    'viscosity': {}}
 
             yaml.dump(data, f)
 
@@ -449,7 +459,7 @@ class Experiment:
         will be used in conductivity calculations.
 
         """
-        with open_text(static_data, 'PubChemElements_all.json') as json_file:
+        with importlib.resources.open_text(static_data, 'PubChemElements_all.json') as json_file:
             pse = json.loads(json_file.read())
 
         # Try to get the species data from the Periodic System of Elements file
@@ -471,7 +481,8 @@ class Experiment:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
-    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False):
+    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
+                    path=None):
         """
         Load a desired property matrix.
 
@@ -496,42 +507,46 @@ class Experiment:
                 Tensor of the property to be studied. Format depends on kwargs.
         """
 
-        # If no species list is given, use all species in the Experiment class instance.
-        if not species:
-            species = list(self.species.keys())  # get list of all species available.
+        if path is not None:
+            property_matrix = []
+            with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
+                property_matrix.append(database[path][select_slice])
+        else:
+            # If no species list is given, use all species in the Experiment class instance.
+            if not species:
+                species = list(self.species.keys())  # get list of all species available.
+            # If no slice is given, load all configurations.
+            if select_slice is None:
+                select_slice = np.s_[:]  # set the numpy slice object.
 
-        # If no slice is given, load all configurations.
-        if select_slice is None:
-            select_slice = np.s_[:]  # set the numpy slice object.
+            property_matrix = []  # Define an empty list for the properties to fill
 
-        property_matrix = []  # Define an empty list for the properties to fill
+            with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
+                for item in list(species):
+                    path = os.path.join(item, identifier)
 
-        with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
-            for item in list(species):
-                path = os.path.join(item, identifier)
+                    # Unwrap the positions if they need to be unwrapped
+                    if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
+                        print("We first have to unwrap the coordinates... Doing this now")
+                        self.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
 
-                # Unwrap the positions if they need to be unwrapped
-                if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
-                    print("We first have to unwrap the coordinates... Doing this now")
-                    self.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
+                    # Check if the desired property is in the database.
+                    if identifier not in database[item]:
+                        print("This data was not found in the database. Was it included in your simulation input?")
+                        return
 
-                # Check if the desired property is in the database.
-                if identifier not in database[item]:
-                    print("This data was not found in the database. Was it included in your simulation input?")
-                    return
+                    # If the tensor kwarg is True, return a tensor.
+                    if tensor:
+                        property_matrix.append(
+                            tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
 
-                # If the tensor kwarg is True, return a tensor.
-                if tensor:
-                    property_matrix.append(
-                        tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
+                    elif sym_matrix:  # return a stress tensor
+                        property_matrix.append(database[path][select_slice])
+                    elif scalar:  # return a scalar
+                        property_matrix.append(database[path][select_slice])
 
-                elif sym_matrix:  # return a stress tensor
-                    property_matrix.append(database[path][select_slice])
-                elif scalar:  # return a scalar
-                    property_matrix.append(database[path][select_slice])
-
-                else:  # return a numpy array
-                    property_matrix.append(database[path][select_slice])
+                    else:  # return a numpy array
+                        property_matrix.append(database[path][select_slice])
 
         # Check if the property loaded was a scalar.
         if len(property_matrix) == 1:

@@ -20,6 +20,10 @@ from tqdm import tqdm
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite.experiment.experiment import Experiment
+
 
 class Calculator(metaclass=abc.ABCMeta):
     """
@@ -54,7 +58,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
+    def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
                  parallel=False):
         """
 
@@ -101,7 +105,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError  # Implemented in the child class
 
-    def _collect_machine_properties(self, scaling_factor: int = 1):
+    def _collect_machine_properties(self, scaling_factor: int = 1, group_property: str = None):
         """
         Collect properties of machine being used.
 
@@ -110,14 +114,18 @@ class Calculator(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
+        group_property : str
+                Property for which memory information should be collected.
         scaling_factor : int
                 Amount by which an analysis will expand the dataset.
         """
+        if group_property is None:
+            group_property = self.loaded_property
 
         self.machine_properties = get_machine_properties()  # load the machine properties
         memory_usage = []
         for item in self.parent.memory_requirements:
-            if self.loaded_property in item:
+            if group_property in item:
                 memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
 
         # Get the single frame memory usage in bytes
@@ -152,7 +160,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
-    def _load_batch(self, batch_number, loaded_property=None, item=None, scalar=False, sym_matrix=False):
+    def _load_batch(self, batch_number, loaded_property=None, item=None, scalar=False, sym_matrix=False, path=None):
         """
         Load a batch of data
 
@@ -174,8 +182,8 @@ class Calculator(metaclass=abc.ABCMeta):
         if loaded_property is None:
             loaded_property = self.loaded_property
 
-        return self.parent.load_matrix(loaded_property, item, select_slice=np.s_[:, start:stop],
-                                       tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix)
+        return self.parent.load_matrix(loaded_property, species=item, select_slice=np.s_[:, start:stop],
+                                       tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix, path=path)
 
     def _save_data(self, title, data):
         """
@@ -387,7 +395,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError  # Implement in the child class
 
-    def convolution_operation(self, type_batches):
+    def convolution_operation(self, group: str = None):
         """
         This function performs the actual autocorrelation computation.
         It is has been put here because it is the same function for every GK calculation.
@@ -395,16 +403,20 @@ class Calculator(metaclass=abc.ABCMeta):
         :param type_batches: Serial or Parallel.
         :return: sigma: list with the integrated property.
         :return: parsed_autocorrelation: np array with the sum of the autocorrelations, used to see convergence.
+
+        Parameters
+        ----------
+        group
         """
         sigma = []  # define an empty sigma list
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
-            batch = self._calculate_system_current(i)  # get the ionic current batch
+            batch = self._load_batch(i, path=group)  # get the ionic current batch
             for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
                 start = int(start_index + self.correlation_time)  # get start index
                 stop = int(start + self.data_range)  # get stop index
-                system_current = np.array(batch)[start:stop]  # load data from batch array
+                system_current = np.array(batch, dtype=float)[start:stop]  # load data from batch array
 
                 jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
 
@@ -422,13 +434,14 @@ class Calculator(metaclass=abc.ABCMeta):
                 jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
                 parsed_autocorrelation += jacf  # update parsed function
                 sigma.append(np.trapz(jacf, x=self.time))  # Update the conductivity array
-        return sigma, parsed_autocorrelation
+        return np.array(sigma), parsed_autocorrelation
 
-    def msd_operation_EH(self, type_batches):
+    def msd_operation_EH(self, group: str = None):
         """
         A function that needs a docstring
         Parameters
         ----------
+        group
         type_batches
 
         Returns
@@ -437,8 +450,8 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
-        for i in tqdm(range(int(self.n_batches[type_batches])), ncols=70):  # Loop over batches
-            batch = self._calculate_integrated_current(i)  # get the ionic current
+        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70):  # Loop over batches
+            batch = self._load_batch(i, path=group)  # get the ionic current
             for start_index in range(int(self.batch_loop)):  # Loop over ensembles
                 start = int(start_index + self.correlation_time)  # get start configuration
                 stop = int(start + self.data_range)  # get the stop configuration

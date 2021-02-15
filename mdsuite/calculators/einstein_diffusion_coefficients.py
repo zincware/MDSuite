@@ -21,7 +21,6 @@ import os
 from tqdm import tqdm
 import h5py as hf
 import tensorflow as tf
-import yaml
 
 # Import MDSuite packages
 from mdsuite.calculators.calculator import Calculator
@@ -123,7 +122,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.correlation_time = 500  # correlation time TODO: do not hard code this.
+        self.correlation_time = 1  # correlation time TODO: do not hard code this.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -135,6 +134,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                     print("Unwrapping coordinates")
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
+
 
     def _autocorrelation_time(self):
         """
