@@ -321,7 +321,6 @@ def round_down(a, b):
 
     return a
 
-
 def split_array(data: list, condition):
     """
     split an array by a condition

@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
-from mdsuite.utils.linalg import get_angles, angles_rij
+from mdsuite.utils.linalg import get_angles
 
 import matplotlib.pyplot as plt
 
