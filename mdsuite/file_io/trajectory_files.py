@@ -88,7 +88,6 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length), dtype='<U11')
 
         counter = 0
-        print(line_length)
         for i in range(number_of_configurations):
 
             for j in range(self.header_lines):

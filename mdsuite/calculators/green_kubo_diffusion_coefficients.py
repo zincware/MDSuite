@@ -1,6 +1,5 @@
 """
 Class for the calculation of the Green-Kubo diffusion coefficients.
-
 Summary
 -------
 This module contains the code for the Einstein diffusion coefficient class. This class is called by the
@@ -13,6 +12,8 @@ import matplotlib.pyplot as plt
 from scipy import signal
 import numpy as np
 import warnings
+import os
+import shutil
 
 # Import user packages
 from tqdm import tqdm
@@ -31,7 +32,6 @@ warnings.filterwarnings("ignore")
 class GreenKuboDiffusionCoefficients(Calculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
-
     Attributes
     ----------
     obj :  object
@@ -65,7 +65,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
                  x_label='Time $(s)$', y_label='VACF $(m^{2}/s^{2})$', analysis_name='Green_Kubo_Diffusion'):
         """
         Python constructor
-
         Attributes
         ----------
         obj :  object
@@ -100,7 +99,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 500  # correlation time of the velocities.
+        self.correlation_time = 1  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -108,22 +107,43 @@ class GreenKuboDiffusionCoefficients(Calculator):
     def _autocorrelation_time(self):
         """
         Calculate velocity autocorrelation time
-
         When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
         system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
         """
         pass
 
-    def _singular_diffusion_calculation(self, item):
+    def _collect_data(self):
         """
-        Method to calculate the diffusion coefficients
-
-        Due to the parallelization of our calculations this section of the diffusion coefficient code is separated
-        from the main operation. The method is then called in a loop in the singular_diffusion_coefficients method.
+        Collect data from the tmp directory and return the sum and delete the directory afterwards
 
         Returns
         -------
-        diffusion coeffients : list
+        """
+
+        data_array = np.zeros(self.data_range, dtype=float)  # instantiate the array
+        files = os.listdir(f"{self.parent.database_path}/tmp")
+
+        for f in files:
+            data_array += np.load(f"{self.parent.database_path}/tmp/{f}", allow_pickle=True)
+
+        shutil.rmtree(f"{self.parent.database_path}/tmp")  # delete the directory
+
+        return data_array
+
+    def _singular_diffusion_calculation(self, item: str):
+        """
+        Method to calculate the diffusion coefficients
+        Due to the parallelization of our calculations this section of the diffusion coefficient code is separated
+        from the main operation. The method is then called in a loop in the singular_diffusion_coefficients method.
+
+        Parameters
+        ----------
+        item : str
+                Species on for which the diffusion coefficient should be calculated
+
+        Returns
+        -------
+        diffusion coefficients : list
                 Returns the diffusion coefficient along with the error in its analysis as a list.
         """
 
@@ -133,45 +153,48 @@ class GreenKuboDiffusionCoefficients(Calculator):
         prefactor = numerator / denominator
 
         coefficient_array = []  # Define the empty coefficient array
-        parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
+        os.mkdir(f"{self.parent.database_path}/tmp")
+        results = None  # instantiate the variable
 
+        indicator = 0
         for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
             batch = self._load_batch(i, item=[item])  # load a batch of data
 
             for start_index in range(int(self.batch_loop)):
-                vacf = self._correlation_operation(start_index, batch)
+                vacf = dask.delayed(self._singular_correlation_operation)(start_index, batch, indicator)
+                coefficient_array.append((prefactor / len(batch)) * vacf)
+            indicator += 1
 
-                parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
+            futures = dask.persist(*coefficient_array)
+            if i == 0:
+                results = dask.compute(*futures)
+            else:
+                results += dask.compute(*futures)
 
-                coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
-                                                                             x=self.time))
+        parsed_vacf = self._collect_data()  # collect all of the saved files
 
         # Save data if desired
         if self.save:
             self._save_data(f'{item}_{self.analysis_name}', [self.time, parsed_vacf])
 
         # If plot is needed
-        plt.plot(self.time * self.parent.units['time'], parsed_vacf, label=item)
+        plt.plot(self.time * self.parent.units['time'], parsed_vacf / max(parsed_vacf), label=item)
         if self.plot:
             self._plot_data(title=f'{self.analysis_name}_{item}')
 
-        return [str(np.mean(coefficient_array)), str(np.std(coefficient_array) / np.sqrt(len(coefficient_array)))]
+        return [str(np.mean(results) / (self.n_batches['Serial'])),
+                str(np.std(results / (self.n_batches['Serial'])) / np.sqrt(len(results)))]
 
-    def _correlation_operation(self, counter, batch):
+    def _singular_correlation_operation(self, start_index, batch, indicator):
         """
-        Perform correlation on data
-
-        Parameters
-        ----------
-        self
-        counter
+        Perform correlation operation
 
         Returns
         -------
 
         """
 
-        start = counter + self.correlation_time
+        start = start_index + self.correlation_time
         stop = start + self.data_range
 
         vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
@@ -187,8 +210,11 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 signal.correlate(batch[j][start:stop, 2],
                                  batch[j][start:stop, 2],
                                  mode='full', method='auto'))
-        return vacf
 
+        np.save(f"{self.parent.database_path}/tmp/{indicator}.npy", vacf[int(self.data_range - 1):])
+        value = np.trapz(vacf[int(self.data_range - 1):], x=self.time)
+
+        return value
 
     def _singular_diffusion_coefficients(self):
         """
@@ -203,91 +229,114 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if self.plot:
             self._plot_data()
 
-    def _distinct_diffusion_calculation(self, data):
+    def _distinct_correlation_operation(self, start_index, batch, indicator, self_correlation):
+        """
+        Perform the autocorrelation for the distinct calculation
+
+        Returns
+        -------
+
+        """
+        vacf = np.zeros(int(2 * self.data_range - 1))  # initialize the vacf array
+
+        if self_correlation:
+            a = 0
+            b = 0
+        else:
+            a = 0
+            b = 1
+
+        start = start_index + self.correlation_time
+        stop = start + self.data_range
+
+        for i in range(len(batch[a])):
+            # Loop over test atoms
+            for j in range(len(batch[b])):
+                # Add conditional statement to avoid i=j and alpha=beta
+                if a == b and j == i:
+                    continue
+                vacf += np.array(
+                    signal.correlate(batch[a][i][start:stop, 0],
+                                     batch[b][j][start:stop, 0],
+                                     mode='full', method='fft') +
+                    signal.correlate(batch[a][i][start:stop, 1],
+                                     batch[b][j][start:stop, 1],
+                                     mode='full', method='fft') +
+                    signal.correlate(batch[a][i][start:stop, 2],
+                                     batch[b][j][start:stop, 2],
+                                     mode='full', method='fft'))
+
+        np.save(f"{self.parent.database_path}/tmp/{indicator}.npy", vacf[int(self.data_range - 1):])
+        value = np.trapz(vacf[int(self.data_range - 1):], x=self.time)
+
+        return value
+
+    def _distinct_diffusion_calculation(self, item: list = None):
         """
         Perform calculation of the distinct coefficients
-
         Currently unavailable
         """
-        """
-        velocity_matrix = data[0]
-        tuples = data[1]
 
-        # Define the multiplicative factor
-        numerator = self.parent.number_of_atoms * (self.parent.units['length'] ** 2)
-        denominator = len(velocity_matrix[tuples[0]]) * len(velocity_matrix[tuples[1]]) * 3 * (
-            self.parent.units['time']) * (len(self.time) - 1)
+        if item[0] == item[1]:
+            molecules = [item[0]]
+            atom_factor = len(self.parent.species[molecules[0]]['indices']) * \
+                          (len(self.parent.species[molecules[0]]['indices']) - 1)
+            self_correlation = True  # tell the code it is computing correlation on the same species
+
+        else:
+            molecules = item
+            atom_factor = len(self.parent.species[molecules[0]]['indices']) * \
+                          (len(self.parent.species[molecules[1]]['indices']))
+            self_correlation = False
+
+        numerator = self.parent.units['length'] ** 2
+        denominator = 3 * self.parent.units['time'] * (self.data_range - 1) * atom_factor
         prefactor = numerator / denominator
 
-        diff_array = []
+        os.mkdir(f"{self.parent.database_path}/tmp")
 
-        plot_array = np.zeros(self.data_range)
+        coefficient_array = []
+        indicator = 0
+        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):
+            batch = self._load_batch(i, item=molecules)  # load a batch of data
+            if self_correlation:
+                batch = [batch]
+            for start in range(int(self.batch_loop)):
+                vacf = dask.delayed(self._distinct_correlation_operation)(start, batch, indicator, self_correlation)
+                coefficient_array.append(prefactor * vacf)
+            indicator += 1
 
-        # Loop over reference atoms
-        for start in tqdm(50, ncols=70):
-            vacf = np.zeros(int(2 * self.data_range - 1))  # initialize the vacf array
-            for i in range(len(velocity_matrix[tuples[0]])):
-                # Loop over test atoms
-                for j in range(len(velocity_matrix[tuples[1]])):
-                    # Add conditional statement to avoid i=j and alpha=beta
-                    if tuples[0] == tuples[1] and j == i:
-                        continue
+            #futures = dask.persist(*coefficient_array)
+            if i == 0:
+                results = dask.compute(*coefficient_array)
+            else:
+                results += dask.compute(*coefficient_array)
 
-                    vacf += np.array(
-                        signal.correlate(velocity_matrix[tuples[0]][i][start:start + self.data_range, 0],
-                                         velocity_matrix[tuples[1]][j][start:start + self.data_range:, 0],
-                                         mode='full', method='fft') +
-                        signal.correlate(velocity_matrix[tuples[0]][i][start:start + self.data_range, 1],
-                                         velocity_matrix[tuples[1]][j][start:start + self.data_range, 1],
-                                         mode='full', method='fft') +
-                        signal.correlate(velocity_matrix[tuples[0]][i][start:start + self.data_range, 2],
-                                         velocity_matrix[tuples[1]][j][start:start + self.data_range, 2],
-                                         mode='full', method='fft'))
+        parsed_vacf = self._collect_data()  # collect all of the saved files
 
-                plot_array += vacf[int(len(vacf) / 2):]
-
-            diff_array.append(prefactor * np.trapz(vacf[int(len(vacf) / 2):], x=self.time))
-
-        plt.plot(self.time, (plot_array) / abs(min(plot_array / self.loop_range)), label=tuples)
-        plt.xlabel(rf'{self.x_label}')  # set the x label
-        plt.ylabel(rf'{self.y_label}')  # set the y label
-        plt.legend()  # enable the legend
-        plt.savefig(f"{self.parent.storage_path}/{self.parent.analysis_name}/Figures/{self.analysis_name}_{tuples}.svg",
-                    dpi=600, format='svg')
-
+        # Save data if desired
         if self.save:
-            self._save_data(f'{tuples}_{self.analysis_name}', plot_array)
+            self._save_data(f'{item}_{self.analysis_name}', [self.time, parsed_vacf])
 
-        return [np.mean(diff_array), np.std(diff_array)/np.sqrt(len(diff_array))]
-        """
-        raise NotImplementedError
+        # If plot is needed
+        plt.plot(self.time * self.parent.units['time'], parsed_vacf / max(parsed_vacf), label=item)
+        if self.plot:
+            self._plot_data(title=f'{self.analysis_name}_{item}')
+
+        return [str(np.mean(results) / (self.n_batches['Serial'])),
+                str(np.std(results / (self.n_batches['Serial'])) / np.sqrt(len(results)))]
 
     def _distinct_diffusion_coefficients(self):
         """
         Calculate the Green-Kubo distinct diffusion coefficients
         """
-        """
-        velocity_matrix = self.parent.load_matrix("Velocities", species=self.species)
 
+        self.batch_type = 'Parallel'
+        self._calculate_batch_loop()  # update the batch loop for parallel batch sizes
         combinations = ['-'.join(tup) for tup in list(itertools.combinations_with_replacement(self.species, 2))]
-
-        index_list = [i for i in range(len(velocity_matrix))]
-        index_combinations = list(itertools.combinations_with_replacement(index_list, 2))
-        parallel_list = []
-        for i in range(len(index_combinations)):
-            parallel_list.append([velocity_matrix, index_combinations[i]])
-
-        # Update the dictionary with relevant combinations
         for combination in combinations:
-            self.parent.diffusion_coefficients["Green-Kubo"]["Distinct"][combination] = {}
-
-        with mp.Pool(processes=len(index_combinations)) as p:
-            result = p.map(self._distinct_diffusion_calculation, parallel_list)
-
-        for i in range(len(combinations)):
-            self.parent.diffusion_coefficients["Green-Kubo"]["Distinct"][combinations[i]] = result[i]
-        """
-        raise NotImplementedError
+            result = self._distinct_diffusion_calculation(item=combination.split('-'))
+            self._update_properties_file(item='Distinct', sub_item=combination, data=result)
 
     def run_analysis(self):
         """ Run the main analysis """

@@ -108,9 +108,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
             if all([isinstance(property_column, int) for property_column in properties_columns]):
                 trajectory_properties[property_label] = properties_columns
 
-        print("I have found the following properties with the columns in []: ")
-        [print(key, value) for key, value in trajectory_properties.items()]
-
         return trajectory_properties
 
     @staticmethod
