@@ -17,6 +17,7 @@ import warnings
 # Import user packages
 from tqdm import tqdm
 import itertools
+import dask
 
 # Import mdsuite packages
 from mdsuite.calculators.calculator import Calculator
@@ -86,14 +87,14 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
 
-        self.loaded_property = 'Velocities'             # Property to be loaded for the analysis
-        self.batch_loop = None                          # Number of ensembles in each batch
-        self.parallel = False                           # Set the parallel attribute
-        self.tensor_choice = False                      # Load data as a tensor
+        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
+        self.batch_loop = None  # Number of ensembles in each batch
+        self.parallel = False  # Set the parallel attribute
+        self.tensor_choice = False  # Load data as a tensor
 
-        self.singular = singular                        # calculate the singular coefficients
-        self.distinct = distinct                        # calculate the distinct coefficients
-        self.species = species                          # Which species to calculate for
+        self.singular = singular  # calculate the singular coefficients
+        self.distinct = distinct  # calculate the distinct coefficients
+        self.species = species  # Which species to calculate for
 
         self.database_group = 'diffusion_coefficients'  # Which database group to save the data in
 
@@ -138,27 +139,12 @@ class GreenKuboDiffusionCoefficients(Calculator):
             batch = self._load_batch(i, item=[item])  # load a batch of data
 
             for start_index in range(int(self.batch_loop)):
-                start = start_index + self.correlation_time
-                stop = start + self.data_range
-
-                vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
-                # Loop over the atoms of species to get the average
-                for j in range(len(batch)):
-                    vacf += np.array(
-                        signal.correlate(batch[j][start:stop, 0],
-                                         batch[j][start:stop, 0],
-                                         mode='full', method='auto') +
-                        signal.correlate(batch[j][start:stop, 1],
-                                         batch[j][start:stop, 1],
-                                         mode='full', method='auto') +
-                        signal.correlate(batch[j][start:stop, 2],
-                                         batch[j][start:stop, 2],
-                                         mode='full', method='auto'))
+                vacf = self._correlation_operation(start_index, batch)
 
                 parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
 
                 coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
-                                                                                       x=self.time))
+                                                                             x=self.time))
 
         # Save data if desired
         if self.save:
@@ -169,15 +155,48 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if self.plot:
             self._plot_data(title=f'{self.analysis_name}_{item}')
 
-        return [str(np.mean(coefficient_array)), str(np.std(coefficient_array)/np.sqrt(len(coefficient_array)))]
+        return [str(np.mean(coefficient_array)), str(np.std(coefficient_array) / np.sqrt(len(coefficient_array)))]
+
+    def _correlation_operation(self, counter, batch):
+        """
+        Perform correlation on data
+
+        Parameters
+        ----------
+        self
+        counter
+
+        Returns
+        -------
+
+        """
+
+        start = counter + self.correlation_time
+        stop = start + self.data_range
+
+        vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
+        # Loop over the atoms of species to get the average
+        for j in range(len(batch)):
+            vacf += np.array(
+                signal.correlate(batch[j][start:stop, 0],
+                                 batch[j][start:stop, 0],
+                                 mode='full', method='auto') +
+                signal.correlate(batch[j][start:stop, 1],
+                                 batch[j][start:stop, 1],
+                                 mode='full', method='auto') +
+                signal.correlate(batch[j][start:stop, 2],
+                                 batch[j][start:stop, 2],
+                                 mode='full', method='auto'))
+        return vacf
+
 
     def _singular_diffusion_coefficients(self):
         """
         Calculate the singular diffusion coefficients
         """
 
-        for item in self.species:                                                        # loop over species
-            result = self._singular_diffusion_calculation(item=item)                     # get the diffusion coefficient
+        for item in self.species:  # loop over species
+            result = self._singular_diffusion_calculation(item=item)  # get the diffusion coefficient
             self._update_properties_file(item='Singular', sub_item=item, data=result)
 
         # Run the plot data method if needed
@@ -272,14 +291,14 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
     def run_analysis(self):
         """ Run the main analysis """
-        self._autocorrelation_time()                    # get the correct autocorrelation time
-        self._collect_machine_properties()              # collect machine properties and determine batch size
-        self._calculate_batch_loop()                    # Update the batch loop attribute
-        status = self._check_input()                    # Check for bad input
+        self._autocorrelation_time()  # get the correct autocorrelation time
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._calculate_batch_loop()  # Update the batch loop attribute
+        status = self._check_input()  # Check for bad input
         if status == -1:
             return
         else:
             if self.singular:
-                self._singular_diffusion_coefficients()     # calculate the singular diffusion coefficients
+                self._singular_diffusion_coefficients()  # calculate the singular diffusion coefficients
             if self.distinct:
-                self._distinct_diffusion_coefficients()     # calculate the distinct diffusion coefficients
+                self._distinct_diffusion_coefficients()  # calculate the distinct diffusion coefficients

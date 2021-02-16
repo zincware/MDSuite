@@ -145,7 +145,6 @@ class GreenKuboIonicConductivity(Calculator):
                               batch_size=self.batch_size['Parallel'],
                               system_tensor=True)
 
-        # fetch remainder if worth while
         if remainder > 0:
             start = self.parent.number_of_configurations - remainder
             velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
