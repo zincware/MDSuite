@@ -20,6 +20,7 @@ from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.calculators.structure_factor import StructureFactor
 from mdsuite.calculators.angular_distribution_function import AngularDistributionFunction
+from mdsuite.calculators.nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
@@ -37,4 +38,5 @@ dict_classes_computations = {
     'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
     'GreenKuboViscosity': GreenKuboViscosity,
     'AngularDistributionFunction': AngularDistributionFunction,
+    'NernstEinsteinIonicConductivity': NernstEinsteinIonicConductivity
 }
