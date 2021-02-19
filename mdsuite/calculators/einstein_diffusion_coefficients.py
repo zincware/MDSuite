@@ -75,7 +75,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=200, save=True,
                  x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients',
-                 optimize=False):
+                 optimize=False, correlation_time=1):
         """
 
         Parameters
@@ -104,7 +104,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                 If true, the data range will be optimized
         """
 
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, correlation_time=correlation_time)  # parse to the parent class
 
         self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
         self.batch_loop = None                          # Number of ensembles in each batch
@@ -122,7 +122,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        self.correlation_time = 1  # correlation time TODO: do not hard code this.
+        #self.correlation_time = 1  # correlation time TODO: do not hard code this.
 
         if species is None:
             self.species = list(self.parent.species)
