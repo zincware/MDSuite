@@ -59,7 +59,7 @@ class GreenKuboIonicConductivity(Calculator):
     """
 
     def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label=r'JACF ($C^{2}\cdot m^{2}/s^{2}$)',
-                 save=True, analysis_name='green_kubo_ionic_conductivity'):
+                 save=True, analysis_name='green_kubo_ionic_conductivity', correlation_time=1):
         """
 
         Attributes
@@ -81,7 +81,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         # update parent class
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True, correlation_time=correlation_time)
 
         self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in each batch

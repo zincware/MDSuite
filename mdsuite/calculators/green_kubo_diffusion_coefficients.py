@@ -62,7 +62,8 @@ class GreenKuboDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, obj, plot=False, singular=True, distinct=False, species=None, data_range=500, save=True,
-                 x_label='Time $(s)$', y_label='VACF $(m^{2}/s^{2})$', analysis_name='Green_Kubo_Diffusion'):
+                 x_label='Time $(s)$', y_label='VACF $(m^{2}/s^{2})$', analysis_name='Green_Kubo_Diffusion',
+                 correlation_time=1):
         """
         Python constructor
         Attributes
@@ -84,7 +85,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         analysis_name : str
                 Name of the analysis
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, correlation_time=correlation_time)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in each batch

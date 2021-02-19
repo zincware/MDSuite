@@ -69,7 +69,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
     """
 
     def __init__(self, obj, plot=True, data_range=500, save=True,
-                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity'):
+                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity',
+                 correlation_time=1):
         """
         Python constructor
 
@@ -94,7 +95,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the parent class
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True, correlation_time=correlation_time)
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in a batch

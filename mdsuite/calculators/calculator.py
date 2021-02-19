@@ -59,7 +59,7 @@ class Calculator(metaclass=abc.ABCMeta):
     """
 
     def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
-                 parallel=False):
+                 parallel=False, correlation_time=1, optimize_correlation_time=False):
         """
 
         Parameters
@@ -85,7 +85,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_size = {}  # Size of the batch to use during the analysis
         self.n_batches = {}  # Number of batches to be calculated over
         self.machine_properties = None  # dictionary of machine properties to be evaluated at analysis run-time
-        self.correlation_time = None  # correlation time of the property
+        self.correlation_time = correlation_time  # correlation time of the property
 
         self.x_label = x_label  # x label of the figure
         self.y_label = y_label  # y label of the figure
@@ -98,6 +98,9 @@ class Calculator(metaclass=abc.ABCMeta):
             self.batch_type = 'Parallel'
         else:
             self.batch_type = 'Serial'
+
+        if optimize_correlation_time:
+            print("Sorry, this feature is not currently available, please set the correlation time manually.")
 
     def _autocorrelation_time(self):
         """

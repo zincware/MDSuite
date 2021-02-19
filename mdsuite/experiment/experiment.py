@@ -56,7 +56,7 @@ class Experiment:
             The total number of atoms in the simulation
    """
 
-    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real'):
+    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real', cluster=False):
         """
         Initialise the experiment class.
 
@@ -70,6 +70,9 @@ class Experiment:
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
                 Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+        cluster : bool
+                If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
+                for optimal performance on a large computing cluster.
         """
 
         # Taken upon instantiation
@@ -77,6 +80,7 @@ class Experiment:
         self.storage_path = os.path.abspath(storage_path)  # Where to store the data
         self.temperature = temperature  # Temperature of the system.
         self.time_step = time_step  # Timestep chosen for the simulation.
+        self.cluster=cluster  # whether or not the script will run on a cluster
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
