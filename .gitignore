@@ -144,6 +144,9 @@ cython_debug/
 build/
 mdsuite/cython_extensions/*.c
 
+# APPLE
+.DS_Store
+
 # pycharm 
 .idea/
 
