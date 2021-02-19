@@ -102,6 +102,11 @@ class Calculator(metaclass=abc.ABCMeta):
         if optimize_correlation_time:
             print("Sorry, this feature is not currently available, please set the correlation time manually.")
 
+        # Prevent $DISPLAY warnings on clusters.
+        if self.parent.cluster_mode:
+            import matplotlib
+            matplotlib.use('Agg')
+
     def _autocorrelation_time(self):
         """
         get the autocorrelation time for the relevant property to ensure good error sampling

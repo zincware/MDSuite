@@ -18,7 +18,6 @@ import shutil
 # Import user packages
 from tqdm import tqdm
 import itertools
-import dask
 
 # Import mdsuite packages
 from mdsuite.calculators.calculator import Calculator

@@ -31,7 +31,6 @@ from mdsuite.database.database import Database
 plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
-matplotlib.use('Agg')
 
 
 class EinsteinHelfandIonicConductivity(Calculator):
