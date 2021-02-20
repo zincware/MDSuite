@@ -20,6 +20,8 @@ from tqdm import tqdm
 import itertools
 import dask
 
+import tensorflow as tf
+
 # Import mdsuite packages
 from mdsuite.calculators.calculator import Calculator
 
@@ -85,7 +87,8 @@ class GreenKuboDiffusionCoefficients(Calculator):
         analysis_name : str
                 Name of the analysis
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, correlation_time=correlation_time)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name,
+                         correlation_time=correlation_time)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in each batch
@@ -131,20 +134,59 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         return data_array
 
-    def _singular_diffusion_calculation(self, item: str):
-        """
-        Method to calculate the diffusion coefficients
-        Due to the parallelization of our calculations this section of the diffusion coefficient code is separated
-        from the main operation. The method is then called in a loop in the singular_diffusion_coefficients method.
+    @staticmethod
+    @tf.function
+    def vectorized_vacf(x, y, z):
+        def correlate(data):
+            def func(inp):
+                return signal.correlate(inp, inp, mode='full', method='auto')
+
+            return tf.py_function(func=func, inp=[data], Tout=tf.float32)
+
+        vacf = tf.map_fn(correlate, x) + \
+               tf.map_fn(correlate, y) + \
+               tf.map_fn(correlate, z)
+
+        return tf.reduce_sum(vacf, axis=0)
+
+    @staticmethod
+    def dataset_map_vacf(data: tf.Tensor) -> tf.Tensor:
+        """Compute the velocity autocorrelation function
 
         Parameters
         ----------
-        item : str
-                Species on for which the diffusion coefficient should be calculated
+        data: tf.Tensor
+            Tensor with the shape (n_atoms, n_timesteps, 3)
 
         Returns
         -------
-        diffusion coefficients : list
+        tf.Tensor : reduced sum over the VACF for each timestep
+
+        """
+
+        def correlate(data):
+            def func(inp):
+                return signal.correlate(inp, inp, mode='full', method='auto')
+
+            return tf.py_function(func=func, inp=[data], Tout=tf.float32)
+
+        vacf = tf.map_fn(correlate, data[:, :, 0]) + \
+               tf.map_fn(correlate, data[:, :, 1]) + \
+               tf.map_fn(correlate, data[:, :, 2])
+        out = tf.reduce_sum(vacf, axis=0)
+
+        return out
+
+    def _singular_diffusion_calculation(self, item: str):
+        """
+        Method to calculate the diffusion coefficients
+
+        Due to the parallelization of our calculations this section of the diffusion coefficient code is separated
+        from the main operation. The method is then called in a loop in the singular_diffusion_coefficients method.
+
+        Returns
+        -------
+        diffusion coeffients : list
                 Returns the diffusion coefficient along with the error in its analysis as a list.
         """
 
@@ -154,68 +196,48 @@ class GreenKuboDiffusionCoefficients(Calculator):
         prefactor = numerator / denominator
 
         coefficient_array = []  # Define the empty coefficient array
-        os.mkdir(f"{self.parent.database_path}/tmp")
-        results = None  # instantiate the variable
+        parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
-        indicator = 0
-        for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-            batch = self._load_batch(i, item=[item])  # load a batch of data
+        # for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
+        for i in range(int(self.n_batches['Serial'])):
+            batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
 
-            for start_index in range(int(self.batch_loop)):
-                vacf = dask.delayed(self._singular_correlation_operation)(start_index, batch, indicator)
-                coefficient_array.append((prefactor / len(batch)) * vacf)
-            indicator += 1
+            def generator():
+                """Generate the data for the VACF Calculation.
+                Apply correlation_time and data_range to the data.
+                """
+                for start_index in range(int(self.batch_loop)):
+                    start = start_index + self.correlation_time
+                    stop = start + self.data_range
+                    yield batch[:, start:stop]
 
-            futures = dask.persist(*coefficient_array)
-            if i == 0:
-                results = dask.compute(*futures)
-            else:
-                results += dask.compute(*futures)
+            dataset = tf.data.Dataset.from_generator(
+                generator=generator,
+                output_signature=tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float32)
+            )  # TODO maybe accuracy issues with float32
+            dataset = dataset.map(self.dataset_map_vacf, num_parallel_calls=4, deterministic=False)
+            # TODO Set num_parallel_calls dynamically
+            dataset = dataset.prefetch(64)
+            # TODO Set prefetch dynamically
 
-        parsed_vacf = self._collect_data()  # collect all of the saved files
+            vacf = tf.zeros(int(self.data_range * 2 - 1))
+            for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
+                vacf += x
+                parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
+                coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
+                                                                             x=self.time))
 
+        # TODO missing np.save()!
         # Save data if desired
         if self.save:
             self._save_data(f'{item}_{self.analysis_name}', [self.time, parsed_vacf])
 
         # If plot is needed
-        plt.plot(self.time * self.parent.units['time'], parsed_vacf / max(parsed_vacf), label=item)
+        plt.plot(self.time * self.parent.units['time'], parsed_vacf, label=item)
         if self.plot:
             self._plot_data(title=f'{self.analysis_name}_{item}')
 
-        return [str(np.mean(results) / (self.n_batches['Serial'])),
-                str(np.std(results / (self.n_batches['Serial'])) / np.sqrt(len(results)))]
-
-    def _singular_correlation_operation(self, start_index, batch, indicator):
-        """
-        Perform correlation operation
-
-        Returns
-        -------
-
-        """
-
-        start = start_index + self.correlation_time
-        stop = start + self.data_range
-
-        vacf = np.zeros(int(2 * self.data_range - 1))  # Define vacf array
-        # Loop over the atoms of species to get the average
-        for j in range(len(batch)):
-            vacf += np.array(
-                signal.correlate(batch[j][start:stop, 0],
-                                 batch[j][start:stop, 0],
-                                 mode='full', method='auto') +
-                signal.correlate(batch[j][start:stop, 1],
-                                 batch[j][start:stop, 1],
-                                 mode='full', method='auto') +
-                signal.correlate(batch[j][start:stop, 2],
-                                 batch[j][start:stop, 2],
-                                 mode='full', method='auto'))
-
-        np.save(f"{self.parent.database_path}/tmp/{indicator}.npy", vacf[int(self.data_range - 1):])
-        value = np.trapz(vacf[int(self.data_range - 1):], x=self.time)
-
-        return value
+        return [str(np.mean(coefficient_array)), str(np.std(coefficient_array) / np.sqrt(len(coefficient_array)))]
 
     def _singular_diffusion_coefficients(self):
         """
@@ -307,7 +329,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 coefficient_array.append(prefactor * vacf)
             indicator += 1
 
-            #futures = dask.persist(*coefficient_array)
+            # futures = dask.persist(*coefficient_array)
             if i == 0:
                 results = dask.compute(*coefficient_array)
             else:
