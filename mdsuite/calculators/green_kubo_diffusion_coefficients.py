@@ -102,7 +102,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1  # correlation time of the velocities.
+        self.correlation_time = correlation_time  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -138,7 +138,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
     def vectorized_vacf(x, y, z):
         def correlate(data):
             def func(inp):
-                return signal.correlate(inp, inp, mode='full', method='auto')
+                return signal.correlate(inp, inp, mode='full', method='fft')
 
             return tf.py_function(func=func, inp=[data], Tout=tf.float32)
 
