@@ -56,7 +56,7 @@ class Experiment:
             The total number of atoms in the simulation
    """
 
-    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real', cluster=False):
+    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real', cluster_mode=False):
         """
         Initialise the experiment class.
 

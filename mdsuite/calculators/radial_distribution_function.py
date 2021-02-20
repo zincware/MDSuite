@@ -12,8 +12,6 @@ calculations performed.
 """
 from abc import ABC
 
-import matplotlib
-matplotlib.use('Agg')
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
