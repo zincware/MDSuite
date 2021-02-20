@@ -9,8 +9,6 @@ The methods in class can then be called by the Experiment.einstein_diffusion_coe
 calculations performed.
 """
 
-import matplotlib
-matplotlib.use('Agg')
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
