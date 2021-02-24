@@ -59,7 +59,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __init__(self, obj, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
                  y_label='g(r)', analysis_name='radial_distribution_function', images=1, start=0, stop=None,
-                 number_of_configurations=1000):
+                 number_of_configurations=1000, **kwargs):
         """
 
         Attributes
@@ -94,7 +94,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Perform checks
         if stop is None:
-            self.stop = obj.number_of_configurations
+            self.stop = obj.number_of_configurations - 1
 
         if self.cutoff is None:
             self.cutoff = self.parent.box_array[0] / 2  # set cutoff to half box size if none set
@@ -112,6 +112,12 @@ class RadialDistributionFunction(Calculator, ABC):
         self.key_list = [self._get_species_names(x) for x in
                          list(itertools.combinations_with_replacement(self.index_list, r=2))]  # Select combinations
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
+
+        # TODO automate scaling factor dependent on the system size
+        if "scaling_factor" in kwargs:
+            self.scaling_factor = kwargs.pop("scaling_factor")
+        else:
+            self.scaling_factor = 15
 
     def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
@@ -418,6 +424,7 @@ class RadialDistributionFunction(Calculator, ABC):
         Perform the rdf analysis
         """
 
-        self._collect_machine_properties(scaling_factor=15)  # collect machine properties and determine batch size
+        # self._collect_machine_properties(scaling_factor=15)  # collect machine properties and determine batch size
+        self._collect_machine_properties(scaling_factor=self.scaling_factor)
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
