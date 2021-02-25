@@ -133,33 +133,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         return data_array
 
-    @staticmethod
-    def dataset_map_vacf(data: tf.Tensor) -> tf.Tensor:
-        """Compute the velocity autocorrelation function
-
-        Parameters
-        ----------
-        data: tf.Tensor
-            Tensor with the shape (n_atoms, n_timesteps, 3)
-
-        Returns
-        -------
-        tf.Tensor : reduced sum over the VACF for each timestep
-
-        """
-
-        def correlate(data):
-            def func(inp):
-                return signal.correlate(inp, inp, mode='full', method='auto')
-
-            return tf.py_function(func=func, inp=[data], Tout=tf.float64)
-        vacf = tf.map_fn(correlate, data[:, :, 0]) + \
-               tf.map_fn(correlate, data[:, :, 1]) + \
-               tf.map_fn(correlate, data[:, :, 2])
-        out = tf.reduce_sum(vacf, axis=0)
-
-        return out
-
     def _singular_diffusion_calculation(self, item: str):
         """
         Method to calculate the diffusion coefficients
@@ -182,10 +155,9 @@ class GreenKuboDiffusionCoefficients(Calculator):
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
         for i in range(int(self.n_batches['Serial'])):
-            print('start loading')
             batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+
             # TODO make this a generator function and use tf.data for it!
-            print('stop loading')
 
             def generator():
                 """Generate the data for the VACF Calculation.
@@ -200,15 +172,16 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 generator=generator,
                 output_signature=tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
             )
-            dataset = dataset.map(self.dataset_map_vacf, num_parallel_calls=1, deterministic=False)
-            # TODO Set num_parallel_calls dynamically
-            dataset = dataset.prefetch(64)
-            # TODO Set prefetch dynamically
+            dataset = dataset.unbatch().map(
+                self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
+            ).batch(self.data_range)
+            # TODO benchmark AUTOTUNE vs 1
+
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
             vacf = tf.zeros(int(self.data_range * 2 - 1), dtype=tf.float64)
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
-                print(self.batch_loop)
-                vacf += x
+                vacf += tf.reduce_sum(x, axis=0)
                 parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
                 coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
                                                                              x=self.time))
