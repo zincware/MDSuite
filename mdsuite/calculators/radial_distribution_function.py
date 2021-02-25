@@ -418,6 +418,7 @@ class RadialDistributionFunction(Calculator, ABC):
         Perform the rdf analysis
         """
 
-        self._collect_machine_properties(scaling_factor=15)  # collect machine properties and determine batch size
+        self._collect_machine_properties(scaling_factor=25)  # collect machine properties and determine batch size
+        self.n_batches['Parallel'] = 10
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()

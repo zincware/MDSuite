@@ -36,7 +36,7 @@ class AngularDistributionFunction(Calculator, ABC):
             bins for the ADF
         use_tf_function: bool, default False
             activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
-            may lead to excessiv use of memory! During the first batch, this function will be traced. Tracing is slow,
+            may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
         super().__init__(obj)
@@ -142,4 +142,5 @@ class AngularDistributionFunction(Calculator, ABC):
             ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
             fig.show()
             # fig.savefig(f"{self.parent.figures_path}/adf_{name}.png")
-            fig.savefig(fr"img/adf_{name}.png")
+            fig.savefig(fr"adf_{name}.png")
+            np.save(f"{species}", (bin_range_to_angles, hist))
