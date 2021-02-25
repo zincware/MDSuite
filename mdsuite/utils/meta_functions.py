@@ -123,7 +123,7 @@ def optimize_batch_size(filepath, number_of_configurations):
     file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
     database_memory = 0.5 * computer_statistics['memory']  # We take 50% of the available memory
-    initial_batch_number = int(database_memory / (5*memory_per_configuration))  # trivial batch allocation
+    initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
 
     # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
     if 10 * file_size < database_memory:
@@ -321,14 +321,15 @@ def round_down(a, b):
 
     return a
 
-def split_array(data: list, condition):
+
+def split_array(data: np.array, condition: np.array) -> list:
     """
     split an array by a condition
     Parameters
     ----------
-    data : list
+    data : np.array
             data to split
-    condition : unsure
+    condition : np.array
             condition on which to split by
 
     Returns
@@ -347,6 +348,6 @@ def split_array(data: list, condition):
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw data
-        return [data[condition]]
+        return list(data[condition])
     else:  # else return the whole array
         return initial_split

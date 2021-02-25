@@ -34,6 +34,5 @@ setuptools.setup(
                       'pubchempy',
                       'PyYAML',
                       'sphinxcontrib.bibtex',
-                      'importlib',
                       'dask',
                       'nbsphinx'])
