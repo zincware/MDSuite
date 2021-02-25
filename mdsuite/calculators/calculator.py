@@ -73,7 +73,6 @@ class Calculator(metaclass=abc.ABCMeta):
         analysis_name
 
         """
-
         self.parent = obj  # Experiment object to get properties from
         self.data_range = data_range  # Data range over which to evaluate
         self.plot = plot  # Whether or not to plot the data and save a figure

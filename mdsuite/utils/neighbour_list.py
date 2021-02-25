@@ -108,7 +108,7 @@ def get_triplets(full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200
     batches = np.array_split(np.arange(1, n_atoms), n_batches)
     triples = []
     # batches would be [(1, 100), (101, 200), (201, 300), ...]
-    for batch in batches:
+    for batch in tqdm(batches, ncols=70):
         r_ijk = tf.TensorArray(tf.float16, size=len(batch))
         for idx, atom in enumerate(batch):
             tmp = tf.roll(r_ij, shift=-atom, axis=2)

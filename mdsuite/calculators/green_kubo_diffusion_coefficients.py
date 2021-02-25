@@ -134,21 +134,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         return data_array
 
     @staticmethod
-    @tf.function
-    def vectorized_vacf(x, y, z):
-        def correlate(data):
-            def func(inp):
-                return signal.correlate(inp, inp, mode='full', method='fft')
-
-            return tf.py_function(func=func, inp=[data], Tout=tf.float32)
-
-        vacf = tf.map_fn(correlate, x) + \
-               tf.map_fn(correlate, y) + \
-               tf.map_fn(correlate, z)
-
-        return tf.reduce_sum(vacf, axis=0)
-
-    @staticmethod
     def dataset_map_vacf(data: tf.Tensor) -> tf.Tensor:
         """Compute the velocity autocorrelation function
 
@@ -167,8 +152,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
             def func(inp):
                 return signal.correlate(inp, inp, mode='full', method='auto')
 
-            return tf.py_function(func=func, inp=[data], Tout=tf.float32)
-
+            return tf.py_function(func=func, inp=[data], Tout=tf.float64)
         vacf = tf.map_fn(correlate, data[:, :, 0]) + \
                tf.map_fn(correlate, data[:, :, 1]) + \
                tf.map_fn(correlate, data[:, :, 2])
@@ -197,7 +181,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         coefficient_array = []  # Define the empty coefficient array
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
-        # for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
         for i in range(int(self.n_batches['Serial'])):
             batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
 
@@ -212,21 +195,21 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
             dataset = tf.data.Dataset.from_generator(
                 generator=generator,
-                output_signature=tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float32)
-            )  # TODO maybe accuracy issues with float32
-            dataset = dataset.map(self.dataset_map_vacf, num_parallel_calls=4, deterministic=False)
+                output_signature=tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
+            )
+            dataset = dataset.map(self.dataset_map_vacf, num_parallel_calls=1, deterministic=False)
             # TODO Set num_parallel_calls dynamically
             dataset = dataset.prefetch(64)
             # TODO Set prefetch dynamically
 
-            vacf = tf.zeros(int(self.data_range * 2 - 1))
+            vacf = tf.zeros(int(self.data_range * 2 - 1), dtype=tf.float64)
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
+                print(self.batch_loop)
                 vacf += x
                 parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
                 coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
                                                                              x=self.time))
 
-        # TODO missing np.save()!
         # Save data if desired
         if self.save:
             self._save_data(f'{item}_{self.analysis_name}', [self.time, parsed_vacf])

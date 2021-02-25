@@ -18,6 +18,7 @@ import pubchempy as pcp
 import tensorflow as tf
 import yaml
 from tqdm import tqdm
+import importlib.resources
 
 from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations
@@ -150,6 +151,7 @@ class Experiment:
         class_file.close()  # close file
 
         self.__dict__ = pickle.loads(pickle_data)  # update the class object
+        self.run_computation = self.RunComputation(self)
 
     def save_class(self):
         """
@@ -260,32 +262,6 @@ class Experiment:
             object_compute.run_analysis()
             self.parent.save_class()
 
-    def run_computation(self, computation_name, **kwargs):
-        """
-        Run a computation
-
-        Parameters
-        ----------
-        computation_name
-        kwargs
-
-        Returns
-        -------
-
-        """
-
-        try:
-            class_compute = dict_classes_computations[computation_name]
-        except KeyError:
-            print(f'{computation_name} not found')
-            print(f'Available computations are:')
-            [print(key) for key in dict_classes_computations.keys()]
-            return
-
-        object_compute = class_compute(self, **kwargs)
-        object_compute.run_analysis()
-        self.save_class()
-
     def perform_transformation(self, transformation_name, **kwargs):
         """
         Perform a transformation on the system.
@@ -351,21 +327,6 @@ class Experiment:
             print(f"{tuple_attributes[0]}: {tuple_attributes[1]}")  # Format the print statement
 
         return attributes
-
-    def print_data_structure(self):
-        """
-        Print the data structure of the hdf5 dataset
-        """
-
-        database = hf.File(os.path.join(self.database_path, 'database.hdf5'), "r")
-        with Diagram("Web Service", show=True, direction='TB'):
-            head = RDS("Database")  # set the head database object
-            for item in database:
-                with Cluster(f"{item}"):
-                    group_list = []
-                    for property_group in database[item]:
-                        group_list.append(ECS(property_group))  # construct a list of equal level groups
-                head >> group_list  # append these groups to the head object
 
     def add_data(self, trajectory_file=None, file_format='lammps_traj', rename_cols=None):
         """
@@ -486,6 +447,48 @@ class Experiment:
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
 
+    def set_element(self, old_name, new_name):
+        """
+        Change the name of the element in the self.species dictionary
+
+        Parameters
+        ----------
+        old_name : str
+                Name of the element you want to change
+        new_name : str
+                New name of the element
+        """
+        # Check if the new name is new
+        if new_name != old_name:
+            self.species[new_name] = self.species[old_name]  # update dict
+            del self.species[old_name]  # remove old entry
+
+    def set_charge(self, element, charge):
+        """
+        Set the charge/s of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose charge you want to change
+        charge : list
+                New charge/s of the element
+        """
+        self.species[element]['charge'] = charge  # update entry
+
+    def set_mass(self, element, mass):
+        """
+        Set the mass/es of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose mass you want to change
+        mass : list
+                New mass/es of the element
+        """
+        self.species[element]['mass'] = mass  # update the mass
+
     def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
                     path=None):
         """
@@ -505,6 +508,8 @@ class Experiment:
                 If true, the data will be returned as a scalar array
         sym_matrix : bool
                 If true, data will be returned as as stress tensor format.
+        path : str
+                optional path to the database.
 
         Returns
         -------

@@ -81,7 +81,8 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         # update parent class
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True, correlation_time=correlation_time)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True,
+                         correlation_time=correlation_time)
 
         self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in each batch
@@ -97,7 +98,6 @@ class GreenKuboIonicConductivity(Calculator):
                 print("Calculating the ionic current")
                 self._calculate_system_current()
                 print("Current calculation is finished and stored in the database, proceeding with analysis")
-
 
     def _autocorrelation_time(self):
         """
