@@ -21,6 +21,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
 
@@ -58,7 +59,8 @@ class Calculator(metaclass=abc.ABCMeta):
 
     """
 
-    def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None, analysis_name=None,
+    def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None,
+                 analysis_name=None,
                  parallel=False, correlation_time=1, optimize_correlation_time=False):
         """
 
@@ -136,19 +138,19 @@ class Calculator(metaclass=abc.ABCMeta):
                 memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
 
         # Get the single frame memory usage in bytes
-        serial_memory_usage = scaling_factor*max(memory_usage)
-        parallel_memory_usage = scaling_factor*sum(memory_usage)
+        serial_memory_usage = scaling_factor * max(memory_usage)
+        parallel_memory_usage = scaling_factor * sum(memory_usage)
 
         # Update the batch_size attribute
-        max_batch_size_serial = int(np.floor(0.1*self.machine_properties['memory'] / serial_memory_usage))
-        max_batch_size_parallel = int(np.floor(0.1*self.machine_properties['memory'] / parallel_memory_usage))
+        max_batch_size_serial = int(np.floor(0.1 * self.machine_properties['memory'] / serial_memory_usage))
+        max_batch_size_parallel = int(np.floor(0.1 * self.machine_properties['memory'] / parallel_memory_usage))
 
         if max_batch_size_serial > self.parent.number_of_configurations:
             self.batch_size['Serial'] = self.parent.number_of_configurations
 
         else:
             self.batch_size['Serial'] = max_batch_size_serial
-        
+
         self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations /
                                            (self.batch_size['Serial'])).astype(int)
 
@@ -352,7 +354,6 @@ class Calculator(metaclass=abc.ABCMeta):
         min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
         min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
 
-
         for _ in range(100):
             end_index = random.randint(min_end_index, max_end_index)  # get a random end point
             start_index = random.randint(min_start_index, max_start_index)  # get a random start point
@@ -401,6 +402,17 @@ class Calculator(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError  # Implement in the child class
+
+    @staticmethod
+    def convolution_op(data_a: tf.Tensor, data_v: tf.Tensor = None) -> tf.Tensor:
+        """tf.numpy_function mapper of the np autocorrelation function"""
+        if data_v is None:
+            data_v = data_a
+
+        def func(a, v):
+            return sum([signal.correlate(a[:, idx], v[:, idx], mode="full", method='auto') for idx in range(3)])
+
+        return tf.numpy_function(func=func, inp=[data_a, data_v], Tout=tf.float64)
 
     def convolution_operation(self, group: str = None):
         """

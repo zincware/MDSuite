@@ -11,6 +11,7 @@ import os
 import pickle
 import sys
 from pathlib import Path
+import inspect
 
 import h5py as hf
 import numpy as np
@@ -208,6 +209,8 @@ class Experiment:
 
         The type of computation will be stored in a dictionary.
 
+        This class represents the "run_computation" in "run_computation.calculator"
+
         Parameters
         ----------
         computation_name : str
@@ -229,7 +232,7 @@ class Experiment:
 
         def __getattribute__(self, item):
             """Call via function
-            You cann call the computation via a function and autocompletion
+            You can call the computation via a function and autocompletion
             >>> Experiment.run_computation.EinsteinDiffusionCoefficients(plot=True)
             """
             try:
@@ -237,10 +240,35 @@ class Experiment:
             except KeyError:
                 return super().__getattribute__(item)
 
-            def func(**kwargs):
-                self.compute(class_compute, **kwargs)
+            class Func:
+                """Return the documentation if the function is not called.
 
-            return func
+                This class represents the "calculator" in "run_computation.calculator"
+
+                """
+                def __init__(self, parent, class_func_compute):
+                    self.parent = parent
+                    self.class_compute = class_func_compute
+
+                def get_documentation(self):
+                    """Get the documentation for the calculator
+                    You can print the documentation via
+                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients.get_documentation()
+                    """
+                    print(inspect.getdoc(self.class_compute))
+
+                def __repr__(self):
+                    """Get the documentation for the calculator
+                    You can print the documentation if you don't call the class
+                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients
+                    """
+                    self.get_documentation()
+                    return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
+
+                def __call__(self, **kwargs):
+                    self.parent.compute(self.class_compute, **kwargs)
+
+            return Func(self, class_compute)
 
         def __call__(self, computation_name, **kwargs):
             """Call directly
@@ -256,6 +284,15 @@ class Experiment:
                 return
 
             self.compute(class_compute, **kwargs)
+
+        def __repr__(self):
+            """Print available computations if no computation method is called
+            """
+            return_string = 'Available computations are: \n \n'
+            for key in dict_classes_computations:
+                return_string += key
+                return_string += "\n"
+            return return_string
 
         def compute(self, class_compute, **kwargs):
             object_compute = class_compute(self.parent, **kwargs)

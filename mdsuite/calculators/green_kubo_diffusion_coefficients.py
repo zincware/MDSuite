@@ -182,7 +182,10 @@ class GreenKuboDiffusionCoefficients(Calculator):
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
         for i in range(int(self.n_batches['Serial'])):
+            print('start loading')
             batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+            # TODO make this a generator function and use tf.data for it!
+            print('stop loading')
 
             def generator():
                 """Generate the data for the VACF Calculation.
@@ -191,7 +194,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 for start_index in range(int(self.batch_loop)):
                     start = start_index + self.correlation_time
                     stop = start + self.data_range
-                    yield batch[:, start:stop]
+                    yield batch[:, start:stop]  # shape is (n_atoms, n_atoms, 3)
 
             dataset = tf.data.Dataset.from_generator(
                 generator=generator,
@@ -242,6 +245,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         -------
 
         """
+
         vacf = np.zeros(int(2 * self.data_range - 1))  # initialize the vacf array
 
         if self_correlation:
@@ -298,26 +302,55 @@ class GreenKuboDiffusionCoefficients(Calculator):
         denominator = 3 * self.parent.units['time'] * (self.data_range - 1) * atom_factor
         prefactor = numerator / denominator
 
-        os.mkdir(f"{self.parent.database_path}/tmp")
-
-        coefficient_array = []
-        indicator = 0
-        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):
+        for i in range(int(self.n_batches['Parallel'])):
+            print("Start Loading Data")
             batch = self._load_batch(i, item=molecules)  # load a batch of data
+            print('Done!')
+            a = 0
             if self_correlation:
                 batch = [batch]
-            for start in range(int(self.batch_loop)):
-                vacf = dask.delayed(self._distinct_correlation_operation)(start, batch, indicator, self_correlation)
-                coefficient_array.append(prefactor * vacf)
-            indicator += 1
-
-            # futures = dask.persist(*coefficient_array)
-            if i == 0:
-                results = dask.compute(*coefficient_array)
+                b = 0
+                ab_diagonal_length = len(batch[a])  # for TQDM only
             else:
-                results += dask.compute(*coefficient_array)
+                b = 1
+                ab_diagonal_length = 0  # for TQDM only
 
-        parsed_vacf = self._collect_data()  # collect all of the saved files
+            def generator():
+                for start in range(int(self.batch_loop)):
+                    stop = start + self.data_range
+                    for i in range(len(batch[a])):
+                        for j in range(len(batch[b])):
+                            if a == b and j == i:
+                                continue
+                            yield batch[a][i][start:stop], batch[b][j][start:stop]
+
+            dataset = tf.data.Dataset.from_generator(
+                generator=generator,
+                output_signature=(
+                    tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64),
+                    tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+                )
+            )
+
+            dataset = dataset.map(self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE,
+                                  deterministic=False)
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)  # Doesn't seem to be much of an improvement
+
+            # TODO the batching might also be wrong! What exactly is a batch here? It is arbitrary, right?
+            parsed_vacf = tf.zeros(int(self.data_range), dtype=tf.float64)
+            vacf = tf.zeros(int(self.data_range * 2 - 1), dtype=tf.float64)
+            for x in tqdm(dataset.batch(self.data_range),
+                          total=int(self.batch_loop * len(batch[a] * len(batch[b] - ab_diagonal_length))),
+                          desc=f"Processing {item}", smoothing=0.05):
+                vacf += tf.reduce_sum(x, axis=0)
+                vacf *= prefactor
+                parsed_vacf += vacf[int(len(vacf) / 2):]
+
+                # TODO where to save the VACFs?
+
+            plt.plot(self.time * self.parent.units['time'], parsed_vacf / max(parsed_vacf), label=item)
+
+        results = vacf
 
         # Save data if desired
         if self.save:

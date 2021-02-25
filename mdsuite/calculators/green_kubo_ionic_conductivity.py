@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 import warnings
+import tensorflow as tf
 
 # Import user packages
 from tqdm import tqdm
@@ -178,8 +179,36 @@ class GreenKuboIonicConductivity(Calculator):
         prefactor = numerator / denominator
 
         db_path = os.path.join(self.loaded_property, self.loaded_property)
-        sigma, parsed_autocorrelation = self.convolution_operation(group=db_path)
-        sigma *= prefactor
+
+        sigma = []
+        parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
+
+        for i in range(int(self.n_batches['Parallel'])):  # loop over batches
+            batch = self._load_batch(i, path=db_path)
+            print(self.batch_loop)
+
+            def generator():
+                for start_index in range(int(self.batch_loop)):
+                    start = start_index + self.correlation_time
+                    stop = start + self.data_range
+                    yield batch[start:stop]
+
+            dataset = tf.data.Dataset.from_generator(
+                generator,
+                output_signature=tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+            )
+            dataset = dataset.map(self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE,
+                                  deterministic=False)
+
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+
+            # for frame in tqdm(dataset.batch(self.data_range), total=int(self.batch_loop / self.data_range)):
+            for frame in tqdm(dataset, total=int(self.batch_loop), smoothing=0.1):
+                parsed_autocorrelation += frame[self.data_range - 1:]
+                sigma.append(np.trapz(frame[self.data_range - 1:], x=self.time))
+
+        sigma = prefactor * tf.constant(sigma)
+        parsed_autocorrelation = parsed_autocorrelation / max(parsed_autocorrelation)
 
         # update the experiment class
         self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma) / np.sqrt(len(sigma))) / 100)])
