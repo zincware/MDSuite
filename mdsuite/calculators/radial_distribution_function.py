@@ -116,7 +116,7 @@ class RadialDistributionFunction(Calculator, ABC):
         if "scaling_factor" in kwargs:
             self.scaling_factor = kwargs.pop("scaling_factor")
         else:
-            self.scaling_factor = 0.1*self.parent.number_of_atoms
+            self.scaling_factor = 0.05*self.parent.number_of_atoms
 
     def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
@@ -469,5 +469,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # collect machine properties and determine batch size
         self._collect_machine_properties(scaling_factor=self.scaling_factor)
+        if self.n_batches["Parallel"] > self.number_of_configurations:
+            self.n_batches["Parallel"] = self.number_of_configurations
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()

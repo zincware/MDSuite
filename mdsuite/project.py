@@ -140,7 +140,7 @@ class Project:
         save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
         save_file.close()  # Close the state file
 
-    def add_experiment(self, experiment_name=None, timestep=None, temperature=None, units=None):
+    def add_experiment(self, experiment_name=None, timestep=None, temperature=None, units=None, cluster_mode=None):
         """
         Add an experiment to the project
 
@@ -173,7 +173,8 @@ class Project:
                                     storage_path=f"{self.storage_path}/{self.name}",
                                     time_step=timestep,
                                     units=units,
-                                    temperature=temperature)
+                                    temperature=temperature,
+                                    cluster_mode=cluster_mode)
 
         self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
