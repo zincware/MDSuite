@@ -21,8 +21,10 @@ from scipy.signal import savgol_filter
 from mdsuite.utils.units import golden_ratio
 from mdsuite.utils.exceptions import NoGPUInSystem
 
+from typing import Callable
 
-def get_dimensionality(box):
+
+def get_dimensionality(box: list) -> int:
     """
     Calculate the dimensionality of the system box
 
@@ -52,9 +54,14 @@ def get_dimensionality(box):
     return dimensions
 
 
-def get_machine_properties():
+def get_machine_properties() -> dict:
     """
     Get the properties of the machine being used
+
+    Returns
+    -------
+    machine_properties : dict
+            A dictionary containing information about the hardware being used.
     """
 
     machine_properties = {}
@@ -75,7 +82,7 @@ def get_machine_properties():
     return machine_properties
 
 
-def line_counter(filename):
+def line_counter(filename: str) -> int:
     """
     Count the number of lines in a file
 
@@ -96,7 +103,7 @@ def line_counter(filename):
     return sum(1 for _ in open(filename, 'rb'))
 
 
-def optimize_batch_size(filepath, number_of_configurations):
+def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
     """
     Optimize the size of batches during initial processing
 
@@ -132,7 +139,7 @@ def optimize_batch_size(filepath, number_of_configurations):
         return initial_batch_number
 
 
-def linear_fitting_function(x, a, b):
+def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
     """
     Linear function for line fitting
 
@@ -156,7 +163,7 @@ def linear_fitting_function(x, a, b):
     return a * x + b
 
 
-def simple_file_read(filename):
+def simple_file_read(filename: str) -> list:
     """
     Trivially read a file and load it into an array
 
@@ -182,23 +189,25 @@ def simple_file_read(filename):
     return data_array
 
 
-def timeit(f):
+def timeit(f: Callable) -> Callable:
     """
     Decorator to time the execution of a method.
 
     Parameters
     ----------
-    f : function
+    f : Callable
             Function to be wrapped.
 
     Returns
     -------
-    wrap : python decorator
+    wrap : Callable
     """
 
     @wraps(f)
     def wrap(*args, **kw):
-        """ Function to wrap a method and time its execution """
+        """
+        Function to wrap a method and time its execution
+        """
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.
@@ -209,7 +218,7 @@ def timeit(f):
     return wrap
 
 
-def apply_savgol_filter(data):
+def apply_savgol_filter(data: list) -> list:
     """
     Apply a savgol filter for function smoothing
 
@@ -230,7 +239,7 @@ def apply_savgol_filter(data):
     return savgol_filter(data, 17, 2)
 
 
-def golden_section_search(data, a, b):
+def golden_section_search(data: np.array, a: float, b: float) -> tuple:
     """ Perform a golden-section search for function minimums
 
     The Golden-section search algorithm is one of the best min-finding algorithms available and is here used to
@@ -259,7 +268,7 @@ def golden_section_search(data, a, b):
     phi_a = 1 / golden_ratio
     phi_b = 1 / (golden_ratio ** 2)
 
-    # Get the initial range and caluclate the maximum number of steps to be performed.
+    # Get the initial range and calculate the maximum number of steps to be performed.
     h = a - b
     number_of_steps = int(np.ceil(np.log(1e-5 / h)) / np.log(phi_a))
 
@@ -295,7 +304,7 @@ def golden_section_search(data, a, b):
         return c, b
 
 
-def round_down(a, b):
+def round_down(a: int, b: int) -> int:
     """
     Function to get the nearest lower divisor.
 
@@ -348,6 +357,6 @@ def split_array(data: np.array, condition: np.array) -> list:
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw data
-        return list(data[condition])
+        return [data[condition]]
     else:  # else return the whole array
         return initial_split

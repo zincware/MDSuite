@@ -28,7 +28,6 @@ from mdsuite.utils.units import elementary_charge, boltzmann_constant
 from mdsuite.database.database import Database
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 

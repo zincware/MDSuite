@@ -25,7 +25,6 @@ import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -102,7 +101,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = correlation_time  # correlation time of the velocities.
 
         if species is None:
             self.species = list(self.parent.species)

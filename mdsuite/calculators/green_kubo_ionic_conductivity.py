@@ -24,7 +24,6 @@ from mdsuite.database.database import Database
 from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -90,7 +89,6 @@ class GreenKuboIonicConductivity(Calculator):
         self.tensor_choice = False  # Load data as a tensor
         self.database_group = 'ionic_conductivity'  # Which database group to save the data in
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-        self.correlation_time = 1  # correlation time of the system current.
 
         # Check for unwrapped coordinates and unwrap if not stored already.
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:

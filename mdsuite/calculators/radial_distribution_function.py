@@ -26,7 +26,6 @@ from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -114,27 +113,29 @@ class RadialDistributionFunction(Calculator, ABC):
                          list(itertools.combinations_with_replacement(self.index_list, r=2))]  # Select combinations
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
-        # TODO automate scaling factor dependent on the system size
         if "scaling_factor" in kwargs:
             self.scaling_factor = kwargs.pop("scaling_factor")
         else:
-            self.scaling_factor = 15
+            self.scaling_factor = 0.1*self.parent.number_of_atoms
 
     def _autocorrelation_time(self):
         """ Calculate the position autocorrelation time of the system """
         raise NotImplementedError
 
-    def _get_ideal_gas_probability(self):
+    def _get_ideal_gas_probability(self) -> float:
         """
         Get the correct ideal gas term
 
         In the case of a cutoff value greater than half of the box size, the ideal gas term of the system must be
         corrected due to the lack of spherical symmetry in the system.
+
         Returns
         -------
+        correction : float
+                Correct ideal gas term for the RDF prefactor
         """
 
-        def _spherical_symmetry(data: np.array):
+        def _spherical_symmetry(data: np.array) -> np.array:
             """
             Operation to perform for full spherical symmetry
 
@@ -149,7 +150,7 @@ class RadialDistributionFunction(Calculator, ABC):
             """
             return 4*np.pi*(data**2)
 
-        def _correction_1(data: np.array):
+        def _correction_1(data: np.array) -> np.array:
             """
             First correction to ideal gas.
 
@@ -164,7 +165,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             return 2*np.pi*data*(3 - 4*data)
 
-        def _correction_2(data: np.array):
+        def _correction_2(data: np.array) -> np.array:
             """
             Second correction to ideal gas.
 
@@ -181,7 +182,7 @@ class RadialDistributionFunction(Calculator, ABC):
             arctan_2 = 8*data*np.arctan((2*data*(4*(data**2) - 3))/(np.sqrt(4*(data**2) - 2)*(4*(data**2) + 1)))
             return 2*data*(3*np.pi - 12*arctan_1 + arctan_2)
 
-        def _piecewise(data: np.array):
+        def _piecewise(data: np.array) -> np.array:
             """
             Return a piecewise operation on a set of data
             Parameters
@@ -217,21 +218,36 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return bin_width*_piecewise(np.array(bin_edges))
 
-    def _load_positions(self, indices):
+    def _load_positions(self, indices: list) -> tf.Tensor:
         """
         Load the positions matrix
 
         This function is here to optimize calculation speed
+
+        Parameters
+        ----------
+        indices : list
+                List of indices to take from the database
+        Returns
+        -------
+        loaded_data : tf.Tensor
+                tf.Tensor of data loaded from the hdf5 database
         """
 
         return self.parent.load_matrix("Positions", select_slice=np.s_[:, indices], tensor=True)
 
-    def _get_species_names(self, species_tuple):
+    def _get_species_names(self, species_tuple: tuple) -> str:
         """ Get the correct names of the species being studied
 
-        :argument species_tuple (tuple) -- The species tuple i.e (1, 2) corresponding to the rdf being calculated
+        Parameters
+        ----------
+        species_tuple : tuple
+                The species tuple i.e (1, 2) corresponding to the rdf being calculated
 
-        :returns names (string) -- Prefix for the saved file
+        Returns
+        -------
+        names : str
+                Prefix for the saved file
         """
 
         species = list(self.parent.species)  # load all of the species
@@ -239,7 +255,7 @@ class RadialDistributionFunction(Calculator, ABC):
         return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
 
     @staticmethod
-    def get_neighbour_list(positions, cell=None, batch_size=None):
+    def get_neighbour_list(positions: tf.Tensor, cell: list = None, batch_size: int = None) -> tf.Tensor:
         """
         Generate the neighbour list
 
@@ -264,10 +280,14 @@ class RadialDistributionFunction(Calculator, ABC):
 
         """
 
-        def get_triu_indicies(n_atoms):
+        def get_triu_indicies(n_atoms: int) -> tf.Tensor:
             """
             Version of np.triu_indices with k=1
 
+            Parameters
+            ----------
+            n_atoms : int
+                    Number of atoms to perform operation on
             Returns
             ---------
                 Returns a vector of size (2, None) instead of a tuple of two values like np.triu_indices
@@ -279,10 +299,16 @@ class RadialDistributionFunction(Calculator, ABC):
             indices = tf.cast(indices, dtype=tf.int32)  # Get the correct dtype
             return tf.transpose(indices)  # Return the transpose for convenience later
 
-        def get_rij_mat(positions, triu_mask, cell):
+        def get_rij_mat(positions: tf.Tensor, triu_mask: tf.Tensor, cell: list) -> tf.Tensor:
             """
             Use the upper triangle of the virtual r_ij matrix constructed of n_atoms * n_atoms matrix and subtract
             the transpose to get all distances once! If PBC are used, apply the minimum image convention.
+
+            Parameters
+            ----------
+            positions : tf.Tensor
+            triu_mask : tf.Tensor
+            cell : list
             """
             r_ij_mat = tf.gather(positions, triu_mask[0], axis=1) - tf.gather(positions, triu_mask[1], axis=1)
             if cell:
@@ -305,9 +331,14 @@ class RadialDistributionFunction(Calculator, ABC):
             yield get_rij_mat(positions, triu_mask, cell)
 
     @staticmethod
-    def _apply_system_cutoff(tensor, cutoff):
+    def _apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
         """
         Enforce a cutoff on a tensor
+
+        Parameters
+        ----------
+        tensor : tf.Tensor
+        cutoff : flaot
         """
 
         cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
@@ -315,15 +346,26 @@ class RadialDistributionFunction(Calculator, ABC):
         return tf.boolean_mask(tensor, cutoff_mask)
 
     @staticmethod
-    def _bin_data(distance_tensor, bin_range=None, nbins=500):
-        """ Build the histogram number_of_bins for the neighbour lists """
+    def _bin_data(distance_tensor: tf.Tensor, bin_range: list = None, nbins: int = 500) -> tf.Tensor:
+        """
+        Build the histogram number_of_bins for the neighbour lists
+
+        Parameters
+        ----------
+        distance_tensor : tf.Tensor
+                Distance tensor on which the operation should be performed
+        bin_range : list
+                Range over which bins should be constructed
+        nbins : int
+                number of bins to include in the histogram
+        """
 
         if bin_range is None:
             bin_range = [0.0, 5.0]
 
         return tf.histogram_fixed_width(distance_tensor, bin_range, nbins)
 
-    def get_pair_indices(self, len_elements, index_list):
+    def get_pair_indices(self, len_elements: list, index_list: list) -> tuple:
         """
         Get the indicies of the pairs for rdf calculation
 
@@ -336,7 +378,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
-        array, string: returns a 1D array of the positions of the pairs in the r_ij_mat, name of the pairs
+        list, string: returns a 1D array of the positions of the pairs in the r_ij_mat, name of the pairs
 
         """
         n_atoms = sum(len_elements)  # Get the total number of atoms in the system
@@ -371,10 +413,10 @@ class RadialDistributionFunction(Calculator, ABC):
                 distance_tensor = tf.norm(tf.gather(r_ij_mat, pair, axis=1), axis=2)  # Compute all distances
                 distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)
                 # print(names)
-                self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range, nbins=self.number_of_bins),
-                                            dtype=float)
+                self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range,
+                                                           nbins=self.number_of_bins), dtype=float)
 
-    def _calculate_prefactor(self, species):
+    def _calculate_prefactor(self, species: str) -> float:
         """
         Calculate the relevant prefactor for the analysis
 
@@ -393,7 +435,8 @@ class RadialDistributionFunction(Calculator, ABC):
         rho = len(self.parent.species[species_split[1]]['indices']) / self.parent.volume
         ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
         numerator = species_scale_factor
-        denominator = self.number_of_configurations * rho * ideal_correction * len(self.parent.species[species_split[0]]['indices'])
+        denominator = self.number_of_configurations * rho * ideal_correction * \
+                      len(self.parent.species[species_split[0]]['indices'])
         prefactor = numerator / denominator
 
         return prefactor
@@ -424,7 +467,7 @@ class RadialDistributionFunction(Calculator, ABC):
         Perform the rdf analysis
         """
 
-        self._collect_machine_properties(scaling_factor=25)  # collect machine properties and determine batch size
-        self.n_batches['Parallel'] = 10
+        # collect machine properties and determine batch size
+        self._collect_machine_properties(scaling_factor=self.scaling_factor)
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
