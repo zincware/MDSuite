@@ -22,7 +22,6 @@ from mdsuite.calculators.calculator import Calculator
 # Import MDSuite modules
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 

@@ -8,6 +8,7 @@ Summary
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from scipy.signal import find_peaks
 import h5py as hf
 
@@ -17,6 +18,8 @@ from mdsuite.calculators.calculator import Calculator
 
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
+
+plt.style.use('classic')
 
 
 class CoordinationNumbers(Calculator):
@@ -206,9 +209,7 @@ class CoordinationNumbers(Calculator):
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
-        # update the experiment class
-        self.parent.coordination_numbers[self.species_tuple] = {'first_shell': [first_shell, first_shell_error],
-                                                                'second_shell': [second_shell, second_shell_error]}
+        # update the system information file
         self._update_properties_file(item=self.species_tuple, sub_item='first_shell', add=True,
                                      data=[str(first_shell), str(first_shell_error)])
         self._update_properties_file(item=self.species_tuple, sub_item='second_shell', add=True,
@@ -220,18 +221,23 @@ class CoordinationNumbers(Calculator):
         """
 
         fig, ax1 = plt.subplots()  # define the plot
-        ax1.plot(self.radii, self.rdf, 'k-', label=f"{self.species_tuple} RDF")  # plot the RDF
+        ax1.plot(self.radii, self.rdf, label=f"{self.species_tuple} RDF")  # plot the RDF
         ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
         ax2 = ax1.twinx()  # split the axis
+        #ax1.set_facecolor('white')
+        #ax1.grid()
+        #ax2.grid()
         ax2.set_ylabel('CN')  # set the RHS y axis label
         # plot the CN as a continuous function
-        ax2.plot(self.radii[1:], np.array(self.integral_data), 'k.', markersize=1, label=f"{self.species_tuple} CN")
+        ax2.plot(self.radii[1:], np.array(self.integral_data), 'r')#, markersize=1, label=f"{self.species_tuple} CN")
         # Plot the first and second shell values as a small window.
-        ax1.axvspan(self.radii[self.indices[0][0]], self.radii[self.indices[0][1]],
-                    alpha=0.5, color='k', lw=0, hatch='/')
-        ax1.axvspan(self.radii[self.indices[1][0]], self.radii[self.indices[1][1]],
-                    alpha=0.5, color='k', lw=0, hatch='|')
+        ax1.axvspan(self.radii[self.indices[0][0]] - 0.01, self.radii[self.indices[0][1]] + 0.01, color='g')
+                   # color='g', lw=0, hatch='/')
+        #ax1.axvspan(self.radii[self.indices[1][0]] - 0.1, self.radii[self.indices[1][1]] + 0.1,
+        #            color='b', lw=0, hatch='|')
         ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
+        plt.savefig(f'{self.species_tuple}.svg', dpi=800)
+        plt.show()
 
     def run_analysis(self):
         """

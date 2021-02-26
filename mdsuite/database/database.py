@@ -331,3 +331,26 @@ class Database:
         database_object.close()
 
         return response
+
+    def change_key_names(self, mapping: dict):
+        """
+        Change the name of database keys
+
+        Parameters
+        ----------
+        mapping : dict
+                Mapping for the change of names
+
+        Returns
+        -------
+        Updates the database
+        """
+
+        db = hf.File(self.name, 'r+')  # open the database object
+        groups = list(db.keys())
+
+        for item in groups:
+            if item in mapping:
+                db.move(item, mapping[item])
+
+        db.close()

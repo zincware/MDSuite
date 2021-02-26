@@ -21,7 +21,6 @@ from mdsuite.utils.meta_functions import timeit
 import mdsuite.utils.constants as constants
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
-plt.style.use('bmh')
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 

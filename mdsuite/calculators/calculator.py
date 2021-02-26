@@ -8,7 +8,6 @@ Summary
 import abc
 import random
 
-from scipy.optimize import curve_fit
 import yaml
 import h5py as hf
 import matplotlib.pyplot as plt
@@ -169,15 +168,18 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
-    def _load_batch(self, batch_number, loaded_property=None, item=None, scalar=False, sym_matrix=False, path=None):
+    def _load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, scalar: bool = False,
+                    sym_matrix: bool = False, path: str = None):
         """
         Load a batch of data
 
         Parameters
         ----------
+        loaded_property : str
+                name of the property to be loaded from the database
         batch_number : int
                 Which batch is being studied
-        item : str
+        item : list
                 Species being studied at the time
 
         Returns
@@ -194,7 +196,7 @@ class Calculator(metaclass=abc.ABCMeta):
         return self.parent.load_matrix(loaded_property, species=item, select_slice=np.s_[:, start:stop],
                                        tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix, path=path)
 
-    def _save_data(self, title, data):
+    def _save_data(self, title: str, data: np.array):
         """
         Save data to the save data directory
 
@@ -214,7 +216,7 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
 
-    def _plot_data(self, title=None, manual=False):
+    def _plot_data(self, title: str=None, manual: bool=False):
         """
         Plot the data generated during the analysis
         """
@@ -252,7 +254,7 @@ class Calculator(metaclass=abc.ABCMeta):
         else:
             return 0
 
-    def _optimize_einstein_data_range(self, data):
+    def _optimize_einstein_data_range(self, data: np.array):
         """
         Optimize the data range of a system using the Einstein method of calculation.
 
@@ -311,7 +313,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 raise RangeExceeded
 
     @staticmethod
-    def _fit_einstein_curve(data):
+    def _fit_einstein_curve(data: list):
         """
         Fit operation for Einstein calculations
 
@@ -363,7 +365,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         return [str(np.mean(fits)), str(np.std(fits))]
 
-    def _update_properties_file(self, item=None, sub_item=None, data=None, add=False):
+    def _update_properties_file(self, item: str = None, sub_item: str = None, data: list = None, add: bool = False):
         """
         Update the system properties YAML file.
         """

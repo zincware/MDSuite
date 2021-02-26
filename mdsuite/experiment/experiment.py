@@ -204,6 +204,29 @@ class Experiment:
                 sys.exit(-1)
         return units
 
+    def map_elements(self, mapping: dict = None):
+        """
+        Map numerical keys to element names in the Experiment class and database.
+
+        Returns
+        -------
+        Updates the class
+        """
+
+        if mapping is None:
+            print("Must provide a mapping")
+            return
+
+        # rename keys in species dictionary
+        for item in mapping:
+            self.species[mapping[item]] = self.species.pop(item)
+
+        # rename database groups
+        db_object = Database(name=os.path.join(self.database_path, "database.hdf5"))
+        db_object.change_key_names(mapping)
+
+        self.save_class()  # update the class state
+
     class RunComputation:
         """ Run a computation
 
