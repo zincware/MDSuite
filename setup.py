@@ -35,4 +35,8 @@ setuptools.setup(
                       'PyYAML',
                       'sphinxcontrib.bibtex',
                       'dask',
-                      'nbsphinx'])
+                      'nbsphinx',
+                      'sphinx_rtd_theme',
+                      'ipython',
+                      'numpydoc',
+                      'sphinx-copybutton'])
