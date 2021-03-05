@@ -65,4 +65,6 @@ setuptools.setup(
                       'sphinx-copybutton'],
     cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
     # force install of the newest h5py after the dependencies are installed
+    # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
+    # TODO remove if tensorflow supports h5py > 3
 )
