@@ -12,6 +12,7 @@ from typing import TextIO
 import h5py as hf
 import numpy as np
 from tqdm import tqdm
+from mdsuite.utils.meta_functions import join_path
 
 from mdsuite.file_io.file_read import FileProcessor
 
@@ -113,7 +114,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                                   self.header_lines for i in range(batch_size)]).flatten()
             length = len(self.project.species[item]['indices'])
             for observable in self.project.property_groups:
-                path = os.path.join(item, observable)
+                path = join_path(item, observable)
                 columns = self.project.property_groups[observable]
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
 
