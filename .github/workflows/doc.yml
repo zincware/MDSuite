@@ -17,6 +17,7 @@ jobs:
         run: |
           pip3 install -r requirements.txt
           pip3 install h5py --upgrade --no-dependencies
+          pip3 install cached-property
       - name: Build documentation
         run: |
           cd docs
