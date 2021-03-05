@@ -1,6 +1,5 @@
 name: Build the documentation
 
-#Force push
 on:
   push:
   pull_request:
