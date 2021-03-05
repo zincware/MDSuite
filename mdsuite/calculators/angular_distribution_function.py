@@ -8,15 +8,15 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-
 import matplotlib.pyplot as plt
 
 
 class AngularDistributionFunction(Calculator, ABC):
 
-    def __init__(self, obj, n_batches=1, n_minibatches=50, n_confs=50, r_cut: int = 6.0, start: int = 0, stop: int = 10000,
-                 bins: int = 500, use_tf_function: bool = False):
-        """Compute the Angular Distribution Function for all species combinations
+    def __init__(self, obj, n_batches: int = 1, n_minibatches: int = 50, n_confs: int = 50,
+                 r_cut: int = 6.0, start: int = 0, stop: int = 10000, bins: int = 500, use_tf_function: bool = False):
+        """
+        Compute the Angular Distribution Function for all species combinations
 
         Parameters
         ----------

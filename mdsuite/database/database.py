@@ -41,7 +41,7 @@ class Database:
         self.architecture = architecture  # architecture of database
         self.name = name  # name of the database
 
-    def open(self, mode: str = 'a'):
+    def open(self, mode: str = 'a') -> hf.File:
         """
         Open the database
 
@@ -79,12 +79,15 @@ class Database:
 
     @staticmethod
     def add_data(data: np.array, structure: dict, database: hf.File,
-                 start_index: int, batch_size: int, tensor: bool = False, system_tensor: bool = False):
+                 start_index: int, batch_size: int, tensor: bool = False,
+                 system_tensor: bool = False, flux: bool = False):
         """
         Add a set of data to the database.
 
         Parameters
         ----------
+        flux : bool
+                If true, the atom dimension is not included in the slicing.
         system_tensor : bool
                 If true, no atom information is looked for when saving
         tensor : bool
@@ -112,6 +115,9 @@ class Database:
                 database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
             elif system_tensor:
                 database[item][start_index:stop_index, :] = data[:, 0:3]
+            elif flux:
+                database[item][start_index:stop_index, :] = data[structure[item]['indices']][
+                    np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
             else:
                 database[item][:, start_index:stop_index, :] = data[structure[item]['indices']][
                     np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
@@ -167,7 +173,7 @@ class Database:
         self.add_dataset(structure, database)  # add a dataset to the groups
         database.close()  # close the database
 
-    def _build_path_input(self, structure: dict):
+    def _build_path_input(self, structure: dict) -> dict:
         """
         Build an input to a hdf5 database from a dictionary
 
@@ -285,18 +291,14 @@ class Database:
             else:
                 database.create_group(item)
 
-    def get_memory_information(self, groups=None):
+    def get_memory_information(self) -> dict:
         """
         Get memory information from the database
 
-        Parameters
-        ----------
-        groups : dict
-                Different groups to look at, if set to None, all the group data will be returned. Values of the keys
-                correspond to datasets within a group, if they are not given, all datasets will be looked at and
-                returned.
         Returns
         -------
+        memory_database : dict
+                A dictionary of the memory information of the groups in the database
 
         """
 
@@ -309,7 +311,7 @@ class Database:
 
         return memory_database
 
-    def check_existence(self, path: str):
+    def check_existence(self, path: str) -> bool:
         """
         Check to see if a dataset is in the database
 

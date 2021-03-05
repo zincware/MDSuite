@@ -67,7 +67,12 @@ class FluxFile(FileProcessor):
                                                                   compression="gzip", compression_opts=9)
 
     def fill_database(self, counter=0):
+        """
 
+        Parameters
+        ----------
+        counter
+        """
         # loop range for the data.
         loop_range = int((self.project.number_of_configurations - counter) / self.project.batch_size)
         skip_header = 0

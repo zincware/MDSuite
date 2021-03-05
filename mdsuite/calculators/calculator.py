@@ -59,8 +59,7 @@ class Calculator(metaclass=abc.ABCMeta):
     """
 
     def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None,
-                 analysis_name=None,
-                 parallel=False, correlation_time=1, optimize_correlation_time=False):
+                 analysis_name=None, parallel=False, correlation_time=1, optimize_correlation_time=False):
         """
 
         Parameters
@@ -86,12 +85,15 @@ class Calculator(metaclass=abc.ABCMeta):
         self.n_batches = {}  # Number of batches to be calculated over
         self.machine_properties = None  # dictionary of machine properties to be evaluated at analysis run-time
         self.correlation_time = correlation_time  # correlation time of the property
+        self.batch_loop = None  # Number of ensembles in each batch
 
         self.x_label = x_label  # x label of the figure
         self.y_label = y_label  # y label of the figure
         self.analysis_name = analysis_name  # what to save the figure as
 
         self.database_group = None  # Which database group to save the data in
+        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
+
 
         # Solve for the batch type
         if self.parallel:
@@ -407,11 +409,37 @@ class Calculator(metaclass=abc.ABCMeta):
 
     @staticmethod
     def convolution_op(data_a: tf.Tensor, data_v: tf.Tensor = None) -> tf.Tensor:
-        """tf.numpy_function mapper of the np autocorrelation function"""
+        """
+        tf.numpy_function mapper of the np autocorrelation function
+
+        Parameters
+        ----------
+        data_a : tf.Tensor
+                Signal 1 of the correlation operation
+        data_v : tf.Tensor
+                Signal 2 of the correlation operation. If None, will be set to Signal 1 and autocorrelation is
+                performed.
+
+        Returns
+        -------
+        tf.Tensor
+                Returns a tensor from the correlation operation.
+        """
         if data_v is None:
             data_v = data_a
 
         def func(a, v):
+            """
+            Perform correlation on two data-sets.
+            Parameters
+            ----------
+            a : tf.Tensor
+            v : tf.Tensor
+
+            Returns
+            -------
+            Returns the correlation of the two signals.
+            """
             return sum([signal.correlate(a[:, idx], v[:, idx], mode="full", method='auto') for idx in range(3)])
 
         return tf.numpy_function(func=func, inp=[data_a, data_v], Tout=tf.float64)
@@ -419,21 +447,17 @@ class Calculator(metaclass=abc.ABCMeta):
     def convolution_operation(self, group: str = None):
         """
         This function performs the actual autocorrelation computation.
-        It is has been put here because it is the same function for every GK calculation.
-
-        :param type_batches: Serial or Parallel.
-        :return: sigma: list with the integrated property.
-        :return: parsed_autocorrelation: np array with the sum of the autocorrelations, used to see convergence.
 
         Parameters
         ----------
-        group
+        group : str
+
         """
         sigma = []  # define an empty sigma list
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
-            batch = self._load_batch(i, path=group)  # get the ionic current batch
+            batch = self._load_batch(i, path=group)
             for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
                 start = int(start_index + self.correlation_time)  # get start index
                 stop = int(start + self.data_range)  # get stop index
