@@ -8,8 +8,7 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - uses: actions/checkout@v2
       - name: Setup Python environment
         uses: actions/setup-python@v2
         with:
@@ -17,6 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip3 install -r requirements.txt
+          pip3 install h5py --upgrade --no-dependencies
       - name: Build documentation
         run: |
           cd docs

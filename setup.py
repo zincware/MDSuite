@@ -1,5 +1,27 @@
 import setuptools
 
+from setuptools.command.develop import develop
+from setuptools.command.install import install
+import subprocess
+import sys
+
+
+class PostDevelopCommand(develop):
+    """Post-installation for development mode."""
+
+    def run(self):
+        develop.run(self)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
+
+
+class PostInstallCommand(install):
+    """Post-installation for installation mode."""
+
+    def run(self):
+        install.run(self)
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
+
+
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
@@ -22,7 +44,8 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.6',
     install_requires=['seaborn',
-                      'h5py>3.0',
+                      'tensorflow',
+                      'h5py',
                       'numpy',
                       'matplotlib',
                       'scipy',
@@ -39,4 +62,9 @@ setuptools.setup(
                       'sphinx_rtd_theme',
                       'ipython',
                       'numpydoc',
-                      'sphinx-copybutton'])
+                      'sphinx-copybutton'],
+    cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
+    # force install of the newest h5py after the dependencies are installed
+    # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
+    # TODO remove if tensorflow supports h5py > 3
+)
