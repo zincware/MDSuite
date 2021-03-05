@@ -39,7 +39,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
         self.file_path = file_path   # path to the file being read
 
     @abc.abstractmethod
-    def process_trajectory_file(self):
+    def process_trajectory_file(self, rename_cols: dict = None, update_class: bool = True):
         """
         Get property groups from the trajectory
         This method is dependent on the code that generated the file. So it should be implemented in a grandchild class.

@@ -46,7 +46,7 @@ class Project:
             experiments.
     """
 
-    def __init__(self, name="My_Project", storage_path="./"):
+    def __init__(self, name: str = "My_Project", storage_path: str = "./"):
         """
         Project class constructor
 
@@ -58,7 +58,6 @@ class Project:
         ----------
         name : str
                 The name of the project.
-
         storage_path : str
                 Where to store the data and databases. This should be a place with sufficient storage space for the
                 full analysis.
@@ -87,7 +86,7 @@ class Project:
             os.mkdir(f"{self.storage_path}/{self.name}")  # create a new directory for the project
             self._save_class()  # Save the initial class state
 
-    def add_description(self, description):
+    def add_description(self, description: str):
         """
         Allow users to add a short description to their project
 
@@ -140,20 +139,23 @@ class Project:
         save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
         save_file.close()  # Close the state file
 
-    def add_experiment(self, experiment_name=None, timestep=None, temperature=None, units=None, cluster_mode=None):
+    def add_experiment(self, experiment_name: str=None, timestep: float = None, temperature: float = None,
+                       units: str = None, cluster_mode: bool = None):
         """
         Add an experiment to the project
 
         Parameters
         ----------
+        cluster_mode : bool
+                If true, cluster mode is parsed to the experiment class.
         experiment_name : str
-                Name to use for the experiment class
+                Name to use for the experiment class.
         timestep : float
-                Timestep used during the simulation
+                Timestep used during the simulation.
         temperature : float
-                Temperature the simulation was performed at and is to be used in calculation
+                Temperature the simulation was performed at and is to be used in calculation.
         units : str
-                LAMMPS units used TODO: Make it possible to add custom units
+                LAMMPS units used
         """
 
         # Set a name in case none is given

@@ -5,9 +5,8 @@ Summary
 -------
 """
 
-import h5py as hf
 import numpy as np
-from tqdm import tqdm
+import os
 
 from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
@@ -45,6 +44,46 @@ class LAMMPSFluxFile(FluxFile):
         super().__init__(obj, header_lines, file_path)  # fill the parent class
         self.project.volume = None
         self.project.number_of_atoms = None
+        self.project.flux = True
+
+    @staticmethod
+    def _build_architecture(property_groups: dict, number_of_atoms: int,
+                            number_of_configurations: int):
+        """
+        Build the database architecture for use by the database class
+
+        Parameters
+        ----------
+        species_summary : dict
+                Species summary passed to the experiment class
+        property_groups : dict
+                Property information passed to the experiment class
+        number_of_atoms : int
+                Number of atoms in each configurations
+        number_of_configurations : int
+                Number of configurations in the file
+
+        """
+        architecture = {}  # instantiate the database architecture dictionary
+        for observable in property_groups:
+            architecture[f"{observable}/{observable}"] = (number_of_configurations, len(property_groups[observable]))
+        return architecture
+
+    def _get_line_length(self):
+        """
+        Get the length of a line of data in the file.
+
+        Returns
+        -------
+
+        """
+        with open(self.file_path) as f:
+            for i in range(self.header_lines):
+                f.readline()
+
+            line_length = len(f.readline().split())
+
+        return line_length
 
     def process_trajectory_file(self, update_class=True, rename_cols=None):
         """ Get additional information from the trajectory file
@@ -54,6 +93,8 @@ class LAMMPSFluxFile(FluxFile):
 
         Parameters
         ----------
+        rename_cols : dict
+                Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
                 updated with new information. This is necessary on the first run of data addition to the database. After
@@ -67,7 +108,7 @@ class LAMMPSFluxFile(FluxFile):
             var_names.update(rename_cols)
 
         n_lines_header = 0  # number of lines of header
-        with open(self.project.trajectory_file) as f:
+        with open(self.file_path) as f:
             header = []
             for line in f:
                 n_lines_header += 1
@@ -79,18 +120,17 @@ class LAMMPSFluxFile(FluxFile):
 
         self.header_lines = n_lines_header
 
-        with open(self.project.trajectory_file) as f:
+        with open(self.file_path) as f:
             number_of_configurations = sum(1 for _ in f) - n_lines_header
 
         # Find properties available for analysis
-        column_dict_properties = self._get_column_properties(header_line)  # get column properties
-        self.project.property_groups = self._extract_properties(var_names,
-                                                                column_dict_properties)  # Get the observable groups
+        column_dict_properties = self._get_column_properties(header_line)
+        self.project.property_groups = self._extract_properties(var_names, column_dict_properties)
 
-        batch_size = optimize_batch_size(self.project.trajectory_file, number_of_configurations)
+        batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 
         # get time related properties of the system
-        with open(self.project.trajectory_file) as f:
+        with open(self.file_path) as f:
             # skip the header
             for _ in range(n_lines_header):
                 next(f)
@@ -125,3 +165,22 @@ class LAMMPSFluxFile(FluxFile):
         else:
             self.project.batch_size = batch_size
             # return [1, 1, 1, number_of_configurations]
+
+        line_length = self._get_line_length()
+        return self._build_architecture(self.project.property_groups,
+                                        self.project.number_of_atoms,
+                                        number_of_configurations), line_length
+
+    def build_file_structure(self):
+        """
+        Build a skeleton of the file so that the database class can process it correctly.
+        """
+
+        structure = {}  # define initial dictionary
+
+        for observable in self.project.property_groups:
+            path = os.path.join(observable, observable)
+            columns = self.project.property_groups[observable]
+            structure[path] = {'indices': np.s_[:], 'columns': columns, 'length': 1}
+
+        return structure

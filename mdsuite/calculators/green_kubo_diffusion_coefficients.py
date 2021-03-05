@@ -61,11 +61,13 @@ class GreenKuboDiffusionCoefficients(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=False, singular=True, distinct=False, species=None, data_range=500, save=True,
-                 x_label='Time $(s)$', y_label='VACF $(m^{2}/s^{2})$', analysis_name='Green_Kubo_Diffusion',
-                 correlation_time=1):
+    def __init__(self, obj, plot: bool = False, singular: bool = True, distinct: bool = False, species: list = None,
+                 data_range: int = 500, save: bool = True, x_label: str = 'Time $(s)$',
+                 y_label: str = 'VACF $(m^{2}/s^{2})$', analysis_name: str = 'Green_Kubo_Diffusion',
+                 correlation_time: int = 1):
         """
-        Python constructor
+        Constructor for the Green Kubo diffusion coefficients class.
+
         Attributes
         ----------
         obj :  object
@@ -89,7 +91,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
                          correlation_time=correlation_time)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
-        self.batch_loop = None  # Number of ensembles in each batch
         self.parallel = False  # Set the parallel attribute
         self.tensor_choice = False  # Load data as a tensor
 
@@ -98,9 +99,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         self.species = species  # Which species to calculate for
 
         self.database_group = 'diffusion_coefficients'  # Which database group to save the data in
-
-        # Time array
-        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
 
         if species is None:
             self.species = list(self.parent.species)
@@ -113,24 +111,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         pass
 
-    def _collect_data(self):
-        """
-        Collect data from the tmp directory and return the sum and delete the directory afterwards
-
-        Returns
-        -------
-        """
-
-        data_array = np.zeros(self.data_range, dtype=float)  # instantiate the array
-        files = os.listdir(f"{self.parent.database_path}/tmp")
-
-        for f in files:
-            data_array += np.load(f"{self.parent.database_path}/tmp/{f}", allow_pickle=True)
-
-        shutil.rmtree(f"{self.parent.database_path}/tmp")  # delete the directory
-
-        return data_array
-
     def _singular_diffusion_calculation(self, item: str):
         """
         Method to calculate the diffusion coefficients
@@ -140,8 +120,13 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         Returns
         -------
-        diffusion coeffients : list
+        diffusion coefficients : list
                 Returns the diffusion coefficient along with the error in its analysis as a list.
+
+        Notes
+        -----
+        # TODO make this a generator function and use tf.data for it!
+        # TODO benchmark AUTOTUNE vs 1
         """
 
         # Calculate the prefactor
@@ -155,31 +140,27 @@ class GreenKuboDiffusionCoefficients(Calculator):
         for i in range(int(self.n_batches['Serial'])):
             batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
 
-            # TODO make this a generator function and use tf.data for it!
-
             def generator():
-                """Generate the data for the VACF Calculation.
+                """
+                Generate the data for the VACF Calculation.
                 Apply correlation_time and data_range to the data.
                 """
                 for start_index in range(int(self.batch_loop)):
                     start = start_index + self.correlation_time
                     stop = start + self.data_range
-                    yield batch[:, start:stop]  # shape is (n_atoms, n_atoms, 3)
+                    yield batch[:, start:stop]  # shape is (n_atoms, data_range, 3)
 
-            dataset = tf.data.Dataset.from_generator(
-                generator=generator,
-                output_signature=tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
-            )
+            dataset = tf.data.Dataset.from_generator(generator=generator,
+                                                     output_signature=tf.TensorSpec(shape=(None, self.data_range, 3),
+                                                                                    dtype=tf.float64))
             dataset = dataset.unbatch().map(
                 self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
             ).batch(self.data_range)
-            # TODO benchmark AUTOTUNE vs 1
 
             dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
 
-            vacf = tf.zeros(int(self.data_range * 2 - 1), dtype=tf.float64)
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
-                vacf += tf.reduce_sum(x, axis=0)
+                vacf = tf.reduce_sum(x, axis=0)
                 parsed_vacf += vacf[int(len(vacf) / 2):]  # Update the parsed array
                 coefficient_array.append((prefactor / len(batch)) * np.trapz(vacf[int(len(vacf) / 2):],
                                                                              x=self.time))

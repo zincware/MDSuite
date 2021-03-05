@@ -8,7 +8,6 @@ Summary
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib as mpl
 from scipy.signal import find_peaks
 import h5py as hf
 
@@ -62,8 +61,8 @@ class CoordinationNumbers(Calculator):
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label='CN',
-                 analysis_name='Coordination_Numbers'):
+    def __init__(self, obj, plot: bool = True, save: bool = True, data_range: int = None, x_label: str = r'r ($\AA$)',
+                 y_label: str = 'CN', analysis_name: str = 'Coordination_Numbers'):
         """
         Python constructor
 
@@ -111,13 +110,12 @@ class CoordinationNumbers(Calculator):
             for item in db['radial_distribution_function']:  # loop over the files
                 self.data_files.append(item)  # Append to the data_file attribute
 
-    def _get_density(self):
+    def _get_density(self) -> float:
         """
         Use the species_tuple in front of the name to get information about the pair
         """
 
         species = self.species_tuple.split("_")  # get an array of the species being studied
-
         rdf_number_of_atoms = len(self.parent.species[species[0]]['indices'])  # get the number of atoms in the RDF
 
         return rdf_number_of_atoms / self.parent.volume
@@ -224,17 +222,12 @@ class CoordinationNumbers(Calculator):
         ax1.plot(self.radii, self.rdf, label=f"{self.species_tuple} RDF")  # plot the RDF
         ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
         ax2 = ax1.twinx()  # split the axis
-        #ax1.set_facecolor('white')
-        #ax1.grid()
-        #ax2.grid()
         ax2.set_ylabel('CN')  # set the RHS y axis label
         # plot the CN as a continuous function
-        ax2.plot(self.radii[1:], np.array(self.integral_data), 'r')#, markersize=1, label=f"{self.species_tuple} CN")
+        ax2.plot(self.radii[1:], np.array(self.integral_data), 'r')  # , markersize=1, label=f"{self.species_tuple} CN")
         # Plot the first and second shell values as a small window.
         ax1.axvspan(self.radii[self.indices[0][0]] - 0.01, self.radii[self.indices[0][1]] + 0.01, color='g')
-                   # color='g', lw=0, hatch='/')
-        #ax1.axvspan(self.radii[self.indices[1][0]] - 0.1, self.radii[self.indices[1][1]] + 0.1,
-        #            color='b', lw=0, hatch='|')
+        ax1.axvspan(self.radii[self.indices[1][0]] - 0.01, self.radii[self.indices[1][1]] + 0.01, color='b')
         ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
         plt.savefig(f'{self.species_tuple}.svg', dpi=800)
         plt.show()

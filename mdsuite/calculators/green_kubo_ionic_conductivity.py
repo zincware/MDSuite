@@ -85,10 +85,8 @@ class GreenKuboIonicConductivity(Calculator):
                          correlation_time=correlation_time)
 
         self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
-        self.batch_loop = None  # Number of ensembles in each batch
         self.tensor_choice = False  # Load data as a tensor
         self.database_group = 'ionic_conductivity'  # Which database group to save the data in
-        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
 
         # Check for unwrapped coordinates and unwrap if not stored already.
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
@@ -183,7 +181,6 @@ class GreenKuboIonicConductivity(Calculator):
 
         for i in range(int(self.n_batches['Parallel'])):  # loop over batches
             batch = self._load_batch(i, path=db_path)
-            print(self.batch_loop)
 
             def generator():
                 for start_index in range(int(self.batch_loop)):

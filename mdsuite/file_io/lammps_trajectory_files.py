@@ -186,7 +186,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         return architecture
 
-    def process_trajectory_file(self, update_class=True):
+    def process_trajectory_file(self, update_class: bool = True, rename_cols: dict = None):
         """
         Get additional information from the trajectory file
 
@@ -195,6 +195,8 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         Parameters
         ----------
+        rename_cols : dict
+                Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
                 updated with new information. This is necessary on the first run of data addition to the database. After
@@ -208,6 +210,9 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 Database architecture to be used by the class to build a new database.
         """
 
+        # user custom names for variables.
+        if rename_cols is not None:
+            var_names.update(rename_cols)
         number_of_atoms = self._get_number_of_atoms()  # get the number of atoms
         number_of_configurations = self._get_number_of_configurations(number_of_atoms)  # get number of configurations
         sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
@@ -227,7 +232,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         else:
             self.project.batch_size = batch_size
-            # return [number_of_atoms, list(species_summary), box, number_of_configurations]
 
         return self._build_architecture(species_summary, property_groups, number_of_atoms, number_of_configurations), \
                line_length

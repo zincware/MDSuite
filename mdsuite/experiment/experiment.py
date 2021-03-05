@@ -412,20 +412,25 @@ class Experiment:
         # Check to see if a database exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
+        if file_type is 'flux':
+            flux = True
+        else:
+            flux = False
+
         if database_path.exists():
             pass  # self._update_database(trajectory_reader)
         else:
-            self._build_new_database(trajectory_reader, trajectory_file, database)
+            self._build_new_database(trajectory_reader, trajectory_file, database, rename_cols=rename_cols, flux=flux)
 
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database):
+    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database, rename_cols, flux=False):
         """
         Build a new database
         """
-
-        architecture, line_length = trajectory_reader.process_trajectory_file()  # get properties of the trajectory file
+        # get properties of the trajectory file
+        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
         database.initialize_database(architecture)  # initialize the database
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
@@ -438,7 +443,8 @@ class Experiment:
                               structure=structure,
                               database=db_object,
                               start_index=counter,
-                              batch_size=self.batch_size)
+                              batch_size=self.batch_size,
+                              flux = flux)
             counter += self.batch_size
 
         database.close(db_object)  # Close the object
