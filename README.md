@@ -2,9 +2,12 @@
 MDSuite is a software designed specifically for the molecular dynamics community to enable fast, reliable, and simple 
 calculations from simulation data. 
 
+**NOTE:** This README is designed for the release. Anything PyPy related is not yet functioning as the code is in
+development.
+
 ## Installation
 There are several way to install MDSuite depending on what you would like from it. One can simply installing using 
-PyPy as
+PyPy as **Not Currently available**
 ```bash
 $ pip install mdsuite
 ```
