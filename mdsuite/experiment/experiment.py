@@ -26,6 +26,7 @@ from mdsuite.calculators.computations_dict import dict_classes_computations
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
+from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
 from mdsuite.file_io.file_read import FileProcessor
@@ -593,7 +594,7 @@ class Experiment:
 
             with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
                 for item in list(species):
-                    path = os.path.join(item, identifier)
+                    path = join_path(item, identifier)
 
                     # Unwrap the positions if they need to be unwrapped
                     if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:

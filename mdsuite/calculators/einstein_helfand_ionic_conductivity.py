@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 # Import MDSuite modules
 import mdsuite.utils.meta_functions as meta_functions
+from mdsuite.utils.meta_functions import join_path
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
 from mdsuite.database.database import Database
@@ -222,7 +223,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
                       self.parent.temperature * boltzmann_constant
         prefactor = numerator / denominator
 
-        group = os.path.join(self.loaded_property, self.loaded_property)
+        group = join_path(self.loaded_property, self.loaded_property)
         dipole_msd_array = self.msd_operation_EH(group=group)
         dipole_msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
         dipole_msd_array *= prefactor
