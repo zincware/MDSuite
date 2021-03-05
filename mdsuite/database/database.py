@@ -6,6 +6,7 @@ import h5py as hf
 import os
 import numpy as np
 from typing import TextIO
+from mdsuite.utils.meta_functions import join_path
 
 from mdsuite.utils.exceptions import *
 
@@ -210,7 +211,7 @@ class Database:
                 architecture[group] = structure[group]
             else:
                 for subgroup in structure[group]:
-                    db_path = os.path.join(group, subgroup)
+                    db_path = join_path(group, subgroup)
                     architecture[db_path] = structure[group][subgroup]
 
         return architecture
@@ -307,7 +308,7 @@ class Database:
         memory_database = {}
         for item in database:
             for ds in database[item]:
-                memory_database[os.path.join(item, ds)] = database[item][ds].nbytes
+                memory_database[join_path(item, ds)] = database[item][ds].nbytes
 
         return memory_database
 
