@@ -269,7 +269,8 @@ def golden_section_search(data: np.array, a: float, b: float) -> tuple:
     This implementation will return an interval in which the minimum should exists, and does so for all of the minimums
     on the function.
 
-    Arguments
+
+    Parameters
     ---------
     data : np.array
             Data on which to find minimums.
