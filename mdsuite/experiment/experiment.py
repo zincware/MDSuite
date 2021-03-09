@@ -438,7 +438,7 @@ class Experiment:
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
         f_object = open(trajectory_file, 'r')  # open the trajectory file
-        for _ in tqdm(range(batch_range)):
+        for _ in tqdm(range(batch_range), ncols=70):
             database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
                               structure=structure,
                               database=db_object,
@@ -555,7 +555,7 @@ class Experiment:
         """
         self.species[element]['mass'] = mass  # update the mass
 
-    def load_matrix(self, identifier, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
+    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
                     path=None):
         """
         Load a desired property matrix.
