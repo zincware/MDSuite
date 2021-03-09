@@ -21,13 +21,14 @@ import yaml
 import os
 # MDSuite packages
 import mdsuite.utils.constants as constants
+from .calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboThermalConductivityFlux:
+class GreenKuboThermalConductivityFlux(Calculator):
     """
     Class for the Einstein diffusion coefficient implementation
 
@@ -41,7 +42,7 @@ class GreenKuboThermalConductivityFlux:
             Array of the time.
     """
 
-    def __init__(self, obj, plot=False, data_range=500):
+    def __init__(self, obj, plot=False, data_range=500, correlation_time=1):
         """
         Python constructor for the experiment class.
 
@@ -60,7 +61,8 @@ class GreenKuboThermalConductivityFlux:
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
 
         self.database_group = 'thermal_conductivity'  # Which database group to save the data in
-        self.analysis_name = 'thermal_conductivity'
+        self.analysis_name = 'thermal_conductivity_flux'
+        self.correlation_time = correlation_time
 
     def _autocorrelation_time(self):
         """
@@ -81,11 +83,11 @@ class GreenKuboThermalConductivityFlux:
 
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
-        loop_range = len(flux) - self.data_range - 1  # Define the loop range
+        loop_range = int((len(flux) - self.data_range - 1)/self.correlation_time)  # Define the loop range
         sigma, averaged_jacf  = convolution(loop_range=loop_range,
                                             flux=flux,
                                             data_range=self.data_range,
-                                            time=self.time)
+                                            time=self.time, correlation_time=self.correlation_time)
         sigma = prefactor * np.array(sigma)
 
         # convert to SI units.
@@ -119,33 +121,6 @@ class GreenKuboThermalConductivityFlux:
         matrix_data = self.parent.load_matrix(path=identifier, select_slice=np.s_[:])
         matrix_data = np.squeeze(matrix_data)
         return matrix_data
-
-    def _update_properties_file(self, item: str = None, sub_item: str = None, data: list = None, add: bool = False):
-        """
-        Update the system properties YAML file.
-        """
-
-        # Check if data has been given
-        if data is None:
-            print("No data provided")
-            return
-
-        with open(os.path.join(self.parent.database_path, 'system_properties.yaml')) as pfr:
-            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
-
-        with open(os.path.join(self.parent.database_path, 'system_properties.yaml'), 'w') as pfw:
-            if item is None:
-                properties[self.database_group][self.analysis_name] = data
-            elif sub_item is None:
-                properties[self.database_group][self.analysis_name][item] = data
-            else:
-                if add:
-                    properties[self.database_group][self.analysis_name][item] = {}
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
-                else:
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
-
-            yaml.dump(properties, pfw)
 
     def run_analysis(self):
         """ Run thermal conductivity calculation analysis
