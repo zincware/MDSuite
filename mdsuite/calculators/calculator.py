@@ -433,8 +433,8 @@ class Calculator(metaclass=abc.ABCMeta):
             Perform correlation on two data-sets.
             Parameters
             ----------
-            a : tf.Tensor
-            v : tf.Tensor
+            a : np.ndarray
+            v : np.ndarray
 
             Returns
             -------
