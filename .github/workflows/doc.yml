@@ -1,0 +1,30 @@
+name: Build the documentation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install dependencies
+        run: |
+          pip3 install -r requirements.txt
+          pip3 install h5py --upgrade --no-dependencies
+          pip3 install cached-property
+      - name: Build documentation
+        run: |
+          cd docs
+          make html
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: documentation
+          path: |
+            docs/build

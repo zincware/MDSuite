@@ -24,6 +24,26 @@ from mdsuite.utils.exceptions import NoGPUInSystem
 from typing import Callable
 
 
+def join_path(a, b):
+    """Join a and b and make sure to use forward slashes
+
+    Parameters
+    ----------
+    a: str
+    b: str
+
+    Returns
+    -------
+    str: joined path with forced forward slashes
+
+    Notes
+    -----
+    h5py 3.1.0 on windows relies on forward slashes but os.path.join returns backward slashes.
+    Here we replace them to enable MDSuite for Windows users.
+
+    """
+    return os.path.join(a, b).replace("\\","/")
+
 def get_dimensionality(box: list) -> int:
     """
     Calculate the dimensionality of the system box
@@ -249,7 +269,8 @@ def golden_section_search(data: np.array, a: float, b: float) -> tuple:
     This implementation will return an interval in which the minimum should exists, and does so for all of the minimums
     on the function.
 
-    Arguments
+
+    Parameters
     ---------
     data : np.array
             Data on which to find minimums.
