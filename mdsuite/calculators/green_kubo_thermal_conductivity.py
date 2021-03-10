@@ -14,16 +14,16 @@ import warnings
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
 # Import user packages
 from tqdm import tqdm
-import tensorflow as tf
-from mdsuite.utils.meta_functions import join_path
+
 from mdsuite.calculators.calculator import Calculator
-
-# Import MDSuite modules
-
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 from mdsuite.database.database import Database
+from mdsuite.utils.meta_functions import join_path
+
+# Import MDSuite modules
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -163,18 +163,19 @@ class GreenKuboThermalConductivity(Calculator):
         if remainder > 0:
             start = self.parent.number_of_configurations - remainder
             velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
-                                                      tensor=self.tensor_choice, scalar=False, sym_matrix=False)  # Load the velocity matrix
-            stress_tensor = self.parent.load_matrix('Stress', select_slice=np.s_[:, start:],
                                                       tensor=self.tensor_choice, scalar=False,
-                                                      sym_matrix=True)  # Load the stress tensor
+                                                      sym_matrix=False)  # Load the velocity matrix
+            stress_tensor = self.parent.load_matrix('Stress', select_slice=np.s_[:, start:],
+                                                    tensor=self.tensor_choice, scalar=False,
+                                                    sym_matrix=True)  # Load the stress tensor
 
             pe = self.parent.load_matrix('PE', select_slice=np.s_[:, start:],
-                                                    tensor=self.tensor_choice, scalar=True,
-                                                    sym_matrix=False)  # Load the potential energy
+                                         tensor=self.tensor_choice, scalar=True,
+                                         sym_matrix=False)  # Load the potential energy
 
             ke = self.parent.load_matrix('KE', select_slice=np.s_[:, start:],
-                                                    tensor=self.tensor_choice, scalar=True,
-                                                    sym_matrix=False)  # Load the kinetic energy
+                                         tensor=self.tensor_choice, scalar=True,
+                                         sym_matrix=False)  # Load the kinetic energy
 
             # define phi as product stress tensor * velocity matrix.
             # It is done by components to take advantage of the symmetric matrix.
@@ -197,21 +198,20 @@ class GreenKuboThermalConductivity(Calculator):
 
             energy = ke + pe
 
-            energy_velocity = energy[:, :] * velocity_matrix
+            energy_velocity = energy * velocity_matrix
             energy_velocity_atoms = energy_velocity.sum(axis=0)
 
             system_current = energy_velocity_atoms - phi_sum_atoms  # returns the same values as in the compute flux of lammps
 
             database.add_data(data=system_current,
-                                  structure=data_structure,
-                                  database=db_object,
-                                  start_index=start,
-                                  batch_size=remainder,
-                                  system_tensor=True)
+                              structure=data_structure,
+                              database=db_object,
+                              start_index=start,
+                              batch_size=remainder,
+                              system_tensor=True)
 
         database.close(db_object)  # close the database
         self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
-
 
     def _calculate_thermal_conductivity(self):
         """
@@ -258,7 +258,7 @@ class GreenKuboThermalConductivity(Calculator):
         sigma = prefactor * prefactor_units * np.array(sigma)
         parsed_autocorrelation /= max(parsed_autocorrelation)  # Get the normalized autocorrelation plot data
 
-        self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma) / np.sqrt(len(sigma))) / 100)])
+        self._update_properties_file(data=[str(np.mean(sigma)), str((np.std(sigma) / np.sqrt(len(sigma))))])
 
         plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
 
@@ -274,9 +274,9 @@ class GreenKuboThermalConductivity(Calculator):
         The thermal conductivity is computed at this step.
         """
         self._autocorrelation_time()  # get the autocorrelation time
-        self._collect_machine_properties()    # collect machine properties and determine batch size
-        self._calculate_batch_loop()          # Update the batch loop attribute
-        status = self._check_input()          # Check for bad input
+        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self._calculate_batch_loop()  # Update the batch loop attribute
+        status = self._check_input()  # Check for bad input
         if status == -1:
             return
         else:
