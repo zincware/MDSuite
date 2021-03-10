@@ -103,10 +103,10 @@ class GreenKuboThermalConductivity(Calculator):
                 thermal current of the system as a vector of shape (number_of_configurations, 3)
         """
 
-        velocity_matrix = self._load_batch(i, "Velocities")  # Load the velocity matrix
-        stress_tensor = self._load_batch(i, "Stress", sym_matrix=True)
-        pe = self._load_batch(i, "PE", scalar=True)
-        ke = self._load_batch(i, "KE", scalar=True)
+        velocity_matrix = self.load_batch(i, "Velocities")  # Load the velocity matrix
+        stress_tensor = self.load_batch(i, "Stress", sym_matrix=True)
+        pe = self.load_batch(i, "PE", scalar=True)
+        ke = self.load_batch(i, "KE", scalar=True)
 
         # define phi as product stress tensor * velocity matrix.
         # It is done by components to take advantage of the symmetric matrix.
@@ -173,7 +173,7 @@ class GreenKuboThermalConductivity(Calculator):
         The thermal conductivity is computed at this step.
         """
         self._autocorrelation_time()  # get the autocorrelation time
-        self._collect_machine_properties()    # collect machine properties and determine batch size
+        self.collect_machine_properties()    # collect machine properties and determine batch size
         self._calculate_batch_loop()          # Update the batch loop attribute
         status = self._check_input()          # Check for bad input
         if status == -1:
