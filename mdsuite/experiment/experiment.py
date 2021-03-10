@@ -101,9 +101,7 @@ class Experiment:
         self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
-        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
-        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
-        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
+        self._create_internal_file_paths()
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
@@ -128,6 +126,13 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
+    def _create_internal_file_paths(self):
+        """Create or update internal file paths
+        """
+        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
+        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
+        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
+
     def _load_or_build(self):
         """
         Check if the experiment already exists and decide whether to load it or build a new one.
@@ -148,11 +153,23 @@ class Experiment:
         A function to load a class instance given the project name.
         """
 
+        def update_path():
+            """Check if the Path of the database is different form the stored storage_path
+
+            If the paths are different, the database has been moved and the internal file paths will be updated.
+            """
+
+            if storage_path != self.storage_path:
+                print("Database has been moved - Updating internals!")
+                self.storage_path = storage_path
+                self._create_internal_file_paths()
+
         class_file = open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb')  # open file
         pickle_data = class_file.read()  # read file
         class_file.close()  # close file
-
-        self.__dict__ = pickle.loads(pickle_data)  # update the class object
+        storage_path = self.storage_path
+        self.__dict__ = pickle.loads(pickle_data)
+        update_path()
         self.run_computation = self.RunComputation(self)
 
     def save_class(self):
