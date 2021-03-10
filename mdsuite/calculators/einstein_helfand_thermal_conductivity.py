@@ -131,9 +131,9 @@ class EinsteinHelfandThermalConductivity(Calculator):
         dipole_moment : tf.tensor
                 Return the dipole moment for the batch
         """
-        positions = self._load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
-        pe = self._load_batch(i, "PE", scalar=True)
-        ke = self._load_batch(i, "KE", scalar=True)
+        positions = self.load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
+        pe = self.load_batch(i, "PE", scalar=True)
+        ke = self.load_batch(i, "KE", scalar=True)
         energy = ke + pe
 
         positions = tf.convert_to_tensor(positions)
@@ -181,7 +181,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
 
         self._autocorrelation_time()  # get the correct correlation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:

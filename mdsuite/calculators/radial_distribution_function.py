@@ -468,7 +468,7 @@ class RadialDistributionFunction(Calculator, ABC):
         """
 
         # collect machine properties and determine batch size
-        self._collect_machine_properties(scaling_factor=self.scaling_factor)
+        self.collect_machine_properties(scaling_factor=self.scaling_factor)
         if self.n_batches["Parallel"] > self.number_of_configurations:
             self.n_batches["Parallel"] = self.number_of_configurations
         self._calculate_histograms()  # Calculate the RDFs

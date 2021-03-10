@@ -138,7 +138,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
         for i in range(int(self.n_batches['Serial'])):
-            batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+            batch = self.load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
 
             def generator():
                 """
@@ -256,7 +256,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         for i in range(int(self.n_batches['Parallel'])):
             print("Start Loading Data")
-            batch = self._load_batch(i, item=molecules)  # load a batch of data
+            batch = self.load_batch(i, item=molecules)  # load a batch of data
             print('Done!')
             a = 0
             if self_correlation:
@@ -331,7 +331,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
     def run_analysis(self):
         """ Run the main analysis """
         self._autocorrelation_time()  # get the correct autocorrelation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:

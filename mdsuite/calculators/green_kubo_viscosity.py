@@ -108,7 +108,7 @@ class GreenKuboViscosity(Calculator):
         """
 
         # velocity_matrix = self._load_batch(i, "Velocities")  # Load the velocity matrix
-        stress_tensor = self._load_batch(i, "Stress", sym_matrix=True)
+        stress_tensor = self.load_batch(i, "Stress", sym_matrix=True)
 
         # we take the xy, xz, and yz components (negative)
         phi_x = -stress_tensor[:, :, 3]
@@ -163,7 +163,7 @@ class GreenKuboViscosity(Calculator):
         """
 
         self._autocorrelation_time()          # get the autocorrelation time
-        self._collect_machine_properties()    # collect machine properties and determine batch size
+        self.collect_machine_properties()    # collect machine properties and determine batch size
         self._calculate_batch_loop()          # Update the batch loop attribute
         status = self._check_input()          # Check for bad input
         if status == 0:
