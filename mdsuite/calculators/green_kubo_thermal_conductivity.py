@@ -212,9 +212,6 @@ class GreenKuboThermalConductivity(Calculator):
         self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
 
 
-
-        return system_current
-
     def _calculate_thermal_conductivity(self):
         """
         Calculate the thermal conductivity in the system
