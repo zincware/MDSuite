@@ -94,7 +94,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the parent class
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True, correlation_time=correlation_time)
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True,
+                         correlation_time=correlation_time)
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in a batch
@@ -141,7 +142,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         Adds the translational dipole moment to the simulation database
         """
 
-        self._collect_machine_properties(group_property='Unwrapped_Positions')
+        self.collect_machine_properties(group_property='Unwrapped_Positions')
         n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
         remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
 
@@ -154,7 +155,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
         for i in tqdm(range(int(n_batches)), ncols=70):
-            data = self._load_batch(i, loaded_property='Unwrapped_Positions')  # Load the velocity matrix
+            data = self.load_batch(i, loaded_property='Unwrapped_Positions')  # Load the velocity matrix
             counter = 0  # set a counter variable
             for tensor in data:  # Loop over the species positions
                 data[counter] = tf.math.reduce_sum(tensor, axis=0)  # Sum over the positions of the atoms
@@ -183,7 +184,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
             if remainder > 0:
                 start = self.parent.number_of_configurations - remainder
                 data = self.parent.load_matrix('Unwrapped_Positions', select_slice=np.s_[:, start:],
-                                               tensor=self.tensor_choice, scalar=False, sym_matrix=False)
+                                               tensor=self.tensor_choice)
 
                 counter = 0  # set a counter variable
                 for tensor in data:  # Loop over the species positions
@@ -245,7 +246,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         self._autocorrelation_time()  # get the correct correlation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:

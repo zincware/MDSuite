@@ -74,7 +74,7 @@ class Experiment:
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
                 Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
-        cluster : bool
+        cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
         """
@@ -237,10 +237,8 @@ class Experiment:
 
         Parameters
         ----------
-        computation_name : str
-                name of the computation to be performed
-
-        **kwargs : extra arguments passed to the classes
+        parent : object
+                Experiment class in which this class is contained.
 
         Returns
         -------
@@ -257,7 +255,7 @@ class Experiment:
         def __getattribute__(self, item):
             """Call via function
             You can call the computation via a function and autocompletion
-            >>> Experiment.run_computation.EinsteinDiffusionCoefficients(plot=True)
+            >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
             """
             try:
                 class_compute = dict_classes_computations[item]
@@ -275,16 +273,17 @@ class Experiment:
                     self.class_compute = class_func_compute
 
                 def get_documentation(self):
-                    """Get the documentation for the calculator
+                    """
+                    Get the documentation for the calculator
                     You can print the documentation via
-                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients.get_documentation()
+                    >>> self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
                     """
                     print(inspect.getdoc(self.class_compute))
 
                 def __repr__(self):
                     """Get the documentation for the calculator
                     You can print the documentation if you don't call the class
-                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients
+                    >>> self.run_computation.EinsteinDiffusionCoefficients
                     """
                     self.get_documentation()
                     return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
@@ -297,7 +296,7 @@ class Experiment:
         def __call__(self, computation_name, **kwargs):
             """Call directly
             You can call the computation directly via
-            >>> Experiment.run_computation("EinsteinDiffusionCoefficients", plot=True)
+            >>> self.run_computation("EinsteinDiffusionCoefficients", plot=True)
             """
             try:
                 class_compute = dict_classes_computations[computation_name]
@@ -389,7 +388,7 @@ class Experiment:
 
         return attributes
 
-    def add_data(self, trajectory_file=None, file_format='lammps_traj', rename_cols=None):
+    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None):
         """
         Add data to the database
 
@@ -399,6 +398,9 @@ class Experiment:
                 Format of the file being read in. Default is file_path
         trajectory_file : str
                 Trajectory file to be process and added to the database.
+        rename_cols : dict
+                If this argument is given, the columns with names in the keys of the dictionary will be replaced with
+                the values.
         """
 
         # Check if there is a trajectory file.
@@ -413,7 +415,7 @@ class Experiment:
         # Check to see if a database exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
-        if file_type is 'flux':
+        if file_type == 'flux':
             flux = True
         else:
             flux = False
@@ -445,7 +447,7 @@ class Experiment:
                               database=db_object,
                               start_index=counter,
                               batch_size=self.batch_size,
-                              flux = flux)
+                              flux=flux)
             counter += self.batch_size
 
         database.close(db_object)  # Close the object
@@ -556,8 +558,7 @@ class Experiment:
         """
         self.species[element]['mass'] = mass  # update the mass
 
-    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
-                    path=None):
+    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, path=None):
         """
         Load a desired property matrix.
 
@@ -571,10 +572,6 @@ class Experiment:
                 A slice to select from the database.
         tensor : bool
                 If true, the data will be returned as a tensorflow tensor.
-        scalar : bool
-                If true, the data will be returned as a scalar array
-        sym_matrix : bool
-                If true, data will be returned as as stress tensor format.
         path : str
                 optional path to the database.
 
@@ -616,11 +613,6 @@ class Experiment:
                     if tensor:
                         property_matrix.append(
                             tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
-
-                    elif sym_matrix:  # return a stress tensor
-                        property_matrix.append(database[path][select_slice])
-                    elif scalar:  # return a scalar
-                        property_matrix.append(database[path][select_slice])
 
                     else:  # return a numpy array
                         property_matrix.append(database[path][select_slice])

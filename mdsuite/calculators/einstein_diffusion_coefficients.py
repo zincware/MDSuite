@@ -161,7 +161,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Construct the MSD function
         for i in tqdm(range(int(self.n_batches['Serial'])), ncols=70):
-            batch = self._load_batch(i, item=[item])  # load a batch of data
+            batch = self.load_batch(i, item=[item])  # load a batch of data
             if len(batch[0]) < self.data_range:
                 break
             for start_index in range(int(self.batch_loop)):
@@ -209,7 +209,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         Run standard diffusion calculations without range optimization
         """
 
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:
@@ -233,7 +233,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         # Optimize the data_range parameter
         for item in self.species:
             while not self.loop_condition:
-                self._collect_machine_properties()  # collect machine properties and determine batch size
+                self.collect_machine_properties()  # collect machine properties and determine batch size
                 self._calculate_batch_loop()  # Update the batch loop attribute
                 data = self._single_diffusion_coefficients(item, parse=True)
                 self._optimize_einstein_data_range(data=data)
