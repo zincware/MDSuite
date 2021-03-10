@@ -114,7 +114,7 @@ class GreenKuboThermalConductivity(Calculator):
         # add a dataset in the database and prepare the structure
         database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
         db_object = database.open()  # open a database
-        path = join_path('Thermal_Flux', 'Thermal_Flux')  # name of the new database
+        path = join_path(self.loaded_property, self.loaded_property)  # name of the new database
         dataset_structure = {path: (self.parent.number_of_configurations, 3)}
         database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
