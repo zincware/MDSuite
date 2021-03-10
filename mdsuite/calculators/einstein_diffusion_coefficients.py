@@ -124,6 +124,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.parent.species)
         # Check for unwrapped coordinates and unwrap if not stored already.
+        # TODO this should be part of the parent class
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
             for item in self.species:
                 # Unwrap the positions if they need to be unwrapped
