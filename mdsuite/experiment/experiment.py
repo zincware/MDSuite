@@ -281,7 +281,8 @@ class Experiment:
                     print(inspect.getdoc(self.class_compute))
 
                 def __repr__(self):
-                    """Get the documentation for the calculator
+                    """
+                    Get the documentation for the calculator
                     You can print the documentation if you don't call the class
                     >>> self.run_computation.EinsteinDiffusionCoefficients
                     """
@@ -289,6 +290,9 @@ class Experiment:
                     return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
 
                 def __call__(self, **kwargs):
+                    """
+                    Introduce call method.
+                    """
                     self.parent.compute(self.class_compute, **kwargs)
 
             return Func(self, class_compute)
@@ -406,7 +410,7 @@ class Experiment:
         # Check if there is a trajectory file.
         if trajectory_file is None:
             print("No data has been given")
-            return  # exit method as nothing more can be done
+            sys.exit(1)
 
         # Load the file reader and the database object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
@@ -437,6 +441,7 @@ class Experiment:
         database.initialize_database(architecture)  # initialize the database
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
+        remainder = self.number_of_configurations - batch_range*self.batch_size
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
@@ -449,6 +454,14 @@ class Experiment:
                               batch_size=self.batch_size,
                               flux=flux)
             counter += self.batch_size
+
+        if remainder > 0:
+            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
+                              structure=structure,
+                              database=db_object,
+                              start_index=counter,
+                              batch_size=remainder,
+                              flux=flux)
 
         database.close(db_object)  # Close the object
         f_object.close()
