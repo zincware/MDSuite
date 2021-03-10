@@ -148,7 +148,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # add a dataset in the database and prepare the structure
         database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
         db_object = database.open()  # open a database
-        path = os.path.join('Translational_Dipole_Moment', 'Translational_Dipole_Moment')  # name of the new database
+        path = join_path('Translational_Dipole_Moment', 'Translational_Dipole_Moment')  # name of the new database
         dataset_structure = {path: (self.parent.number_of_configurations, 3)}
         database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
