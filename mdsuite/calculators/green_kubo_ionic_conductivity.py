@@ -19,6 +19,7 @@ from tqdm import tqdm
 import h5py as hf
 
 # Import MDSuite modules
+from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.database.database import Database
 from mdsuite.calculators.calculator import Calculator

@@ -96,6 +96,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
 
         # Solve for the batch type
+        print(self.parallel)
         if self.parallel:
             self.batch_type = 'Parallel'
         else:
@@ -138,6 +139,8 @@ class Calculator(metaclass=abc.ABCMeta):
             if group_property in item:
                 memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
 
+        print(item)
+        print(group_property)
         # Get the single frame memory usage in bytes
         serial_memory_usage = scaling_factor * max(memory_usage)
         parallel_memory_usage = scaling_factor * sum(memory_usage)
@@ -167,6 +170,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         Calculate the batch loop parameters
         """
+        print(self.batch_type)
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
