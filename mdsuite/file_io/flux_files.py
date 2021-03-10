@@ -31,7 +31,7 @@ class FluxFile(FileProcessor):
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, file_path=None):
+    def __init__(self, obj, header_lines=9, file_path=None, sort: bool = False):
         """
         Python class constructor
         """
@@ -39,6 +39,7 @@ class FluxFile(FileProcessor):
         super().__init__(obj, header_lines, file_path)  # fill the parent class
         self.project.volume = None
         self.project.number_of_atoms = None
+        self.sort = sort
 
     def build_database_skeleton(self):
         """

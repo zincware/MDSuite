@@ -392,7 +392,8 @@ class Experiment:
 
         return attributes
 
-    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None):
+    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None,
+                 sort: bool = False):
         """
         Add data to the database
 
@@ -405,6 +406,8 @@ class Experiment:
         rename_cols : dict
                 If this argument is given, the columns with names in the keys of the dictionary will be replaced with
                 the values.
+        sort : bool
+                If true, the data will be sorted when being entered into the database.
         """
 
         # Check if there is a trajectory file.
@@ -413,7 +416,7 @@ class Experiment:
             sys.exit(1)
 
         # Load the file reader and the database object
-        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
+        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
         database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
 
         # Check to see if a database exists
@@ -432,13 +435,15 @@ class Experiment:
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database, rename_cols, flux=False):
+    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
+                            rename_cols: dict, flux: bool = False):
         """
         Build a new database
         """
         # get properties of the trajectory file
         architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
         database.initialize_database(architecture)  # initialize the database
+
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
         remainder = self.number_of_configurations - batch_range*self.batch_size
@@ -456,6 +461,7 @@ class Experiment:
             counter += self.batch_size
 
         if remainder > 0:
+            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
             database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
                               structure=structure,
                               database=db_object,
@@ -488,7 +494,7 @@ class Experiment:
 
         self.save_class()  # Update the class state
 
-    def _load_trajectory_reader(self, file_format, trajectory_file):
+    def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
         try:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
@@ -496,7 +502,7 @@ class Experiment:
             print(f'Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
-        return class_file_io(self, file_path=trajectory_file), file_type
+        return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
 
     def build_species_dictionary(self):
         """

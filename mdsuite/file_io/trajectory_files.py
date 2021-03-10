@@ -29,7 +29,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             Number of header lines in the file format being read.
     """
 
-    def __init__(self, obj, header_lines, file_path):
+    def __init__(self, obj, header_lines, file_path, sort: bool = False):
         """
         Python constructor
 
@@ -40,11 +40,15 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         header_lines : int
                 Number of header lines in the given file format.
+
+        sort : bool
+                If true, the data in the trajectory file must be sorted during the database build.
         """
 
         super().__init__(obj, header_lines, file_path)  # fill the parent class
+        self.sort = sort
 
-    def _read_header(self, f: TextIO, offset: int = 0):
+    def _read_header(self, f: TextIO, offset: int = 0) -> list:
         """
         Read n header lines in starting from line offset.
 
@@ -86,8 +90,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         """
 
         # Define the empty data array
-        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length), dtype='<U11')
-
+        configurations_data = np.empty((number_of_configurations * self.project.number_of_atoms, line_length),
+                                       dtype='<U11')
         counter = 0
         for i in range(number_of_configurations):
 
@@ -100,15 +104,15 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 counter += 1  # update the counter
         return configurations_data
 
-    def build_file_structure(self):
+    def build_file_structure(self, batch_size: int = None):
         """
         Build a skeleton of the file so that the database class can process it correctly.
         """
 
         structure = {}  # define initial dictionary
-        batch_size = int(self.project.batch_size)
+        if batch_size is None:
+            batch_size = self.project.batch_size
 
-        # Loop over species
         for item in self.project.species:
             positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
                                   self.header_lines for i in range(batch_size)]).flatten()

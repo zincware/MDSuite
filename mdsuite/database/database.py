@@ -78,10 +78,9 @@ class Database:
 
         database.close()
 
-    @staticmethod
-    def add_data(data: np.array, structure: dict, database: hf.File,
+    def add_data(self, data: np.array, structure: dict, database: hf.File,
                  start_index: int, batch_size: int, tensor: bool = False,
-                 system_tensor: bool = False, flux: bool = False):
+                 system_tensor: bool = False, flux: bool = False, sort: bool = False):
         """
         Add a set of data to the database.
 
@@ -104,6 +103,8 @@ class Database:
                 {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
         data : np.array
                 Data to be loaded in.
+        sort : bool
+                If true, data is sorted before being dumped into the database.
 
         Returns
         -------
@@ -120,9 +121,34 @@ class Database:
                 database[item][start_index:stop_index, :] = data[structure[item]['indices']][
                     np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
             else:
-                database[item][:, start_index:stop_index, :] = data[structure[item]['indices']][
-                    np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
-                    (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+                database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort)
+
+    def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False):
+        """
+        Fetch data with some format from a large array.
+
+        Returns
+        -------
+
+        """
+        if sort:
+            data[structure[item]['indices']][
+                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+        else:
+            return data[structure[item]['indices']][
+                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+
+    def _update_indices(self, data: np.array, indices: list):
+        """
+        Update the indices key of the structure dictionary if the data must be sorted.
+
+        Returns
+        -------
+
+        """
+        atom_ids =
 
     def _resize_dataset(self, structure: dict):
         """
