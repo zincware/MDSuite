@@ -96,7 +96,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
             # Read the data into the arrays.
             for k in range(self.project.number_of_atoms):
-                configurations_data[counter] = np.array(list(file_object.readline().split()))
+                line = list(file_object.readline().split())
+                configurations_data[counter] = np.array(line)
                 counter += 1  # update the counter
         return configurations_data
 

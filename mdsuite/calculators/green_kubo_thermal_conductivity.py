@@ -140,7 +140,8 @@ class GreenKuboThermalConductivity(Calculator):
 
             phi = np.dstack([phi_x, phi_y, phi_z])
 
-            phi_sum_atoms = phi.sum(axis=0) / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
+            phi_sum = phi.sum(axis=0)
+            phi_sum_atoms = phi_sum / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
 
             # ke_total = np.sum(ke, axis=0) # to check it was the same, can be removed.
             # pe_total = np.sum(pe, axis=0)
