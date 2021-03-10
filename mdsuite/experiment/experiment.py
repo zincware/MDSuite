@@ -474,7 +474,8 @@ class Experiment:
                               database=db_object,
                               start_index=counter,
                               batch_size=self.batch_size,
-                              flux=flux)
+                              flux=flux,
+                              n_atoms=self.number_of_atoms)
             counter += self.batch_size
 
         if remainder > 0:
