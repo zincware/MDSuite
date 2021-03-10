@@ -413,7 +413,7 @@ class Experiment:
         # Check to see if a database exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
-        if file_type is 'flux':
+        if file_type == 'flux':
             flux = True
         else:
             flux = False
