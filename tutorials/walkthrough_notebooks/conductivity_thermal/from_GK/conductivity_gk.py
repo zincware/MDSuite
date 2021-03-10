@@ -6,11 +6,11 @@ import mdsuite as mds # Cool name for professionalism purposes
 
 new_case = True
 
-try:
-    new_case = True
-    shutil.rmtree('Argon')
-except FileNotFoundError:
-    pass
+if new_case:
+    try:
+        shutil.rmtree('Argon')
+    except FileNotFoundError:
+        pass
 
 
 
@@ -23,5 +23,5 @@ if new_case:
 # argon.run_computation('EinsteinDiffusionCoefficients', species=list(argon.species.keys()),data_range=50, plot=False, singular=True, distinct=False)
 argon.run_computation('GreenKuboThermalConductivity', data_range=8000, plot=False)
 # argon.help_computations_args('GreenKuboDiffusionCoefficients')
-print(argon.results)
-argon.dump_results_json()
+print(type(argon.results))
+# argon.dump_results_json()
