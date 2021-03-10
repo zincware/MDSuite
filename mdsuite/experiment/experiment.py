@@ -148,7 +148,7 @@ class Experiment:
         A function to load a class instance given the project name.
         """
 
-        class_file = open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb')  # open file
+        class_file = open(os.path.join(self.storage_path,self.analysis_name,f'{self.analysis_name}.bin'), 'rb')  # open file
         pickle_data = class_file.read()  # read file
         class_file.close()  # close file
 

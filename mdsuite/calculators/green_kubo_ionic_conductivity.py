@@ -119,7 +119,7 @@ class GreenKuboIonicConductivity(Calculator):
         # add a dataset in the database and prepare the structure
         database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
         db_object = database.open()  # open a database
-        path = os.path.join('Ionic_Current', 'Ionic_Current')  # name of the new database
+        path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database
         dataset_structure = {path: (self.parent.number_of_configurations, 3)}
         database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
@@ -174,7 +174,7 @@ class GreenKuboIonicConductivity(Calculator):
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
-        db_path = os.path.join(self.loaded_property, self.loaded_property)
+        db_path = join_path(self.loaded_property, self.loaded_property)
 
         sigma = []
         parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
