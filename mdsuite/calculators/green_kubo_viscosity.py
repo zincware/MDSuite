@@ -7,6 +7,7 @@ This module contains the code for the Green-Kubo viscsity class. This class is c
 import os
 import warnings
 
+import h5py as hf
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -82,7 +83,13 @@ class GreenKuboViscosity(Calculator):
         self.database_group = 'viscosity'  # Which database group to save the data in
         self.loaded_properties = {'Stress'}  # property to be loaded for the analysis
 
-        self._calculate_system_current()
+        # Check if current was already computed
+        with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
+            # Unwrap the positions if they need to be unwrapped
+            if self.loaded_property not in database:
+                print(f"Calculating the {self.loaded_property} current")
+                self._calculate_system_current()
+                print("Current calculation is finished and stored in the database, proceeding with analysis")
 
     def _autocorrelation_time(self):
         """
