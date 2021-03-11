@@ -116,7 +116,8 @@ class Experiment:
             'coordination_numbers',
             'potential_of_mean_force_values',
             'radial_distribution_function',
-            'kirkwood_buff_integral'
+            'kirkwood_buff_integral',
+            'viscosity'
         ]
 
         # Memory properties

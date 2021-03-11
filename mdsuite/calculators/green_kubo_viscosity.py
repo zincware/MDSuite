@@ -79,7 +79,7 @@ class GreenKuboViscosity(Calculator):
 
         self.loaded_property = 'Momentum_Flux'  # property to be loaded for the analysis
         self.tensor_choice = False  # Load data as a tensor
-        self.database_group = 'Viscosity'  # Which database group to save the data in
+        self.database_group = 'viscosity'  # Which database group to save the data in
         self.loaded_properties = {'Stress'}  # property to be loaded for the analysis
 
         self._calculate_system_current()
@@ -90,7 +90,7 @@ class GreenKuboViscosity(Calculator):
         """
         pass
 
-    def _calculate_system_current(self, velocity_matrix):
+    def _calculate_system_current(self):
         """
         Calculate the ionic current of the system
 
@@ -235,7 +235,7 @@ class GreenKuboViscosity(Calculator):
         self._collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
-        if status == 0:
+        if status == -1:
             return
         else:
             self._calculate_viscosity()  # calculate the viscosity
