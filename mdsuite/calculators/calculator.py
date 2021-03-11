@@ -20,6 +20,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 
 from typing import TYPE_CHECKING
+from mdsuite.plot_style.plot_style import apply_style
 
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
@@ -108,6 +109,9 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.parent.cluster_mode:
             import matplotlib
             matplotlib.use('Agg')
+
+        if not self.parent.cluster_mode:
+            apply_style()
 
     def _autocorrelation_time(self):
         """
