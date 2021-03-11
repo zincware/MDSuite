@@ -139,6 +139,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         for i in range(int(self.n_batches['Serial'])):
             batch = self.load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+            number_of_atoms = batch.shape[0]  # Get the number of atoms in the investigated species
 
             def generator():
                 """
@@ -153,11 +154,13 @@ class GreenKuboDiffusionCoefficients(Calculator):
             dataset = tf.data.Dataset.from_generator(generator=generator,
                                                      output_signature=tf.TensorSpec(shape=(None, self.data_range, 3),
                                                                                     dtype=tf.float64))
-            dataset = dataset.unbatch().map(
-                self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
-            ).batch(self.data_range)
 
-            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+            dataset = dataset.unbatch()  # unbatch all atoms
+            dataset = dataset.map(
+                self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
+            )  # convolution
+            dataset = dataset.batch(number_of_atoms)  # # undo unbachting and batch number of atoms again
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)  # prefetch data
 
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
                 vacf = tf.reduce_sum(x, axis=0)
