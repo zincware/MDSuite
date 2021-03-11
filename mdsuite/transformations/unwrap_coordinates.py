@@ -17,6 +17,7 @@ import h5py as hf
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.database.database import Database
+from mdsuite.utils.meta_functions import join_path
 
 
 class CoordinateUnwrapper(Transformations):
@@ -141,7 +142,7 @@ class CoordinateUnwrapper(Transformations):
         Save the unwrapped coordinates
         """
 
-        path = os.path.join(species, 'Unwrapped_Positions')
+        path = join_path(species, 'Unwrapped_Positions')
         dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
         database.add_dataset(dataset_structure, database_object)  # add the dataset to the database as resizeable
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}

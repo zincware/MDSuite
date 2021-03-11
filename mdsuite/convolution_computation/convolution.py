@@ -12,7 +12,7 @@ import numpy as np
 from scipy import signal
 
 
-def convolution(loop_range, flux, data_range, time):
+def convolution(loop_range, flux, data_range, time, correlation_time):
     """
     Calculate the autocorrelation function and integral of a property.
 
@@ -37,18 +37,19 @@ def convolution(loop_range, flux, data_range, time):
     sigma = np.empty((loop_range,))  # define an empty array
     averaged_jacf = np.zeros(data_range)
 
-
     # main loop for computation
     for i in tqdm(range(loop_range), ncols=70):
         # calculate the autocorrelation
-        acf = (signal.correlate(flux[:, 0][i:i + data_range],
-                                 flux[:, 0][i:i + data_range],
+        start = i + correlation_time
+        stop = start + data_range
+        acf = (signal.correlate(flux[:, 0][start:stop],
+                                 flux[:, 0][start:stop],
                                  mode='full', method='auto') +
-                signal.correlate(flux[:, 1][i:i + data_range],
-                                 flux[:, 1][i:i + data_range],
+                signal.correlate(flux[:, 1][start:stop],
+                                 flux[:, 1][start:stop],
                                  mode='full', method='auto') +
-                signal.correlate(flux[:, 2][i:i + data_range],
-                                 flux[:, 2][i:i + data_range],
+                signal.correlate(flux[:, 2][start:stop],
+                                 flux[:, 2][start:stop],
                                  mode='full', method='auto'))
 
         # Cut off the second half of the acf

@@ -90,8 +90,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         """
 
         # Define the empty data array
-        configurations_data = np.empty((number_of_configurations * self.project.number_of_atoms, line_length),
-                                       dtype='<U11')
+        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length), dtype='<U15')
+
         counter = 0
         for i in range(number_of_configurations):
 
