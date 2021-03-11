@@ -19,5 +19,6 @@ argon = mds.Experiment(analysis_name="Argon", time_step=2, temperature=94.4, uni
 if new_case:
     argon.add_data(trajectory_file='../gk_data.lmp_traj')
 
+argon.run_computation('GreenKuboThermalConductivity', data_range=19980, plot=True)
 argon.run_computation('GreenKuboViscosity', data_range=19980, plot=True)
 print(argon.results)

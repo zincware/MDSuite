@@ -18,5 +18,5 @@ if __name__ == '__main__':
                              units='real')
 
     argon.add_data(trajectory_file='../flux_1.lmp_flux', file_format='lammps_flux', rename_cols={"Flux_Thermal":['flux[1]','flux[2]', "flux[3]"]})
-    argon.run_computation('GreenKuboThermalConductivityFlux', data_range=19990, plot=True)
-    argon.run_computation('GreenKuboViscosityFlux', data_range=19990, plot=True)
+    argon.run_computation('GreenKuboThermalConductivityFlux', data_range=2500, plot=True, correlation_time=2)
+    argon.run_computation('GreenKuboViscosityFlux', data_range=2500, plot=True, correlation_time=2)

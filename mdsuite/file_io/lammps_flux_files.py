@@ -10,7 +10,9 @@ import os
 
 from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
-from mdsuite.utils.meta_functions import optimize_batch_size
+from mdsuite.utils.meta_functions import optimize_batch_size, join_path
+
+from pathlib import Path
 
 var_names = {
     "Temperature": ["temp"],
@@ -179,7 +181,7 @@ class LAMMPSFluxFile(FluxFile):
         structure = {}  # define initial dictionary
 
         for observable in self.project.property_groups:
-            path = os.path.join(observable, observable)
+            path = join_path(observable, observable)
             columns = self.project.property_groups[observable]
             structure[path] = {'indices': np.s_[:], 'columns': columns, 'length': 1}
 

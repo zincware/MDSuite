@@ -19,6 +19,7 @@ from tqdm import tqdm
 import h5py as hf
 
 # Import MDSuite modules
+from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.database.database import Database
 from mdsuite.calculators.calculator import Calculator
@@ -111,7 +112,7 @@ class GreenKuboIonicConductivity(Calculator):
                       (self.parent.units['length'] ** 3) * self.data_range * self.parent.units['time']
         prefactor = numerator / denominator
 
-        db_path = os.path.join(self.loaded_property, self.loaded_property)
+        db_path = join_path(self.loaded_property, self.loaded_property)
 
         sigma = []
         parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
