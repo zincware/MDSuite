@@ -20,6 +20,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 
 from typing import TYPE_CHECKING
+from mdsuite.plot_style.plot_style import apply_style
 
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
@@ -109,13 +110,16 @@ class Calculator(metaclass=abc.ABCMeta):
             import matplotlib
             matplotlib.use('Agg')
 
+        if not self.parent.cluster_mode:
+            apply_style()
+
     def _autocorrelation_time(self):
         """
         get the autocorrelation time for the relevant property to ensure good error sampling
         """
         raise NotImplementedError  # Implemented in the child class
 
-    def _collect_machine_properties(self, scaling_factor: int = 1, group_property: str = None):
+    def collect_machine_properties(self, scaling_factor: int = 1, group_property: str = None):
         """
         Collect properties of machine being used.
 
@@ -170,13 +174,17 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
-    def _load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, scalar: bool = False,
-                    sym_matrix: bool = False, path: str = None):
+    def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
+                   remainder : int = None):
         """
         Load a batch of data
 
         Parameters
         ----------
+        remainder : int
+                If present, the remainder of the data will be loaded.
+        path : str
+                If present, the path will be loaded directly from the hdf5 database.
         loaded_property : str
                 name of the property to be loaded from the database
         batch_number : int
@@ -189,14 +197,19 @@ class Calculator(metaclass=abc.ABCMeta):
         data array : np.array, tf.tensor
                 This implementation returns a tensor of the species positions.
         """
-        start = int(batch_number * self.batch_size[self.batch_type])
-        stop = int(start + self.batch_size[self.batch_type])
+        if remainder is None:
+            start = int(batch_number * self.batch_size[self.batch_type])
+            stop = int(start + self.batch_size[self.batch_type])
+            slice_object = np.s_[:, start:stop]
+        else:
+            start = self.parent.number_of_configurations - remainder
+            slice_object = np.s_[:, start:]
 
         if loaded_property is None:
             loaded_property = self.loaded_property
 
-        return self.parent.load_matrix(loaded_property, species=item, select_slice=np.s_[:, start:stop],
-                                       tensor=self.tensor_choice, scalar=scalar, sym_matrix=sym_matrix, path=path)
+        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object,
+                                       tensor=self.tensor_choice, path=path)
 
     def _save_data(self, title: str, data: np.array):
         """
@@ -457,7 +470,7 @@ class Calculator(metaclass=abc.ABCMeta):
         parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
 
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
-            batch = self._load_batch(i, path=group)
+            batch = self.load_batch(i, path=group)
             for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
                 start = int(start_index + self.correlation_time)  # get start index
                 stop = int(start + self.data_range)  # get stop index
@@ -496,7 +509,7 @@ class Calculator(metaclass=abc.ABCMeta):
         msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
         for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70):  # Loop over batches
-            batch = self._load_batch(i, path=group)  # get the ionic current
+            batch = self.load_batch(i, path=group)  # get the ionic current
             for start_index in range(int(self.batch_loop)):  # Loop over ensembles
                 start = int(start_index + self.correlation_time)  # get start configuration
                 stop = int(start + self.data_range)  # get the stop configuration

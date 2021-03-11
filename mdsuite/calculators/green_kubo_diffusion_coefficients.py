@@ -138,7 +138,8 @@ class GreenKuboDiffusionCoefficients(Calculator):
         parsed_vacf = np.zeros(self.data_range)  # Instantiate the parsed array
 
         for i in range(int(self.n_batches['Serial'])):
-            batch = self._load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+            batch = self.load_batch(i, item=[item])  # load a batch of data  (n_atoms, timesteps, 3)
+            number_of_atoms = batch.shape[0]  # Get the number of atoms in the investigated species
 
             def generator():
                 """
@@ -153,11 +154,13 @@ class GreenKuboDiffusionCoefficients(Calculator):
             dataset = tf.data.Dataset.from_generator(generator=generator,
                                                      output_signature=tf.TensorSpec(shape=(None, self.data_range, 3),
                                                                                     dtype=tf.float64))
-            dataset = dataset.unbatch().map(
-                self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
-            ).batch(self.data_range)
 
-            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+            dataset = dataset.unbatch()  # unbatch all atoms
+            dataset = dataset.map(
+                self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
+            )  # convolution
+            dataset = dataset.batch(number_of_atoms)  # # undo unbachting and batch number of atoms again
+            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)  # prefetch data
 
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
                 vacf = tf.reduce_sum(x, axis=0)
@@ -256,7 +259,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         for i in range(int(self.n_batches['Parallel'])):
             print("Start Loading Data")
-            batch = self._load_batch(i, item=molecules)  # load a batch of data
+            batch = self.load_batch(i, item=molecules)  # load a batch of data
             print('Done!')
             a = 0
             if self_correlation:
@@ -331,7 +334,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
     def run_analysis(self):
         """ Run the main analysis """
         self._autocorrelation_time()  # get the correct autocorrelation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:

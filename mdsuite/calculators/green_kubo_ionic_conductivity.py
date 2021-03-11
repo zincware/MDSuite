@@ -93,76 +93,13 @@ class GreenKuboIonicConductivity(Calculator):
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
             # Unwrap the positions if they need to be unwrapped
             if self.loaded_property not in database:
-                print("Calculating the ionic current")
-                self._calculate_system_current()
-                print("Current calculation is finished and stored in the database, proceeding with analysis")
+                self.parent.perform_transformation('IonicCurrent', calculator=self)
 
     def _autocorrelation_time(self):
         """
         calculate the current autocorrelation time for correct sampling
         """
         pass
-
-    def _calculate_system_current(self):
-        """
-        Calculate the ionic current of the system
-
-        Returns
-        -------
-        Updates the simulation database with the ionic current property
-        """
-
-        # collect machine properties and determine batch size
-        self._collect_machine_properties(group_property='Velocities')
-        n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
-        remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
-
-        # add a dataset in the database and prepare the structure
-        database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
-        db_object = database.open()  # open a database
-        path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database
-        dataset_structure = {path: (self.parent.number_of_configurations, 3)}
-        database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
-
-        # process the batches
-        for i in tqdm(range(int(n_batches)), ncols=70):
-            velocity_matrix = self._load_batch(i, loaded_property='Velocities')  # load a batch of data
-            # build charge array
-            species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
-
-            system_current = np.zeros((self.batch_size['Parallel'], 3))  # instantiate the current array
-            # Calculate the total system current
-            for j in range(len(velocity_matrix)):
-                system_current += np.array(np.sum(velocity_matrix[j][:, 0:], axis=0)) * species_charges[j]
-
-            database.add_data(data=system_current,
-                              structure=data_structure,
-                              database=db_object,
-                              start_index=i,
-                              batch_size=self.batch_size['Parallel'],
-                              system_tensor=True)
-
-        if remainder > 0:
-            start = self.parent.number_of_configurations - remainder
-            velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
-                                                      tensor=self.tensor_choice, scalar=False, sym_matrix=False)
-            # build charge array
-            species_charges = [self.parent.species[atom]['charge'][0] for atom in self.parent.species]
-
-            system_current = np.zeros((len(velocity_matrix), 3))  # instantiate the current array
-            # Calculate the total system current
-            for j in range(len(velocity_matrix)):
-                system_current += np.array(np.sum(velocity_matrix[j][:, 0:], axis=0)) * species_charges[j]
-
-            database.add_data(data=system_current,
-                              structure=data_structure,
-                              database=db_object,
-                              start_index=start,
-                              batch_size=remainder,
-                              system_tensor=True)
-        database.close(db_object)  # close the database
-        self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
 
     def _calculate_ionic_conductivity(self):
         """
@@ -181,7 +118,7 @@ class GreenKuboIonicConductivity(Calculator):
         parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
 
         for i in range(int(self.n_batches['Parallel'])):  # loop over batches
-            batch = self._load_batch(i, path=db_path)
+            batch = self.load_batch(i, path=db_path)
 
             def generator():
                 for start_index in range(int(self.batch_loop)):
@@ -226,7 +163,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         self._autocorrelation_time()  # get the autocorrelation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
         if status == -1:

@@ -22,7 +22,7 @@ from tqdm import tqdm
 import importlib.resources
 
 from mdsuite import data as static_data
-from mdsuite.calculators.computations_dict import dict_classes_computations
+from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
@@ -74,7 +74,7 @@ class Experiment:
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
                 Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
-        cluster : bool
+        cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
         """
@@ -101,24 +101,13 @@ class Experiment:
         self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
-        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
-        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
-        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
+        self._create_internal_file_paths()
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
-        self.results = [
-            'diffusion_coefficients',
-            'ionic_conductivity',
-            'thermal_conductivity',
-            'coordination_numbers',
-            'potential_of_mean_force_values',
-            'radial_distribution_function',
-            'kirkwood_buff_integral',
-            'viscosity'
-        ]
+        self.results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}
@@ -128,6 +117,13 @@ class Experiment:
 
         # Run Computations
         self.run_computation = self.RunComputation(self)
+
+    def _create_internal_file_paths(self):
+        """Create or update internal file paths
+        """
+        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
+        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
+        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
 
     def _load_or_build(self):
         """
@@ -149,11 +145,23 @@ class Experiment:
         A function to load a class instance given the project name.
         """
 
-        class_file = open(os.path.join(self.storage_path,self.analysis_name,f'{self.analysis_name}.bin'), 'rb')  # open file
+        def update_path():
+            """Check if the Path of the database is different form the stored storage_path
+
+            If the paths are different, the database has been moved and the internal file paths will be updated.
+            """
+
+            if storage_path != self.storage_path:
+                print("Database has been moved - Updating internals!")
+                self.storage_path = storage_path
+                self._create_internal_file_paths()
+
+        class_file = open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb')  # open file
         pickle_data = class_file.read()  # read file
         class_file.close()  # close file
-
-        self.__dict__ = pickle.loads(pickle_data)  # update the class object
+        storage_path = self.storage_path
+        self.__dict__ = pickle.loads(pickle_data)
+        update_path()
         self.run_computation = self.RunComputation(self)
 
     def save_class(self):
@@ -238,10 +246,8 @@ class Experiment:
 
         Parameters
         ----------
-        computation_name : str
-                name of the computation to be performed
-
-        **kwargs : extra arguments passed to the classes
+        parent : object
+                Experiment class in which this class is contained.
 
         Returns
         -------
@@ -258,7 +264,7 @@ class Experiment:
         def __getattribute__(self, item):
             """Call via function
             You can call the computation via a function and autocompletion
-            >>> Experiment.run_computation.EinsteinDiffusionCoefficients(plot=True)
+            >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
             """
             try:
                 class_compute = dict_classes_computations[item]
@@ -276,21 +282,26 @@ class Experiment:
                     self.class_compute = class_func_compute
 
                 def get_documentation(self):
-                    """Get the documentation for the calculator
+                    """
+                    Get the documentation for the calculator
                     You can print the documentation via
-                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients.get_documentation()
+                    >>> self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
                     """
                     print(inspect.getdoc(self.class_compute))
 
                 def __repr__(self):
-                    """Get the documentation for the calculator
+                    """
+                    Get the documentation for the calculator
                     You can print the documentation if you don't call the class
-                    >>> Experiment.run_computation.EinsteinDiffusionCoefficients
+                    >>> self.run_computation.EinsteinDiffusionCoefficients
                     """
                     self.get_documentation()
                     return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
 
                 def __call__(self, **kwargs):
+                    """
+                    Introduce call method.
+                    """
                     self.parent.compute(self.class_compute, **kwargs)
 
             return Func(self, class_compute)
@@ -298,7 +309,7 @@ class Experiment:
         def __call__(self, computation_name, **kwargs):
             """Call directly
             You can call the computation directly via
-            >>> Experiment.run_computation("EinsteinDiffusionCoefficients", plot=True)
+            >>> self.run_computation("EinsteinDiffusionCoefficients", plot=True)
             """
             try:
                 class_compute = dict_classes_computations[computation_name]
@@ -390,7 +401,8 @@ class Experiment:
 
         return attributes
 
-    def add_data(self, trajectory_file=None, file_format='lammps_traj', rename_cols=None):
+    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None,
+                 sort: bool = False):
         """
         Add data to the database
 
@@ -400,21 +412,26 @@ class Experiment:
                 Format of the file being read in. Default is file_path
         trajectory_file : str
                 Trajectory file to be process and added to the database.
+        rename_cols : dict
+                If this argument is given, the columns with names in the keys of the dictionary will be replaced with
+                the values.
+        sort : bool
+                If true, the data will be sorted when being entered into the database.
         """
 
         # Check if there is a trajectory file.
         if trajectory_file is None:
             print("No data has been given")
-            return  # exit method as nothing more can be done
+            sys.exit(1)
 
         # Load the file reader and the database object
-        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file)
+        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
         database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
 
         # Check to see if a database exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
-        if file_type is 'flux':
+        if file_type == 'flux':
             flux = True
         else:
             flux = False
@@ -427,15 +444,18 @@ class Experiment:
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file, database, rename_cols, flux=False):
+    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
+                            rename_cols: dict, flux: bool = False):
         """
         Build a new database
         """
         # get properties of the trajectory file
         architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
         database.initialize_database(architecture)  # initialize the database
+
         db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
+        remainder = self.number_of_configurations - batch_range*self.batch_size
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
@@ -446,8 +466,18 @@ class Experiment:
                               database=db_object,
                               start_index=counter,
                               batch_size=self.batch_size,
-                              flux = flux)
+                              flux=flux,
+                              n_atoms=self.number_of_atoms)
             counter += self.batch_size
+
+        if remainder > 0:
+            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
+            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
+                              structure=structure,
+                              database=db_object,
+                              start_index=counter,
+                              batch_size=remainder,
+                              flux=flux)
 
         database.close(db_object)  # Close the object
         f_object.close()
@@ -459,22 +489,13 @@ class Experiment:
 
         # Instantiate YAML file for system properties
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
-            data = {'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
-                                               'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
-                    'ionic_conductivity': {},
-                    'thermal_conductivity': {},
-                    'coordination_numbers': {'Coordination_Numbers': {}},
-                    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
-                    'radial_distribution_function': {},
-                    'kirkwood_buff_integral': {},
-                    'structure_factor': {},
-                    'viscosity': {}}
+            data = dict_classes_db
 
             yaml.dump(data, f)
 
         self.save_class()  # Update the class state
 
-    def _load_trajectory_reader(self, file_format, trajectory_file):
+    def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
         try:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
@@ -482,7 +503,7 @@ class Experiment:
             print(f'Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
-        return class_file_io(self, file_path=trajectory_file), file_type
+        return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
 
     def build_species_dictionary(self):
         """
@@ -557,8 +578,7 @@ class Experiment:
         """
         self.species[element]['mass'] = mass  # update the mass
 
-    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, scalar=False, sym_matrix=False,
-                    path=None):
+    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, path=None):
         """
         Load a desired property matrix.
 
@@ -572,10 +592,6 @@ class Experiment:
                 A slice to select from the database.
         tensor : bool
                 If true, the data will be returned as a tensorflow tensor.
-        scalar : bool
-                If true, the data will be returned as a scalar array
-        sym_matrix : bool
-                If true, data will be returned as as stress tensor format.
         path : str
                 optional path to the database.
 
@@ -617,11 +633,6 @@ class Experiment:
                     if tensor:
                         property_matrix.append(
                             tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
-
-                    elif sym_matrix:  # return a stress tensor
-                        property_matrix.append(database[path][select_slice])
-                    elif scalar:  # return a scalar
-                        property_matrix.append(database[path][select_slice])
 
                     else:  # return a numpy array
                         property_matrix.append(database[path][select_slice])

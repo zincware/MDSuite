@@ -11,6 +11,8 @@ from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
 
+import sys
+
 var_names = {
     "Positions": ['x', 'y', 'z'],
     "Scaled_Positions": ['xs', 'ys', 'zs'],
@@ -45,12 +47,12 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, file_path=None):
+    def __init__(self, obj, header_lines=9, file_path=None, sort: bool = False):
         """
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path)  # fill the parent class
+        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the parent class
 
         self.f_object = open(self.file_path)  # file object
 
@@ -118,8 +120,11 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         number_of_atoms : int
                 Number of atoms in each configuration
         """
+        line_length: int = 0
         species_summary = {}  # instantiate the species summary
         header = self._read_header(self.f_object)  # get the header data
+
+        id_index = header[8].index('id') - 2
 
         # Look for the element keyword
         try:
@@ -136,7 +141,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 raise NoElementInDump
         except NoElementInDump:
             print("Insufficient species or type identification available.")
-            return
+            sys.exit(1)
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
         property_groups = self._extract_properties(var_names, column_dict_properties)
@@ -154,13 +159,15 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 species_summary[line[element_index]]['indices'] = []
 
             # Update the index of the atom in the summary.
-            species_summary[line[element_index]]['indices'].append(i + self.header_lines)
+            if self.sort:
+                species_summary[line[element_index]]['indices'].append(int(line[id_index]))
+            else:
+                species_summary[line[element_index]]['indices'].append(i + self.header_lines)
 
         return species_summary, box, property_groups, line_length
 
     @staticmethod
-    def _build_architecture(species_summary: dict, property_groups: dict, number_of_atoms: int,
-                            number_of_configurations: int):
+    def _build_architecture(species_summary: dict, property_groups: dict, number_of_configurations: int):
         """
         Build the database architecture for use by the database class
 
@@ -170,8 +177,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 Species summary passed to the experiment class
         property_groups : dict
                 Property information passed to the experiment class
-        number_of_atoms : int
-                Number of atoms in each configurations
         number_of_configurations : int
                 Number of configurations in the file
 
@@ -233,5 +238,4 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         else:
             self.project.batch_size = batch_size
 
-        return self._build_architecture(species_summary, property_groups, number_of_atoms, number_of_configurations), \
-               line_length
+        return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length
