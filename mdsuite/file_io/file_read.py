@@ -48,7 +48,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def build_file_structure(self):
+    def build_file_structure(self, batch_size: int):
         """
         Build a skeleton of the file so that the database class can process it correctly.
         """
