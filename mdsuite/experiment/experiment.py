@@ -22,7 +22,7 @@ from tqdm import tqdm
 import importlib.resources
 
 from mdsuite import data as static_data
-from mdsuite.calculators.computations_dict import dict_classes_computations
+from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
@@ -107,15 +107,7 @@ class Experiment:
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
-        self.results = [
-            'diffusion_coefficients',
-            'ionic_conductivity',
-            'thermal_conductivity',
-            'coordination_numbers',
-            'potential_of_mean_force_values',
-            'radial_distribution_function',
-            'kirkwood_buff_integral'
-        ]
+        self.results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}
@@ -497,16 +489,7 @@ class Experiment:
 
         # Instantiate YAML file for system properties
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
-            data = {'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
-                                               'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
-                    'ionic_conductivity': {},
-                    'thermal_conductivity': {},
-                    'coordination_numbers': {'Coordination_Numbers': {}},
-                    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
-                    'radial_distribution_function': {},
-                    'kirkwood_buff_integral': {},
-                    'structure_factor': {},
-                    'viscosity': {}}
+            data = dict_classes_db
 
             yaml.dump(data, f)
 
