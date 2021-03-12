@@ -42,7 +42,7 @@ setuptools.setup(
     ],
     package_data={'': ['form_fac_coeffs.csv']},
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     install_requires=['seaborn',
                       'tensorflow',
                       'h5py',
