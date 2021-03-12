@@ -285,7 +285,7 @@ class Experiment:
                     """
                     Get the documentation for the calculator
                     You can print the documentation via
-                    >>> self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
+                    self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
                     """
                     print(inspect.getdoc(self.class_compute))
 
@@ -293,7 +293,7 @@ class Experiment:
                     """
                     Get the documentation for the calculator
                     You can print the documentation if you don't call the class
-                    >>> self.run_computation.EinsteinDiffusionCoefficients
+                    self.run_computation.EinsteinDiffusionCoefficients
                     """
                     self.get_documentation()
                     return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
