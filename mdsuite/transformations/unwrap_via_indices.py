@@ -4,7 +4,9 @@ Unwrap a set of coordinates based on dumped indices.
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.database.database import Database
+from mdsuite.utils.meta_functions import join_path
 import os
+import sys
 
 
 class UnwrapViaIndices(Transformations):
@@ -31,8 +33,37 @@ class UnwrapViaIndices(Transformations):
         if self.species is None:
             self.species = list(self.experiment.species)
 
+    def _check_for_indices(self):
+        """
+        Check the database for indices
+
+        Returns
+        -------
+
+        """
+        truth_table = []
+        for item in self.species:
+            path = join_path(item, 'Box_Images')
+            truth_table.append(self.database.check_existence(path))
+
+        if not all(truth_table):
+            print("Indices were not included in the database generation. Please check our simulation files.")
+            sys.exit(1)
+
+    def _unwrap_particles(self):
+        """
+        Perform the unwrapping
+        Returns
+        -------
+        Updates the database object.
+        """
+        # Loop over batches
+        # Apply transformation to batch
+        # update database
+
     def run_transformation(self):
         """
         Perform the transformation.
         """
-        self.unwrap_particles()  # run the transformation
+        self._check_for_indices()
+        self._unwrap_particles()  # run the transformation

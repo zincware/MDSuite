@@ -7,6 +7,7 @@ Summary
 
 import abc
 import random
+import sys
 
 import yaml
 import h5py as hf
@@ -95,7 +96,6 @@ class Calculator(metaclass=abc.ABCMeta):
         self.database_group = None  # Which database group to save the data in
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
 
-
         # Solve for the batch type
         if self.parallel:
             self.batch_type = 'Parallel'
@@ -104,6 +104,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         if optimize_correlation_time:
             print("Sorry, this feature is not currently available, please set the correlation time manually.")
+            sys.exit(1)
 
         # Prevent $DISPLAY warnings on clusters.
         if self.parent.cluster_mode:
@@ -175,7 +176,7 @@ class Calculator(metaclass=abc.ABCMeta):
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
     def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
-                   remainder : int = None):
+                   remainder: int = None):
         """
         Load a batch of data
 

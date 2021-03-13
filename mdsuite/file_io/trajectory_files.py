@@ -6,14 +6,9 @@ Summary
 """
 
 import abc
-import os
 from typing import TextIO
-
-import h5py as hf
 import numpy as np
-from tqdm import tqdm
 from mdsuite.utils.meta_functions import join_path
-
 from mdsuite.file_io.file_read import FileProcessor
 
 
@@ -90,7 +85,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         """
 
         # Define the empty data array
-        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length), dtype='<U15')
+        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length),
+                                       dtype='<U15')
 
         counter = 0
         for i in range(number_of_configurations):

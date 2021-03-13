@@ -159,7 +159,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
             dataset = dataset.map(
                 self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
             )  # convolution
-            dataset = dataset.batch(number_of_atoms)  # # undo unbachting and batch number of atoms again
+            dataset = dataset.batch(number_of_atoms)
             dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)  # prefetch data
 
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):
