@@ -3,12 +3,10 @@ Class for database objects and all of their operations
 """
 
 import h5py as hf
-import os
 import numpy as np
-from typing import TextIO
 from mdsuite.utils.meta_functions import join_path
-
 from mdsuite.utils.exceptions import *
+import tensorflow as tf
 
 
 class Database:
@@ -48,8 +46,6 @@ class Database:
 
         Parameters
         ----------
-        name : str
-                Name of the database to open
         mode : str
                 Mode in which to open the database
 
@@ -122,10 +118,11 @@ class Database:
                 database[item][start_index:stop_index, :] = data[structure[item]['indices']][
                     np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
             else:
-                database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort)
+                database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
+                                                                              n_atoms=n_atoms)
 
     def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
-                  n_atoms : int = None):
+                  n_atoms: int = None):
         """
         Fetch data with some format from a large array.
 
@@ -135,15 +132,17 @@ class Database:
         """
         if sort:
             indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
-            data[indices][
+            tf.gather_nd(tf.convert_to_tensor(data), indices)[
                 np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
                 (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
         else:
-            return data[structure[item]['indices']][
+            indices = structure[item]['indices']
+            return data[indices][
                 np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
                 (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
 
-    def _update_indices(self, data: np.array, indices: np.array, batch_size: int, n_atoms: int):
+    @staticmethod
+    def _update_indices(data: np.array, indices: np.array, batch_size: int, n_atoms: int):
         """
         Update the indices key of the structure dictionary if the data must be sorted.
 
@@ -215,7 +214,8 @@ class Database:
         self.add_dataset(structure, database)  # add a dataset to the groups
         database.close()  # close the database
 
-    def _build_path_input(self, structure: dict) -> dict:
+    @staticmethod
+    def _build_path_input(structure: dict) -> dict:
         """
         Build an input to a hdf5 database from a dictionary
 
@@ -398,3 +398,23 @@ class Database:
                 db.move(item, mapping[item])
 
         db.close()
+
+    def load_data(self, path_list: list = None, select_slice: np.s_ = None):
+        """
+        Load data from the database for some operation.
+
+        Should be called by the data fetch class as this will ensure correct loading and pre-loading.
+        Returns
+        -------
+
+        """
+        database = self.open('r')
+        data = []
+        for item in path_list:
+            data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64))
+        database.close()
+
+        if len(data) == 1:
+            return data[0]
+        else:
+            return data
