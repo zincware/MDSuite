@@ -172,7 +172,7 @@ class Calculator(metaclass=abc.ABCMeta):
         Calculate the batch loop parameters
         """
         self.batch_loop = np.floor(
-            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
+            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time+1))+1
 
     def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
                    remainder : int = None):
@@ -472,7 +472,7 @@ class Calculator(metaclass=abc.ABCMeta):
         for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
             batch = self.load_batch(i, path=group)
             for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
-                start = int(start_index + self.correlation_time)  # get start index
+                start = int(start_index * self.correlation_time)  # get start index
                 stop = int(start + self.data_range)  # get stop index
                 system_current = np.array(batch, dtype=float)[start:stop]  # load data from batch array
 
@@ -508,14 +508,14 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
-        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70):  # Loop over batches
+        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70, position=0, leave=False):  # Loop over batches
             batch = self.load_batch(i, path=group)  # get the ionic current
-            for start_index in range(int(self.batch_loop)):  # Loop over ensembles
-                start = int(start_index + self.correlation_time)  # get start configuration
+            for start_index in tqdm(range(int(self.batch_loop)), position=1, leave=False, colour='blue', ncols=70):  # Loop over ensembles
+                start = int(start_index * self.correlation_time)  # get start configuration
                 stop = int(start + self.data_range)  # get the stop configuration
                 window_tensor = batch[start:stop]  # select data from the batch tensor
 
-                # Calculate the msd and multiply by the prefactor
+                # Calculate the msd
                 msd = (window_tensor - (
                     tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
                 msd = tf.reduce_sum(msd, axis=1)
