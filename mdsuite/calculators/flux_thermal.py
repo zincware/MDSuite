@@ -105,8 +105,7 @@ class GreenKuboThermalConductivityFlux(Calculator):
         print(f"Green-Kubo Thermal Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        #self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma) / 100
-        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma / 100))])
+        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma))])
 
     def load_flux_matrix(self):
         """

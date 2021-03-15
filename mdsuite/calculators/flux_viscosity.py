@@ -104,8 +104,7 @@ class GreenKuboViscosityFlux(Calculator):
         print(f"Green-Kubo Viscosity at {self.parent.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} Pa.s")
 
-        # self.parent.viscosity["Green-Kubo-flux"] = np.mean(sigma) / 100
-        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma / 100))])
+        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma))])
 
     def load_flux_matrix(self):
         """

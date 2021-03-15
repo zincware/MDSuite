@@ -229,7 +229,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
         dipole_msd_array *= prefactor
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
-        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0] / 100)])
+        self._update_properties_file(data=[str(popt[0]), str(np.sqrt(np.diag(pcov))[0])])
 
         # Update the plot if required
         if self.plot:
