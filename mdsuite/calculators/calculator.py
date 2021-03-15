@@ -209,8 +209,7 @@ class Calculator(metaclass=abc.ABCMeta):
         if loaded_property is None:
             loaded_property = self.loaded_property
 
-        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object,
-                                       tensor=self.tensor_choice, path=path)
+        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object, path=path)
 
     def _save_data(self, title: str, data: np.array):
         """

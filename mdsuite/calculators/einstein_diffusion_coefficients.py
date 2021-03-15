@@ -119,7 +119,6 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         # Time array
         self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
-        #self.correlation_time = 1  # correlation time TODO: do not hard code this.
 
         if species is None:
             self.species = list(self.parent.species)
@@ -132,7 +131,6 @@ class EinsteinDiffusionCoefficients(Calculator):
                     print("Unwrapping coordinates")
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
-
 
     def _autocorrelation_time(self):
         """
