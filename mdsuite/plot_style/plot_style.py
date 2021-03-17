@@ -29,6 +29,7 @@ def style():
         "legend.edgecolor": (1, 1, 1),
         "legend.framealpha": 0.5,
         "legend.fancybox": "False",
+        'legend.numpoints': 1,
         "xtick.major.size": 10.0,
         "xtick.major.width": 2.5,
         "xtick.minor.size": 6.0,
