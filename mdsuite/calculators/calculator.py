@@ -7,6 +7,7 @@ Summary
 
 import abc
 import random
+import sys
 
 import yaml
 import h5py as hf
@@ -95,7 +96,6 @@ class Calculator(metaclass=abc.ABCMeta):
         self.database_group = None  # Which database group to save the data in
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
 
-
         # Solve for the batch type
         if self.parallel:
             self.batch_type = 'Parallel'
@@ -104,6 +104,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         if optimize_correlation_time:
             print("Sorry, this feature is not currently available, please set the correlation time manually.")
+            sys.exit(1)
 
         # Prevent $DISPLAY warnings on clusters.
         if self.parent.cluster_mode:
@@ -112,12 +113,6 @@ class Calculator(metaclass=abc.ABCMeta):
 
         if not self.parent.cluster_mode:
             apply_style()
-
-    def _autocorrelation_time(self):
-        """
-        get the autocorrelation time for the relevant property to ensure good error sampling
-        """
-        raise NotImplementedError  # Implemented in the child class
 
     def collect_machine_properties(self, scaling_factor: int = 1, group_property: str = None):
         """
@@ -147,22 +142,13 @@ class Calculator(metaclass=abc.ABCMeta):
         parallel_memory_usage = scaling_factor * sum(memory_usage)
 
         # Update the batch_size attribute
-        max_batch_size_serial = int(np.floor(0.1 * self.machine_properties['memory'] / serial_memory_usage))
-        max_batch_size_parallel = int(np.floor(0.1 * self.machine_properties['memory'] / parallel_memory_usage))
-
-        if max_batch_size_serial > self.parent.number_of_configurations:
-            self.batch_size['Serial'] = self.parent.number_of_configurations
-
-        else:
-            self.batch_size['Serial'] = max_batch_size_serial
+        self.batch_size['Serial'] = int(np.clip(np.floor(0.1 * self.machine_properties['memory'] / serial_memory_usage),
+                                                1, self.parent.number_of_configurations))
+        self.batch_size['Parallel'] = int(np.clip(np.floor(0.1 * self.machine_properties['memory'] / parallel_memory_usage),
+                                              1, self.parent.number_of_configurations))
 
         self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations /
                                            (self.batch_size['Serial'])).astype(int)
-
-        if max_batch_size_parallel > self.parent.number_of_configurations:
-            self.batch_size['Parallel'] = self.parent.number_of_configurations
-        else:
-            self.batch_size['Parallel'] = max_batch_size_parallel
 
         self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations /
                                              (self.batch_size['Parallel'])).astype(int)
@@ -175,7 +161,7 @@ class Calculator(metaclass=abc.ABCMeta):
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
     def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
-                   remainder : int = None):
+                   remainder: int = None):
         """
         Load a batch of data
 
@@ -208,8 +194,7 @@ class Calculator(metaclass=abc.ABCMeta):
         if loaded_property is None:
             loaded_property = self.loaded_property
 
-        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object,
-                                       tensor=self.tensor_choice, path=path)
+        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object, path=path)
 
     def _save_data(self, title: str, data: np.array):
         """
@@ -231,7 +216,7 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
 
-    def _plot_data(self, title: str=None, manual: bool=False):
+    def _plot_data(self, title: str = None, manual: bool = False):
         """
         Plot the data generated during the analysis
         """

@@ -52,7 +52,7 @@ class CoordinateUnwrapper(Transformations):
             Mask to select and transform crossed data.
     """
 
-    def __init__(self, obj, species, center_box=True):
+    def __init__(self, obj: object, species: list, center_box: bool = True):
         """
         Standard constructor
 

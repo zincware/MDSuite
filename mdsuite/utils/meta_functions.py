@@ -39,10 +39,12 @@ def join_path(a, b):
     Notes
     -----
     h5py 3.1.0 on windows relies on forward slashes but os.path.join returns backward slashes.
-    Here we replace them to enable MDSuite for Windows users.
+    Here we replace them to enable MDSuite for Windows users. To be used ONLY for navigation within a database. For
+    navigation through the file system in general one should use os.path.join.
 
     """
     return os.path.join(a, b).replace("\\","/")
+
 
 def get_dimensionality(box: list) -> int:
     """

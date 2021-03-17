@@ -103,14 +103,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.parent.species)
 
-    def _autocorrelation_time(self):
-        """
-        Calculate velocity autocorrelation time
-        When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
-        system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
-        """
-        pass
-
     def _singular_diffusion_calculation(self, item: str):
         """
         Method to calculate the diffusion coefficients
@@ -159,7 +151,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
             dataset = dataset.map(
                 self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE, deterministic=False
             )  # convolution
-            dataset = dataset.batch(number_of_atoms)  # # undo unbachting and batch number of atoms again
+            dataset = dataset.batch(number_of_atoms)
             dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)  # prefetch data
 
             for x in tqdm(dataset, total=int(self.batch_loop), desc=f"Processing {item}", smoothing=0.05):

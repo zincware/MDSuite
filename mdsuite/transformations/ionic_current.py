@@ -9,6 +9,7 @@ import os
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.database.database import Database
 from mdsuite.calculators.calculator import Calculator
+from mdsuite.utils.meta_functions import join_path
 
 
 class IonicCurrent(Transformations):
@@ -75,7 +76,7 @@ class IonicCurrent(Transformations):
         n_batches = np.floor(self.experiment.number_of_configurations / self.calculator.batch_size['Parallel'])
         remainder = int(self.experiment.number_of_configurations % self.calculator.batch_size['Parallel'])
         db_object = self.database.open()  # open a database
-        path = os.path.join('Ionic_Current', 'Ionic_Current')  # name of the new database
+        path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database
         dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
         self.database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
@@ -122,4 +123,3 @@ class IonicCurrent(Transformations):
         """
         self._run_calculation_loops()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()
-        self.experiment.save_class()  # store the class state
