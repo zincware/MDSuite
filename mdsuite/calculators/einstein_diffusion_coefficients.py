@@ -132,15 +132,6 @@ class EinsteinDiffusionCoefficients(Calculator):
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
 
-    def _autocorrelation_time(self):
-        """
-        Calculate positions autocorrelation time
-
-        When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
-        system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
-        """
-        pass
-
     def _single_diffusion_coefficients(self, item, parse=False):
         """
         Calculate singular diffusion coefficients
