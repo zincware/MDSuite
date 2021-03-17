@@ -15,15 +15,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 # Import user packages
 from tqdm import tqdm
+
 from mdsuite.convolution_computation.convolution import convolution
 from mdsuite.utils.meta_functions import timeit
-import yaml
-import os
 # MDSuite packages
-import mdsuite.utils.constants as constants
 from .calculator import Calculator
-
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
+from ..plot_style.plot_style import apply_style
+
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -42,7 +41,9 @@ class GreenKuboThermalConductivityFlux(Calculator):
             Array of the time.
     """
 
-    def __init__(self, obj, plot=False, data_range=500, correlation_time=1):
+    def __init__(self, obj, plot=False, data_range=500, correlation_time=1,
+                 x_label='Time (s)', y_label='JACF ($C^{2}\\cdot m^{2}/s^{2}$)',  save=True,
+                 analysis_name='green_kubo_thermal_conductivity_flux',):
         """
         Python constructor for the experiment class.
 
@@ -55,6 +56,9 @@ class GreenKuboThermalConductivityFlux(Calculator):
         data_range : int
                 Number of configurations to include in each ensemble
         """
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name,
+                         correlation_time=correlation_time, parallel=True)
+
         self.parent = obj
         self.plot = plot
         self.data_range = data_range
@@ -63,6 +67,8 @@ class GreenKuboThermalConductivityFlux(Calculator):
         self.database_group = 'thermal_conductivity'  # Which database group to save the data in
         self.analysis_name = 'thermal_conductivity_flux'
         self.correlation_time = correlation_time
+
+        apply_style()
 
     def _autocorrelation_time(self):
         """
@@ -83,11 +89,11 @@ class GreenKuboThermalConductivityFlux(Calculator):
 
         prefactor = numerator / denominator
         flux = self.load_flux_matrix()
-        loop_range = int((len(flux) - self.data_range - 1)/self.correlation_time)  # Define the loop range
-        sigma, averaged_jacf  = convolution(loop_range=loop_range,
-                                            flux=flux,
-                                            data_range=self.data_range,
-                                            time=self.time, correlation_time=self.correlation_time)
+        loop_range = int((len(flux) - self.data_range - 1) / self.correlation_time)  # Define the loop range
+        sigma, averaged_jacf = convolution(loop_range=loop_range,
+                                           flux=flux,
+                                           data_range=self.data_range,
+                                           time=self.time, correlation_time=self.correlation_time)
         sigma = prefactor * np.array(sigma)
 
         # convert to SI units.
@@ -97,16 +103,16 @@ class GreenKuboThermalConductivityFlux(Calculator):
         if self.plot:
             averaged_jacf /= max(averaged_jacf)
             plt.plot(self.time, averaged_jacf)
-            plt.xlabel("Time (s)")
-            plt.ylabel("Normalized Current Autocorrelation Function")
-            plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
-            plt.show()
+            self._plot_data()
+            # plt.xlabel("Time (s)")
+            # plt.ylabel("Normalized Current Autocorrelation Function")
+            # plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
+            # plt.show()
 
         print(f"Green-Kubo Thermal Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
               f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
 
-        #self.parent.thermal_conductivity["Green-Kubo-flux"] = np.mean(sigma) / 100
-        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma / 100))])
+        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma)/np.sqrt(len(sigma)))])
 
     def load_flux_matrix(self):
         """

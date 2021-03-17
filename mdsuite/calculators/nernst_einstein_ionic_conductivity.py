@@ -121,7 +121,7 @@ class NernstEinsteinIonicConductivity:
             mass_fraction_term = len(self.parent.species[element]['indices']) / self.parent.number_of_atoms
             diffusion_array.append(float(diffusion_information[element][0]) * charge_term * mass_fraction_term)
 
-        return (prefactor * np.sum(diffusion_array)) / 100
+        return prefactor * np.sum(diffusion_array)
 
     def _corrected_nernst_einstein(self, self_diffusion_information: dict, distinct_diffusion_information: dict):
         """
@@ -159,7 +159,7 @@ class NernstEinsteinIonicConductivity:
                                  (len(self.parent.species[constituents[1]]['indices']) / self.parent.number_of_atoms)
             diffusion_array.append(float(distinct_diffusion_information[couple][0]) * charge_term * mass_fraction_term)
 
-        return (prefactor * np.sum(diffusion_array)) / 100
+        return prefactor * np.sum(diffusion_array)
 
     def _run_nernst_einstein(self):
         """

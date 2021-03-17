@@ -71,7 +71,7 @@ class EinsteinDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, obj, plot=True, singular=True, distinct=False, species=None, data_range=200, save=True,
-                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_diffusion_coefficients',
+                 x_label='Time (s)', y_label='MSD (m$^2$/s)', analysis_name='einstein_diffusion_coefficients',
                  optimize=False, correlation_time=1):
         """
 
