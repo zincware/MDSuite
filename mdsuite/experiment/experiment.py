@@ -101,7 +101,10 @@ class Experiment:
         self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
-        self._create_internal_file_paths()
+        self.experiment_path: str
+        self.database_path: str
+        self.figures_path: str
+        self._create_internal_file_paths()  # fill the path attributes
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
@@ -119,7 +122,8 @@ class Experiment:
         self.run_computation = self.RunComputation(self)
 
     def _create_internal_file_paths(self):
-        """Create or update internal file paths
+        """
+        Create or update internal file paths
         """
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
         self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
@@ -285,7 +289,7 @@ class Experiment:
                     """
                     Get the documentation for the calculator
                     You can print the documentation via
-                    >>> self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
+                    self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
                     """
                     print(inspect.getdoc(self.class_compute))
 
@@ -293,7 +297,7 @@ class Experiment:
                     """
                     Get the documentation for the calculator
                     You can print the documentation if you don't call the class
-                    >>> self.run_computation.EinsteinDiffusionCoefficients
+                    self.run_computation.EinsteinDiffusionCoefficients
                     """
                     self.get_documentation()
                     return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
@@ -578,7 +582,7 @@ class Experiment:
         """
         self.species[element]['mass'] = mass  # update the mass
 
-    def load_matrix(self, identifier=None, species=None, select_slice=None, tensor=False, path=None):
+    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: str = None):
         """
         Load a desired property matrix.
 
@@ -590,8 +594,6 @@ class Experiment:
                 List of species to be loaded
         select_slice : np.slice
                 A slice to select from the database.
-        tensor : bool
-                If true, the data will be returned as a tensorflow tensor.
         path : str
                 optional path to the database.
 
@@ -600,45 +602,20 @@ class Experiment:
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
+        database = Database(name=os.path.join(self.database_path))
 
         if path is not None:
-            property_matrix = []
-            with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
-                property_matrix.append(database[path][select_slice])
+            return database.load_data(path_list=[path], select_slice=select_slice)
+
         else:
             # If no species list is given, use all species in the Experiment class instance.
-            if not species:
+            if species is None:
                 species = list(self.species.keys())  # get list of all species available.
             # If no slice is given, load all configurations.
             if select_slice is None:
                 select_slice = np.s_[:]  # set the numpy slice object.
 
-            property_matrix = []  # Define an empty list for the properties to fill
-
-            with hf.File(os.path.join(self.database_path, 'database.hdf5'), "r+") as database:
-                for item in list(species):
-                    path = join_path(item, identifier)
-
-                    # Unwrap the positions if they need to be unwrapped
-                    if identifier == "Unwrapped_Positions" and "Unwrapped_Positions" not in database[item]:
-                        print("We first have to unwrap the coordinates... Doing this now")
-                        self.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
-
-                    # Check if the desired property is in the database.
-                    if identifier not in database[item]:
-                        print("This data was not found in the database. Was it included in your simulation input?")
-                        return
-
-                    # If the tensor kwarg is True, return a tensor.
-                    if tensor:
-                        property_matrix.append(
-                            tf.convert_to_tensor(database[path][select_slice], dtype=tf.float64))
-
-                    else:  # return a numpy array
-                        property_matrix.append(database[path][select_slice])
-
-        # Check if the property loaded was a scalar.
-        if len(property_matrix) == 1:
-            return property_matrix[0]  # return the scalar dataset
-        else:
-            return property_matrix  # return the full tensor object.
+            path_list = []
+            for item in species:
+                path_list.append(join_path(item, identifier))
+            return database.load_data(path_list=path_list, select_slice=select_slice)
