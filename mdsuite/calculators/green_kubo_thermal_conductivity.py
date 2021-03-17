@@ -114,7 +114,7 @@ class GreenKuboThermalConductivity(Calculator):
         """
 
         # collect machine properties and determine batch size
-        self._collect_machine_properties(group_property='Velocities')
+        self.collect_machine_properties(group_property='Velocities')
         n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
         remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
 
@@ -128,10 +128,10 @@ class GreenKuboThermalConductivity(Calculator):
 
         # process the batches
         for i in tqdm(range(int(n_batches)), ncols=70):
-            velocity_matrix = self._load_batch(i, "Velocities")  # Load the velocity matrix
-            stress_tensor = self._load_batch(i, "Stress", sym_matrix=True)
-            pe = self._load_batch(i, "PE", scalar=True)
-            ke = self._load_batch(i, "KE", scalar=True)
+            velocity_matrix = self.load_batch(i, "Velocities")  # Load the velocity matrix
+            stress_tensor = self.load_batch(i, "Stress")
+            pe = self.load_batch(i, "PE")
+            ke = self.load_batch(i, "KE")
 
             # define phi as product stress tensor * velocity matrix.
             # It is done by components to take advantage of the symmetric matrix.
@@ -238,7 +238,7 @@ class GreenKuboThermalConductivity(Calculator):
         parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
 
         for i in range(int(self.n_batches['Parallel'])):  # loop over batches
-            batch = self._load_batch(i, path=db_path)
+            batch = self.load_batch(i, path=db_path)
 
             def generator():
                 for start_index in range(int(self.batch_loop)):
@@ -281,7 +281,7 @@ class GreenKuboThermalConductivity(Calculator):
         The thermal conductivity is computed at this step.
         """
         self._autocorrelation_time()  # get the autocorrelation time
-        self._collect_machine_properties()  # collect machine properties and determine batch size
+        self.collect_machine_properties()  # collect machine properties and determine batch size
         self._calculate_batch_loop()  # Update the batch loop attribute
         status = self._check_input()  # Check for bad input
       
