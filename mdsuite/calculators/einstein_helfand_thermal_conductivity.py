@@ -22,8 +22,9 @@ from tqdm import tqdm
 # Import MDSuite modules
 import mdsuite.utils.meta_functions as meta_functions
 from mdsuite.calculators.calculator import Calculator
-
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
+from mdsuite.database.database import Database
+
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -61,7 +62,8 @@ class EinsteinHelfandThermalConductivity(Calculator):
     """
 
     def __init__(self, obj, plot=True, data_range=500, save=True,
-                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity'):
+                 x_label='Time (s)', y_label='MSD (m$^2$/s)', analysis_name='einstein_helfand_thermal_conductivity',
+                 correlation_time=1):
         """
         Python constructor
 
@@ -83,15 +85,15 @@ class EinsteinHelfandThermalConductivity(Calculator):
                 Name of the analysis
         """
 
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)  # parse to the parent class
+        # parse to the parent class
+        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name, parallel=True,
+                         correlation_time=correlation_time)
 
-        self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
+        self.loaded_property = 'Integrated_heat_current'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in a batch
         self.parallel = True  # Set the parallel attribute
         self.tensor_choice = True  # Load data as a tensor
         self.species = list(obj.species)  # species on which to perform the analysis
-
-        self.correlation_time = 1  # Correlation time of the current
 
         self.database_group = 'thermal_conductivity'  # Which database group to save the data in
 
@@ -101,12 +103,19 @@ class EinsteinHelfandThermalConductivity(Calculator):
         # Check for unwrapped coordinates and unwrap if not stored already.
 
         with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
+            # Check for unwrapped positions
             for item in self.species:
                 # Unwrap the positions if they need to be unwrapped
                 if "Unwrapped_Positions" not in database[item]:
                     print("Unwrapping coordinates")
                     obj.perform_transformation('UnwrapCoordinates', species=[item])  # Unwrap the coordinates
                     print("Coordinate unwrapping finished, proceeding with analysis")
+                # Check for translational dipole moment
+                if self.loaded_property not in database:
+                    print("Calculating integrated heat current")
+                    self._calculate_integrated_current()
+                    print(
+                        "Integrated heat current computation is finished and stored in the database, proceeding with analysis")
 
     def _autocorrelation_time(self):
         """
@@ -117,7 +126,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         pass
 
-    def _calculate_integrated_current(self, i):
+    def _calculate_integrated_current(self):
         """
         Calculate the integrated heat current of the system
 
@@ -131,19 +140,66 @@ class EinsteinHelfandThermalConductivity(Calculator):
         dipole_moment : tf.tensor
                 Return the dipole moment for the batch
         """
-        positions = self.load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
-        pe = self.load_batch(i, "PE", scalar=True)
-        ke = self.load_batch(i, "KE", scalar=True)
-        energy = ke + pe
+        self.collect_machine_properties(group_property='Unwrapped_Positions')
+        n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
+        remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
 
-        positions = tf.convert_to_tensor(positions)
-        energy = tf.convert_to_tensor(energy)
+        # add a dataset in the database and prepare the structure
+        database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
+        db_object = database.open()  # open a database
+        path = meta_functions.join_path(self.loaded_property, self.loaded_property)  # name of the new database
+        dataset_structure = {path: (self.parent.number_of_configurations, 3)}
+        database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
+        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
-        integrated_heat_current = energy * positions
+        for i in tqdm(range(int(n_batches)), ncols=70):
+            positions = self.load_batch(i, "Unwrapped_Positions")  # Load the velocity matrix
+            pe = self.load_batch(i, "PE")
+            ke = self.load_batch(i, "KE")
+            energy = ke + pe
 
-        integrated_heat_current = tf.reduce_sum(integrated_heat_current, axis=0)  # Calculate the final dipole moments
+            positions = tf.convert_to_tensor(positions)
+            energy = tf.convert_to_tensor(energy)
 
-        return integrated_heat_current
+            integrated_heat_current = energy * positions
+
+            integrated_heat_current = tf.reduce_sum(integrated_heat_current,
+                                                    axis=0)  # Calculate the integrated current
+
+            database.add_data(data=integrated_heat_current,
+                              structure=data_structure,
+                              database=db_object,
+                              start_index=i,
+                              batch_size=self.batch_size['Parallel'],
+                              system_tensor=True)
+
+            # fetch remainder if worth while
+            if remainder > 0:
+                start = self.parent.number_of_configurations - remainder
+                positions = self.parent.load_matrix('Unwrapped_Positions', select_slice=np.s_[:, start:],
+                                                    tensor=self.tensor_choice)
+                pe = self.parent.load_matrix('PE', select_slice=np.s_[:, start:],
+                                             tensor=self.tensor_choice)
+                ke = self.parent.load_matrix('KE', select_slice=np.s_[:, start:],
+                                             tensor=self.tensor_choice)
+
+                energy = ke + pe
+
+                positions = tf.convert_to_tensor(positions)
+                energy = tf.convert_to_tensor(energy)
+
+                integrated_heat_current = energy * positions
+                integrated_heat_current = tf.reduce_sum(integrated_heat_current,
+                                                        axis=0)  # Calculate the integrated current
+
+                database.add_data(data=integrated_heat_current,
+                                  structure=data_structure,
+                                  database=db_object,
+                                  start_index=i,
+                                  batch_size=self.batch_size['Parallel'],
+                                  system_tensor=True)
+            database.close(db_object)  # close the database
+            self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
 
     def _calculate_thermal_conductivity(self):
         """
@@ -157,14 +213,12 @@ class EinsteinHelfandThermalConductivity(Calculator):
                        self.parent.units['temperature']
         prefactor = numerator / denominator * units_change
 
-        msd_array = self.msd_operation_EH(type_batches='Parallel')
-
+        group = meta_functions.join_path(self.loaded_property, self.loaded_property)
+        msd_array = self.msd_operation_EH(group=group)
         msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
-
         msd_array *= prefactor
-
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, msd_array)
-        self.parent.thermal_conductivity["Einstein-Helfand"] = [popt[0] / 100, np.sqrt(np.diag(pcov))[0] / 100]
+        self._update_properties_file(data=[str(popt[0]), str(np.sqrt(np.diag(pcov))[0])])
 
         # Update the plot if required
         if self.plot:

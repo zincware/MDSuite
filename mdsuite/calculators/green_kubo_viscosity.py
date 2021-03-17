@@ -199,7 +199,7 @@ class GreenKuboViscosity(Calculator):
 
             def generator():
                 for start_index in range(int(self.batch_loop)):
-                    start = start_index + self.correlation_time
+                    start = start_index * self.correlation_time
                     stop = start + self.data_range
                     yield batch[start:stop]
 
