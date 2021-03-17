@@ -144,7 +144,7 @@ class GreenKuboIonicConductivity(Calculator):
         parsed_autocorrelation = parsed_autocorrelation / max(parsed_autocorrelation)
 
         # update the experiment class
-        self._update_properties_file(data=[str(np.mean(sigma) / 100), str((np.std(sigma) / np.sqrt(len(sigma))) / 100)])
+        self._update_properties_file(data=[str(np.mean(sigma)), str((np.std(sigma) / np.sqrt(len(sigma))))])
 
         plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
 

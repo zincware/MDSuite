@@ -68,7 +68,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
     """
 
     def __init__(self, obj, plot=True, data_range=500, save=True,
-                 x_label='Time (s)', y_label='MSD (m^2/s)', analysis_name='einstein_helfand_ionic_conductivity',
+                 x_label='Time (s)', y_label='MSD (m$^2$/s)', analysis_name='einstein_helfand_ionic_conductivity',
                  correlation_time=1):
         """
         Python constructor
@@ -100,7 +100,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
         self.batch_loop = None  # Number of ensembles in a batch
         self.tensor_choice = True  # Load data as a tensor
-        self.correlation_time = 1  # Correlation time of the current
         self.species = list(obj.species)  # species on which to perform the analysis
 
         self.database_group = 'ionic_conductivity'  # Which database group to save the data in
@@ -149,7 +148,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # add a dataset in the database and prepare the structure
         database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
         db_object = database.open()  # open a database
-        path = join_path('Translational_Dipole_Moment', 'Translational_Dipole_Moment')  # name of the new database
+        path = join_path(self.loaded_property, self.loaded_property)  # name of the new database
         dataset_structure = {path: (self.parent.number_of_configurations, 3)}
         database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
@@ -229,7 +228,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         dipole_msd_array /= int(self.n_batches['Parallel'] * self.batch_loop)  # scale by the number of batches
         dipole_msd_array *= prefactor
         popt, pcov = curve_fit(meta_functions.linear_fitting_function, self.time, dipole_msd_array)
-        self._update_properties_file(data=[str(popt[0] / 100), str(np.sqrt(np.diag(pcov))[0] / 100)])
+        self._update_properties_file(data=[str(popt[0]), str(np.sqrt(np.diag(pcov))[0])])
 
         # Update the plot if required
         if self.plot:
