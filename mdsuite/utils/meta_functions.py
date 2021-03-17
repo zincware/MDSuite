@@ -381,3 +381,18 @@ def split_array(data: np.array, condition: np.array) -> list:
         return [data[condition]]
     else:  # else return the whole array
         return initial_split
+
+def find_item(obj, key):
+    """
+    Function to recursively retrieve values given a key for nested dictionaries.
+
+    :param obj: nested dictionary with results
+    :param key: key to find in the dictionary
+    :return: returns the value for the given key. Return type may change depending on the requested key
+    """
+    if key in obj: return obj[key]
+    for k, v in obj.items():
+        if isinstance(v,dict):
+            item = find_item(v, key)
+            if item is not None:
+                return item
