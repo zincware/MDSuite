@@ -7,6 +7,7 @@ import numpy as np
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
 import tensorflow as tf
+import time
 
 
 class Database:
@@ -120,6 +121,7 @@ class Database:
             else:
                 database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
                                                                               n_atoms=n_atoms)
+        database.close()
 
     def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
                   n_atoms: int = None):
@@ -239,9 +241,10 @@ class Database:
 
         Examples
         --------
-        >>> self._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
+        >>> database = Database
+        >>> database._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
         {'Na/Forces': (200, 5000, 3)}
-        >>> self._build_path_input(structure={'Na': {'velocities' 100}})
+        >>> database._build_path_input(structure={'Na': {'velocities' 100}})
         {'Na/Velocities': 100}
         """
 
@@ -341,7 +344,6 @@ class Database:
         -------
         memory_database : dict
                 A dictionary of the memory information of the groups in the database
-
         """
 
         database = hf.File(self.name)
@@ -418,3 +420,52 @@ class Database:
             return data[0]
         else:
             return data
+
+    def get_load_time(self, database: str = None):
+        """
+        Calculate the open/close time of the database.
+
+        Parameters
+        ----------
+        database : str
+                Database path on which to test the time.
+        Returns
+        -------
+        opening time : float
+                Time taken to open and close the database
+        """
+        if database is None:
+            start = time.time()
+            database = hf.File(self.name, 'r')
+            database.close()
+            stop = time.time()
+        else:
+            start = time.time()
+            database = hf.File(database, 'r')
+            database.close()
+            stop = time.time()
+
+        return stop - start
+
+    def get_data_size(self, data_path: str, database_path: str = None) -> tuple:
+        """
+        Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
+
+        Parameters
+        ----------
+        data_path : str
+                path to the data in the hdf5 database.
+        database_path: (optional) str
+                path to a specific database, if None, the class instance database will be used
+        Returns
+        -------
+        dataset_properties : tuple
+                Tuple of data about the dataset, e.g. (n_rows, n_columns, n_bytes)
+        """
+        if database_path is None:
+            database_path = self.name
+
+        with hf.File(database_path, 'r') as db:
+            data_tuple = (db[data_path].shape[0], db[data_path].shape[1], db[data_path].nbytes)
+
+        return data_tuple

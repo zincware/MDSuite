@@ -103,14 +103,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.parent.species)
 
-    def _autocorrelation_time(self):
-        """
-        Calculate velocity autocorrelation time
-        When performing this analysis, the sampling should occur over the autocorrelation time of the positions in the
-        system. This method will calculate what this time is and sample over it to ensure uncorrelated samples.
-        """
-        pass
-
     def _singular_diffusion_calculation(self, item: str):
         """
         Method to calculate the diffusion coefficients
