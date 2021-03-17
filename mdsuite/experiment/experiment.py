@@ -107,7 +107,7 @@ class Experiment:
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
-        self.results = list(dict_classes_db.keys())
+        self._results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}
@@ -642,3 +642,25 @@ class Experiment:
             return property_matrix[0]  # return the scalar dataset
         else:
             return property_matrix  # return the full tensor object.
+
+    @property
+    def results(self):
+        """
+        Property to get access to the results in a dictionary
+        :return: dict
+        """
+        return self._results
+
+    @results.getter
+    def results(self):
+        """
+        Getter to retrieve the results from the YAML file in a dictionary
+        :return: dict
+        """
+
+        with open(os.path.join(self.database_path, 'system_properties.yaml')) as pfr:
+            self._results = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+
+        return self._results
+
+
