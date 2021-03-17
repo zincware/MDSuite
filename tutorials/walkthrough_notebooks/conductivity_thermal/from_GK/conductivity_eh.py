@@ -21,6 +21,6 @@ if new_case:
 
 # argon.help_computations_args('EinsteinDiffusionCoefficients') # auxiliary function to help on the extra arguments
 # argon.run_computation('EinsteinDiffusionCoefficients', species=list(argon.species.keys()),data_range=50, plot=False, singular=True, distinct=False)
-argon.run_computation('EinsteinHelfandThermalConductivity', data_range=6000, plot=True, correlation_time=1)
+argon.run_computation('EinsteinHelfandThermalConductivity', data_range=10000, plot=True, correlation_time=10)
 # argon.help_computations_args('GreenKuboDiffusionCoefficients')
 print(argon.results)
