@@ -1,0 +1,95 @@
+# Sample LAMMPS input script for thermal conductivity of {gas}
+
+units       real # set units
+variable    T equal {temperature} # temperature
+variable    V equal vol
+variable    dt equal {timestep} # timestep
+variable    p equal 200     # correlation length
+variable    s equal 10      # sample interval
+variable    d equal $p*$s   # dump interval
+variable    timesteps equal 20000
+variable    eq_steps  equal 20000
+variable    output_step equal 2
+
+variable    dens equal {density} # density in g/cm3
+variable    M_arg equal {Mweight}   # weight g/mol argon
+
+# convert from LAMMPS real units to SI
+
+variable    avgN equal 6.0221409e+23   # avogadro number
+variable    kB equal 1.3806504e-23    # [J/K] Boltzmann
+variable    kCal2J equal 4186.0/6.02214e23
+variable    A2m equal 1.0e-10
+variable    fs2s equal 1.0e-15
+variable    convert equal ${kCal2J}*${kCal2J}/${fs2s}/${A2m}
+
+# setup problem
+variable    repetitions equal 6 # number of blocks repetitions in each direction
+
+variable sidel equal (${M_arg}/${avgN}*4/${dens})^0.333333*1e+8
+
+dimension    3
+boundary     p p p
+lattice      fcc ${sidel} orient x 1 0 0 orient y 0 1 0 orient z 0 0 1
+region       box block 0 ${repetitions} 0 ${repetitions} 0 ${repetitions}
+create_box   1 box
+create_atoms 1 box
+mass         1 {Mweight} 
+pair_style   lj/cut {cut_off}
+pair_coeff   * * {epsilon} {sigma}
+timestep     ${dt}
+thermo       $d
+
+# equilibration and thermalization
+
+velocity     all create $T 102486 mom yes rot yes dist gaussian
+fix          NVT all nvt temp $T $T 10 drag 0.2
+run          ${eq_steps}
+
+# thermal conductivity calculation, switch to NVE if desired
+
+unfix       NVT
+fix         NVE all nve
+
+reset_timestep 0
+
+# Thermal
+compute      KE all ke/atom
+compute      PE all pe/atom
+compute      pe_total all pe
+compute      ke_total all ke
+compute      Stress all stress/atom NULL virial
+compute      flux_thermal all heat/flux KE PE Stress
+
+# viscosity
+variable     pxy equal pxy
+variable     pxz equal pxz
+variable     pyz equal pyz
+
+variable     Jx equal c_flux_thermal[1]/vol
+variable     Jy equal c_flux_thermal[2]/vol
+variable     Jz equal c_flux_thermal[3]/vol
+fix          JJ all ave/correlate $s $p $d &
+             c_flux_thermal[1] c_flux_thermal[2] c_flux_thermal[3] type auto file J0Jt.dat ave running
+fix          SS all ave/correlate $s $p $d &	
+             v_pxy v_pxz v_pyz type auto file S0St.dat ave running
+fix print_data all print ${output_step} "$(step) $(time) $(temp) $(c_pe_total) $(c_ke_total) $(c_flux_thermal[1]) $(c_flux_thermal[2]) $(c_flux_thermal[3]) $(v_pxy) $(v_pxz) $(v_pyz)" file flux.lmp_flux screen no
+variable     scale equal ${convert}/${kB}/$T/$T/$V*$s*${dt}
+variable     k11 equal trap(f_JJ[3])*${scale}
+variable     k22 equal trap(f_JJ[4])*${scale}
+variable     k33 equal trap(f_JJ[5])*${scale}
+
+# shell mkdir energy
+# dump energy all custom 400 energy/energy_dump.* id type x y z vx vy vz c_myKE c_myPE
+# dump the data required for G-K computations
+
+# NOT DUMPING POSITIONS NOW
+dump position all custom ${output_step} gk_data.lmp_traj id type x y z vx vy vz c_KE c_PE c_Stress[1] c_Stress[2] c_Stress[3] c_Stress[4] c_Stress[5] c_Stress[6]
+
+thermo_style custom step temp press v_Jx v_Jy v_Jz v_k11 v_k22 v_k33
+# run          500000
+run          ${timesteps}
+variable     k equal (v_k11+v_k22+v_k33)/3.0
+variable     ndens equal count(all)/vol
+print        "the volume of the box is: $V"
+print        "average conductivity: $k[W/mK] @ $T K, ${ndens} /A\^3"
