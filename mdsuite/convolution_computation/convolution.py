@@ -40,7 +40,7 @@ def convolution(loop_range, flux, data_range, time, correlation_time):
     # main loop for computation
     for i in tqdm(range(loop_range), ncols=70):
         # calculate the autocorrelation
-        start = i + correlation_time
+        start = i * correlation_time
         stop = start + data_range
         acf = (signal.correlate(flux[:, 0][start:stop],
                                  flux[:, 0][start:stop],

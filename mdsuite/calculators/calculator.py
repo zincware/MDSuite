@@ -170,6 +170,7 @@ class Calculator(metaclass=abc.ABCMeta):
     def _calculate_batch_loop(self):
         """
         Calculate the batch loop parameters
+        TODO: the +1 in the denominator (self.correlation_time+1) should be investigated to know if it is right or not
         """
         self.batch_loop = np.floor(
             (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time+1))+1
