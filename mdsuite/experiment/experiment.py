@@ -663,4 +663,14 @@ class Experiment:
 
         return self._results
 
+    @results.setter
+    def results(self, result_dict):
+        """
+        Setter to dump the results to the YAML file
+        :return: dict
+        """
+
+        with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
+            yaml.dump(result_dict, pfw)
+
 

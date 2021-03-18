@@ -7,20 +7,17 @@ Summary
 
 import abc
 import random
+from typing import TYPE_CHECKING
 
-import yaml
 import h5py as hf
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from mdsuite.plot_style.plot_style import apply_style
+from mdsuite.utils.exceptions import *
+from mdsuite.utils.meta_functions import *
 from scipy import signal
 from scipy.optimize import curve_fit
 from tqdm import tqdm
-
-from mdsuite.utils.exceptions import *
-from mdsuite.utils.meta_functions import *
-
-from typing import TYPE_CHECKING
-from mdsuite.plot_style.plot_style import apply_style
 
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
@@ -94,7 +91,6 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.database_group = None  # Which database group to save the data in
         self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
-
 
         # Solve for the batch type
         if self.parallel:
@@ -173,10 +169,10 @@ class Calculator(metaclass=abc.ABCMeta):
         TODO: the +1 in the denominator (self.correlation_time+1) should be investigated to know if it is right or not
         """
         self.batch_loop = np.floor(
-            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time+1))+1
+            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
 
     def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
-                   remainder : int = None):
+                   remainder: int = None):
         """
         Load a batch of data
 
@@ -232,7 +228,7 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
 
-    def _plot_data(self, title: str=None, manual: bool=False):
+    def _plot_data(self, title: str = None, manual: bool = False):
         """
         Plot the data generated during the analysis
         """
@@ -391,22 +387,21 @@ class Calculator(metaclass=abc.ABCMeta):
             print("No data provided")
             return
 
-        with open(os.path.join(self.parent.database_path, 'system_properties.yaml')) as pfr:
-            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+        results = self.parent.results
 
-        with open(os.path.join(self.parent.database_path, 'system_properties.yaml'), 'w') as pfw:
-            if item is None:
-                properties[self.database_group][self.analysis_name] = data
-            elif sub_item is None:
-                properties[self.database_group][self.analysis_name][item] = data
+        # TODO: improve this if else blocks. I am sure it can be done in a more elegant way
+        if item is None:
+            results[self.database_group][self.analysis_name] = data
+        elif sub_item is None:
+            results[self.database_group][self.analysis_name][item] = data
+        else:
+            if add:
+                results[self.database_group][self.analysis_name][item] = {}
+                results[self.database_group][self.analysis_name][item][sub_item] = data
             else:
-                if add:
-                    properties[self.database_group][self.analysis_name][item] = {}
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
-                else:
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
+                results[self.database_group][self.analysis_name][item][sub_item] = data
 
-            yaml.dump(properties, pfw)
+        self.parent.results = results
 
     @abc.abstractmethod
     def run_analysis(self):
@@ -509,9 +504,11 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
-        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70, position=0, leave=False):  # Loop over batches
+        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70, position=0,
+                      leave=False):  # Loop over batches
             batch = self.load_batch(i, path=group)  # get the ionic current
-            for start_index in tqdm(range(int(self.batch_loop)), position=1, leave=False, colour='blue', ncols=70):  # Loop over ensembles
+            for start_index in tqdm(range(int(self.batch_loop)), position=1, leave=False, colour='blue',
+                                    ncols=70):  # Loop over ensembles
                 start = int(start_index * self.correlation_time)  # get start configuration
                 stop = int(start + self.data_range)  # get the stop configuration
                 window_tensor = batch[start:stop]  # select data from the batch tensor

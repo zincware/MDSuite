@@ -114,6 +114,9 @@ class GreenKuboThermalConductivityFlux(Calculator):
 
         self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma)/np.sqrt(len(sigma)))])
 
+        if self.save:
+            self._save_data(f'{self.analysis_name}', [self.time, averaged_jacf])
+
     def load_flux_matrix(self):
         """
         Load the flux matrix
