@@ -275,6 +275,8 @@ class GreenKuboThermalConductivity(Calculator):
         if self.plot:
             self._plot_data()  # Plot the data if necessary
 
+        plt.close()
+
     def run_analysis(self):
         """ Run thermal conductivity calculation analysis
 
