@@ -484,7 +484,7 @@ class Experiment:
 
         # Build database for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
-            for key in self.results:
+            for key in self._results:
                 db.create_group(key)
 
         # Instantiate YAML file for system properties
