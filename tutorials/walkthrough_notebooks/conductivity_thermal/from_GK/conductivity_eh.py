@@ -4,7 +4,7 @@ import shutil
 
 import mdsuite as mds # Cool name for professionalism purposes
 
-new_case = True
+new_case = False
 
 if new_case:
     try:
@@ -14,13 +14,17 @@ if new_case:
 
 
 
-argon = mds.Experiment(analysis_name="Argon", time_step=4, temperature=70.0, units='real')
+argon = mds.Experiment(analysis_name="Argon", time_step=2, temperature=70.0, units='real')
 
 if new_case:
     argon.add_data(trajectory_file='../gk_data.lmp_traj')
 
 # argon.help_computations_args('EinsteinDiffusionCoefficients') # auxiliary function to help on the extra arguments
 # argon.run_computation('EinsteinDiffusionCoefficients', species=list(argon.species.keys()),data_range=50, plot=False, singular=True, distinct=False)
+
+
+# argon.run_computation.EinsteinDiffusionCoefficients(plot=True, data_range=10000, correlation_time=100)
+
 argon.run_computation('EinsteinHelfandThermalConductivity', data_range=10000, plot=True, correlation_time=10)
 # argon.help_computations_args('GreenKuboDiffusionCoefficients')
 print(argon.results)

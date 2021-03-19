@@ -170,19 +170,15 @@ class GreenKuboThermalConductivity(Calculator):
         if remainder > 0:
             start = self.parent.number_of_configurations - remainder
             velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
-                                                      tensor=self.tensor_choice, scalar=False,
-                                                      sym_matrix=False)  # Load the velocity matrix
+                                                      tensor=self.tensor_choice)  # Load the velocity matrix
             stress_tensor = self.parent.load_matrix('Stress', select_slice=np.s_[:, start:],
-                                                    tensor=self.tensor_choice, scalar=False,
-                                                    sym_matrix=True)  # Load the stress tensor
+                                                    tensor=self.tensor_choice)  # Load the stress tensor
 
             pe = self.parent.load_matrix('PE', select_slice=np.s_[:, start:],
-                                         tensor=self.tensor_choice, scalar=True,
-                                         sym_matrix=False)  # Load the potential energy
+                                         tensor=self.tensor_choice)  # Load the potential energy
 
             ke = self.parent.load_matrix('KE', select_slice=np.s_[:, start:],
-                                         tensor=self.tensor_choice, scalar=True,
-                                         sym_matrix=False)  # Load the kinetic energy
+                                         tensor=self.tensor_choice)  # Load the kinetic energy
 
             # define phi as product stress tensor * velocity matrix.
             # It is done by components to take advantage of the symmetric matrix.

@@ -35,7 +35,7 @@ thermo       $d
 
 velocity     all create $T 102486 mom yes rot yes dist gaussian
 fix          NVT all nvt temp $T $T 10 drag 0.2
-run          400000
+run          300000
 
 # thermal conductivity calculation, switch to NVE if desired
 
@@ -63,13 +63,13 @@ variable     k33 equal trap(f_JJ[5])*${scale}
 # shell mkdir energy
 # dump energy all custom 400 energy/energy_dump.* id type x y z vx vy vz c_myKE c_myPE
 # dump the data required for G-K computations
-dump position all custom 2 gk_data.txt id type x y z vx vy vz c_KE c_PE c_Stress[1] c_Stress[2] c_Stress[3] c_Stress[4] c_Stress[5] c_Stress[6]
+dump position all custom 2 gk_data.lmp_traj id type x y z vx vy vz c_KE c_PE c_Stress[1] c_Stress[2] c_Stress[3] c_Stress[4] c_Stress[5] c_Stress[6] fx fy fz
 dump_modify position sort id
 
 
 thermo_style custom step temp v_Jx v_Jy v_Jz v_k11 v_k22 v_k33
 # run          500000
-run          120000
+run          50000
 variable     k equal (v_k11+v_k22+v_k33)/3.0
 variable     ndens equal count(all)/vol
 print        "the volume of the box is: $V"
