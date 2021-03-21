@@ -1,44 +1,44 @@
 """
-Python module for the data fetch class
+Python module for the tensor_values fetch class
 """
 
 import numpy as np
 import tensorflow as tf
-from typing import Callable
 
 from mdsuite.database.database import Database
 
 
 class DataManager:
     """
-    Class for the MDS data fetcher
+    Class for the MDS tensor_values fetcher
 
-    Due to the amount of data that needs to be collected and the possibility to optimize repeated loading, a separate
-    data fetching class is required. This class manages how data is loaded from the MDS database and optimizes
+    Due to the amount of tensor_values that needs to be collected and the possibility to optimize repeated loading, a separate
+    tensor_values fetching class is required. This class manages how tensor_values is loaded from the MDS database_path and optimizes
     processes such as pre-loading and parallel reading.
     """
 
     def __init__(self, database: Database = None, data_path: list = None, data_range: int = None,
-                 batch_number: int = None, batch_size: int = None, ensemble_loop: int = None,
-                 correlation_time: int = 1):
+                 n_batches: int = None, batch_size: int = None, ensemble_loop: int = None,
+                 correlation_time: int = 1, remainder: int = None):
         """
         Constructor for the DataManager class
 
         Parameters
         ----------
         database : Database
-                Database object from which data should be loaded
+                Database object from which tensor_values should be loaded
         """
         self.database = database
         self.data_path = data_path
 
         self.data_range = data_range
-        self.batch_number = batch_number
+        self.n_batches = n_batches
         self.batch_size = batch_size
+        self.remainder = remainder
         self.ensemble_loop = ensemble_loop
         self.correlation_time = correlation_time
 
-    def batch_generator(self) -> tuple:
+    def batch_generator(self, dictionary: bool = False) -> tuple:
         """
         Build a generator object for the batch loop
         Returns
@@ -46,12 +46,13 @@ class DataManager:
         Returns a generator function and its arguments
         """
 
-        args = (self.batch_number,
+        args = (self.n_batches,
                 self.batch_size,
                 self.database.name,
-                self.data_path)
+                self.data_path,
+                dictionary)
 
-        def generator(batch_number: int, batch_size: int, database: str, data_path: list):
+        def generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
             """
             Generator function for the batch loop.
 
@@ -62,9 +63,11 @@ class DataManager:
             batch_size : int
                     size of each batch to load
             database : Database
-                    database from which to load the data
+                    database_path from which to load the tensor_values
             data_path : str
-                    Path to the data in the database
+                    Path to the tensor_values in the database_path
+            dictionary : bool
+                    If true, tensor_values is returned in a dictionary
             Returns
             -------
 
@@ -73,22 +76,27 @@ class DataManager:
             for batch in range(batch_number):
                 start = int(batch*batch_size)
                 stop = int(start + batch_size)
-                yield database.load_data(data_path, select_slice=np.s_[:, start:stop])
+                yield database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary)
 
         return generator, args
 
-    def ensemble_generator(self) -> tuple:
+    def ensemble_generator(self, system: bool = False) -> tuple:
         """
         Build a generator for the ensemble loop
+
+        Parameters
+        ----------
+        system : bool
+                If true, the system generator is returned.
 
         Returns
         -------
         Ensemble loop generator
         """
 
-        args = {tf.cast(self.ensemble_loop, dtype=tf.int64),
-                tf.cast(self.correlation_time, dtype=tf.int64),
-                tf.cast(self.data_range, dtype=tf.int64)}
+        args = (self.ensemble_loop,
+                self.correlation_time,
+                self.data_range)
 
         def generator(ensemble_loop, correlation_time, data_range, data):
             """
@@ -113,4 +121,30 @@ class DataManager:
                 stop = start + data_range
                 yield data[:, start:stop]
 
-        return generator, args
+        def system_generator(ensemble_loop, correlation_time, data_range, data):
+            """
+            Generator for the ensemble loop
+            Parameters
+            ----------
+            ensemble_loop : int
+                    Number of ensembles to loop over
+            correlation_time : int
+                    Distance between ensembles
+            data_range : int
+                    Size of each ensemble
+            data : tf.data.Dataset
+                    Data from which to draw ensembles
+
+            Returns
+            -------
+            None
+            """
+            for ensemble in range(ensemble_loop):
+                start = ensemble*correlation_time
+                stop = start + data_range
+                yield data[start:stop]
+
+        if system:
+            return system_generator, args
+        else:
+            return generator, args

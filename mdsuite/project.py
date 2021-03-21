@@ -38,7 +38,7 @@ class Project:
             A short description of the project
 
     storage_path : str
-            Where to store the data and databases. This may not simply be the current direcotry if the databases are
+            Where to store the tensor_values and databases. This may not simply be the current direcotry if the databases are
             expected to be quite large.
 
     experiments : list
@@ -59,13 +59,13 @@ class Project:
         name : str
                 The name of the project.
         storage_path : str
-                Where to store the data and databases. This should be a place with sufficient storage space for the
+                Where to store the tensor_values and databases. This should be a place with sufficient storage space for the
                 full analysis.
         """
 
         self.name = f"{name}_MDSuite_Project"  # the name of the project
         self.description = None  # A short description of the project
-        self.storage_path = storage_path  # Tell me where to store this data
+        self.storage_path = storage_path  # Tell me where to store this tensor_values
 
         self.experiments = {}  # type: dict[str, Experiment]  #experiments added to this project
 
@@ -122,7 +122,7 @@ class Project:
         """
 
         class_file = open(f'{self.storage_path}/{self.name}/{self.name}_state.bin', 'rb')  # Open the class state file
-        pickle_data = class_file.read()  # Read in the data
+        pickle_data = class_file.read()  # Read in the tensor_values
         class_file.close()  # Close the state file
 
         self.__dict__ = pickle.loads(pickle_data)  # Initialize the class with the loaded parameters

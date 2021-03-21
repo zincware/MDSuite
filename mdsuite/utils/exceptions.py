@@ -12,7 +12,7 @@ class NoElementInDump(Exception):
 
 class NoTempInData(Exception):
     """
-    Thrown when no temperature is found in a data file
+    Thrown when no temperature is found in a tensor_values file
     """
     pass
 
@@ -26,7 +26,7 @@ class NotApplicableToAnalysis(Exception):
 
 class CannotPerformThisAnalysis(Exception):
     """
-    Thrown when analysis cannot be reliably performed given the data
+    Thrown when analysis cannot be reliably performed given the tensor_values
     """
     pass
 
@@ -40,7 +40,7 @@ class ElementMassAssignedZero(Exception):
 
 class NoGPUInSystem(Exception):
     """
-    Thrown during system analysis when GPUs are being searched for.
+    Thrown during experiment analysis when GPUs are being searched for.
     """
 
     def __init__(self):
@@ -49,21 +49,21 @@ class NoGPUInSystem(Exception):
 
 class DatasetExists(Exception):
     """
-    Thrown if a dataset in a hdf5 database already exists
+    Thrown if a dataset in a hdf5 database_path already exists
     """
     pass
 
 
 class RangeExceeded(Exception):
     """
-    Thrown when the data range asked for exceeds the total number of configurations
+    Thrown when the tensor_values range asked for exceeds the total number of configurations
     """
     pass
 
 
 class DatabaseDoesNotExist(Exception):
     """
-    Thrown when a preexisting database object is called but none exists
+    Thrown when a preexisting database_path object is called but none exists
     """
     def __init__(self):
         """ Constructor method """

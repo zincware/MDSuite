@@ -14,7 +14,7 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.memory_management.memory_manager import MemoryManager
 
 
-class IonicCurrent(Transformations):
+class ThermalFlux(Transformations):
     """
     Class to generate and store the ionic current of a experiment
 
@@ -72,7 +72,7 @@ class IonicCurrent(Transformations):
 
         """
         # collect machine properties and determine batch size
-        path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database_path
+        path = join_path('Thermal_Flux', 'Thermal_Flux')  # name of the new database_path
         dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
         self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
@@ -111,23 +111,30 @@ class IonicCurrent(Transformations):
                 System current as a numpy array.
         """
 
-        system_current = tf.reduce_sum(data, axis=1)
+        phi_x = np.multiply(data[1][:, :, 0], data[0][:, :, 0]) + \
+                np.multiply(data[1][:, :, 3], data[0][:, :, 1]) + \
+                np.multiply(data[1][:, :, 4], data[0][:, :, 2])
+        phi_y = np.multiply(data[1][:, :, 3], data[0][:, :, 0]) + \
+                np.multiply(data[1][:, :, 1], data[0][:, :, 1]) + \
+                np.multiply(data[1][:, :, 5], data[0][:, :, 2])
+        phi_z = np.multiply(data[1][:, :, 4], data[0][:, :, 0]) + \
+                np.multiply(data[1][:, :, 5], data[0][:, :, 1]) + \
+                np.multiply(data[1][:, :, 2], data[0][:, :, 2])
 
-        # build charge array
-        system_charges = [self.experiment.species[atom]['charge'][0] for atom in self.experiment.species]
+        phi = np.dstack([phi_x, phi_y, phi_z])
 
-        # Calculate the total experiment current
-        charge_tuple = []  # define empty array for the charges
-        for charge in system_charges:  # loop over each species charge
-            # Build a tensor of charges allowing for memory management.
-            charge_tuple.append(tf.ones([self.batch_size, 3], dtype=tf.float64) * charge)
+        phi_sum = phi.sum(axis=0)
+        phi_sum_atoms = phi_sum / self.experiment.units['NkTV2p']  # factor for units lammps nktv2p
 
-        charge_tensor = tf.stack(charge_tuple)  # stack the tensors into a single object
-        system_current = tf.reduce_sum(system_current*charge_tensor, axis=0)
+        energy = data[3] + data[2]
+
+        energy_velocity = energy * data[0]
+        energy_velocity_atoms = energy_velocity.sum(axis=0)
+        system_current = energy_velocity_atoms - phi_sum_atoms
 
         return system_current
 
-    def _compute_ionic_current(self):
+    def _compute_thermal_flux(self):
         """
         Loop over the batches, run calculations and update the database_path.
         Returns
@@ -136,15 +143,19 @@ class IonicCurrent(Transformations):
         """
 
         data_structure = self._prepare_database_entry()
-        data_path = [join_path(species, 'Velocities') for species in self.experiment.species]
+
+        species_path = [join_path(species, 'Velocities') for species in self.experiment.species]
+        stress_path = [join_path(species, 'Stress') for species in self.experiment.species]
+        pe_path = [join_path(species, 'PE') for species in self.experiment.species]
+        ke_path = [join_path(species, 'KE') for species in self.experiment.species]
+        data_path = np.concatenate((species_path, stress_path, pe_path, ke_path))
+        print(data_path)
         self._prepare_monitors(data_path)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
-                                                  output_signature=tf.TensorSpec(shape=(len(data_path),
-                                                                                        None,
-                                                                                        self.batch_size,
-                                                                                        3), dtype=tf.float64))
+                                                  output_types=dict) #,
+                                                  #output_signature=tf.TypeSpec(dict))
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)
@@ -157,5 +168,5 @@ class IonicCurrent(Transformations):
         -------
 
         """
-        self._compute_ionic_current()  # run the transformation.
+        self._compute_thermal_flux()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()

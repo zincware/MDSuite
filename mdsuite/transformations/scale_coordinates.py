@@ -49,10 +49,11 @@ class ScaleCoordinates(Transformations):
         self.memory_manager: MemoryManager
         self.batch_size: int
         self.n_batches: int
+        self.remainder: int
 
     def _check_for_indices(self):
         """
-        Check the database for indices
+        Check the database_path for indices
 
         Returns
         -------
@@ -64,17 +65,17 @@ class ScaleCoordinates(Transformations):
             truth_table.append(self.database.check_existence(path))
 
         if not all(truth_table):
-            print("Indices were not included in the database generation. Please check your simulation files.")
+            print("Indices were not included in the database_path generation. Please check your simulation files.")
             sys.exit(1)
 
     def _prepare_monitors(self, data_path: list):
         """
-        Prepare the data and memory managers.
+        Prepare the tensor_values and memory managers.
 
         Parameters
         ----------
         data_path : list
-                List of data paths to load from the hdf5 database.
+                List of tensor_values paths to load from the hdf5 database_path.
 
         Returns
         -------
@@ -82,14 +83,15 @@ class ScaleCoordinates(Transformations):
         """
         self.memory_manager = MemoryManager(data_path=data_path, database=self.database, scaling_factor=5,
                                             memory_fraction=0.5)
-        self.data_manager = DataManager(data_path=data_path, database=self.database)
-        self.batch_size, self.n_batches = self.memory_manager.get_batch_size()
+        self.data_manager = DataManager(data_path=data_path, database=self.database, data_range=1)
+        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
         self.data_manager.batch_size = self.batch_size
-        self.data_manager.batch_number = self.n_batches
+        self.data_manager.n_batches = self.n_batches
+        self.data_manager.remainder = self.remainder
 
     def _transformation(self, data: tf.Tensor):
         """
-        Apply the transformation to a batch of data.
+        Apply the transformation to a batch of tensor_values.
 
         Parameters
         ----------
@@ -104,40 +106,37 @@ class ScaleCoordinates(Transformations):
 
     def _save_coordinates(self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict):
         """
-        Save the data into the database
+        Save the tensor_values into the database_path
 
         Parameters
         ----------
-        species : str
-                name of species to update in the database.
         Returns
         -------
-        saves the data to the database.
+        saves the tensor_values to the database_path.
         """
         self.database.add_data(data=data,
                                structure=data_structure,
-                               database=self.database.open(),
                                start_index=index,
                                batch_size=batch_size,
                                tensor=True)
 
     def _prepare_database_entry(self, species: str):
         """
-        Add the relevant datasets and groups in the database
+        Add the relevant datasets and groups in the database_path
 
         Parameters
         ----------
         species : str
-                Species for which data will be added.
+                Species for which tensor_values will be added.
         Returns
         -------
-        data structure for use in saving the data to the database.
+        tensor_values structure for use in saving the tensor_values to the database_path.
         """
         path = join_path(species, 'Positions')
         species_length = len(self.experiment.species[species]['indices'])
         number_of_configurations = self.experiment.number_of_configurations
         dataset_structure = {path: (species_length, number_of_configurations, 3)}
-        self.database.add_dataset(dataset_structure, self.database.open())
+        self.database.add_dataset(dataset_structure)
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
 
         return data_structure
@@ -147,7 +146,7 @@ class ScaleCoordinates(Transformations):
         Perform the unwrapping
         Returns
         -------
-        Updates the database object.
+        Updates the database_path object.
         """
         for species in self.species:
             data_structure = self._prepare_database_entry(species)
@@ -160,12 +159,9 @@ class ScaleCoordinates(Transformations):
                                                                                      dtype=tf.float64)
                                                       )
             data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            start = time.time()
             for index, x in enumerate(data_set):
                 data = self._transformation(x)
                 self._save_coordinates(data, index, self.batch_size, data_structure)
-
-            print(time.time() - start)
 
     def run_transformation(self):
         """

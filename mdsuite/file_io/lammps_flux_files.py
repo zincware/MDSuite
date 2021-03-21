@@ -43,7 +43,7 @@ class LAMMPSFluxFile(FluxFile):
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the parent class
+        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
         self.project.volume = None
         self.project.number_of_atoms = None
         self.project.flux = True
@@ -52,7 +52,7 @@ class LAMMPSFluxFile(FluxFile):
     def _build_architecture(property_groups: dict, number_of_atoms: int,
                             number_of_configurations: int):
         """
-        Build the database architecture for use by the database class
+        Build the database_path architecture for use by the database_path class
 
         Parameters
         ----------
@@ -66,14 +66,14 @@ class LAMMPSFluxFile(FluxFile):
                 Number of configurations in the file
 
         """
-        architecture = {}  # instantiate the database architecture dictionary
+        architecture = {}  # instantiate the database_path architecture dictionary
         for observable in property_groups:
             architecture[f"{observable}/{observable}"] = (number_of_configurations, len(property_groups[observable]))
         return architecture
 
     def _get_line_length(self):
         """
-        Get the length of a line of data in the file.
+        Get the length of a line of tensor_values in the file.
 
         Returns
         -------
@@ -99,10 +99,10 @@ class LAMMPSFluxFile(FluxFile):
                 Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
-                updated with new information. This is necessary on the first run of data addition to the database. After
-                this point, when new data is added, this is no longer required as other methods will take care of
-                updating the properties that change with new data. In fact, it will set the number of configurations to
-                only the new data, which will be wrong.
+                updated with new information. This is necessary on the first run of tensor_values addition to the database_path. After
+                this point, when new tensor_values is added, this is no longer required as other methods will take care of
+                updating the properties that change with new tensor_values. In fact, it will set the number of configurations to
+                only the new tensor_values, which will be wrong.
         """
 
         # user custom names for variables.
@@ -131,7 +131,7 @@ class LAMMPSFluxFile(FluxFile):
 
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 
-        # get time related properties of the system
+        # get time related properties of the experiment
         with open(self.file_path) as f:
             # skip the header
             for _ in range(n_lines_header):
@@ -142,9 +142,8 @@ class LAMMPSFluxFile(FluxFile):
             time_1 = float(time_1_line[column_dict_properties['time']])
 
         sample_rate = (time_1 - time_0) / self.project.time_step
-        time_n = (number_of_configurations - number_of_configurations % batch_size) * sample_rate
 
-        # Update class attributes with calculated data
+        # Update class attributes with calculated tensor_values
         self.project.batch_size = batch_size
         # self.properties = properties_summary
         self.project.number_of_configurations = number_of_configurations
@@ -157,6 +156,8 @@ class LAMMPSFluxFile(FluxFile):
 
         # Get the volume, if not set in initialization
         if self.project.volume is None:
+            print("HEY")
+            print(float(header[4][7]))
             self.project.volume = float(header[4][7])  # hopefully always in the same position
 
         self.project.species = {'1': []}
@@ -166,7 +167,6 @@ class LAMMPSFluxFile(FluxFile):
 
         else:
             self.project.batch_size = batch_size
-            # return [1, 1, 1, number_of_configurations]
 
         line_length = self._get_line_length()
         return self._build_architecture(self.project.property_groups,
@@ -175,7 +175,7 @@ class LAMMPSFluxFile(FluxFile):
 
     def build_file_structure(self):
         """
-        Build a skeleton of the file so that the database class can process it correctly.
+        Build a skeleton of the file so that the database_path class can process it correctly.
         """
 
         structure = {}  # define initial dictionary
