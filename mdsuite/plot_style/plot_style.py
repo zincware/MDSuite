@@ -39,7 +39,7 @@ def style():
         "ytick.minor.width": 1.5,
         "xtick.direction": "in",
         "ytick.direction": "in",
-        'axes.autolimit_mode': 'data',
+        'axes.autolimit_mode': 'tensor_values',
         'figure.autolayout': True,
         'axes.xmargin': 0.03,
         'axes.ymargin': 0.03,

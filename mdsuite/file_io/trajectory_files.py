@@ -37,10 +37,10 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 Number of header lines in the given file format.
 
         sort : bool
-                If true, the data in the trajectory file must be sorted during the database build.
+                If true, the tensor_values in the trajectory file must be sorted during the database_path build.
         """
 
-        super().__init__(obj, header_lines, file_path)  # fill the parent class
+        super().__init__(obj, header_lines, file_path)  # fill the experiment class
         self.sort = sort
 
     def _read_header(self, f: TextIO, offset: int = 0) -> list:
@@ -56,10 +56,10 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         Returns
         -------
         header : list
-                list of data in the header
+                list of tensor_values in the header
         """
 
-        # Skip the offset data
+        # Skip the offset tensor_values
         for i in range(offset):
             f.readline()
 
@@ -72,19 +72,19 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         Parameters
         ----------
         line_length : int
-                Length of each line of data to be read in. Necessary for instantiation.
+                Length of each line of tensor_values to be read in. Necessary for instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
-        file_object : obj
+        file_object : experiment
                 File object to be read from.
 
         Returns
         -------
-        configuration data : np.array
+        configuration tensor_values : np.array
                 Data read in from the file object.
         """
 
-        # Define the empty data array
+        # Define the empty tensor_values array
         configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length),
                                        dtype='<U15')
 
@@ -94,7 +94,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             for j in range(self.header_lines):
                 file_object.readline()
 
-            # Read the data into the arrays.
+            # Read the tensor_values into the arrays.
             for k in range(self.project.number_of_atoms):
                 configurations_data[counter] = np.array(list(file_object.readline().split()))
                 counter += 1  # update the counter
@@ -102,7 +102,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
     def build_file_structure(self, batch_size: int = None):
         """
-        Build a skeleton of the file so that the database class can process it correctly.
+        Build a skeleton of the file so that the database_path class can process it correctly.
         """
 
         structure = {}  # define initial dictionary

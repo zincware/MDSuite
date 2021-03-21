@@ -50,7 +50,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def build_file_structure(self, batch_size: int = None):
         """
-        Build a skeleton of the file so that the database class can process it correctly.
+        Build a skeleton of the file so that the database_path class can process it correctly.
         """
 
         return
@@ -63,15 +63,15 @@ class FileProcessor(metaclass=abc.ABCMeta):
         Parameters
         ----------
         line_length : int
-             Length of each line of data to be read in. Necessary for instantiation.
+             Length of each line of tensor_values to be read in. Necessary for instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
-        file_object : obj
+        file_object : experiment
                 File object to be read from.
 
         Returns
         -------
-        configuration data : np.array
+        configuration tensor_values : np.array
                 Data read in from the file object.
         """
 
@@ -91,7 +91,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         returns:
             trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
-            values of the dictionary keys correspond to the array location of the specific piece of data in the set.
+            values of the dictionary keys correspond to the array location of the specific piece of tensor_values in the set.
         """
 
         # for each property label (position, velocity,etc) in the lammps definition

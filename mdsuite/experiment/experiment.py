@@ -16,12 +16,10 @@ import inspect
 import h5py as hf
 import numpy as np
 import pubchempy as pcp
-import tensorflow as tf
 import yaml
 from tqdm import tqdm
 import importlib.resources
 
-from mdsuite import data as static_data
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
@@ -30,6 +28,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
 from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.visualizer.visualizer import TrajectoryVisualizer
 
 
 class Experiment:
@@ -41,18 +40,18 @@ class Experiment:
     analysis_name : str
             The name of the analysis being performed e.g. NaCl_1400K
     storage_path : str
-            Path to where the data should be stored (best to have  drive capable of storing large files)
+            Path to where the tensor_values should be stored (best to have  drive capable of storing large files)
     temperature : float
             The temperature of the simulation that should be used in some analysis. Necessary as it cannot be easily
-            read in from the simulation data.
+            read in from the simulation tensor_values.
     time_step : float
             Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
     volume : float
             Volume of the simulation box
     species : dict
-            A dictionary of the species in the system and their properties. Their properties includes
+            A dictionary of the species in the experiment and their properties. Their properties includes
             index location in the trajectory file, mass of the species as taken from the PubChem
-            database, and the charge taken from the same database. When using these properties, it is
+            database_path, and the charge taken from the same database_path. When using these properties, it is
             best that users confirm this information, with exception to the indices as they are read
             from the file and will be correct.
     number_of_atoms : int
@@ -69,7 +68,7 @@ class Experiment:
         analysis_name : str
                 The name of the analysis being performed e.g. NaCl_1400K
         storage_path : str
-                Path to where the data should be stored (best to have  drive capable of storing large files)
+                Path to where the tensor_values should be stored (best to have  drive capable of storing large files)
         temperature : float
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
@@ -81,8 +80,8 @@ class Experiment:
 
         # Taken upon instantiation
         self.analysis_name = analysis_name  # Name of the experiment.
-        self.storage_path = os.path.abspath(storage_path)  # Where to store the data
-        self.temperature = temperature  # Temperature of the system.
+        self.storage_path = os.path.abspath(storage_path)  # Where to store the tensor_values
+        self.temperature = temperature  # Temperature of the experiment.
         self.time_step = time_step  # Timestep chosen for the simulation.
         self.cluster_mode = cluster_mode  # whether or not the script will run on a cluster
 
@@ -92,11 +91,11 @@ class Experiment:
         self.number_of_atoms = None  # Number of atoms in the simulation.
         self.species = None  # Species dictionary.
         self.box_array = None  # Box vectors.
-        self.dimensions = None  # Dimensionality of the system.
+        self.dimensions = None  # Dimensionality of the experiment.
 
         self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
         self.batch_size = None  # Number of configurations in each batch.
-        self.volume = None  # Volume of the system.
+        self.volume = None  # Volume of the experiment.
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
 
@@ -150,9 +149,9 @@ class Experiment:
         """
 
         def update_path():
-            """Check if the Path of the database is different form the stored storage_path
+            """Check if the Path of the database_path is different form the stored storage_path
 
-            If the paths are different, the database has been moved and the internal file paths will be updated.
+            If the paths are different, the database_path has been moved and the internal file paths will be updated.
             """
 
             if storage_path != self.storage_path:
@@ -182,14 +181,14 @@ class Experiment:
 
     def units_to_si(self, units_system):
         """
-        Returns a dictionary with equivalences from the unit system given by a string to SI.
-        Along with some constants in the unit system provided (boltzman, or other conversions).
-        Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit system.
+        Returns a dictionary with equivalences from the unit experiment given by a string to SI.
+        Along with some constants in the unit experiment provided (boltzman, or other conversions).
+        Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit experiment.
 
 
         Parameters
         ----------
-        units_system (str) -- current unit system
+        units_system (str) -- current unit experiment
         dimension (str) -- dimension you would like to change
 
         Returns
@@ -212,7 +211,7 @@ class Experiment:
             try:
                 units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
             except KeyError:
-                print(f'The unit system provided is not implemented...')
+                print(f'The unit experiment provided is not implemented...')
                 print(f'The available systems are: ')
                 [print(key) for key, _ in units_dict.items()]
                 sys.exit(-1)
@@ -220,7 +219,7 @@ class Experiment:
 
     def map_elements(self, mapping: dict = None):
         """
-        Map numerical keys to element names in the Experiment class and database.
+        Map numerical keys to element names in the Experiment class and database_path.
 
         Returns
         -------
@@ -235,8 +234,8 @@ class Experiment:
         for item in mapping:
             self.species[mapping[item]] = self.species.pop(item)
 
-        # rename database groups
-        db_object = Database(name=os.path.join(self.database_path, "database.hdf5"))
+        # rename database_path groups
+        db_object = Database(name=os.path.join(self.database_path, "database_path.hdf5"))
         db_object.change_key_names(mapping)
 
         self.save_class()  # update the class state
@@ -335,13 +334,24 @@ class Experiment:
             return return_string
 
         def compute(self, class_compute, **kwargs):
+            """
+            A doc string that should have been added by the person who wrote the method.
+            Parameters
+            ----------
+            class_compute
+            kwargs
+
+            Returns
+            -------
+
+            """
             object_compute = class_compute(self.parent, **kwargs)
             object_compute.run_analysis()
             self.parent.save_class()
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
-        Perform a transformation on the system.
+        Perform a transformation on the experiment.
 
         Parameters
         ----------
@@ -352,7 +362,7 @@ class Experiment:
 
         Returns
         -------
-        Update of the database.
+        Update of the database_path.
         """
 
         try:
@@ -361,7 +371,7 @@ class Experiment:
             print(f'{transformation_name} not found')
             print(f'Available transformations are:')
             [print(key) for key in transformations_dict.keys()]
-            return
+            sys.exit(1)
 
         transformation_run = transformation(self, **kwargs)
         transformation_run.run_transformation()  # perform the transformation
@@ -370,8 +380,8 @@ class Experiment:
         """
         Build the 'experiment' for the analysis
 
-        A method to build the database in the hdf5 format. Within this method, several other are called to develop the
-        database skeleton, get configurations, and process and store the configurations. The method is accompanied
+        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop the
+        database_path skeleton, get configurations, and process and store the configurations. The method is accompanied
         by a loading bar which should be customized to make it more interesting.
         """
 
@@ -379,7 +389,7 @@ class Experiment:
         try:
             os.mkdir(self.experiment_path)  # Make the experiment directory
             os.mkdir(self.figures_path)  # Create a directory to save images
-            os.mkdir(self.database_path)  # Create a directory for data
+            os.mkdir(self.database_path)  # Create a directory for tensor_values
 
         except FileExistsError:  # throw exception if the file exits
             return
@@ -408,31 +418,31 @@ class Experiment:
     def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None,
                  sort: bool = False):
         """
-        Add data to the database
+        Add tensor_values to the database_path
 
         Parameters
         ----------
         file_format :
                 Format of the file being read in. Default is file_path
         trajectory_file : str
-                Trajectory file to be process and added to the database.
+                Trajectory file to be process and added to the database_path.
         rename_cols : dict
                 If this argument is given, the columns with names in the keys of the dictionary will be replaced with
                 the values.
         sort : bool
-                If true, the data will be sorted when being entered into the database.
+                If true, the tensor_values will be sorted when being entered into the database_path.
         """
 
         # Check if there is a trajectory file.
         if trajectory_file is None:
-            print("No data has been given")
+            print("No tensor_values has been given")
             sys.exit(1)
 
-        # Load the file reader and the database object
+        # Load the file reader and the database_path object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
         database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
 
-        # Check to see if a database exists
+        # Check to see if a database_path exists
         database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
 
         if file_type == 'flux':
@@ -451,13 +461,12 @@ class Experiment:
     def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
                             rename_cols: dict, flux: bool = False):
         """
-        Build a new database
+        Build a new database_path
         """
         # get properties of the trajectory file
         architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
-        database.initialize_database(architecture)  # initialize the database
+        database.initialize_database(architecture)  # initialize the database_path
 
-        db_object = database.open()  # Open a database object
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
         remainder = self.number_of_configurations - batch_range*self.batch_size
         counter = 0  # instantiate counter
@@ -467,7 +476,6 @@ class Experiment:
         for _ in tqdm(range(batch_range), ncols=70):
             database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
                               structure=structure,
-                              database=db_object,
                               start_index=counter,
                               batch_size=self.batch_size,
                               flux=flux,
@@ -478,20 +486,18 @@ class Experiment:
             structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
             database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
                               structure=structure,
-                              database=db_object,
                               start_index=counter,
                               batch_size=remainder,
                               flux=flux)
 
-        database.close(db_object)  # Close the object
         f_object.close()
 
-        # Build database for analysis output
+        # Build database_path for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
             for key in self.results:
                 db.create_group(key)
 
-        # Instantiate YAML file for system properties
+        # Instantiate YAML file for experiment properties
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
             data = dict_classes_db
 
@@ -518,17 +524,17 @@ class Experiment:
         will be used in conductivity calculations.
 
         """
-        with importlib.resources.open_text(static_data, 'PubChemElements_all.json') as json_file:
+        with importlib.resources.open_text("mdsuite.data", 'PubChemElements_all.json') as json_file:
             pse = json.loads(json_file.read())
 
-        # Try to get the species data from the Periodic System of Elements file
+        # Try to get the species tensor_values from the Periodic System of Elements file
         for element in self.species:
             self.species[element]['charge'] = [0.0]
             for entry in pse:
                 if pse[entry][1] == element:
                     self.species[element]['mass'] = [float(pse[entry][3])]
 
-        # If gathering the data from the PSE file was not successful try to get it from Pubchem via pubchempy
+        # If gathering the tensor_values from the PSE file was not successful try to get it from Pubchem via pubchempy
         for element in self.species:
             if 'mass' not in self.species[element]:
                 try:
@@ -593,16 +599,16 @@ class Experiment:
         species : list
                 List of species to be loaded
         select_slice : np.slice
-                A slice to select from the database.
+                A slice to select from the database_path.
         path : str
-                optional path to the database.
+                optional path to the database_path.
 
         Returns
         -------
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
-        database = Database(name=os.path.join(self.database_path))
+        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
 
         if path is not None:
             return database.load_data(path_list=[path], select_slice=select_slice)
@@ -619,3 +625,21 @@ class Experiment:
             for item in species:
                 path_list.append(join_path(item, identifier))
             return database.load_data(path_list=path_list, select_slice=select_slice)
+
+    def run_visualization(self, species: list = None, unwrapped: bool = False):
+        """
+        Run a visualization on the database.
+
+        Parameters
+        ----------
+        species : list
+                List of species you wish to visualize.
+        unwrapped : bool
+                If true, unwrapped coordinates will be used.
+        Returns
+        -------
+        """
+        if species is None:
+            species = list(self.species)
+        visualizer = TrajectoryVisualizer(experiment=self, species=species, unwrapped=unwrapped)
+        visualizer.run_visualization()

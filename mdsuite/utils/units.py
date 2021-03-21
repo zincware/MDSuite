@@ -1,9 +1,9 @@
-# we will define each unit system as a function and then have a to_si_units which is a dispatch dict.
-# to add a new unit system, simply add it as a function here, and then in the dictionary in units_to_si.
+# we will define each unit experiment as a function and then have a to_si_units which is a dispatch dict.
+# to add a new unit experiment, simply add it as a function here, and then in the dictionary in units_to_si.
 
 # we can keep these here, or add them to the corresponding set of units.
-# for example, in the metal and real, the boltzman constant is added in that system of units.
-# This allows to perform all the computations using the system of units given, and only perform the transformation of the final result.
+# for example, in the metal and real, the boltzman constant is added in that experiment of units.
+# This allows to perform all the computations using the experiment of units given, and only perform the transformation of the final result.
 standard_state_pressure = 100000  # Pa -- Standard state pressure
 avogadro_constant = 6.02214076e23  # mol^-1 -- Avogadro's constant
 elementary_charge = 1.602176634e-19  # C -- Elementary charge

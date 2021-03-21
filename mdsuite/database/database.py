@@ -1,5 +1,5 @@
 """
-Class for database objects and all of their operations
+Class for database_path objects and all of their operations
 """
 
 import h5py as hf
@@ -15,45 +15,45 @@ class Database:
     Database class
 
     Databases make up a large part of the functionality of MDSuite and are kept fairly consistent in structure.
-    Therefore, the database structure we are using has a separate class with commonly used methods which act as
-    wrappers for the hdf5 database.
+    Therefore, the database_path structure we are using has a separate class with commonly used methods which act as
+    wrappers for the hdf5 database_path.
 
     Attributes
     ----------
     architecture : str
-                The type of the database implemented, either a simulation database, or an analysis database.
+                The type of the database_path implemented, either a simulation database_path, or an analysis database_path.
     name : str
-            The name of the database in question.
+            The name of the database_path in question.
     """
 
     def __init__(self, architecture: str = 'simulation', name: str = 'database'):
         """
-        Constructor for the database class.
+        Constructor for the database_path class.
 
         Parameters
         ----------
         architecture : str
-                The type of the database implemented, either a simulation database, or an analysis database.
+                The type of the database_path implemented, either a simulation database_path, or an analysis database_path.
         name : str
-                The name of the database in question.
+                The name of the database_path in question.
         """
 
-        self.architecture = architecture  # architecture of database
-        self.name = name  # name of the database
+        self.architecture = architecture  # architecture of database_path
+        self.name = name  # name of the database_path
 
     def open(self, mode: str = 'a') -> hf.File:
         """
-        Open the database
+        Open the database_path
 
         Parameters
         ----------
         mode : str
-                Mode in which to open the database
+                Mode in which to open the database_path
 
         Returns
         -------
-        database : hf.File
-                returns a database object
+        database_path : hf.File
+                returns a database_path object
         """
 
         return hf.File(self.name, mode)
@@ -61,7 +61,7 @@ class Database:
     @staticmethod
     def close(database: hf.File):
         """
-        Close the database
+        Close the database_path
 
         Parameters
         ----------
@@ -70,16 +70,15 @@ class Database:
 
         Returns
         -------
-        Closes the database object
+        Closes the database_path object
         """
 
         database.close()
 
-    def add_data(self, data: np.array, structure: dict, database: hf.File,
-                 start_index: int, batch_size: int, tensor: bool = False,
+    def add_data(self, data: np.array, structure: dict, start_index: int, batch_size: int, tensor: bool = False,
                  system_tensor: bool = False, flux: bool = False, sort: bool = False, n_atoms: int = None):
         """
-        Add a set of data to the database.
+        Add a set of tensor_values to the database_path.
 
         Parameters
         ----------
@@ -92,22 +91,24 @@ class Database:
         batch_size : int
                 Number of configurations in each batch
         start_index : int
-                Point in database from which to start filling.
+                Point in database_path from which to start filling.
         database : hf.File
-                Database in which to store the data
+                Database in which to store the tensor_values
         structure : dict
-                Structure of the data to be loaded into the database e.g.
+                Structure of the tensor_values to be loaded into the database_path e.g.
                 {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
         data : np.array
                 Data to be loaded in.
         sort : bool
-                If true, data is sorted before being dumped into the database.
+                If true, tensor_values is sorted before being dumped into the database_path.
         n_atoms : int
-                Necessary if the sort function is called. Total number of atoms in the system.
+                Necessary if the sort function is called. Total number of atoms in the experiment.
         Returns
         -------
-        Adds data to the database
+        Adds tensor_values to the database_path
         """
+
+        database = self.open()
         # Loop over items
         stop_index = start_index + batch_size  # get the stop index
         for item in structure:
@@ -126,7 +127,7 @@ class Database:
     def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
                   n_atoms: int = None):
         """
-        Fetch data with some format from a large array.
+        Fetch tensor_values with some format from a large array.
 
         Returns
         -------
@@ -146,7 +147,7 @@ class Database:
     @staticmethod
     def _update_indices(data: np.array, indices: np.array, batch_size: int, n_atoms: int):
         """
-        Update the indices key of the structure dictionary if the data must be sorted.
+        Update the indices key of the structure dictionary if the tensor_values must be sorted.
 
         Returns
         -------
@@ -168,7 +169,7 @@ class Database:
 
     def _resize_dataset(self, structure: dict):
         """
-        Resize a dataset so more data can be added
+        Resize a dataset so more tensor_values can be added
 
         Parameters
         ----------
@@ -180,7 +181,7 @@ class Database:
         -------
 
         """
-        # ensure the database already exists
+        # ensure the database_path already exists
         try:
             database = hf.File(self.name, 'r+')
         except DatabaseDoesNotExist:
@@ -195,10 +196,10 @@ class Database:
 
     def initialize_database(self, structure: dict):
         """
-        Build a database with a general structure.
+        Build a database_path with a general structure.
 
-        Note, this method WILL overwrite a pre-existing database. This is because it is only to be called on the initial
-        construction of an experiment class and the first addition of data to it.
+        Note, this method WILL overwrite a pre-existing database_path. This is because it is only to be called on the initial
+        construction of an experiment class and the first addition of tensor_values to it.
 
         Parameters
         ----------
@@ -206,22 +207,20 @@ class Database:
                 General structure of the dictionary with relevant dataset sizes.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
                 In this case, the last value in the tuple corresponds to the number of components that wil be parsed
-                to the database.
+                to the database_path.
         Returns
         -------
 
         """
 
-        database = hf.File(self.name, 'w')  # open the database
-        self.add_dataset(structure, database)  # add a dataset to the groups
-        database.close()  # close the database
+        self.add_dataset(structure)  # add a dataset to the groups
 
     @staticmethod
     def _build_path_input(structure: dict) -> dict:
         """
-        Build an input to a hdf5 database from a dictionary
+        Build an input to a hdf5 database_path from a dictionary
 
-        In many cases, whilst a dict can be passed on to a method, it is not ideal for use in the hdf5 database. This
+        In many cases, whilst a dict can be passed on to a method, it is not ideal for use in the hdf5 database_path. This
         method takes a dictionary and return a new dictionary with the relevant file path.
 
         Parameters
@@ -230,21 +229,21 @@ class Database:
                 General structure of the dictionary with relevant dataset sizes.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
                 In this case, the last value in the tuple corresponds to the number of components that wil be parsed
-                to the database. The value in the dict can also be an integer corresponding to a resize operation such
+                to the database_path. The value in the dict can also be an integer corresponding to a resize operation such
                 as {'Na': {'velocities' 100}}. In any case, the deepest portion of the dict must be a non-dict object
                 and will be returned as the value of the path to it in the new dictionary.
 
         Returns
         -------
         architecture : dict
-                Corrected path in the hdf5 database. e.g. {'/Na/Velocities': 100}, or {'/Na/Forces': (200, 5000, 3)}
+                Corrected path in the hdf5 database_path. e.g. {'/Na/Velocities': 100}, or {'/Na/Forces': (200, 5000, 3)}
 
         Examples
         --------
-        >>> database = Database
-        >>> database._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
+        >>> database_path = Database
+        >>> database_path._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
         {'Na/Forces': (200, 5000, 3)}
-        >>> database._build_path_input(structure={'Na': {'velocities' 100}})
+        >>> database_path._build_path_input(structure={'Na': {'velocities' 100}})
         {'Na/Velocities': 100}
         """
 
@@ -260,34 +259,34 @@ class Database:
 
         return architecture
 
-    def add_dataset(self, structure: dict, database: hf.File):
+    def add_dataset(self, structure: dict):
         """
-        Add a dataset of the necessary size to the database
+        Add a dataset of the necessary size to the database_path
 
-        Just as a separate method exists for building the group structure of the hdf5 database, so too do we include
+        Just as a separate method exists for building the group structure of the hdf5 database_path, so too do we include
         a separate method for adding a dataset. This is so datasets can be added not just upon the initial construction
-        of the database, but also if data is added in the future that should also be stored. This method will assume
+        of the database_path, but also if tensor_values is added in the future that should also be stored. This method will assume
         that a group has already been built, although this is not necessary for HDF5, the separation of the actions is
         good practice.
 
         Parameters
         ----------
         structure : dict
-                Structure of a single property to be added to the database.
+                Structure of a single property to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
-        database: hf.File
-                Open hdf5 database object to be added to.
+        database_path: hf.File
+                Open hdf5 database_path object to be added to.
 
         Returns
         -------
-        Updates the database directly.
+        Updates the database_path directly.
         """
 
+        database = self.open()
         architecture = self._build_path_input(structure)  # get the correct file path
-
         for item in architecture:
             dataset_information = architecture[item]  # get the tuple information
-            dataset_path = item  # get the dataset path in the database
+            dataset_path = item  # get the dataset path in the database_path
 
             # Check for a type error in the dataset information
             try:
@@ -297,7 +296,7 @@ class Database:
             except TypeError:
                 raise TypeError
 
-            # get the correct maximum shape for the dataset -- changes if a system property or an atomic property
+            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
             if len(dataset_information[:-1]) == 1:
                 vector_length = dataset_information[-1]
                 max_shape = (None, vector_length)
@@ -307,27 +306,29 @@ class Database:
                 max_shape = tuple(max_shape)
 
             database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5)
+        database.close()
 
-    def _add_group_structure(self, structure: dict, database: hf.File):
+    def _add_group_structure(self, structure: dict):
         """
-        Add a simple group structure to a database.
+        Add a simple group structure to a database_path.
 
-        This method will take an input structure and build the required group structure in the hdf5 database. This will
+        This method will take an input structure and build the required group structure in the hdf5 database_path. This will
         NOT however instantiate the dataset for the structure, only the group hierarchy.
 
         Parameters
         ----------
         structure : dict
-                Structure of a single property to be added to the database.
+                Structure of a single property to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
         database: hf.File
-                Open hdf5 database object to be added to.
+                Open hdf5 database_path object to be added to.
 
         Returns
         -------
-        Updates the database directly.
+        Updates the database_path directly.
         """
 
+        database = hf.File(self.name)
         # Build file paths for the addition.
         architecture = self._build_path_input(structure=structure)
         for item in list(architecture):
@@ -335,15 +336,16 @@ class Database:
                 print("Group structure already exists")
             else:
                 database.create_group(item)
+        database.close()
 
     def get_memory_information(self) -> dict:
         """
-        Get memory information from the database
+        Get memory information from the database_path
 
         Returns
         -------
         memory_database : dict
-                A dictionary of the memory information of the groups in the database
+                A dictionary of the memory information of the groups in the database_path
         """
 
         database = hf.File(self.name)
@@ -357,7 +359,7 @@ class Database:
 
     def check_existence(self, path: str) -> bool:
         """
-        Check to see if a dataset is in the database
+        Check to see if a dataset is in the database_path
 
         Parameters
         ----------
@@ -370,17 +372,17 @@ class Database:
                 If true, the path exists, else, it does not.
         """
         database_object = hf.File(self.name, 'r')
-        if path in database_object:
-            response = True
-        else:
-            response = False
-        database_object.close()
+        keys = []
+        database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
+                                                                                      hf.Dataset else None)
 
+        response = any(list(path in item for item in keys))
+        database_object.close()
         return response
 
     def change_key_names(self, mapping: dict):
         """
-        Change the name of database keys
+        Change the name of database_path keys
 
         Parameters
         ----------
@@ -389,10 +391,10 @@ class Database:
 
         Returns
         -------
-        Updates the database
+        Updates the database_path
         """
 
-        db = hf.File(self.name, 'r+')  # open the database object
+        db = hf.File(self.name, 'r+')  # open the database_path object
         groups = list(db.keys())
 
         for item in groups:
@@ -401,19 +403,24 @@ class Database:
 
         db.close()
 
-    def load_data(self, path_list: list = None, select_slice: np.s_ = None):
+    def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False):
         """
-        Load data from the database for some operation.
+        Load tensor_values from the database_path for some operation.
 
-        Should be called by the data fetch class as this will ensure correct loading and pre-loading.
+        Should be called by the tensor_values fetch class as this will ensure correct loading and pre-loading.
         Returns
         -------
 
         """
         database = self.open('r')
-        data = []
-        for item in path_list:
-            data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64))
+        if not dictionary:
+            data = []
+            for item in path_list:
+                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64))
+        if dictionary:
+            data = {}
+            for item in path_list:
+                data[item] = tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)
         database.close()
 
         if len(data) == 1:
@@ -421,51 +428,57 @@ class Database:
         else:
             return data
 
-    def get_load_time(self, database: str = None):
+    def get_load_time(self, database_path: str = None):
         """
-        Calculate the open/close time of the database.
+        Calculate the open/close time of the database_path.
 
         Parameters
         ----------
-        database : str
+        database_path : str
                 Database path on which to test the time.
         Returns
         -------
         opening time : float
-                Time taken to open and close the database
+                Time taken to open and close the database_path
         """
-        if database is None:
+        if database_path is None:
             start = time.time()
-            database = hf.File(self.name, 'r')
-            database.close()
+            database_path = hf.File(self.name, 'r')
+            database_path.close()
             stop = time.time()
         else:
             start = time.time()
-            database = hf.File(database, 'r')
-            database.close()
+            database_path = hf.File(database_path, 'r')
+            database_path.close()
             stop = time.time()
 
         return stop - start
 
-    def get_data_size(self, data_path: str, database_path: str = None) -> tuple:
+    def get_data_size(self, data_path: str, database_path: str = None, system: bool = False) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
 
         Parameters
         ----------
         data_path : str
-                path to the data in the hdf5 database.
+                path to the tensor_values in the hdf5 database_path.
         database_path: (optional) str
-                path to a specific database, if None, the class instance database will be used
+                path to a specific database_path, if None, the class instance database_path will be used
+        system : bool
+                If true, the row number is the relavent property
         Returns
         -------
         dataset_properties : tuple
-                Tuple of data about the dataset, e.g. (n_rows, n_columns, n_bytes)
+                Tuple of tensor_values about the dataset, e.g. (n_rows, n_columns, n_bytes)
         """
         if database_path is None:
             database_path = self.name
 
-        with hf.File(database_path, 'r') as db:
-            data_tuple = (db[data_path].shape[0], db[data_path].shape[1], db[data_path].nbytes)
+        if system:
+            with hf.File(database_path, 'r') as db:
+                data_tuple = (db[data_path].shape[0], db[data_path].shape[0], db[data_path].nbytes)
+        else:
+            with hf.File(database_path, 'r') as db:
+                data_tuple = (db[data_path].shape[0], db[data_path].shape[1], db[data_path].nbytes)
 
         return data_tuple

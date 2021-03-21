@@ -11,20 +11,13 @@ calculations performed.
 import os
 import warnings
 
-import h5py as hf
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-# Import user packages
 from tqdm import tqdm
-
 from mdsuite.calculators.calculator import Calculator
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
-from mdsuite.database.database import Database
-from mdsuite.utils.meta_functions import join_path
-
-# Import MDSuite modules
+from scipy import signal
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -36,18 +29,18 @@ class GreenKuboThermalConductivity(Calculator):
 
     Attributes
     ----------
-    obj :  object
+    experiment :  object
             Experiment class to call from
     plot : bool
-            if true, plot the data
+            if true, plot the tensor_values
     data_range :
             Number of configurations to use in each ensemble
     save :
-            If true, data will be saved after the analysis
+            If true, tensor_values will be saved after the analysis
     x_label : str
-            X label of the data when plotted
+            X label of the tensor_values when plotted
     y_label : str
-            Y label of the data when plotted
+            Y label of the tensor_values when plotted
     analysis_name : str
             Name of the analysis
     time : np.array
@@ -57,235 +50,117 @@ class GreenKuboThermalConductivity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=False, data_range=500, x_label='Time (s)', y_label='JACF ($C^{2}\\cdot m^{2}/s^{2}$)',
-                 save=True, analysis_name='green_kubo_thermal_conductivity',
-                 correlation_time: int = 1):
+    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time: int = 1):
         """
         Class for the Green-Kubo Thermal conductivity implementation
 
         Attributes
         ----------
-        obj :  object
+        experiment :  object
                 Experiment class to call from
         plot : bool
-                if true, plot the data
+                if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
         save :
-                If true, data will be saved after the analysis
+                If true, tensor_values will be saved after the analysis
         x_label : str
-                X label of the data when plotted
+                X label of the tensor_values when plotted
         y_label : str
-                Y label of the data when plotted
+                Y label of the tensor_values when plotted
         analysis_name : str
                 Name of the analysis
         correlation_time: int
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name,
-                         correlation_time=correlation_time, parallel=True)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
         self.loaded_property = 'Thermal_Flux'  # property to be loaded for the analysis
-        self.database_group = 'thermal_conductivity'  # Which database group to save the data in
-        self.loaded_properties = {'Velocities', 'Stress', 'ke', 'pe'}  # property to be loaded for the analysis
-        self.tensor_choice = False  # Load data as a tensor
+        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
 
-        # Check if current was already computed
-        with hf.File(os.path.join(obj.database_path, 'database.hdf5'), "r+") as database:
-            # Unwrap the positions if they need to be unwrapped
-            if self.loaded_property not in database:
-                print(f"Calculating the {self.loaded_property} current")
-                self._calculate_system_current()
-                print("Current calculation is finished and stored in the database, proceeding with analysis")
+        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
+        self.x_label = 'Time (s)'
+        self.y_label = r'JACF ($C^{2}\cdot m^{2}/s^{2}$)'
+        self.analysis_name = 'green_kubo_thermal_conductivity'
 
-    def _autocorrelation_time(self):
-        """
-        calculate the current autocorrelation time for correct sampling
-        """
-        pass
+        self.jacf = np.zeros(self.data_range)
+        self.prefactor: float
+        self.sigma = []
 
-    def _calculate_system_current(self):
+    def _update_output_signatures(self):
         """
-        Calculate the thermal current of the system
+        Update the output signature for the IC.
 
         Returns
         -------
-        system_current : np.array
-                thermal current of the system as a vector of shape (number_of_configurations, 3)
+
         """
+        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
+        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
 
-        # collect machine properties and determine batch size
-        self.collect_machine_properties(group_property='Velocities')
-        n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
-        remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
-
-        # add a dataset in the database and prepare the structure
-        database = Database(name=os.path.join(self.parent.database_path, "database.hdf5"), architecture='simulation')
-        db_object = database.open()  # open a database
-        path = join_path(self.loaded_property, self.loaded_property)  # name of the new database
-        dataset_structure = {path: (self.parent.number_of_configurations, 3)}
-        database.add_dataset(dataset_structure, db_object)  # add a new dataset to the database
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
-
-        # process the batches
-        for i in tqdm(range(int(n_batches)), ncols=70):
-            velocity_matrix = self.load_batch(i, "Velocities")  # Load the velocity matrix
-            stress_tensor = self.load_batch(i, "Stress")
-            pe = self.load_batch(i, "PE")
-            ke = self.load_batch(i, "KE")
-
-            # define phi as product stress tensor * velocity matrix.
-            # It is done by components to take advantage of the symmetric matrix.
-            phi_x = np.multiply(stress_tensor[:, :, 0], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 2])
-            phi_y = np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 1], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 2])
-            phi_z = np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 2], velocity_matrix[:, :, 2])
-
-            phi = np.dstack([phi_x, phi_y, phi_z])
-
-            phi_sum = phi.sum(axis=0)
-            phi_sum_atoms = phi_sum / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
-
-            # ke_total = np.sum(ke, axis=0) # to check it was the same, can be removed.
-            # pe_total = np.sum(pe, axis=0)
-
-            energy = ke + pe
-
-            energy_velocity = energy * velocity_matrix
-            energy_velocity_atoms = energy_velocity.sum(axis=0)
-
-            system_current = energy_velocity_atoms - phi_sum_atoms  # returns the same values as in the compute flux of lammps
-
-            database.add_data(data=system_current,
-                              structure=data_structure,
-                              database=db_object,
-                              start_index=i,
-                              batch_size=self.batch_size['Parallel'],
-                              system_tensor=True)
-
-        if remainder > 0:
-            start = self.parent.number_of_configurations - remainder
-            velocity_matrix = self.parent.load_matrix('Velocities', select_slice=np.s_[:, start:],
-                                                      tensor=self.tensor_choice, scalar=False,
-                                                      sym_matrix=False)  # Load the velocity matrix
-            stress_tensor = self.parent.load_matrix('Stress', select_slice=np.s_[:, start:],
-                                                    tensor=self.tensor_choice, scalar=False,
-                                                    sym_matrix=True)  # Load the stress tensor
-
-            pe = self.parent.load_matrix('PE', select_slice=np.s_[:, start:],
-                                         tensor=self.tensor_choice, scalar=True,
-                                         sym_matrix=False)  # Load the potential energy
-
-            ke = self.parent.load_matrix('KE', select_slice=np.s_[:, start:],
-                                         tensor=self.tensor_choice, scalar=True,
-                                         sym_matrix=False)  # Load the kinetic energy
-
-            # define phi as product stress tensor * velocity matrix.
-            # It is done by components to take advantage of the symmetric matrix.
-            phi_x = np.multiply(stress_tensor[:, :, 0], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 2])
-            phi_y = np.multiply(stress_tensor[:, :, 3], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 1], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 2])
-            phi_z = np.multiply(stress_tensor[:, :, 4], velocity_matrix[:, :, 0]) + \
-                    np.multiply(stress_tensor[:, :, 5], velocity_matrix[:, :, 1]) + \
-                    np.multiply(stress_tensor[:, :, 2], velocity_matrix[:, :, 2])
-
-            phi = np.dstack([phi_x, phi_y, phi_z])
-
-            phi_sum_atoms = phi.sum(axis=0) / self.parent.units['NkTV2p']  # factor for units lammps nktv2p
-
-            # ke_total = np.sum(ke, axis=0) # to check it was the same, can be removed.
-            # pe_total = np.sum(pe, axis=0)
-
-            energy = ke + pe
-
-            energy_velocity = energy * velocity_matrix
-            energy_velocity_atoms = energy_velocity.sum(axis=0)
-
-            system_current = energy_velocity_atoms - phi_sum_atoms  # returns the same values as in the compute flux of lammps
-
-            database.add_data(data=system_current,
-                              structure=data_structure,
-                              database=db_object,
-                              start_index=start,
-                              batch_size=remainder,
-                              system_tensor=True)
-
-        database.close(db_object)  # close the database
-        self.parent.memory_requirements = database.get_memory_information()  # update the memory info in experiment
-
-    def _calculate_thermal_conductivity(self):
+    def _calculate_prefactor(self, species: str = None):
         """
-        Calculate the thermal conductivity in the system
-        """
+        Compute the ionic conductivity prefactor.
 
+        Parameters
+        ----------
+        species
+
+        Returns
+        -------
+
+        """
+        # Calculate the prefactor
         # prepare the prefactor for the integral
         numerator = 1
-        denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
-                      * self.parent.volume  # we use boltzman constant in the units provided.
+        denominator = 3 * (self.data_range - 1) * self.experiment.temperature ** 2 * self.experiment.units['boltzman'] \
+                      * self.experiment.volume  # we use boltzman constant in the units provided.
+        prefactor_units = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
+            'time']
 
-        prefactor = numerator / denominator
+        self.prefactor = (numerator / denominator)*prefactor_units
 
-        db_path = join_path(self.loaded_property, self.loaded_property)
-
-        sigma = []
-        parsed_autocorrelation = tf.zeros(self.data_range, dtype=tf.float64)
-
-        for i in range(int(self.n_batches['Parallel'])):  # loop over batches
-            batch = self.load_batch(i, path=db_path)
-
-            def generator():
-                for start_index in range(int(self.batch_loop)):
-                    start = start_index + self.correlation_time
-                    stop = start + self.data_range
-                    yield batch[start:stop]
-
-            dataset = tf.data.Dataset.from_generator(
-                generator,
-                output_signature=tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
-            )
-            dataset = dataset.map(self.convolution_op, num_parallel_calls=tf.data.experimental.AUTOTUNE,
-                                  deterministic=False)
-
-            dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-            # for frame in tqdm(dataset.batch(self.data_range), total=int(self.batch_loop / self.data_range)):
-            for frame in tqdm(dataset, total=int(self.batch_loop), smoothing=0.1):
-                parsed_autocorrelation += frame[self.data_range - 1:]
-                sigma.append(np.trapz(frame[self.data_range - 1:], x=self.time))
-
-        # convert to SI units.
-        prefactor_units = self.parent.units['energy'] / self.parent.units['length'] / self.parent.units['time']
-        sigma = prefactor * prefactor_units * np.array(sigma)
-        parsed_autocorrelation /= max(parsed_autocorrelation)  # Get the normalized autocorrelation plot data
-
-        self._update_properties_file(data=[str(np.mean(sigma)), str((np.std(sigma) / np.sqrt(len(sigma))))])
-
-        plt.plot(self.time * self.parent.units['time'], parsed_autocorrelation)  # Add a plot
-
-        if self.save:
-            self._save_data(f'{self.analysis_name}', [self.time, parsed_autocorrelation])
-
-        if self.plot:
-            self._plot_data()  # Plot the data if necessary
-
-    def run_analysis(self):
-        """ Run thermal conductivity calculation analysis
-
-        The thermal conductivity is computed at this step.
+    def _apply_averaging_factor(self):
         """
-        self._autocorrelation_time()  # get the autocorrelation time
-        self.collect_machine_properties()  # collect machine properties and determine batch size
-        self._calculate_batch_loop()  # Update the batch loop attribute
-        status = self._check_input()  # Check for bad input
-      
-        if status == -1:
-            return
-        else:
-            self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
+        Apply the averaging factor to the msd array.
+        Returns
+        -------
+
+        """
+        self.jacf /= max(self.jacf)
+
+    def _apply_operation(self, ensemble, index):
+        """
+        Calculate and return the msd.
+
+        Parameters
+        ----------
+        ensemble
+
+        Returns
+        -------
+        MSD of the tensor_values.
+        """
+        jacf = sum([signal.correlate(ensemble[:, idx], ensemble[:, idx],
+                                     mode="full",
+                                     method='auto') for idx in range(3)])
+        self.jacf += jacf[int(self.data_range - 1):]
+        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        result = self.prefactor * np.array(self.sigma)
+        self._update_properties_file(data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
+
+        # Update the plot if required
+        if self.plot:
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
+            self._plot_data()
+
+        # Save the array if required
+        if self.save:
+            self._save_data(f"{self.analysis_name}", [self.time, self.jacf])

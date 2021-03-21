@@ -1,24 +1,19 @@
 """
-Class for the calculation of the einstein diffusion coefficients.
-
+Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
-Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
+This module contains the code for the Einstein diffusion coefficient class. This class is called by the
 Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
+The methods in class can then be called by the Experiment.green_kubo_diffusion_coefficients method and all necessary
 calculations performed.
 """
 
-# Python standard packages
 import matplotlib.pyplot as plt
+from scipy import signal
 import numpy as np
 import warnings
-
-# Import user packages
 from tqdm import tqdm
 import tensorflow as tf
-
-# Import MDSuite packages
 from mdsuite.calculators.calculator import Calculator
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -26,15 +21,9 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class EinsteinDiffusionCoefficients(Calculator):
+class GreenKuboSelfDiffusionCoefficients(Calculator):
     """
-    Class for the Einstein diffusion coefficient implementation
-
-    Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
-    Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-    The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
-    calculations performed.
-
+    Class for the Green-Kubo diffusion coefficient implementation
     Attributes
     ----------
     experiment :  object
@@ -60,11 +49,12 @@ class EinsteinDiffusionCoefficients(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, experiment, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1):
+    def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
+                 correlation_time: int = 1):
         """
+        Constructor for the Green Kubo diffusion coefficients class.
 
-        Parameters
+        Attributes
         ----------
         experiment :  object
                 Experiment class to call from
@@ -76,27 +66,23 @@ class EinsteinDiffusionCoefficients(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
-        optimize : bool
-                If true, the tensor_values range will be optimized
         """
 
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
+        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
 
-        self.species = species                          # Which species to calculate the diffusion for
+        self.species = species  # Which species to calculate for
 
-        self.database_group = 'diffusion_coefficients'
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_diffusion_coefficients'
+        self.database_group = 'diffusion_coefficients'  # Which database_path group to save the tensor_values in
+        self.x_label = 'Time $(s)$'
+        self.y_label = 'VACF $(m^{2}/s^{2})$'
+        self.analysis_name = 'Green_Kubo_Diffusion'
 
-        self.loop_condition = False                     # Condition used when tensor_values range optimizing
-        self.optimize = optimize                        # optimize the tensor_values range
+        self.vacf = np.zeros(self.data_range)
+        self.sigma = []
 
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
-
-        if species is None:
+        if self.species is None:
             self.species = list(self.experiment.species)
 
     def _update_output_signatures(self):
@@ -125,7 +111,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.units['length'] ** 2
-        denominator = (self.experiment.units['time'] * len(self.experiment.species[species]['indices'])) * 6
+        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1)
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -135,7 +121,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
 
         """
-        self.msd_array /= int(self.n_batches) * self.ensemble_loop
+        self.vacf /= max(self.vacf)
 
     def _apply_operation(self, ensemble, index):
         """
@@ -149,12 +135,12 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = (ensemble - (
-            tf.repeat(tf.expand_dims(ensemble[:, 0], 1), self.data_range, axis=1))) ** 2
+        vacf = np.zeros(2*self.data_range - 1)
+        for item in ensemble:
+            vacf += sum([signal.correlate(item[:, idx], item[:, idx], mode="full", method='auto') for idx in range(3)])
 
-        # Sum over trajectory and then coordinates and apply averaging and prefactors
-        msd = self.prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        self.vacf += vacf[int(self.data_range - 1):]  # Update the averaged function
+        self.sigma.append(np.trapz(vacf[int(self.data_range - 1):], x=self.time))
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -164,27 +150,14 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         """
 
-        result = self._fit_einstein_curve([self.time, self.msd_array])
-        self._update_properties_file(item='Singular', sub_item=species, data=result)
+        result = self.prefactor * np.array(self.sigma)
+
+        self._update_properties_file(item='Singular', sub_item=species,
+                                     data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=species)
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=species)
 
         # Save the array if required
         if self.save:
-            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
-
-    def _optimized_calculation(self):
-        """
-        Run an range optimized calculation
-        """
-        # Optimize the data_range parameter
-        # for item in self.species:
-        #     while not self.loop_condition:
-        #         tensor_values = self._self_diffusion_coefficients(item, parse=True)
-        #         self._optimize_einstein_data_range(tensor_values=tensor_values)
-        #
-        #     self.loop_condition = False
-        #     result = self._fit_einstein_curve(tensor_values)  # get the final fits
-        #     self._update_properties_file(item='Singular', sub_item=item, tensor_values=result)
-        pass
+            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.vacf])

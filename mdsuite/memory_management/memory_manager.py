@@ -16,7 +16,7 @@ class MemoryManager:
     the average computer. Therefore, some degree of memory management is required for smooth running. This class should
     be instantiated during any operation so it can update the operation on what the current memory capabilities are.
 
-    The class can work with several data-sets in the case an analysis requires this much data.
+    The class can work with several tensor_values-sets in the case an analysis requires this much tensor_values.
     """
 
     def __init__(self, data_path: list = None, database: Database = None, scaling_factor: int = 1,
@@ -34,48 +34,64 @@ class MemoryManager:
 
         self.batch_size = None
         self.n_batches = None
+        self.remainder = None
 
-    def get_batch_size(self) -> tuple:
+    def get_batch_size(self, system: bool = False) -> tuple:
         """
         Calculate the batch size of an operation.
 
-        This method takes the data requirements of an operation and returns how big each batch of data should be for
+        This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values should be for
         such an operation.
 
         Parameters
         ----------
-        data_range : int
-                Data range of the analysis taking place
-        properties : list
-                Properties to be loaded for the analysis
+        system : bool
+                Tell the database what kind of tensor_values it is looking at, atomistic, or system wide.
         Returns
         -------
         batch_size : int
                 number of elements that should be loaded at one time
         remainder : int
                 number of elements that will be left unloaded after a loop over all batches. This amount can then be
-                loaded to collect unused data.
+                loaded to collect unused tensor_values.
         """
         if self.data_path is []:
-            print("No data has been requested.")
+            print("No tensor_values has been requested.")
             sys.exit(1)
         per_configuration_memory: float = 0
         for item in self.data_path:
-            n_rows, n_columns, n_bytes = self.database.get_data_size(item)
+            n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
             per_configuration_memory += n_bytes / n_columns
         maximum_loaded_configurations = int(np.clip((self.memory_fraction*self.machine_properties['memory']) /
                                                     self.scaling_factor*per_configuration_memory, 1, n_columns))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
         number_of_batches = int(n_columns / maximum_loaded_configurations)
+        remainder = int(n_columns % batch_size)
 
         self.batch_size = batch_size
         self.n_batches = number_of_batches
+        self.remainder = remainder
 
-        return batch_size, number_of_batches
+        return batch_size, number_of_batches, remainder
+
+    def hdf5_load_time(self, N):
+        """
+        Describes the load time of a hdf5 database i.e. O(log N)
+
+        Parameters
+        ----------
+        N : int
+                Amount of data to be loaded
+
+        Returns
+        -------
+
+        """
+        yield np.log(N)
 
     def _get_optimal_batch_size(self, naive_size):
         """
-        Use the open/close and read speeds of the hdf5 database as well as the operation being performed to get an
+        Use the open/close and read speeds of the hdf5 database_path as well as the operation being performed to get an
         optimal batch size.
 
         Parameters
@@ -90,21 +106,22 @@ class MemoryManager:
         """
         db_io_time = self.database.get_load_time()
 
+
         return naive_size
 
-    def get_data_range_partitions(self, data_range: int, correlation_time: int = 1) -> int:
+    def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> int:
         """
-        Get the data range partition quantity.
+        Get the tensor_values range partition quantity.
 
-        Not only does data need to be batched, it then needs to be looped over in order to calculate some property. This
-        method will return the number of loops possible given the data range and the correlation time
+        Not only does tensor_values need to be batched, it then needs to be looped over in order to calculate some property. This
+        method will return the number of loops possible given the tensor_values range and the correlation time
 
         Parameters
         ----------
         data_range : int
                 Data range to be used in the analysis.
         correlation_time : int
-                Correlation time to be considered when looping over the data
+                Correlation time to be considered when looping over the tensor_values
         Returns
         -------
         data_range_partitions : int
@@ -112,7 +129,7 @@ class MemoryManager:
         """
         final_window = self.batch_size - data_range
         if final_window < 0:
-            print("Sub-batching is required for this system, or a smaller data_range can be used")
+            print("Sub-batching is required for this experiment, or a smaller data_range can be used")
             sys.exit(1)
         else:
-            return int(np.clip(final_window / correlation_time, 1))
+            return int(np.clip(final_window / correlation_time, 1, None))

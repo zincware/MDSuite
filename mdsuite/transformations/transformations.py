@@ -10,7 +10,7 @@ class Transformations:
 
     def __init__(self):
         """
-        Constuctor for the parent class
+        Constuctor for the experiment class
         """
         pass
 

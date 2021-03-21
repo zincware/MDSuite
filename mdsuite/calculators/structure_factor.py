@@ -27,12 +27,12 @@ class StructureFactor(Calculator):
 
     Attributes
     ----------
-    obj : class object
+    experiment : class object
                         Class object of the experiment.
     plot : bool (default=True)
                         Decision to plot the analysis.
     save : bool (default=True)
-                        Decision to save the generated data arrays.
+                        Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
@@ -42,32 +42,32 @@ class StructureFactor(Calculator):
     y_label : str
                         How to label the y axis of the saved plot.
     analysis_name : str
-                        Name of the analysis. used in saving of the data and figure.
+                        Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
-                        The data file corresponding to the rdf being studied.
+                        The tensor_values file corresponding to the rdf being studied.
     data_directory : str
-                        The directory in which to find this data.
+                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
-                        rdf data being studied.
+                        rdf tensor_values being studied.
     radii = None : list
-                        radii data corresponding to the rdf.
+                        radii tensor_values corresponding to the rdf.
     """
 
-    def __init__(self, obj, plot=True, save=True, data_range=None, x_label=r'Q ($\AA ^{-1}$)', y_label=r'S(Q)',
+    def __init__(self, experiment, plot=True, save=True, data_range=None, x_label=r'Q ($\AA ^{-1}$)', y_label=r'S(Q)',
                  analysis_name='total_structure_factor'):
         """
         Python constructor for the class
 
         Parameters
         ----------
-        obj : class object
+        experiment : class object
                         Class object of the experiment.
         plot : bool (default=True)
                             Decision to plot the analysis.
         save : bool (default=True)
-                            Decision to save the generated data arrays.
+                            Decision to save the generated tensor_values arrays.
 
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
@@ -77,19 +77,19 @@ class StructureFactor(Calculator):
         y_label : str
                             How to label the y axis of the saved plot.
         analysis_name : str
-                            Name of the analysis. used in saving of the data and figure.
+                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
         self.file_to_study = None  # RDF file being studied
-        self.data_directory = f'{obj.storage_path}/{obj.analysis_name}/data'  # directory in which data is stored
-        self.data_files = []  # array of the files in data directory
+        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # directory in which tensor_values is stored
+        self.data_files = []  # array of the files in tensor_values directory
         self.rdf = None  # rdf being studied
         self.radii = None  # radii of the rdf
         self.Q_arr = np.linspace(0.5, 25, 700)  # array of scattering vectors
-        self.obj = obj  # instance of the experiment class
+        self.obj = experiment  # instance of the experiment class
 
-        self.database_group = 'structure_factor'  # Which database group to save the data in
+        self.database_group = 'structure_factor'  # Which database_path group to save the tensor_values in
 
         self.rho = self.obj.number_of_atoms / (self.obj.box_array[0] *
                                                self.obj.box_array[1] * self.obj.box_array[2])  # particle density
@@ -98,17 +98,17 @@ class StructureFactor(Calculator):
 
     def _get_rdf_data(self):
         """
-        Fill the data_files list with filenames of the rdf data
+        Fill the data_files list with filenames of the rdf tensor_values
         """
-        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
             for item in db['radial_distribution_function']:  # loop over the files
                 self.data_files.append(item)  # Append to the data_file attribute
 
     def _load_rdf_from_file(self):
         """
-        Load the raw rdf data from a directory
+        Load the raw rdf tensor_values from a directory
         """
-        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
             self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):

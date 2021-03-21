@@ -63,7 +63,9 @@ setuptools.setup(
                       'sphinx_rtd_theme',
                       'ipython',
                       'numpydoc',
-                      'sphinx-copybutton'],
+                      'sphinx-copybutton',
+                      'vpython',
+                      'colorutils'],
     cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
     # force install of the newest h5py after the dependencies are installed
     # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
