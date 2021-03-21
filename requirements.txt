@@ -10,7 +10,6 @@ tqdm~=4.54.0
 h5py~=3.2.1
 PubChemPy~=1.0.4
 PyYAML~=5.3.1
-importlib~=1.0.4
 matplotlib~=3.1.2
 pandas~=0.25.3
 setuptools~=45.2.0
