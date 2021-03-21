@@ -3,7 +3,6 @@ Python module to calculate the ionic current in a experiment.
 """
 
 import numpy as np
-from tqdm import tqdm
 import os
 import tensorflow as tf
 
@@ -32,7 +31,6 @@ class ThermalFlux(Transformations):
         ----------
         experiment : object
                 Experiment this transformation is attached to.
-        calculator : Calculator
         """
         super().__init__()
         self.experiment = experiment
@@ -83,10 +81,6 @@ class ThermalFlux(Transformations):
         """
         Save the tensor_values into the database_path
 
-        Parameters
-        ----------
-        species : str
-                name of species to update in the database_path.
         Returns
         -------
         saves the tensor_values to the database_path.
@@ -103,8 +97,8 @@ class ThermalFlux(Transformations):
 
         Parameters
         ----------
-        batch_number
-        remainder
+        data : tf.Tensor
+                Data on which to apply the operation.
         Returns
         -------
         system_current : np.array
@@ -134,6 +128,29 @@ class ThermalFlux(Transformations):
 
         return system_current
 
+    @staticmethod
+    def _update_type_dict(dictionary: dict, path_list: list, dimension: int):
+        """
+        Update a type spec dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+                Dictionary to append
+        path_list : list
+                List of paths for the dictionary
+        dimension : int
+                Dimension of the property
+        Returns
+        -------
+        type dict : dict
+                Dictionary for the type spec.
+        """
+        for item in path_list:
+            dictionary[item] = tf.TensorSpec(shape=(dimension,))
+
+        return dictionary
+
     def _compute_thermal_flux(self):
         """
         Loop over the batches, run calculations and update the database_path.
@@ -143,19 +160,28 @@ class ThermalFlux(Transformations):
         """
 
         data_structure = self._prepare_database_entry()
+        type_spec = {}
 
         species_path = [join_path(species, 'Velocities') for species in self.experiment.species]
+        type_spec = self._update_type_dict(type_spec, species_path, 3)
+
         stress_path = [join_path(species, 'Stress') for species in self.experiment.species]
+        type_spec = self._update_type_dict(type_spec, stress_path, 6)
+
         pe_path = [join_path(species, 'PE') for species in self.experiment.species]
+        type_spec = self._update_type_dict(type_spec, pe_path, 1)
+
         ke_path = [join_path(species, 'KE') for species in self.experiment.species]
+        type_spec = self._update_type_dict(type_spec, ke_path, 1)
+
         data_path = np.concatenate((species_path, stress_path, pe_path, ke_path))
-        print(data_path)
-        self._prepare_monitors(data_path)
+        self._prepare_monitors(list(data_path))
+
         batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
-                                                  output_types=dict) #,
-                                                  #output_signature=tf.TypeSpec(dict))
+                                                  output_signature=type_spec)
+
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)

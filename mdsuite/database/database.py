@@ -8,6 +8,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
 import tensorflow as tf
 import time
+from typing import Union
 
 
 class Database:
@@ -412,6 +413,7 @@ class Database:
         -------
 
         """
+        data: Union[list, dict] = {}
         database = self.open('r')
         if not dictionary:
             data = []
