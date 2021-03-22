@@ -31,7 +31,7 @@ at several points of the calculation. In the case of MDSuite, we perform the sum
 average and integrate over the average over atoms. This is so that a nice smooth and accurate function may be integrated
 over, and then several of these can be averaged to get a final diffusion coefficient with a reasonable estimate for error.
 We will save a discussion of the general Green-Kubo approach to calculations for the
-`Green-Kubo Relations <green_kubo_relations.html>`_ section.
+:ref:`_theory/green_kubo_relations:Green-Kubo Relations` section.
 
 When using trajectory files, the user must provide the aforementioned quantities. However, for flux files, the heat-flux :math:`\mathbf{J}`
 should be pre-computed. This is typically done by the MD simulation code.
@@ -48,7 +48,38 @@ Einstein-Helfand method can be used to compute the thermal conductivity :footcit
 Where :math:`\mathbf{R}(t)` is the integrated heat-flux at time :math:`t`. The angled brackets denote
 an ensemble average over a trajectory, which is to say one should perform this averaging over different sets of data. In
 practice, this is done by selecting a time range over which the analysis will be performed, and then performing it over
-this time starting at different initial configurations
+this time starting at different initial configurations.
+
+The integrated heat-flux (aka energy moment) can be written in different forms. MDSuite implements the two forms described in :footcite:`kinaci_calculation_2012`.
+
+The traditional form, implemented in :ref:`_calculators/einstein_helfand_thermal_conductivity:Einstein Helfand Thermal Traditional Formulation Class` simply describes the energy moment as:
+
+.. math::
+
+    \mathbf{R} = \sum_{i=1}^{N_{atoms}} \epsilon_i \vec{r}
+
+Where :math:`\epsilon_i` is the energy (potential and kinetic) of the :math:`i`-th atom, and :math:`\vec{r}` is the position of the atom.
+
+The second form, implemented in :ref:`_calculators/einstein_helfand_thermal_conductivity_kinaci:Einstein Helfand Thermal Kinaci Formulation Class`, uses a different formulation.
+In this case, the energy is split into two contributions: potential :math:`\mathbf{R}_P` and kinetic :math:`\mathbf{R}_K`.
+
+The potential contribution stays the same as in the traditional formulation:
+
+.. math::
+
+    \mathbf{R}_P = \sum_{i,j>i}^{N_{atoms}} \frac{1}{2} u_{i,j} (\vec{r_i}+\vec{r_j}).
+Where :math:`u_{i,j}` is the pair potential energy.
+
+
+The kinetic component instead changes, and it represents the transfer of kinetic energy from atom i to all particles that interact with it.
+
+.. math::
+
+    \mathbf{R}_K = \sum_{i=1}^{N_{atoms}} \vec{r_i} \int_0^t \vec{f_i} \vec{v_i} dt
+
+In this case, :math:`\vec{f_i}` and :math:`\vec{v_i}` are the net force and the velocity of particle :math:`i`.
+In general, for solids, the component :math:`\mathbf{R}_P` does not contribute to the computation, and it can be neglected.
+For the sake of generality, this component is always computed in MDSuite. 
 
 Which One Should I Use?
 ---------------------------

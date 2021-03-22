@@ -25,6 +25,8 @@ Calculators
    _calculators/green_kubo_diffusion_coefficients
    _calculators/green_kubo_ionic_conductivity
    _calculators/green_kubo_thermal_conductivity
+   _calculators/einstein_helfand_thermal_conductivity
+   _calculators/einstein_helfand_thermal_conductivity_kinaci
    _calculators/kirkwood_buff_integrals
    _calculators/nernst_einstein_ionic_conductivity
    _calculators/potential_of_mean_force
