@@ -189,7 +189,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         # Calculate the prefactor
         numerator = 1
-        denominator = 2 * self.parent.volume * self.parent.temperature * self.parent.units['boltzman']
+        denominator = 2 * self.parent.volume * self.parent.temperature**2 * self.parent.units['boltzman']
         units_change = self.parent.units['energy'] / self.parent.units['length'] / self.parent.units['time'] / \
                        self.parent.units['temperature']
         prefactor = numerator / denominator * units_change

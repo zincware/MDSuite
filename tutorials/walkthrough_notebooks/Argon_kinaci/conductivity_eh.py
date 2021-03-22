@@ -14,10 +14,9 @@ if new_case:
 
 
 
-argon = mds.Experiment(analysis_name="Argon", time_step=2, temperature=70.0, units='real')
+argon = mds.Experiment(analysis_name="Argon", time_step=1, temperature=50.0, units='real')
 
 if new_case:
     argon.add_data(trajectory_file='../gk_data.lmp_traj')
 
-
-argon.run_computation.EinsteinHelfandThermalKinaci(data_range=6000, plot=True, correlation_time=5)
+argon.run_computation('EinsteinHelfandThermalConductivity', data_range=15000, plot=True, correlation_time=10)

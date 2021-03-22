@@ -157,14 +157,9 @@ class EinsteinHelfandThermalConductivity(Calculator):
             pe = self.load_batch(i, "PE")
             ke = self.load_batch(i, "KE")
             energy = ke + pe
+            energy = tf.squeeze(energy)
 
-            positions = tf.convert_to_tensor(positions)
-            energy = tf.convert_to_tensor(energy)
-
-            integrated_heat_current = energy * positions
-
-            integrated_heat_current = tf.reduce_sum(integrated_heat_current,
-                                                    axis=0)  # Calculate the integrated current
+            integrated_heat_current = tf.einsum('ij,ijk->jk', energy, positions)
 
             database.add_data(data=integrated_heat_current,
                               structure=data_structure,
@@ -184,18 +179,14 @@ class EinsteinHelfandThermalConductivity(Calculator):
                                              tensor=self.tensor_choice)
 
                 energy = ke + pe
+                energy = tf.squeeze(energy)
 
-                positions = tf.convert_to_tensor(positions)
-                energy = tf.convert_to_tensor(energy)
-
-                integrated_heat_current = energy * positions
-                integrated_heat_current = tf.reduce_sum(integrated_heat_current,
-                                                        axis=0)  # Calculate the integrated current
+                integrated_heat_current = tf.einsum('ij,ijk->jk', energy, positions)
 
                 database.add_data(data=integrated_heat_current,
                                   structure=data_structure,
                                   database=db_object,
-                                  start_index=i,
+                                  start_index=start,
                                   batch_size=self.batch_size['Parallel'],
                                   system_tensor=True)
             database.close(db_object)  # close the database
@@ -208,7 +199,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         # Calculate the prefactor
         numerator = 1
-        denominator = 2 * self.parent.volume * self.parent.temperature * self.parent.units['boltzman']
+        denominator = 2 * self.parent.volume * self.parent.temperature**2 * self.parent.units['boltzman']
         units_change = self.parent.units['energy'] / self.parent.units['length'] / self.parent.units['time'] / \
                        self.parent.units['temperature']
         prefactor = numerator / denominator * units_change

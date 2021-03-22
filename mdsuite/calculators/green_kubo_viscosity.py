@@ -113,7 +113,7 @@ class GreenKuboViscosity(Calculator):
         """
 
         # collect machine properties and determine batch size
-        self._collect_machine_properties(group_property='Velocities')
+        self.collect_machine_properties(group_property='Velocities')
         n_batches = np.floor(self.parent.number_of_configurations / self.batch_size['Parallel'])
         remainder = int(self.parent.number_of_configurations % self.batch_size['Parallel'])
 
