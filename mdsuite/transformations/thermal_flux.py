@@ -105,31 +105,36 @@ class ThermalFlux(Transformations):
                 System current as a numpy array.
         """
 
-        phi_x = np.multiply(data[1][:, :, 0], data[0][:, :, 0]) + \
-                np.multiply(data[1][:, :, 3], data[0][:, :, 1]) + \
-                np.multiply(data[1][:, :, 4], data[0][:, :, 2])
-        phi_y = np.multiply(data[1][:, :, 3], data[0][:, :, 0]) + \
-                np.multiply(data[1][:, :, 1], data[0][:, :, 1]) + \
-                np.multiply(data[1][:, :, 5], data[0][:, :, 2])
-        phi_z = np.multiply(data[1][:, :, 4], data[0][:, :, 0]) + \
-                np.multiply(data[1][:, :, 5], data[0][:, :, 1]) + \
-                np.multiply(data[1][:, :, 2], data[0][:, :, 2])
+        system_current = np.zeros((self.batch_size, 3))
+        for species in self.experiment.species:
+            stress_path = str.encode(join_path(species, 'Stress'))
+            velocity_path = str.encode(join_path(species, 'Velocities'))
+            ke_path = str.encode(join_path(species, 'KE'))
+            pe_path = str.encode(join_path(species, 'PE'))
+            phi_x = np.multiply(data[stress_path][:, :, 0], data[velocity_path][:, :, 0]) + \
+                    np.multiply(data[stress_path][:, :, 3], data[velocity_path][:, :, 1]) + \
+                    np.multiply(data[stress_path][:, :, 4], data[velocity_path][:, :, 2])
+            phi_y = np.multiply(data[stress_path][:, :, 3], data[velocity_path][:, :, 0]) + \
+                    np.multiply(data[stress_path][:, :, 1], data[velocity_path][:, :, 1]) + \
+                    np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 2])
+            phi_z = np.multiply(data[stress_path][:, :, 4], data[velocity_path][:, :, 0]) + \
+                    np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 1]) + \
+                    np.multiply(data[stress_path][:, :, 2], data[velocity_path][:, :, 2])
 
-        phi = np.dstack([phi_x, phi_y, phi_z])
+            phi = np.dstack([phi_x, phi_y, phi_z])
 
-        phi_sum = phi.sum(axis=0)
-        phi_sum_atoms = phi_sum / self.experiment.units['NkTV2p']  # factor for units lammps nktv2p
+            phi_sum = phi.sum(axis=0)
+            phi_sum_atoms = phi_sum / self.experiment.units['NkTV2p']  # factor for units lammps nktv2p
 
-        energy = data[3] + data[2]
+            energy = data[ke_path] + data[pe_path]
 
-        energy_velocity = energy * data[0]
-        energy_velocity_atoms = energy_velocity.sum(axis=0)
-        system_current = energy_velocity_atoms - phi_sum_atoms
+            energy_velocity = energy * data[velocity_path]
+            energy_velocity_atoms = tf.reduce_sum(energy_velocity, axis=0)
+            system_current += energy_velocity_atoms - phi_sum_atoms
 
         return system_current
 
-    @staticmethod
-    def _update_type_dict(dictionary: dict, path_list: list, dimension: int):
+    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
         """
         Update a type spec dictionary.
 
@@ -147,7 +152,7 @@ class ThermalFlux(Transformations):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[item] = tf.TensorSpec(shape=(dimension,))
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, self.batch_size, dimension), dtype=tf.float64)
 
         return dictionary
 
@@ -163,19 +168,16 @@ class ThermalFlux(Transformations):
         type_spec = {}
 
         species_path = [join_path(species, 'Velocities') for species in self.experiment.species]
-        type_spec = self._update_type_dict(type_spec, species_path, 3)
-
         stress_path = [join_path(species, 'Stress') for species in self.experiment.species]
-        type_spec = self._update_type_dict(type_spec, stress_path, 6)
-
         pe_path = [join_path(species, 'PE') for species in self.experiment.species]
-        type_spec = self._update_type_dict(type_spec, pe_path, 1)
-
         ke_path = [join_path(species, 'KE') for species in self.experiment.species]
-        type_spec = self._update_type_dict(type_spec, ke_path, 1)
 
         data_path = np.concatenate((species_path, stress_path, pe_path, ke_path))
-        self._prepare_monitors(list(data_path))
+        self._prepare_monitors(data_path)
+        type_spec = self._update_type_dict(type_spec, species_path, 3)
+        type_spec = self._update_type_dict(type_spec, stress_path, 6)
+        type_spec = self._update_type_dict(type_spec, pe_path, 1)
+        type_spec = self._update_type_dict(type_spec, ke_path, 1)
 
         batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,

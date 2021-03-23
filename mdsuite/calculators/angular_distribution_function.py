@@ -50,10 +50,6 @@ class AngularDistributionFunction(Calculator, ABC):
         self.n_batches = n_batches  # memory management for all batches
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
 
-    def _load_positions(self, indices):
-        # TODO make experiment class?
-        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices], tensor=True)
-
     def run_analysis(self):
         """
         Perform the ADF analysis

@@ -1,27 +1,26 @@
 """
-Class for the calculation of the Green-Kubo viscosity.
+Class for the calculation of the conductivity.
 
 Summary
-This module contains the code for the Green-Kubo viscsity class. This class is called by the
+-------
 """
+
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from scipy import signal
 
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.utils.meta_functions import join_path
 
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboViscosity(Calculator):
-    """ Class for the Green-Kubo ionic conductivity implementation
+class EinsteinHelfandThermalKinaci(Calculator):
+    """
+    Class for the Einstein-Helfand Ionic Conductivity
 
     Attributes
     ----------
@@ -44,15 +43,17 @@ class GreenKuboViscosity(Calculator):
     correlation_time : int
             Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time: int = 1):
+    def __init__(self, experiment, plot=True, data_range=500, save=True, correlation_time=1):
         """
+        Python constructor
 
-        Attributes
+        Parameters
         ----------
         experiment :  object
-                Experiment class to call from
+            Experiment class to call from
         plot : bool
                 if true, plot the tensor_values
         data_range :
@@ -60,19 +61,22 @@ class GreenKuboViscosity(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
+
+        # parse to the experiment class
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.loaded_property = 'Momentum_Flux'  # property to be loaded for the analysis
-        self.database_group = 'viscosity'  # Which database_path group to save the tensor_values in
+        self.loaded_property = 'Kinaci_Integrated_Heat_Current'  # Property to be loaded for the analysis
+        self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
         self.x_label = 'Time (s)'
-        self.y_label = r'SACF ($C^{2}\cdot m^{2}/s^{2}$)'
-        self.analysis_name = 'green_kubo_viscosity'
+        self.y_label = 'MSD (m$^2$/s)'
+        self.analysis_name = 'einstein_helfand_thermal_conductivity'
 
-        self.jacf = np.zeros(self.data_range)
+        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
+
+        self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
         self.prefactor: float
-        self.sigma = []
 
     def _update_output_signatures(self):
         """
@@ -98,15 +102,11 @@ class GreenKuboViscosity(Calculator):
 
         """
         # Calculate the prefactor
-        # prepare the prefactor for the integral
-        numerator = 1  # self.experiment.volume
-        denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units[
-            'boltzman'] * self.experiment.volume  # we use boltzman constant in the units provided.
-        prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-                          self.experiment.units[
-                              'time'] / self.experiment.units['energy']
-
-        self.prefactor = (numerator / denominator)*prefactor_units
+        numerator = 1
+        denominator = 2 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
+        units_change = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
+            'time'] / self.experiment.units['temperature']
+        self.prefactor = numerator / denominator * units_change
 
     def _apply_averaging_factor(self):
         """
@@ -115,7 +115,7 @@ class GreenKuboViscosity(Calculator):
         -------
 
         """
-        self.jacf /= max(self.jacf)
+        self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
     def _apply_operation(self, ensemble, index):
         """
@@ -129,11 +129,10 @@ class GreenKuboViscosity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        jacf = sum([signal.correlate(ensemble[:, idx], ensemble[:, idx],
-                                     mode="full",
-                                     method='auto') for idx in range(3)])
-        self.jacf += jacf[int(self.data_range - 1):]
-        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+        msd = (ensemble - (
+            tf.repeat(tf.expand_dims(ensemble[0], 0), self.data_range, axis=0))) ** 2
+        msd = self.prefactor*tf.reduce_sum(msd, axis=1)
+        self.msd_array += np.array(msd)  # Update the averaged function
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -142,14 +141,14 @@ class GreenKuboViscosity(Calculator):
         -------
 
         """
-        result = self.prefactor * np.array(self.sigma)
-        self._update_properties_file(data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
+        result = self._fit_einstein_curve([self.time, self.msd_array])
+        self._update_properties_file(data=result)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array)
             self._plot_data()
 
         # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time, self.jacf])
+            self._save_data(f"{self.analysis_name}", [self.time, self.msd_array])

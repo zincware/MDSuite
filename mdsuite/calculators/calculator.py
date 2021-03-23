@@ -91,6 +91,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.prefactor: float
 
         self.system_property = False  # is the calculation on a system property?
+        self.multi_species = False  # does the calculation require loading of multiple species?
         self.species = None
         self.optimize = False
         self.batch_output_signature = None
@@ -466,7 +467,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
                 'Ionic_Current': 'IonicCurrent',
                 'Integrated_Heat_Current': 'IntegratedHeatCurrent',
-                'Thermal_Flux': 'ThermalFlux'
+                'Thermal_Flux': 'ThermalFlux',
+                'Momentum_Flux': 'MomentumFlux',
+                'Kinaci_Integrated_Heat_Current': 'KinaciIntegratedHeatCurrent'
             }
             choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
             return choice
@@ -504,12 +507,16 @@ class Calculator(metaclass=abc.ABCMeta):
         if not loaded_property:
             self._resolve_dependencies(self.loaded_property)
 
-    def perform_computation(self):
+    def perform_computation(self, data_path: list = None):
         """
         Perform the computation.
+        Parameters
+        ----------
+        data_path : list
+                if multi-species is present, the data_path is required to load the correct data.
         Returns
         -------
-
+        Performs the analysis.
         """
         if self.system_property:
             self._calculate_prefactor()
@@ -520,17 +527,28 @@ class Calculator(metaclass=abc.ABCMeta):
                                                             args=batch_generator_args,
                                                             output_signature=self.batch_output_signature)
             batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop"):
+            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
                 ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator(
                     system=self.system_property)
                 ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                    args=ensemble_generators_args + (batch,),
                                                                    output_signature=self.ensemble_output_signature)
-                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop"):
+                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop", ncols=100):
                     self._apply_operation(ensemble, ensemble_index)
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+
+        elif self.multi_species:
+            self._calculate_prefactor()
+            self._prepare_managers(data_path)
+            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
+                                                            args=batch_generator_args,
+                                                            output_signature=self.batch_output_signature)
+            batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
+                self._apply_operation(batch, batch_index)
 
         else:
             for species in self.species:
@@ -542,7 +560,7 @@ class Calculator(metaclass=abc.ABCMeta):
                                                                 args=batch_generator_args,
                                                                 output_signature=self.batch_output_signature)
                 batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop"):
+                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),

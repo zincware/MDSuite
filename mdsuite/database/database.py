@@ -426,7 +426,10 @@ class Database:
         database.close()
 
         if len(data) == 1:
-            return data[0]
+            if dictionary:
+                return data
+            else:
+                return data[0]
         else:
             return data
 
