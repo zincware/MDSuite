@@ -8,7 +8,6 @@ Experiment class and instantiated when the user calls the Experiment.green_kubo_
 The methods in class can then be called by the Experiment.green_kubo_thermal_conductivity method and all necessary
 calculations performed.
 """
-import os
 import warnings
 
 # Python standard packages
@@ -43,8 +42,6 @@ class GreenKuboThermalConductivity(Calculator):
             Y label of the tensor_values when plotted
     analysis_name : str
             Name of the analysis
-    time : np.array
-            Array of the time.
     correlation_time : int
             Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
@@ -64,20 +61,14 @@ class GreenKuboThermalConductivity(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
-        x_label : str
-                X label of the tensor_values when plotted
-        y_label : str
-                Y label of the tensor_values when plotted
-        analysis_name : str
-                Name of the analysis
         correlation_time: int
         """
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
         self.loaded_property = 'Thermal_Flux'  # property to be loaded for the analysis
         self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
+        self.system_property = True
 
-        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time (s)'
         self.y_label = r'JACF ($C^{2}\cdot m^{2}/s^{2}$)'
         self.analysis_name = 'green_kubo_thermal_conductivity'
@@ -113,11 +104,11 @@ class GreenKuboThermalConductivity(Calculator):
         # prepare the prefactor for the integral
         numerator = 1
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature ** 2 * self.experiment.units['boltzman'] \
-                      * self.experiment.volume  # we use boltzman constant in the units provided.
+                      * self.experiment.volume  # we use Boltzmann constant in the units provided.
         prefactor_units = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
             'time']
 
-        self.prefactor = (numerator / denominator)*prefactor_units
+        self.prefactor = (numerator / denominator) * prefactor_units
 
     def _apply_averaging_factor(self):
         """

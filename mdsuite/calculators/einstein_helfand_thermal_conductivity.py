@@ -12,7 +12,6 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-# Import MDSuite modules
 from mdsuite.calculators.calculator import Calculator
 
 tqdm.monitor_interval = 0

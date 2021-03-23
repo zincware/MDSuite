@@ -1,5 +1,5 @@
 """
-Python module to calculate the integrated heat current in a experiment.
+Python module to calculate the Kinaci integrated heat current in a experiment.
 """
 
 import numpy as np
@@ -13,7 +13,7 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 
 
-class IntegratedHeatCurrent(Transformations):
+class KinaciIntegratedHeatCurrent(Transformations):
     """
     Class to generate and store the ionic current of a experiment
 
@@ -73,11 +73,19 @@ class IntegratedHeatCurrent(Transformations):
         system_current = np.zeros((self.batch_size, 3))
         for species in self.experiment.species:
             positions_path = str.encode(join_path(species, 'Unwrapped_Positions'))
-            ke_path = str.encode(join_path(species, 'KE'))
+            velocity_path = str.encode(join_path(species, 'Velocities'))
+            force_path = str.encode(join_path(species, 'Forces'))
             pe_path = str.encode(join_path(species, 'PE'))
-            system_current += tf.reduce_sum(data[positions_path]*(data[ke_path] + data[pe_path]), axis=0)
 
-        return tf.convert_to_tensor(system_current)
+            integrand = tf.einsum('ijk,ijk->ij', data[force_path], data[velocity_path])
+            integral = tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
+
+            r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
+            r_p = tf.einsum('ijk,ij->jk', tf.squeeze(data[pe_path]), data[positions_path])
+
+            system_current += r_k + r_p
+
+        return system_current
 
     def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
         """
@@ -111,7 +119,7 @@ class IntegratedHeatCurrent(Transformations):
         """
 
         number_of_configurations = self.experiment.number_of_configurations
-        path = join_path('Integrated_Heat_Current', 'Integrated_Heat_Current')  # name of the new database_path
+        path = join_path('Kinaci_Integrated_Heat_Current', 'Kinaci_Integrated_Heat_Current')
         dataset_structure = {path: (number_of_configurations, 3)}
         self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
@@ -128,14 +136,16 @@ class IntegratedHeatCurrent(Transformations):
         data_structure = self._prepare_database_entry()
         type_spec = {}
 
-        species_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
-        ke_path = [join_path(species, 'KE') for species in self.experiment.species]
+        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
+        velocities_path = [join_path(species, 'Velocities') for species in self.experiment.species]
+        forces_path = [join_path(species, 'Forces') for species in self.experiment.species]
         pe_path = [join_path(species, 'PE') for species in self.experiment.species]
-        data_path = list(np.concatenate((species_path, ke_path, pe_path)))
+        data_path = np.concatenate((positions_path, velocities_path, forces_path, pe_path))
 
         self._prepare_monitors(data_path)
-        type_spec = self._update_type_dict(type_spec, species_path, 3)
-        type_spec = self._update_type_dict(type_spec, ke_path, 1)
+        type_spec = self._update_type_dict(type_spec, positions_path, 3)
+        type_spec = self._update_type_dict(type_spec, velocities_path, 3)
+        type_spec = self._update_type_dict(type_spec, forces_path, 3)
         type_spec = self._update_type_dict(type_spec, pe_path, 1)
 
         batch_generator, batch_generator_args = self.data_manager.batch_generator()

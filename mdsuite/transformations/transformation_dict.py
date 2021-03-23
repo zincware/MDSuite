@@ -9,6 +9,8 @@ from mdsuite.transformations.ionic_current import IonicCurrent
 from mdsuite.transformations.translational_dipole_moment import TranslationalDipoleMoment
 from mdsuite.transformations.integrated_heat_current import IntegratedHeatCurrent
 from mdsuite.transformations.thermal_flux import ThermalFlux
+from mdsuite.transformations.momentum_flux import MomentumFlux
+from mdsuite.transformations.kinaci_integrated_heat_current import KinaciIntegratedHeatCurrent
 
 transformations_dict = {
     'UnwrapCoordinates': CoordinateUnwrapper,
@@ -17,5 +19,7 @@ transformations_dict = {
     'IonicCurrent': IonicCurrent,
     'TranslationalDipoleMoment': TranslationalDipoleMoment,
     'IntegratedHeatCurrent': IntegratedHeatCurrent,
-    'ThermalFlux': ThermalFlux
+    'ThermalFlux': ThermalFlux,
+    'MomentumFlux': MomentumFlux,
+    'KinaciIntegratedHeatCurrent': KinaciIntegratedHeatCurrent
 }

@@ -51,7 +51,6 @@ class DataManager:
                 self.database.name,
                 self.data_path,
                 dictionary)
-
         def generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
             """
             Generator function for the batch loop.
