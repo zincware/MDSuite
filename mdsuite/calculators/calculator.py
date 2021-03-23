@@ -19,15 +19,12 @@ from tqdm import tqdm
 
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
-from mdsuite.plot_style.plot_style import apply_style
+from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 
 from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mdsuite.experiment.experiment import Experiment
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -46,21 +43,11 @@ class Calculator(metaclass=abc.ABCMeta):
     data_range : int (default=500)
             Range over which the property should be evaluated. This is not applicable to the current
             analysis as the full rdf will be calculated.
-    x_label : str
-            How to label the x axis of the saved plot.
-    y_label : str
-            How to label the y axis of the saved plot.
-    analysis_name : str
-            Name of the analysis. used in saving of the tensor_values and figure.
     batch_size : dict
             Size of batches to use in the analysis separated into parallel and serial components, i.e
             {'Serial': 100, 'Parallel': 50} for a two component, symmetric experiment.
     n_batches : dict
             Number of barthes to use as a dictionary for both serial and parallel implementations
-    machine_properties : dict
-            Devices available to MDSuite during analysis run. Has the following structure
-            {'memory': x bytes, 'cpus': n_of_cores, 'gpus': name_of_gpu}
-
     """
 
     def __init__(self, experiment, plot=True, save=True, data_range=500, correlation_time=1):
@@ -97,9 +84,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.batch_output_signature = None
         self.ensemble_output_signature = None
 
-        self.machine_properties = None  # dictionary of machine properties to be evaluated at analysis run-time
         self.correlation_time = correlation_time  # correlation time of the property
-        self.batch_loop = None  # Number of ensembles in each batch
 
         self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
         self.memory_manager: MemoryManager
@@ -117,8 +102,6 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.experiment.cluster_mode:
             import matplotlib
             matplotlib.use('Agg')
-        #else:
-        #    apply_style()
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: str = None):

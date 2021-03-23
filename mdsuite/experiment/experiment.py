@@ -112,7 +112,7 @@ class Experiment:
         self.results = list(dict_classes_db.keys())
 
         # Memory properties
-        self.memory_requirements = {}
+        self.memory_requirements = {}  # TODO I think this can be removed.
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
@@ -587,44 +587,6 @@ class Experiment:
                 New mass/es of the element
         """
         self.species[element]['mass'] = mass  # update the mass
-
-    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: str = None):
-        """
-        Load a desired property matrix.
-
-        Parameters
-        ----------
-        identifier : str
-                Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
-        species : list
-                List of species to be loaded
-        select_slice : np.slice
-                A slice to select from the database_path.
-        path : str
-                optional path to the database_path.
-
-        Returns
-        -------
-        property_matrix : np.array, tf.tensor
-                Tensor of the property to be studied. Format depends on kwargs.
-        """
-        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
-
-        if path is not None:
-            return database.load_data(path_list=[path], select_slice=select_slice)
-
-        else:
-            # If no species list is given, use all species in the Experiment class instance.
-            if species is None:
-                species = list(self.species.keys())  # get list of all species available.
-            # If no slice is given, load all configurations.
-            if select_slice is None:
-                select_slice = np.s_[:]  # set the numpy slice object.
-
-            path_list = []
-            for item in species:
-                path_list.append(join_path(item, identifier))
-            return database.load_data(path_list=path_list, select_slice=select_slice)
 
     def run_visualization(self, species: list = None, unwrapped: bool = False):
         """
