@@ -184,7 +184,7 @@ class ThermalFlux(Transformations):
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
 
-        data_set.prefetch(tf.data.experimental.AUTOTUNE)
+        data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)
             self._save_coordinates(data, index, self.batch_size, data_structure)

@@ -628,7 +628,7 @@ class Experiment:
         """
         database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
 
-        print("DEPRECATED! PLEASE UPDATE!")  # TODO DEPRECATED!
+        # print("DEPRECATED! PLEASE UPDATE!")  # TODO DEPRECATED!
 
         if path is not None:
             return database.load_data(path_list=[path], select_slice=select_slice)
