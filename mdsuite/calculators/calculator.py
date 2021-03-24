@@ -79,6 +79,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.system_property = False  # is the calculation on a system property?
         self.multi_species = False  # does the calculation require loading of multiple species?
+        self.experimental = False # experimental calculator.
         self.species = None
         self.optimize = False
         self.batch_output_signature = None
@@ -490,7 +491,7 @@ class Calculator(metaclass=abc.ABCMeta):
         if not loaded_property:
             self._resolve_dependencies(self.loaded_property)
 
-    def perform_computation(self, data_path: list = None):
+    def perform_computation(self):
         """
         Perform the computation.
         Parameters
@@ -522,16 +523,10 @@ class Calculator(metaclass=abc.ABCMeta):
             self._apply_averaging_factor()
             self._post_operation_processes()
 
-        elif self.multi_species:
-            self._calculate_prefactor()
+        elif self.experimental:
+            data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
             self._prepare_managers(data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
-            batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
-                                                            args=batch_generator_args,
-                                                            output_signature=self.batch_output_signature)
-            batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
-                self._apply_operation(batch, batch_index)
+            self.run_experimental_analysis()
 
         else:
             for species in self.species:
@@ -570,3 +565,12 @@ class Calculator(metaclass=abc.ABCMeta):
             pass
         else:
             self.perform_computation()
+
+    def run_experimental_analysis(self):
+        """
+        For experimental methods
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
