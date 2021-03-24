@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 class AngularDistributionFunction(Calculator, ABC):
 
-    def __init__(self, experiment, n_batches: int = 1, n_minibatches: int = 50, n_confs: int = 50,
+    def __init__(self, experiment, n_batches: int = 1, n_minibatches: int = 50, n_confs: int = 50, data_range=1,
                  r_cut: int = 6.0, start: int = 0, stop: int = 10000, bins: int = 500, use_tf_function: bool = False):
         """
         Compute the Angular Distribution Function for all species combinations
@@ -39,10 +39,12 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment)
+        super().__init__(experiment, data_range=data_range)
         self.use_tf_function = use_tf_function
+        self.loaded_property = 'Positions'
         self.r_cut = r_cut
         self.start = start
+        self.experimental = True
         self.stop = stop
         self.n_confs = n_confs
         self.bins = bins
@@ -50,7 +52,25 @@ class AngularDistributionFunction(Calculator, ABC):
         self.n_batches = n_batches  # memory management for all batches
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
 
-    def run_analysis(self):
+    def _load_positions(self, indices: list) -> tf.Tensor:
+        """
+        Load the positions matrix
+
+        This function is here to optimize calculation speed
+
+        Parameters
+        ----------
+        indices : list
+                List of indices to take from the database_path
+        Returns
+        -------
+        loaded_data : tf.Tensor
+                tf.Tensor of tensor_values loaded from the hdf5 database_path
+        """
+
+        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices])
+
+    def run_experimental_analysis(self):
         """
         Perform the ADF analysis
         """
@@ -140,3 +160,59 @@ class AngularDistributionFunction(Calculator, ABC):
             # fig.savefig(f"{self.experiment.figures_path}/adf_{name}.png")
             fig.savefig(fr"adf_{name}.png")
             np.save(f"{species}", (bin_range_to_angles, hist))
+
+    def _calculate_prefactor(self, species: str = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        pass
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        pass
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        pass
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        pass

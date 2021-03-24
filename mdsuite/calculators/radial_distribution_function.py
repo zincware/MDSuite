@@ -86,6 +86,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
         self.analysis_name = 'radial_distribution_function'
+        self.experimental = True
 
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
         self.cutoff = cutoff  # Cutoff for the RDF
@@ -232,7 +233,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
 
-        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices], tensor=True)
+        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices])
 
     def _get_species_names(self, species_tuple: tuple) -> str:
         """ Get the correct names of the species being studied
@@ -399,7 +400,7 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
         update the class state
         """
-        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches["Parallel"]), ncols=70):
+        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
 
             positions = self._load_positions(i)  # Load the batch of positions
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
@@ -460,7 +461,7 @@ class RadialDistributionFunction(Calculator, ABC):
         if self.plot:
             self._plot_data()  # Plot the tensor_values if necessary
 
-    def run_analysis(self):
+    def run_experimental_analysis(self):
         """
         Perform the rdf analysis
         """
@@ -468,3 +469,45 @@ class RadialDistributionFunction(Calculator, ABC):
         # collect machine properties and determine batch size
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        pass
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        pass
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        pass
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        pass

@@ -50,7 +50,7 @@ setuptools.setup(
                       'matplotlib',
                       'scipy',
                       'tqdm',
-                      'psutil',
+                      'psutil>=5.6.6',
                       'numpy',
                       'gputil',
                       'diagrams',
