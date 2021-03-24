@@ -605,3 +605,43 @@ class Experiment:
             species = list(self.species)
         visualizer = TrajectoryVisualizer(experiment=self, species=species, unwrapped=unwrapped)
         visualizer.run_visualization()
+
+    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: str = None):
+        """
+        Load a desired property matrix.
+
+        Parameters
+        ----------
+        identifier : str
+                Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
+        species : list
+                List of species to be loaded
+        select_slice : np.slice
+                A slice to select from the database_path.
+        path : str
+                optional path to the database_path.
+
+        Returns
+        -------
+        property_matrix : np.array, tf.tensor
+                Tensor of the property to be studied. Format depends on kwargs.
+        """
+        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
+
+        print("DEPRECATED! PLEASE UPDATE!")  # TODO DEPRECATED!
+
+        if path is not None:
+            return database.load_data(path_list=[path], select_slice=select_slice)
+
+        else:
+            # If no species list is given, use all species in the Experiment class instance.
+            if species is None:
+                species = list(self.species.keys())  # get list of all species available.
+            # If no slice is given, load all configurations.
+            if select_slice is None:
+                select_slice = np.s_[:]  # set the numpy slice object.
+
+            path_list = []
+            for item in species:
+                path_list.append(join_path(item, identifier))
+            return database.load_data(path_list=path_list, select_slice=select_slice)
