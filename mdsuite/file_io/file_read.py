@@ -82,16 +82,20 @@ class FileProcessor(metaclass=abc.ABCMeta):
         """
         Construct generalized property array
 
-        Takes the lammps properties dictionary and constructs and array of properties which can be used by the species
+        Takes the lammps properties dictionary and constructs an array of properties which can be used by the species
         class.
 
-        agrs:
-            properties_dict (dict) -- A dictionary of all the available properties in the trajectory. This dictionary is
-            built only from the LAMMPS symbols and therefore must be again processed to extract the useful information.
+        Parameters
+        ----------
+        properties_dict : dict
+                A dictionary of all the available properties in the trajectory. This dictionary is built only from the
+                 LAMMPS symbols and therefore must be again processed to extract the useful information.
 
-        returns:
-            trajectory_properties (dict) -- A dictionary of the keyword labelled properties in the trajectory. The
-            values of the dictionary keys correspond to the array location of the specific piece of tensor_values in the set.
+        Returns
+        -------
+        trajectory_properties : dict
+                A dictionary of the keyword labelled properties in the trajectory. The  values of the dictionary keys
+                correspond to the array location of the specific piece of tensor_values in the set.
         """
 
         # for each property label (position, velocity,etc) in the lammps definition
@@ -111,14 +115,20 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return trajectory_properties
 
     @staticmethod
-    def _get_column_properties(header_line, skip_words=0):
+    def _get_column_properties(header_line, skip_words=0) -> dict:
         """
         Given a line of text with the header, split it, enumerate and put in a dictionary.
         This is used to create the column - variable correspondance (see self._extract_properties)
 
-        :param header_line: str
-        :return: dict
+        Parameters
+        ----------
+                header_line: str
+                        Header line to split
+        Returns
+        -------
+                properties_summary : dict
         """
         header_line = header_line[skip_words:]
         properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
+
         return properties_summary

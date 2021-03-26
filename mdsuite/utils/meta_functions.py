@@ -151,7 +151,7 @@ def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.5 * computer_statistics['memory']  # We take 50% of the available memory
+    database_memory = 0.1 * computer_statistics['memory']  # We take 50% of the available memory
     initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
 
     # The database_path generation expands memory by ~5x the read in tensor_values size, accommodate this in batch size calculation.

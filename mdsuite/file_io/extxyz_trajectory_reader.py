@@ -1,5 +1,5 @@
 """
-Module for reading lammps trajectory files
+Module for reading extxyz trajectory files
 
 Summary
 -------
@@ -10,28 +10,23 @@ from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 from mdsuite.utils.meta_functions import get_dimensionality
+from typing import Union, List, Dict, Tuple
 
-import sys
+import numpy as np
 
 var_names = {
-    "Positions": ['x', 'y', 'z'],
-    "Scaled_Positions": ['xs', 'ys', 'zs'],
-    "Unwrapped_Positions": ['xu', 'yu', 'zu'],
-    "Scaled_Unwrapped_Positions": ['xsu', 'ysu', 'zsu'],
-    "Velocities": ['vx', 'vy', 'vz'],
-    "Forces": ['fx', 'fy', 'fz'],
-    "Box_Images": ['ix', 'iy', 'iz'],
-    "Dipole_Orientation_Magnitude": ['mux', 'muy', 'muz'],
-    "Angular_Velocity_Spherical": ['omegax', 'omegay', 'omegaz'],
-    "Angular_Velocity_Non_Spherical": ['angmomx', 'angmomy', 'angmomz'],
-    "Torque": ['tqx', 'tqy', 'tqz'],
-    "KE": ["c_KE"],
-    "PE": ["c_PE"],
-    "Stress": ['c_Stress[1]', 'c_Stress[2]', 'c_Stress[3]', 'c_Stress[4]', 'c_Stress[5]', 'c_Stress[6]']
+    "Positions": 'pos',
+    "Velocities": 'vel',
+    "Forces": 'forces',
+    "Stress": 'stress',
+    "PE": 'energies',
+    "Time": 'time',
+    "Lattice": 'Lattice',
+    "Momenta": 'momenta'
 }
 
 
-class LAMMPSTrajectoryFile(TrajectoryFile):
+class EXTXYZFileReader(TrajectoryFile):
     """
     Child class for the lammps file reader.
 
@@ -47,7 +42,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             Path to the trajectory file.
     """
 
-    def __init__(self, obj, header_lines=9, file_path=None, sort: bool = False):
+    def __init__(self, obj, header_lines=2, file_path=None, sort: bool = False):
         """
         Python class constructor
         """
@@ -72,7 +67,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         header = self._read_header(self.f_object)  # get the first header tensor_values
         self.f_object.seek(0)  # go back to the start of the file
 
-        return int(header[3][0])
+        return int(header[0][0])
 
     def _get_number_of_configurations(self, number_of_atoms: int):
         """
@@ -90,7 +85,27 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         return int(number_of_lines / (number_of_atoms + self.header_lines))
 
-    def _get_time_information(self, number_of_atoms: int):
+    def _get_time_value(self, data: list):
+        """
+        Extract the time value from the header.
+
+        Parameters
+        ----------
+        data : list
+                Header data to analyze.
+        Returns
+        -------
+        time : Union[float, None]
+                The time value.
+        """
+        time = None
+        for item in data:
+            if var_names['Time'] in item:
+                time = float(item.split('=')[-1])
+
+        return time
+
+    def _get_time_information(self, number_of_atoms: int) -> Union[float, None]:
         """
         Get time information.
 
@@ -104,12 +119,105 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         """
         header = self._read_header(self.f_object)  # get the first header
-        time_0 = float(header[1][0])  # Time in first configuration
+        time_0 = self._get_time_value(header[1])
         header = self._read_header(self.f_object, offset=number_of_atoms)  # get the second header
-        time_1 = float(header[1][0])  # Time in second configuration
+        time_1 = self._get_time_value(header[1])  # Time in second configuration
         self.f_object.seek(0)  # return to first line in file
 
-        return time_1 - time_0
+        if time_1 is not None:
+            time = time_1 - time_0
+        else:
+            time = None
+
+        return time
+
+    def _read_lattice(self, data: list) -> Union[list, None]:
+        """
+        Get the lattice information
+        Parameters
+        ----------
+        data : list
+                header file to read
+
+        Returns
+        -------
+
+        """
+        lattice = None
+        start = None
+        for idx, item in enumerate(data):
+            if var_names['Lattice'] in item:
+                start = idx
+                break
+
+        if start is not None:
+            for idx, item in enumerate(data[start:]):
+                if item[-1] == '"':
+                    stop = idx
+                    break
+
+        if stop is not None:
+            lattice = data[start:stop+1]
+            lattice[0] = lattice[0].split('=')[1].replace('"', '')
+            lattice[-1] = lattice[-1].replace('"', '')
+            lattice = np.array(lattice).astype(float)
+
+        return [lattice[0], lattice[4], lattice[8]]
+
+    def _get_property_summary(self, data: list) -> Tuple[int, Dict[str, List[int]]]:
+        """
+        Get the property summary from the header data.
+
+        Parameters
+        ----------
+        data : list
+                Data to analyze
+        Returns
+        -------
+        property_summary : dict
+                A dictionary of properties and their location in the data file.
+        """
+        key_list = list(var_names.keys())
+        value_list = list(var_names.values())
+        for idx, item in enumerate(data):
+            if 'Properties' in item:
+                start = idx
+        data = data[start].split('=')[1].replace(':S', '').replace(':R', '').split(':')
+        index = 0
+        property_summary = {}
+        for idx, item in enumerate(data):
+            if item == 'species':
+                species_index = index
+                index += 1
+            if item in value_list:
+                key = key_list[value_list.index(item)]
+                length = int(data[int(idx + 1)])
+                property_summary[key] = [index + i for i in range(length)]
+                index += length
+
+        return species_index, property_summary
+
+    def _split_extxyz_properties(self, header: list) -> tuple:
+        """
+        Take in the extxyz property lines and get all necessary information.
+
+        Parameters
+        ----------
+        header : list
+                Header lines to read.
+        Returns
+        -------
+        property_groups : dict
+                Property groups and their position in the data.
+        element_index : int
+                Index at which elements are stored
+        lattice : list
+                Lattice parameters of the system.
+        """
+        lattice = self._read_lattice(header[1])
+        species_index, property_summary = self._get_property_summary(header[1])
+
+        return lattice, species_index, property_summary
 
     def _get_species_information(self, number_of_atoms: int):
         """
@@ -124,33 +232,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         species_summary = {}  # instantiate the species summary
         header = self._read_header(self.f_object)  # get the header tensor_values
 
-        id_index = header[8].index('id') - 2
-
-        # Look for the element keyword
-        try:
-            # Look for element keyword in trajectory.
-            if "element" in header[8]:
-                element_index = header[8].index("element") - 2
-
-            # Look for type keyword if element is not present.
-            elif "type" in header[8]:
-                element_index = header[8].index('type') - 2
-
-            # Raise an error if no identifying keywords are found.
-            else:
-                raise NoElementInDump
-        except NoElementInDump:
-            print("Insufficient species or type identification available.")
-            sys.exit(1)
-
-        column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
-        print(column_dict_properties)
-
-        property_groups = self._extract_properties(var_names, column_dict_properties)
-
-        box = [(float(header[5][1]) - float(header[5][0])),
-               (float(header[6][1]) - float(header[6][0])),
-               (float(header[7][1]) - float(header[7][0]))]
+        box, element_index, property_groups = self._split_extxyz_properties(header)
 
         # Loop over atoms in first configuration.
         for i in range(number_of_atoms):
@@ -160,11 +242,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 species_summary[line[element_index]] = {}
                 species_summary[line[element_index]]['indices'] = []
 
-            # Update the index of the atom in the summary.
-            if self.sort:
-                species_summary[line[element_index]]['indices'].append(int(line[id_index]))
-            else:
-                species_summary[line[element_index]]['indices'].append(i + self.header_lines)
+            species_summary[line[element_index]]['indices'].append(i + self.header_lines)
 
         return species_summary, box, property_groups, line_length
 

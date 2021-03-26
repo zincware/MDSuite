@@ -69,3 +69,10 @@ class DatabaseDoesNotExist(Exception):
         """ Constructor method """
         self.message = "Database does not exists"
         super().__init__(self.message)
+
+
+class NotInDataFile(Exception):
+    """
+    Thrown when a parameter is not in a data file.
+    """
+    pass
