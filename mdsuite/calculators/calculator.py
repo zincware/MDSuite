@@ -537,13 +537,15 @@ class Calculator(metaclass=abc.ABCMeta):
                 batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
                                                                 args=batch_generator_args,
                                                                 output_signature=self.batch_output_signature)
-                batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
+                batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop",
+                                               ncols=100, total=self.n_batches):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),
                                                                        output_signature=self.ensemble_output_signature)
-                    for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop"):
+                    ensemble_data_set = ensemble_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
                         self._apply_operation(ensemble, ensemble_index)
 
                 self._apply_averaging_factor()

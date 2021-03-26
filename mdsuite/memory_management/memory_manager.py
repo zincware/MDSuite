@@ -61,11 +61,10 @@ class MemoryManager:
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
-            per_configuration_memory += n_bytes / n_columns
+            per_configuration_memory += (n_bytes / n_columns)*self.scaling_factor
         maximum_loaded_configurations = int(np.clip((self.memory_fraction*self.machine_properties['memory']) /
-                                                    self.scaling_factor*per_configuration_memory, 1, n_columns))
+                                                    per_configuration_memory, 1, n_columns))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        batch_size = 100
         number_of_batches = int(n_columns / batch_size)
         remainder = int(n_columns % batch_size)
 

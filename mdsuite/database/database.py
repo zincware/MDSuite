@@ -430,6 +430,8 @@ class Database:
                 return data
             else:
                 return data[0]
+        if dictionary:
+            return data
         else:
             return data
 
