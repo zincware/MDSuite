@@ -647,7 +647,11 @@ class Experiment:
     def results(self):
         """
         Property to get access to the results in a dictionary
-        :return: dict
+
+        Returns
+        -------
+        self._results: dict
+            the actual dictionary with the results
         """
         return self._results
 
@@ -656,6 +660,11 @@ class Experiment:
         """
         Getter to retrieve the results from the YAML file in a dictionary
         :return: dict
+
+        Returns
+        -------
+        self._results: dict
+            the actual dictionary with the results from the YAML file
         """
 
         with open(os.path.join(self.database_path, 'system_properties.yaml')) as pfr:
@@ -667,7 +676,12 @@ class Experiment:
     def results(self, result_dict):
         """
         Setter to dump the results to the YAML file
-        :return: dict
+
+        Parameters
+        ----------
+        result_dict: dict
+            dictionary with the results. It will store them in the system_properties.yaml file.
+
         """
 
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
