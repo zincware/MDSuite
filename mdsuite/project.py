@@ -113,6 +113,10 @@ class Project:
     def list_experiments(self):
         """
         List the available experiments as a numerical list.
+
+        Returns
+        -------
+        str: per-line list of experiments
         """
         list_experiments = []
         for idx, experiment in enumerate(self.experiments):
@@ -188,9 +192,17 @@ class Project:
 
     def get_results(self, key_to_find):
         """
-        Gets the results from the experiments and puts them in a dataframe
+        Gets the results from the experiments and puts them in a dict
 
-        :return: dict
+        Parameters
+        ----------
+        key_to_find : str
+            name of the parameter to search in the results.
+
+        Returns
+        -------
+        results: dict
+            collects the results from the different experiments
         """
 
         results = {}
@@ -205,10 +217,18 @@ class Project:
 
     def get_attribute(self, attribute):
         """
-        Get an attribute from the experiments.
-        For example: temperature, time_step, etc.
+        Get an attribute from the experiments. Equivalent to get_results but for system parameters such as:
+        temperature, time_step, etc.
 
-        :return: df
+        Parameters
+        ----------
+        attribute : str
+            name of the parameter to search in the experiment.
+
+        Returns
+        -------
+        results: dict
+            collects the results from the different experiments
         """
 
         results = {}
