@@ -12,16 +12,15 @@ smaller purposes in order to clean up code in more important parts of the progra
 import os
 from functools import wraps
 from time import time
+from typing import Callable
 
-import psutil
 import GPUtil
 import numpy as np
+import psutil
 from scipy.signal import savgol_filter
 
-from mdsuite.utils.units import golden_ratio
 from mdsuite.utils.exceptions import NoGPUInSystem
-
-from typing import Callable
+from mdsuite.utils.units import golden_ratio
 
 
 def join_path(a, b):
@@ -43,7 +42,8 @@ def join_path(a, b):
     navigation through the file experiment in general one should use os.path.join.
 
     """
-    return os.path.join(a, b).replace("\\","/")
+    return os.path.join(a, b).replace("\\", "/")
+
 
 
 def get_dimensionality(box: list) -> int:
@@ -383,3 +383,27 @@ def split_array(data: np.array, condition: np.array) -> list:
         return [data[condition]]
     else:  # else return the whole array
         return initial_split
+
+
+def find_item(obj, key):
+    """
+    Function to recursively retrieve values given a key for nested dictionaries.
+
+    Parameters
+    ----------
+    obj: dict
+        nested dictionary with results
+    key: str, float or other
+        to find in the dictionary
+
+    Returns
+    -------
+    item: dict value.
+        returns the value for the given key. Return type may change depending on the requested key
+    """
+    if key in obj: return obj[key]
+    for k, v in obj.items():
+        if isinstance(v, dict):
+            item = find_item(v, key)
+            if item is not None:
+                return item

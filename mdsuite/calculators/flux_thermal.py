@@ -103,7 +103,6 @@ class GreenKuboThermalConductivityFlux(Calculator):
         Apply the averaging factor to the msd array.
         Returns
         -------
-
         """
         self.jacf /= max(self.jacf)
 
