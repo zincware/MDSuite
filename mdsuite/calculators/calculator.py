@@ -7,16 +7,21 @@ Summary
 
 import abc
 import random
+from typing import TYPE_CHECKING
 import sys
 
-import yaml
 import h5py as hf
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from mdsuite.plot_style.plot_style import apply_style
+from mdsuite.utils.exceptions import *
+from mdsuite.utils.meta_functions import *
 from scipy import signal
 from scipy.optimize import curve_fit
 from tqdm import tqdm
 
+if TYPE_CHECKING:
+    from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
@@ -24,7 +29,6 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 
-from typing import TYPE_CHECKING
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -84,7 +88,6 @@ class Calculator(metaclass=abc.ABCMeta):
         self.optimize = False
         self.batch_output_signature = None
         self.ensemble_output_signature = None
-
         self.correlation_time = correlation_time  # correlation time of the property
 
         self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
@@ -217,43 +220,6 @@ class Calculator(metaclass=abc.ABCMeta):
             fits.append(10 ** popt[1])
 
         return [str(np.mean(fits)), str(np.std(fits))]
-
-    @staticmethod
-    def _convolution_op(data_a: tf.Tensor, data_v: tf.Tensor = None) -> tf.Tensor:
-        """
-        tf.numpy_function mapper of the np autocorrelation function
-
-        Parameters
-        ----------
-        data_a : tf.Tensor
-                Signal 1 of the correlation operation
-        data_v : tf.Tensor
-                Signal 2 of the correlation operation. If None, will be set to Signal 1 and autocorrelation is
-                performed.
-
-        Returns
-        -------
-        tf.Tensor
-                Returns a tensor from the correlation operation.
-        """
-        if data_v is None:
-            data_v = data_a
-
-        def func(a, v):
-            """
-            Perform correlation on two tensor_values-sets.
-            Parameters
-            ----------
-            a : np.ndarray
-            v : np.ndarray
-
-            Returns
-            -------
-            Returns the correlation of the two signals.
-            """
-            return sum([signal.correlate(a[:, idx], v[:, idx], mode="full", method='auto') for idx in range(3)])
-
-        return tf.numpy_function(func=func, inp=[data_a, data_v], Tout=tf.float64)
 
     def _prepare_managers(self, data_path: list):
         """
@@ -400,6 +366,17 @@ class Calculator(metaclass=abc.ABCMeta):
             print("No tensor_values provided")
             return
 
+        results = self.parent.results
+
+        # TODO: improve this if else blocks. I am sure it can be done in a more elegant way
+        if item is None:
+            results[self.database_group][self.analysis_name] = data
+        elif sub_item is None:
+            results[self.database_group][self.analysis_name][item] = data
+        else:
+            if add:
+                results[self.database_group][self.analysis_name][item] = {}
+                results[self.database_group][self.analysis_name][item][sub_item] = data
         with open(os.path.join(self.experiment.database_path, 'system_properties.yaml')) as pfr:
             properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the tensor_values in the yaml file
 
@@ -409,13 +386,9 @@ class Calculator(metaclass=abc.ABCMeta):
             elif sub_item is None:
                 properties[self.database_group][self.analysis_name][item] = data
             else:
-                if add:
-                    properties[self.database_group][self.analysis_name][item] = {}
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
-                else:
-                    properties[self.database_group][self.analysis_name][item][sub_item] = data
+                results[self.database_group][self.analysis_name][item][sub_item] = data
 
-            yaml.dump(properties, pfw)
+        self.parent.results = results
 
     def _calculate_system_current(self):
         pass
@@ -554,11 +527,6 @@ class Calculator(metaclass=abc.ABCMeta):
     def run_analysis(self):
         """
         Run the appropriate analysis
-        Should follow the general outline detailed below:
-        self._analysis()  # Can be diffusion coefficients or whatever is being calculated, but run the calculation
-        self._error_analysis  # Run an error analysis, could be done during the calculation.
-        self._update_experiment  # Update the main experiment class with the calculated properties
-
         """
         self._check_input()
         self._run_dependency_check()

@@ -109,7 +109,7 @@ class Experiment:
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
-        self.results = list(dict_classes_db.keys())
+        self._results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}  # TODO I think this can be removed.
@@ -494,7 +494,7 @@ class Experiment:
 
         # Build database_path for analysis output
         with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
-            for key in self.results:
+            for key in self._results:
                 db.create_group(key)
 
         # Instantiate YAML file for experiment properties
@@ -638,8 +638,53 @@ class Experiment:
             # If no slice is given, load all configurations.
             if select_slice is None:
                 select_slice = np.s_[:]  # set the numpy slice object.
+        
+        path_list = []
+        for item in species:
+            path_list.append(join_path(item, identifier))
+        return database.load_data(path_list=path_list, select_slice=select_slice)
 
-            path_list = []
-            for item in species:
-                path_list.append(join_path(item, identifier))
-            return database.load_data(path_list=path_list, select_slice=select_slice)
+
+    @property
+    def results(self):
+        """
+        Property to get access to the results in a dictionary
+
+        Returns
+        -------
+        self._results: dict
+            the actual dictionary with the results
+        """
+        return self._results
+
+    @results.getter
+    def results(self):
+        """
+        Getter to retrieve the results from the YAML file in a dictionary
+        :return: dict
+
+        Returns
+        -------
+        self._results: dict
+            the actual dictionary with the results from the YAML file
+        """
+
+        with open(os.path.join(self.database_path, 'system_properties.yaml')) as pfr:
+            self._results = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+
+        return self._results
+
+    @results.setter
+    def results(self, result_dict):
+        """
+        Setter to dump the results to the YAML file
+
+        Parameters
+        ----------
+        result_dict: dict
+            dictionary with the results. It will store them in the system_properties.yaml file.
+
+        """
+
+        with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
+            yaml.dump(result_dict, pfw)
