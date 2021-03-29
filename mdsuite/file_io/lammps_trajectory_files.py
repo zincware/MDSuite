@@ -52,7 +52,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the parent class
+        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
 
         self.f_object = open(self.file_path)  # file object
 
@@ -69,7 +69,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         """
 
-        header = self._read_header(self.f_object)  # get the first header data
+        header = self._read_header(self.f_object)  # get the first header tensor_values
         self.f_object.seek(0)  # go back to the start of the file
 
         return int(header[3][0])
@@ -122,7 +122,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         """
         line_length: int = 0
         species_summary = {}  # instantiate the species summary
-        header = self._read_header(self.f_object)  # get the header data
+        header = self._read_header(self.f_object)  # get the header tensor_values
 
         id_index = header[8].index('id') - 2
 
@@ -144,6 +144,8 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             sys.exit(1)
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
+        print(column_dict_properties)
+
         property_groups = self._extract_properties(var_names, column_dict_properties)
 
         box = [(float(header[5][1]) - float(header[5][0])),
@@ -169,7 +171,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
     @staticmethod
     def _build_architecture(species_summary: dict, property_groups: dict, number_of_configurations: int):
         """
-        Build the database architecture for use by the database class
+        Build the database_path architecture for use by the database_path class
 
         Parameters
         ----------
@@ -181,7 +183,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 Number of configurations in the file
 
         """
-        architecture = {}  # instantiate the database architecture dictionary
+        architecture = {}  # instantiate the database_path architecture dictionary
         for species in species_summary:
             architecture[species] = {}
             for observable in property_groups:
@@ -204,15 +206,15 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
-                updated with new information. This is necessary on the first run of data addition to the database. After
-                this point, when new data is added, this is no longer required as other methods will take care of
-                updating the properties that change with new data. In fact, it will set the number of configurations to
-                only the new data, which will be wrong.
+                updated with new information. This is necessary on the first run of tensor_values addition to the database_path. After
+                this point, when new tensor_values is added, this is no longer required as other methods will take care of
+                updating the properties that change with new tensor_values. In fact, it will set the number of configurations to
+                only the new tensor_values, which will be wrong.
 
         Returns
         -------
         architecture : dict
-                Database architecture to be used by the class to build a new database.
+                Database architecture to be used by the class to build a new database_path.
         """
 
         # user custom names for variables.

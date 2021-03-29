@@ -12,7 +12,7 @@ from mdsuite.calculators.einstein_helfand_ionic_conductivity import EinsteinHelf
 from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from mdsuite.calculators.flux_thermal import GreenKuboThermalConductivityFlux
 from mdsuite.calculators.flux_viscosity import GreenKuboViscosityFlux
-from mdsuite.calculators.green_kubo_diffusion_coefficients import GreenKuboDiffusionCoefficients
+from mdsuite.calculators.green_kubo_self_diffusion_coefficients import GreenKuboSelfDiffusionCoefficients
 from mdsuite.calculators.green_kubo_ionic_conductivity import GreenKuboIonicConductivity
 from mdsuite.calculators.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
 from mdsuite.calculators.green_kubo_viscosity import GreenKuboViscosity
@@ -21,10 +21,11 @@ from mdsuite.calculators.nernst_einstein_ionic_conductivity import NernstEinstei
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.calculators.structure_factor import StructureFactor
+from mdsuite.calculators.einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
-    'GreenKuboDiffusionCoefficients': GreenKuboDiffusionCoefficients,
+    'GreenKuboSelfDiffusionCoefficients': GreenKuboSelfDiffusionCoefficients,
     'GreenKuboIonicConductivity': GreenKuboIonicConductivity,
     'EinsteinHelfandIonicConductivity': EinsteinHelfandIonicConductivity,
     'RadialDistributionFunction': RadialDistributionFunction,
@@ -38,7 +39,8 @@ dict_classes_computations = {
     'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
     'GreenKuboViscosity': GreenKuboViscosity,
     'AngularDistributionFunction': AngularDistributionFunction,
-    'NernstEinsteinIonicConductivity': NernstEinsteinIonicConductivity
+    'NernstEinsteinIonicConductivity': NernstEinsteinIonicConductivity,
+    'EinsteinHelfandThermalKinaci': EinsteinHelfandThermalKinaci
 }
 
 dict_classes_db = {

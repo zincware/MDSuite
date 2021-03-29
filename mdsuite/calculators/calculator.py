@@ -8,6 +8,7 @@ Summary
 import abc
 import random
 from typing import TYPE_CHECKING
+import sys
 
 import h5py as hf
 import matplotlib.pyplot as plt
@@ -21,6 +22,13 @@ from tqdm import tqdm
 
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
+from mdsuite.utils.exceptions import *
+from mdsuite.utils.meta_functions import *
+from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
+from mdsuite.memory_management.memory_manager import MemoryManager
+from mdsuite.database.data_manager import DataManager
+from mdsuite.database.database import Database
+
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -29,40 +37,29 @@ class Calculator(metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    obj : class object
+    experiment : class object
             Class object of the experiment.
     plot : bool (default=True)
             Decision to plot the analysis.
     save : bool (default=True)
-            Decision to save the generated data arrays.
+            Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
             Range over which the property should be evaluated. This is not applicable to the current
             analysis as the full rdf will be calculated.
-    x_label : str
-            How to label the x axis of the saved plot.
-    y_label : str
-            How to label the y axis of the saved plot.
-    analysis_name : str
-            Name of the analysis. used in saving of the data and figure.
     batch_size : dict
             Size of batches to use in the analysis separated into parallel and serial components, i.e
-            {'Serial': 100, 'Parallel': 50} for a two component, symmetric system.
+            {'Serial': 100, 'Parallel': 50} for a two component, symmetric experiment.
     n_batches : dict
             Number of barthes to use as a dictionary for both serial and parallel implementations
-    machine_properties : dict
-            Devices available to MDSuite during analysis run. Has the following structure
-            {'memory': x bytes, 'cpus': n_of_cores, 'gpus': name_of_gpu}
-
     """
 
-    def __init__(self, obj: "Experiment", plot=True, save=True, data_range=500, x_label=None, y_label=None,
-                 analysis_name=None, parallel=False, correlation_time=1, optimize_correlation_time=False):
+    def __init__(self, experiment, plot=True, save=True, data_range=500, correlation_time=1):
         """
 
         Parameters
         ----------
-        obj
+        experiment
         plot
         save
         data_range
@@ -71,258 +68,105 @@ class Calculator(metaclass=abc.ABCMeta):
         analysis_name
 
         """
-        self.parent = obj  # Experiment object to get properties from
+        self.experiment = experiment  # Experiment object to get properties from
         self.data_range = data_range  # Data range over which to evaluate
-        self.plot = plot  # Whether or not to plot the data and save a figure
-        self.save = save  # Whether or not to save the calculated data (Default is true)
+        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
+        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+
         self.loaded_property = None  # Which dataset to load
-        self.parallel = parallel  # If true, run analysis in parallel
-        self.batch_type = None  # Choose parallel or serial for memory management
-        self.tensor_choice = False  # If true, data is loaded as a tensors
-        self.batch_size = {}  # Size of the batch to use during the analysis
-        self.n_batches = {}  # Number of batches to be calculated over
-        self.machine_properties = None  # dictionary of machine properties to be evaluated at analysis run-time
+        self.dependency = None
+
+        self.batch_size: int  # Size of the batch to use during the analysis
+        self.n_batches: int  # Number of batches to be calculated over
+        self.remainder: int  # remainder after batching
+        self.prefactor: float
+
+        self.system_property = False  # is the calculation on a system property?
+        self.multi_species = False  # does the calculation require loading of multiple species?
+        self.experimental = False # experimental calculator.
+        self.species = None
+        self.optimize = False
+        self.batch_output_signature = None
+        self.ensemble_output_signature = None
         self.correlation_time = correlation_time  # correlation time of the property
-        self.batch_loop = None  # Number of ensembles in each batch
 
-        self.x_label = x_label  # x label of the figure
-        self.y_label = y_label  # y label of the figure
-        self.analysis_name = analysis_name  # what to save the figure as
+        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
+        self.memory_manager: MemoryManager
+        self.data_manager: DataManager
 
-        self.database_group = None  # Which database group to save the data in
-        self.time = np.linspace(0.0, data_range * self.parent.time_step * self.parent.sample_rate, data_range)
+        self.x_label: str  # x label of the figure
+        self.y_label: str  # y label of the figure
+        self.analysis_name: str  # what to save the figure as
 
-        # Solve for the batch type
-        if self.parallel:
-            self.batch_type = 'Parallel'
-        else:
-            self.batch_type = 'Serial'
-
-        if optimize_correlation_time:
-            print("Sorry, this feature is not currently available, please set the correlation time manually.")
+        self.database_group = None  # Which database_path group to save the tensor_values in
+        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                self.data_range)
 
         # Prevent $DISPLAY warnings on clusters.
-        if self.parent.cluster_mode:
+        if self.experiment.cluster_mode:
             import matplotlib
             matplotlib.use('Agg')
 
-        if not self.parent.cluster_mode:
-            apply_style()
-
-    def _autocorrelation_time(self):
+    @abc.abstractmethod
+    def _calculate_prefactor(self, species: str = None):
         """
-        get the autocorrelation time for the relevant property to ensure good error sampling
-        """
-        raise NotImplementedError  # Implemented in the child class
-
-    def collect_machine_properties(self, scaling_factor: int = 1, group_property: str = None):
-        """
-        Collect properties of machine being used.
-
-        This method will collect the properties of the machine being used and parse them to the relevant analysis in
-        order to optimize the property computation.
+        calculate the calculator pre-factor.
 
         Parameters
         ----------
-        group_property : str
-                Property for which memory information should be collected.
-        scaling_factor : int
-                Amount by which an analysis will expand the dataset.
-        """
-        if group_property is None:
-            group_property = self.loaded_property
-
-        self.machine_properties = get_machine_properties()  # load the machine properties
-        memory_usage = []
-        for item in self.parent.memory_requirements:
-            if group_property in item:
-                memory_usage.append(self.parent.memory_requirements[item] / self.parent.number_of_configurations)
-
-        # Get the single frame memory usage in bytes
-        serial_memory_usage = scaling_factor * max(memory_usage)
-        parallel_memory_usage = scaling_factor * sum(memory_usage)
-
-        # Update the batch_size attribute
-        max_batch_size_serial = int(np.floor(0.1 * self.machine_properties['memory'] / serial_memory_usage))
-        max_batch_size_parallel = int(np.floor(0.1 * self.machine_properties['memory'] / parallel_memory_usage))
-
-        if max_batch_size_serial > self.parent.number_of_configurations:
-            self.batch_size['Serial'] = self.parent.number_of_configurations
-
-        else:
-            self.batch_size['Serial'] = max_batch_size_serial
-
-        self.n_batches['Serial'] = np.ceil(self.parent.number_of_configurations /
-                                           (self.batch_size['Serial'])).astype(int)
-
-        if max_batch_size_parallel > self.parent.number_of_configurations:
-            self.batch_size['Parallel'] = self.parent.number_of_configurations
-        else:
-            self.batch_size['Parallel'] = max_batch_size_parallel
-
-        self.n_batches['Parallel'] = np.ceil(self.parent.number_of_configurations /
-                                             (self.batch_size['Parallel'])).astype(int)
-
-    def _calculate_batch_loop(self):
-        """
-        Calculate the batch loop parameters
-        TODO: the +1 in the denominator (self.correlation_time+1) should be investigated to know if it is right or not
-        """
-        self.batch_loop = np.floor(
-            (self.batch_size[self.batch_type] - self.data_range) / (self.correlation_time + 1)) + 1
-
-    def load_batch(self, batch_number: int, loaded_property: str = None, item: list = None, path: str = None,
-                   remainder: int = None):
-        """
-        Load a batch of data
-
-        Parameters
-        ----------
-        remainder : int
-                If present, the remainder of the data will be loaded.
-        path : str
-                If present, the path will be loaded directly from the hdf5 database.
-        loaded_property : str
-                name of the property to be loaded from the database
-        batch_number : int
-                Which batch is being studied
-        item : list
-                Species being studied at the time
-
+        species : str
+                Species property if required.
         Returns
         -------
-        data array : np.array, tf.tensor
-                This implementation returns a tensor of the species positions.
-        """
-        if remainder is None:
-            start = int(batch_number * self.batch_size[self.batch_type])
-            stop = int(start + self.batch_size[self.batch_type])
-            slice_object = np.s_[:, start:stop]
-        else:
-            start = self.parent.number_of_configurations - remainder
-            slice_object = np.s_[:, start:]
 
-        if loaded_property is None:
-            loaded_property = self.loaded_property
-
-        return self.parent.load_matrix(loaded_property, species=item, select_slice=slice_object,
-                                       tensor=self.tensor_choice, path=path)
-
-    def _save_data(self, title: str, data: np.array):
-        """
-        Save data to the save data directory
-
-        Parameters
-        ----------
-        title : str
-                name of the data to save. Usually this is just the analysis name. In the case of species specific
-                analysis, this will be further appended to include the name of the species.
-        data : np.array
-                Data to be saved.
-        """
-
-        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r+') as db:
-            if title in db[self.database_group].keys():
-                del db[self.database_group][title]
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-            else:
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-
-    def _plot_data(self, title: str = None, manual: bool = False):
-        """
-        Plot the data generated during the analysis
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        if manual:
-            plt.savefig(os.path.join(self.parent.figures_path, f"{title}.svg"), dpi=600, format='svg')
-        else:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.legend()  # enable the legend
-            plt.savefig(os.path.join(self.parent.figures_path, f"{title}.svg"), dpi=600, format='svg')
-
-    def _perform_garbage_collection(self):
-        """
-        Perform garbage collection after an analysis
         """
         raise NotImplementedError
 
-    def _check_input(self):
+    @abc.abstractmethod
+    def _apply_operation(self, data, index):
         """
-        Look for user input that would kill the analysis
-
-        Returns
-        -------
-        status: int
-            if 0, check failed, if 1, check passed.
-        """
-        if self.data_range > self.parent.number_of_configurations - self.correlation_time:
-            print("Data range is impossible for this system, reduce and try again")
-
-            return -1
-        else:
-            return 0
-
-    def _optimize_einstein_data_range(self, data: np.array):
-        """
-        Optimize the data range of a system using the Einstein method of calculation.
+        Perform operation on an ensemble.
 
         Parameters
         ----------
-        data : np.array (2, data_range)
-                MSD to study
+        One tensor_values range of tensor_values to operate on.
 
         Returns
         -------
-        Updates the data_range attribute of the class state
+
         """
+        raise NotImplementedError
 
-        def func(x, m, a):
-            """
-            Standard linear function for fitting.
+    @abc.abstractmethod
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
 
-            Parameters
-            ----------
-            x : list/np.array
-                    x axis data for the fit
-            m : float
-                    gradient of the line
-            a : float
-                    scalar offset, also the y-intercept for those who did not get much maths in school.
+    @abc.abstractmethod
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
 
-            Returns
-            -------
+        """
+        raise NotImplementedError
 
-            """
+    @abc.abstractmethod
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
 
-            return m * x + a
+        Returns
+        -------
 
-        # get the logarithmic dataset
-        log_y = np.log10(data[0])
-        log_x = np.log10(data[1])
-
-        end_index = int(len(log_y) - 1)
-        start_index = int(0.4 * len(log_y))
-
-        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear regime
-
-        if 0.85 < popt[0] < 1.15:
-            self.loop_condition = True
-
-        else:
-            try:
-                self.data_range = int(1.1 * self.data_range)
-                self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate,
-                                        self.data_range)
-                # end the calculation if the data range exceeds the relevant bounds
-                if self.data_range > self.parent.number_of_configurations - self.correlation_time:
-                    print("Trajectory not long enough to perform analysis.")
-                    raise RangeExceeded
-            except RangeExceeded:
-                raise RangeExceeded
+        """
+        raise NotImplementedError
 
     @staticmethod
     def _fit_einstein_curve(data: list):
@@ -332,7 +176,7 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         data : list
-                x and y data for the fitting [np.array, np.array] of (2, data_range)
+                x and y tensor_values for the fitting [np.array, np.array] of (2, data_range)
 
         Returns
         -------
@@ -349,7 +193,7 @@ class Calculator(metaclass=abc.ABCMeta):
             Parameters
             ----------
             x : list/np.array
-                    x axis data for the fit
+                    x axis tensor_values for the fit
             m : float
                     gradient of the line
             a : float
@@ -377,14 +221,149 @@ class Calculator(metaclass=abc.ABCMeta):
 
         return [str(np.mean(fits)), str(np.std(fits))]
 
-    def _update_properties_file(self, item: str = None, sub_item: str = None, data: list = None, add: bool = False):
+    def _prepare_managers(self, data_path: list):
         """
-        Update the system properties YAML file.
+        Prepare the memory and tensor_values monitors for calculation.
+
+        Parameters
+        ----------
+        data_path : list
+                List of tensor_values paths to load from the hdf5 database_path.
+
+        Returns
+        -------
+        Updates the calculator class
+        """
+        self.memory_manager = MemoryManager(data_path=data_path,
+                                            database=self.database,
+                                            scaling_factor=1,
+                                            memory_fraction=0.5)
+        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(system=self.system_property)
+        self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
+        self.data_manager = DataManager(data_path=data_path,
+                                        database=self.database,
+                                        data_range=self.data_range,
+                                        batch_size=self.batch_size,
+                                        n_batches=self.n_batches,
+                                        ensemble_loop=self.ensemble_loop,
+                                        correlation_time=self.correlation_time)
+        self._update_output_signatures()
+
+    def _save_data(self, title: str, data: np.array):
+        """
+        Save tensor_values to the save tensor_values directory
+
+        Parameters
+        ----------
+        title : str
+                name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
+                analysis, this will be further appended to include the name of the species.
+        data : np.array
+                Data to be saved.
         """
 
-        # Check if data has been given
+        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r+') as db:
+            if title in db[self.database_group].keys():
+                del db[self.database_group][title]
+                db[self.database_group].create_dataset(title, data=data, dtype=float)
+            else:
+                db[self.database_group].create_dataset(title, data=data, dtype=float)
+
+    def _plot_data(self, title: str = None, manual: bool = False):
+        """
+        Plot the tensor_values generated during the analysis
+        """
+
+        if title is None:
+            title = f"{self.analysis_name}"
+
+        if manual:
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+        else:
+            plt.xlabel(rf'{self.x_label}')  # set the x label
+            plt.ylabel(rf'{self.y_label}')  # set the y label
+            plt.legend()  # enable the legend
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+
+    def _check_input(self):
+        """
+        Look for user input that would kill the analysis
+
+        Returns
+        -------
+        status: int
+            if 0, check failed, if 1, check passed.
+        """
+        if self.data_range > self.experiment.number_of_configurations - self.correlation_time:
+            print("Data range is impossible for this experiment, reduce and try again")
+            sys.exit(1)
+
+    def _optimize_einstein_data_range(self, data: np.array):
+        """
+        Optimize the tensor_values range of a experiment using the Einstein method of calculation.
+
+        Parameters
+        ----------
+        data : np.array (2, data_range)
+                MSD to study
+
+        Returns
+        -------
+        Updates the data_range attribute of the class state
+        """
+
+        def func(x, m, a):
+            """
+            Standard linear function for fitting.
+
+            Parameters
+            ----------
+            x : list/np.array
+                    x axis tensor_values for the fit
+            m : float
+                    gradient of the line
+            a : float
+                    scalar offset, also the y-intercept for those who did not get much maths in school.
+
+            Returns
+            -------
+
+            """
+
+            return m * x + a
+
+        # get the logarithmic dataset
+        log_y = np.log10(data[0])
+        log_x = np.log10(data[1])
+
+        end_index = int(len(log_y) - 1)
+        start_index = int(0.4 * len(log_y))
+
+        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear regime
+
+        if 0.85 < popt[0] < 1.15:
+            self.loop_condition = True
+
+        else:
+            try:
+                self.data_range = int(1.1 * self.data_range)
+                self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                        self.data_range)
+                # end the calculation if the tensor_values range exceeds the relevant bounds
+                if self.data_range > self.experiment.number_of_configurations - self.correlation_time:
+                    print("Trajectory not long enough to perform analysis.")
+                    raise RangeExceeded
+            except RangeExceeded:
+                raise RangeExceeded
+
+    def _update_properties_file(self, item: str = None, sub_item: str = None, data: list = None, add: bool = False):
+        """
+        Update the experiment properties YAML file.
+        """
+
+        # Check if tensor_values has been given
         if data is None:
-            print("No data provided")
+            print("No tensor_values provided")
             return
 
         results = self.parent.results
@@ -398,128 +377,170 @@ class Calculator(metaclass=abc.ABCMeta):
             if add:
                 results[self.database_group][self.analysis_name][item] = {}
                 results[self.database_group][self.analysis_name][item][sub_item] = data
+        with open(os.path.join(self.experiment.database_path, 'system_properties.yaml')) as pfr:
+            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the tensor_values in the yaml file
+
+        with open(os.path.join(self.experiment.database_path, 'system_properties.yaml'), 'w') as pfw:
+            if item is None:
+                properties[self.database_group][self.analysis_name] = data
+            elif sub_item is None:
+                properties[self.database_group][self.analysis_name][item] = data
             else:
                 results[self.database_group][self.analysis_name][item][sub_item] = data
 
         self.parent.results = results
 
-    @abc.abstractmethod
-    def run_analysis(self):
-        """
-        Run the appropriate analysis
-        Should follow the general outline detailed below:
-        self._autocorrelation_time()  # Calculate the relevant autocorrelation time
-        self._analysis()  # Can be diffusion coefficients or whatever is being calculated, but run the calculation
-        self._error_analysis  # Run an error analysis, could be done during the calculation.
-        self._update_experiment  # Update the main experiment class with the calculated properties
+    def _calculate_system_current(self):
+        pass
 
+    def _resolve_dependencies(self, dependency):
         """
-        raise NotImplementedError  # Implement in the child class
-
-    @staticmethod
-    def convolution_op(data_a: tf.Tensor, data_v: tf.Tensor = None) -> tf.Tensor:
-        """
-        tf.numpy_function mapper of the np autocorrelation function
+        Resolve any calculation dependencies if possible.
 
         Parameters
         ----------
-        data_a : tf.Tensor
-                Signal 1 of the correlation operation
-        data_v : tf.Tensor
-                Signal 2 of the correlation operation. If None, will be set to Signal 1 and autocorrelation is
-                performed.
+        dependency : str
+                Name of the dependency to resolve.
 
         Returns
         -------
-        tf.Tensor
-                Returns a tensor from the correlation operation.
-        """
-        if data_v is None:
-            data_v = data_a
 
-        def func(a, v):
+        """
+        def _string_to_function(argument):
             """
-            Perform correlation on two data-sets.
+            Select a transformation based on an input
+
             Parameters
             ----------
-            a : np.ndarray
-            v : np.ndarray
+            argument : str
+                    Name of the transformation required
 
             Returns
             -------
-            Returns the correlation of the two signals.
+            transformation call.
             """
-            return sum([signal.correlate(a[:, idx], v[:, idx], mode="full", method='auto') for idx in range(3)])
+            switcher = {
+                'Unwrapped_Positions': self._unwrap_choice(),
+                'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
+                'Ionic_Current': 'IonicCurrent',
+                'Integrated_Heat_Current': 'IntegratedHeatCurrent',
+                'Thermal_Flux': 'ThermalFlux',
+                'Momentum_Flux': 'MomentumFlux',
+                'Kinaci_Integrated_Heat_Current': 'KinaciIntegratedHeatCurrent'
+            }
+            choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
+            return choice
 
-        return tf.numpy_function(func=func, inp=[data_a, data_v], Tout=tf.float64)
+        transformation = _string_to_function(dependency)
+        self.experiment.perform_transformation(transformation)
 
-    def convolution_operation(self, group: str = None):
+    def _unwrap_choice(self):
         """
-        This function performs the actual autocorrelation computation.
-
-        Parameters
-        ----------
-        group : str
-
-        """
-        sigma = []  # define an empty sigma list
-        parsed_autocorrelation = np.zeros(self.data_range)  # Define the parsed array
-
-        for i in tqdm(range(int(self.n_batches['Parallel'])), ncols=70):  # loop over batches
-            batch = self.load_batch(i, path=group)
-            for start_index in range(int(self.batch_loop)):  # loop over ensembles in batch
-                start = int(start_index * self.correlation_time)  # get start index
-                stop = int(start + self.data_range)  # get stop index
-                system_current = np.array(batch, dtype=float)[start:stop]  # load data from batch array
-
-                jacf = np.zeros(2 * self.data_range - 1)  # Define the empty jacf array
-
-                # Calculate the current autocorrelation
-                jacf += (signal.correlate(system_current[:, 0],
-                                          system_current[:, 0],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 1],
-                                          system_current[:, 1],
-                                          mode='full', method='auto') +
-                         signal.correlate(system_current[:, 2],
-                                          system_current[:, 2],
-                                          mode='full', method='auto'))
-
-                jacf = jacf[int((len(jacf) / 2)):]  # Cut the negative part of the current autocorrelation
-                parsed_autocorrelation += jacf  # update parsed function
-                sigma.append(np.trapz(jacf, x=self.time))  # Update the conductivity array
-        return np.array(sigma), parsed_autocorrelation
-
-    def msd_operation_EH(self, group: str = None):
-        """
-        A function that needs a docstring
-        Parameters
-        ----------
-        group
-        type_batches
-
+        Unwrap either with indices or with box arrays.
         Returns
         -------
 
         """
-        msd_array = np.zeros(self.data_range)  # Initialize the msd array
+        indices = self.database.check_existence('Box_Images')
+        if indices:
+            return 'UnwrapViaIndices'
+        else:
+            return 'UnwrapCoordinates'
 
-        for i in tqdm(range(int(self.n_batches[self.batch_type])), ncols=70, position=0,
-                      leave=False):  # Loop over batches
-            batch = self.load_batch(i, path=group)  # get the ionic current
-            for start_index in tqdm(range(int(self.batch_loop)), position=1, leave=False, colour='blue',
-                                    ncols=70):  # Loop over ensembles
-                start = int(start_index * self.correlation_time)  # get start configuration
-                stop = int(start + self.data_range)  # get the stop configuration
-                window_tensor = batch[start:stop]  # select data from the batch tensor
+    def _run_dependency_check(self):
+        """
+        Check to see if the necessary property exists and build it if required.
 
-                # Calculate the msd
-                msd = (window_tensor - (
-                    tf.repeat(tf.expand_dims(window_tensor[0], 0), self.data_range, axis=0))) ** 2
-                msd = tf.reduce_sum(msd, axis=1)
+        Returns
+        -------
+        Will call transformations if required.
+        """
+        if self.dependency is not None:
+            dependency = self.database.check_existence(self.dependency)
+            if not dependency:
+                self._resolve_dependencies(self.dependency)
 
-                msd_array += np.array(msd)  # Update the total array
-        return msd_array
+        loaded_property = self.database.check_existence(self.loaded_property)
+        if not loaded_property:
+            self._resolve_dependencies(self.loaded_property)
 
-    def _calculate_system_current(self):
-        pass
+    def perform_computation(self):
+        """
+        Perform the computation.
+        Parameters
+        ----------
+        data_path : list
+                if multi-species is present, the data_path is required to load the correct data.
+        Returns
+        -------
+        Performs the analysis.
+        """
+        if self.system_property:
+            self._calculate_prefactor()
+            data_path = [join_path(self.loaded_property, self.loaded_property)]
+            self._prepare_managers(data_path)
+            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
+                                                            args=batch_generator_args,
+                                                            output_signature=self.batch_output_signature)
+            batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
+                ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator(
+                    system=self.system_property)
+                ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
+                                                                   args=ensemble_generators_args + (batch,),
+                                                                   output_signature=self.ensemble_output_signature)
+                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop", ncols=100):
+                    self._apply_operation(ensemble, ensemble_index)
+
+            self._apply_averaging_factor()
+            self._post_operation_processes()
+
+        elif self.experimental:
+            data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
+            self._prepare_managers(data_path)
+            self.run_experimental_analysis()
+
+        else:
+            for species in self.species:
+                self._calculate_prefactor(species)
+                data_path = [join_path(species, self.loaded_property)]
+                self._prepare_managers(data_path)
+                batch_generator, batch_generator_args = self.data_manager.batch_generator()
+                batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
+                                                                args=batch_generator_args,
+                                                                output_signature=self.batch_output_signature)
+                batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop",
+                                               ncols=100, total=self.n_batches):
+                    ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
+                    ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
+                                                                       args=ensemble_generators_args + (batch,),
+                                                                       output_signature=self.ensemble_output_signature)
+                    ensemble_data_set = ensemble_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
+                        self._apply_operation(ensemble, ensemble_index)
+
+                self._apply_averaging_factor()
+                self._post_operation_processes(species)
+
+    def run_analysis(self):
+        """
+        Run the appropriate analysis
+        """
+        self._check_input()
+        self._run_dependency_check()
+
+        if self.optimize:
+            pass
+        else:
+            self.perform_computation()
+
+    def run_experimental_analysis(self):
+        """
+        For experimental methods
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

@@ -3,7 +3,7 @@ Atomic transformation to unwrap the simulation coordinates.
 
 Summary
 -------
-When performing analysis on the dynamics of a system, it often becomes necessary to reverse the effects of periodic
+When performing analysis on the dynamics of a experiment, it often becomes necessary to reverse the effects of periodic
 boundary conditions and track atoms across the box edges. This method uses the box-jump algorithm, whereing particle
 positions jumps of more than a half of the box are counted as a crossing of the boundary, to allow the particles to
 propagate on into space.
@@ -11,9 +11,7 @@ propagate on into space.
 
 import numpy as np
 import os
-
 import tensorflow as tf
-import h5py as hf
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.database.database import Database
@@ -26,8 +24,8 @@ class CoordinateUnwrapper(Transformations):
 
     Attributes
     ----------
-    system : object
-            The parent class from which data will be read and in which it will be saved.
+    experiment : object
+            The experiment class from which tensor_values will be read and in which it will be saved.
 
     species : list
             species of atoms to unwrap.
@@ -37,7 +35,7 @@ class CoordinateUnwrapper(Transformations):
             value is set to True as this is most common in simulations.
 
     storage_path : str
-            Path to the data in the database, taken directly from the system attribute.
+            Path to the tensor_values in the database_path, taken directly from the system attribute.
 
     analysis_name : str
             Name of the analysis, taken directly from the system attribute.
@@ -49,16 +47,16 @@ class CoordinateUnwrapper(Transformations):
             Data being unwrapped.
 
     mask : tf.tensor
-            Mask to select and transform crossed data.
+            Mask to select and transform crossed tensor_values.
     """
 
-    def __init__(self, obj, species, center_box=True):
+    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
         """
         Standard constructor
 
         Parameters
         ----------
-        obj : object
+        experiment : object
                 Experiment object to use and update.
         species : list
                 List of species to perform unwrapping on
@@ -67,17 +65,17 @@ class CoordinateUnwrapper(Transformations):
         """
 
         super().__init__()
-        self.system = obj  # assign the system attribute
-        self.storage_path = self.system.storage_path  # get the storage path of the database
-        self.analysis_name = self.system.analysis_name  # get the analysis name
+        self.experiment = experiment  # assign the experiment attribute
+        self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
+        self.analysis_name = self.experiment.analysis_name  # get the analysis name
 
-        self.box_array = self.system.box_array  # re-assign the box array for cleaner code
+        self.box_array = self.experiment.box_array  # re-assign the box array for cleaner code
         self.species = species  # re-assign species
         if species is None:
-            self.species = list(self.system.species)
+            self.species = list(self.experiment.species)
         self.center_box = center_box  # Check if the box needs to be centered
 
-        self.data = None  # data to be unwrapped
+        self.data = None  # tensor_values to be unwrapped
         self.mask = None  # image number mask
 
     def _center_box(self):
@@ -94,10 +92,10 @@ class CoordinateUnwrapper(Transformations):
 
     def _load_data(self, species):
         """
-        Load the data to be unwrapped
+        Load the tensor_values to be unwrapped
         """
-
-        self.data = np.array(self.system.load_matrix("Positions", [species]), dtype=float)
+        path = join_path(species, "Positions")
+        self.data = np.array(self.experiment.load_matrix(path=path, select_slice=np.s_[:]))
 
     def _calculate_difference_tensor(self):
         """
@@ -137,18 +135,17 @@ class CoordinateUnwrapper(Transformations):
 
         self.data = self.data - scaled_mask  # apply the scaling
 
-    def _save_unwrapped_coordinates(self, database_object, species, database):
+    def _save_unwrapped_coordinates(self, species, database):
         """
         Save the unwrapped coordinates
         """
 
         path = join_path(species, 'Unwrapped_Positions')
         dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
-        database.add_dataset(dataset_structure, database_object)  # add the dataset to the database as resizeable
+        database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
         database.add_data(data=self.data,
                           structure=data_structure,
-                          database=database_object,
                           start_index=0,
                           batch_size=np.shape(self.data)[1],
                           tensor=True)
@@ -158,18 +155,17 @@ class CoordinateUnwrapper(Transformations):
         Collect the methods in the class and unwrap the coordinates
         """
 
-        database = Database(name=os.path.join(self.system.database_path, "database.hdf5"), architecture='simulation')
-        db_object = database.open()  # open a database object
+        database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"), architecture='simulation')
         for species in self.species:
 
             exists = database.check_existence(os.path.join(species, "Unwrapped_Positions"))
-            # Check if the data has already been unwrapped
+            # Check if the tensor_values has already been unwrapped
             if exists:
                 print(f"Unwrapped positions exists for {species}, using the saved coordinates")
             else:
-                self._load_data(species)  # load the data to be unwrapped
+                self._load_data(species)  # load the tensor_values to be unwrapped
 
-                # Center the data if required
+                # Center the tensor_values if required
                 if self.center_box:
                     self._center_box()
 
@@ -177,11 +173,10 @@ class CoordinateUnwrapper(Transformations):
 
                 self._build_image_mask()  # build the image mask
                 self._apply_mask()  # Apply the mask and unwrap the coordinates
-                self._save_unwrapped_coordinates(db_object, species, database)  # save the newly unwrapped coordinates
+                self._save_unwrapped_coordinates(species, database)  # save the newly unwrapped coordinates
 
-        database.close(db_object)
-        self.system.memory_requirements = database.get_memory_information()
-        self.system.save_class()  # update the class state
+        self.experiment.memory_requirements = database.get_memory_information()
+        self.experiment.save_class()  # update the class state
 
     def run_transformation(self):
         """

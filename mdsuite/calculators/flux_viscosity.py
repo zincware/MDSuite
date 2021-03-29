@@ -13,13 +13,15 @@ import warnings
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
-# Import user packages
 from tqdm import tqdm
-from mdsuite.convolution_computation.convolution import convolution
-from mdsuite.utils.meta_functions import timeit
-# MDSuite packages
-import mdsuite.utils.constants as constants
-from .calculator import Calculator
+import tensorflow as tf
+from scipy import signal
+
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.plot_style.plot_style import apply_style
+
+tqdm.monitor_interval = 0
+warnings.filterwarnings("ignore")
 
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -29,102 +31,127 @@ warnings.filterwarnings("ignore")
 
 class GreenKuboViscosityFlux(Calculator):
     """
-    Class for the computation of viscosity based on GK formulation for flux files.
+    Class for the Green Kubo viscosity from flux implementation
 
     Attributes
     ----------
-    obj :  object
+    experiment :  object
             Experiment class to call from
     plot : bool
-            if true, plot the data
-    time : np.array
-            Array of the time.
+            if true, plot the tensor_values
     """
 
-    def __init__(self, obj, plot=False, data_range=500, correlation_time=1):
+    def __init__(self, experiment, plot=False, data_range=500, correlation_time=1, save=True):
         """
         Python constructor for the experiment class.
 
         Parameters
         ----------
-        obj : object
+        experiment : object
                 Experiment class to read and write to
         plot : bool
                 If true, a plot of the analysis is saved.
         data_range : int
                 Number of configurations to include in each ensemble
         """
-        self.parent = obj
-        self.plot = plot
-        self.data_range = data_range
-        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.database_group = 'viscosity'  # Which database group to save the data in
+        self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
+        self.system_property = True
+
+        self.database_group = 'viscosity'  # Which database_path group to save the tensor_values in
         self.analysis_name = 'viscosity_flux'
-        self.correlation_time = correlation_time
+        self.x_label = 'Time (s)'
+        self.y_label = 'JACF ($C^{2}\\cdot m^{2}/s^{2}$)'
 
-    def _autocorrelation_time(self):
+        self.prefactor: float
+        self.jacf = np.zeros(self.data_range)
+        self.sigma = []
+
+        apply_style()
+
+    def _update_output_signatures(self):
         """
-        Calculate the flux autocorrelation time to ensure correct sampling
+        Update the output signature for the IC.
+
+        Returns
+        -------
+
         """
-        pass
+        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
+        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
 
-    @timeit
-    def _calculate_viscosity(self):
+    def _calculate_prefactor(self, species: str = None):
         """
-        Compute the thermal conductivity
+        Compute the ionic conductivity prefactor.
+
+        Parameters
+        ----------
+        species
+
+        Returns
+        -------
+
         """
+        # Calculate the prefactor
+        numerator = self.experiment.volume
+        denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units['boltzman']
 
+        prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
+                          self.experiment.units['time'] / self.experiment.units['energy']
 
-        # prepare the prefactor for the integral
-        numerator = self.parent.volume
-        denominator = 3 * (self.data_range - 1) * self.parent.temperature * self.parent.units['boltzman']  # we use boltzman constant in the units provided.
+        self.prefactor = (numerator / denominator)*prefactor_units
 
-        prefactor = numerator / denominator
-        flux = self.load_flux_matrix()
-        loop_range = int((len(flux) - self.data_range - 1)/self.correlation_time)  # Define the loop range
-        sigma, averaged_jacf  = convolution(loop_range=loop_range,
-                                            flux=flux,
-                                            data_range=self.data_range,
-                                            time=self.time, correlation_time=self.correlation_time)
-        sigma = prefactor * np.array(sigma)
+    def _apply_averaging_factor(self):
+        """
+        Apply the averaging factor to the msd array.
+        Returns
+        -------
 
-        # convert to SI units.
-        prefactor_units = self.parent.units['pressure']**2 * self.parent.units['length']**3 * self.parent.units['time']/self.parent.units['energy']
-        sigma = prefactor_units * sigma
+        """
+        self.jacf /= max(self.jacf)
 
+    def _apply_operation(self, ensemble, index):
+        """
+        Calculate and return the vacf.
+
+        Parameters
+        ----------
+        ensemble
+
+        Returns
+        -------
+        updates class vacf with the tensor_values.
+        """
+        jacf = (signal.correlate(ensemble[:, 0],
+                                 ensemble[:, 0],
+                                 mode='full', method='auto') +
+                signal.correlate(ensemble[:, 1],
+                                 ensemble[:, 1],
+                                 mode='full', method='auto') +
+                signal.correlate(ensemble[:, 2],
+                                 ensemble[:, 2],
+                                 mode='full', method='auto'))
+        self.jacf += jacf[int(self.data_range - 1):]
+        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        result = self.prefactor*np.array(self.sigma)
+        self._update_properties_file(data=[np.mean(result), np.std(result)/(np.sqrt(len(result)))])
+
+        # Update the plot if required
         if self.plot:
-            averaged_jacf /= max(averaged_jacf)
-            plt.plot(self.time, averaged_jacf)
-            plt.xlabel("Time (s)")
-            plt.ylabel("Normalized Current Autocorrelation Function")
-            plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
-            plt.show()
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
+            self._plot_data()
 
-        print(f"Green-Kubo Viscosity at {self.parent.temperature}K: {np.mean(sigma)} +- "
-              f"{np.std(sigma) / np.sqrt(len(sigma))} Pa.s")
+        # Save the array if required
+        if self.save:
+            self._save_data(f"{self.analysis_name}", [self.time, self.jacf])
 
-        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma))])
 
-    def load_flux_matrix(self):
-        """
-        Load the flux matrix
-
-        :return: Matrix of the property flux
-        """
-        # TODO: re-implement
-        identifier = 'Stress_visc/Stress_visc'
-        matrix_data = []
-
-        matrix_data = self.parent.load_matrix(path=identifier, select_slice=np.s_[:])
-        matrix_data = np.squeeze(matrix_data)
-        return matrix_data
-
-    def run_analysis(self):
-        """ Run thermal conductivity calculation analysis
-
-        The thermal conductivity is computed at this step.
-        """
-        self._autocorrelation_time()  # get the autocorrelation time
-
-        self._calculate_viscosity()  # calculate the singular diffusion coefficients

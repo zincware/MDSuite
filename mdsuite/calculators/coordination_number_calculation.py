@@ -27,12 +27,12 @@ class CoordinationNumbers(Calculator):
 
     Attributes
     ----------
-    obj : class object
+    experiment : class object
                         Class object of the experiment.
     plot : bool (default=True)
                         Decision to plot the analysis.
     save : bool (default=True)
-                        Decision to save the generated data arrays.
+                        Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
@@ -42,38 +42,38 @@ class CoordinationNumbers(Calculator):
     y_label : str
                         How to label the y axis of the saved plot.
     analysis_name : str
-                        Name of the analysis. used in saving of the data and figure.
+                        Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
-                        The data file corresponding to the rdf being studied.
+                        The tensor_values file corresponding to the rdf being studied.
     data_directory : str
-                        The directory in which to find this data.
+                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
-                        rdf data being studied.
+                        rdf tensor_values being studied.
     radii = None : list
-                        radii data corresponding to the rdf.
+                        radii tensor_values corresponding to the rdf.
     integral_data : list
-                        integrated rdf data.
+                        integrated rdf tensor_values.
     species_tuple : list
                         A list of species combinations being studied.
     indices : list
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, obj, plot: bool = True, save: bool = True, data_range: int = None, x_label: str = r'r ($\AA$)',
+    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = None, x_label: str = r'r ($\AA$)',
                  y_label: str = 'CN', analysis_name: str = 'Coordination_Numbers'):
         """
         Python constructor
 
         Parameters
         ----------
-        obj : class object
+        experiment : class object
                         Class object of the experiment.
         plot : bool (default=True)
                             Decision to plot the analysis.
         save : bool (default=True)
-                            Decision to save the generated data arrays.
+                            Decision to save the generated tensor_values arrays.
 
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
@@ -83,30 +83,30 @@ class CoordinationNumbers(Calculator):
         y_label : str
                             How to label the y axis of the saved plot.
         analysis_name : str
-                            Name of the analysis. used in saving of the data and figure.
+                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
         self.file_to_study = None  # Which rdf to use in the analysis at a time
-        self.data_directory = f'{obj.storage_path}/{obj.analysis_name}/data'  # where to store the data
-        self.data_files = []  # array of the files in data directory
+        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # where to store the tensor_values
+        self.data_files = []  # array of the files in tensor_values directory
         self.rdf = None  # rdf being studied
         self.radii = None  # radii of the rdf
         self.integral_data = None  # integrated rdf being studied
         self.species_tuple = None  # Which species are being studied - important for the density calculation
         self.indices = None  # indices of the coordination shells being studied
 
-        self.database_group = 'coordination_numbers'  # Which database group to save the data in
+        self.database_group = 'coordination_numbers'  # Which database_path group to save the tensor_values in
 
         # Calculate the rdf if it has not been done already
-        if self.parent.radial_distribution_function_state is False:
-            self.parent.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)  # run rdf calculation.
+        if self.experiment.radial_distribution_function_state is False:
+            self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)  # run rdf calculation.
 
     def _get_rdf_data(self):
         """
-        Fill the data_files list with filenames of the rdf data
+        Fill the data_files list with filenames of the rdf tensor_values
         """
-        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
             for item in db['radial_distribution_function']:  # loop over the files
                 self.data_files.append(item)  # Append to the data_file attribute
 
@@ -116,16 +116,16 @@ class CoordinationNumbers(Calculator):
         """
 
         species = self.species_tuple.split("_")  # get an array of the species being studied
-        rdf_number_of_atoms = len(self.parent.species[species[0]]['indices'])  # get the number of atoms in the RDF
+        rdf_number_of_atoms = len(self.experiment.species[species[0]]['indices'])  # get the number of atoms in the RDF
 
-        return rdf_number_of_atoms / self.parent.volume
+        return rdf_number_of_atoms / self.experiment.volume
 
     def _load_rdf_from_file(self):
         """
-        Load the raw rdf data from a directory
+        Load the raw rdf tensor_values from a directory
         """
 
-        with hf.File(os.path.join(self.parent.database_path, 'analysis_data.hdf5'), 'r') as db:
+        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
             self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
 
     def _autocorrelation_time(self):
@@ -139,7 +139,7 @@ class CoordinationNumbers(Calculator):
         Integrate the rdf currently in the class state
         """
 
-        self.integral_data = []  # empty the integral data array for analysis
+        self.integral_data = []  # empty the integral tensor_values array for analysis
         for i in range(1, len(self.radii)):  # Loop over number_of_bins in the rdf
             # Integrate the function up to the bin.
             self.integral_data.append(np.trapz((np.array(self.radii[1:i]) ** 2) * self.rdf[1:i], x=self.radii[1:i]))
@@ -157,7 +157,7 @@ class CoordinationNumbers(Calculator):
                 If an exception is not raised, the function will return a list of peaks in the rdf.
         """
 
-        filtered_data = apply_savgol_filter(self.rdf)  # filter the data
+        filtered_data = apply_savgol_filter(self.rdf)  # filter the tensor_values
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
         # Check that more than one peak exists. If not, the GS search cannot be performed.
@@ -207,7 +207,7 @@ class CoordinationNumbers(Calculator):
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
-        # update the system information file
+        # update the experiment information file
         self._update_properties_file(item=self.species_tuple, sub_item='first_shell', add=True,
                                      data=[str(first_shell), str(first_shell_error)])
         self._update_properties_file(item=self.species_tuple, sub_item='second_shell', add=True,
@@ -237,22 +237,22 @@ class CoordinationNumbers(Calculator):
         Calculate the coordination numbers and perform error analysis
         """
 
-        self._get_rdf_data()  # fill the data array with data
+        self._get_rdf_data()  # fill the tensor_values array with tensor_values
         for data in self.data_files:  # Loop over all existing RDFs
             print(data)
             self.file_to_study = data  # set the working file
             self.species_tuple = data[:-29]  # set the tuple
-            self._load_rdf_from_file()  # load the data from it
+            self._load_rdf_from_file()  # load the tensor_values from it
             self._integrate_rdf()  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
             self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment class
 
-            # Save the data if required
+            # Save the tensor_values if required
             if self.save:
                 self._save_data(f"{self.species_tuple}_{self.analysis_name}", [np.array(self.radii[1:]),
                                                                                np.array(self.integral_data)])
 
-            # Plot the data if required
+            # Plot the tensor_values if required
             if self.plot:
                 self._plot_coordination_shells()
             self._plot_data(manual=True)  # Call plot function to prevent later issues

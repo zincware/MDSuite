@@ -13,15 +13,12 @@ import warnings
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
-# Import user packages
 from tqdm import tqdm
+import tensorflow as tf
+from scipy import signal
 
-from mdsuite.convolution_computation.convolution import convolution
-from mdsuite.utils.meta_functions import timeit
-# MDSuite packages
-from .calculator import Calculator
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
-from ..plot_style.plot_style import apply_style
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.plot_style.plot_style import apply_style
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -29,113 +26,119 @@ warnings.filterwarnings("ignore")
 
 class GreenKuboThermalConductivityFlux(Calculator):
     """
-    Class for the Einstein diffusion coefficient implementation
+    Class for the Thermal conductivity from flux implementation
 
     Attributes
     ----------
-    obj :  object
+    experiment :  object
             Experiment class to call from
     plot : bool
-            if true, plot the data
-    time : np.array
-            Array of the time.
+            if true, plot the tensor_values
     """
 
-    def __init__(self, obj, plot=False, data_range=500, correlation_time=1,
-                 x_label='Time (s)', y_label='JACF ($C^{2}\\cdot m^{2}/s^{2}$)',  save=True,
-                 analysis_name='green_kubo_thermal_conductivity_flux',):
+    def __init__(self, experiment, plot=False, data_range=500, correlation_time=1, save=True):
         """
         Python constructor for the experiment class.
 
         Parameters
         ----------
-        obj : object
+        experiment : object
                 Experiment class to read and write to
         plot : bool
                 If true, a plot of the analysis is saved.
         data_range : int
                 Number of configurations to include in each ensemble
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name,
-                         correlation_time=correlation_time, parallel=True)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.parent = obj
-        self.plot = plot
-        self.data_range = data_range
-        self.time = np.linspace(0.0, self.data_range * self.parent.time_step * self.parent.sample_rate, self.data_range)
+        self.loaded_property = 'Flux_Thermal'  # Property to be loaded for the analysis
+        self.system_property = True
 
-        self.database_group = 'thermal_conductivity'  # Which database group to save the data in
+        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
+        self.x_label = 'Time (s)'
+        self.y_label = 'JACF ($C^{2}\\cdot m^{2}/s^{2}$)'
         self.analysis_name = 'thermal_conductivity_flux'
-        self.correlation_time = correlation_time
+
+        self.prefactor: float
+        self.jacf = np.zeros(self.data_range)
+        self.sigma = []
 
         apply_style()
 
-    def _autocorrelation_time(self):
+    def _update_output_signatures(self):
         """
-        Calculate the flux autocorrelation time to ensure correct sampling
-        """
-        pass
+        Update the output signature for the IC.
 
-    @timeit
-    def _calculate_thermal_conductivity(self):
-        """
-        Compute the thermal conductivity
-        """
+        Returns
+        -------
 
-        # prepare the prefactor for the integral
+        """
+        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
+        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+
+    def _calculate_prefactor(self, species: str = None):
+        """
+        Compute the ionic conductivity prefactor.
+
+        Parameters
+        ----------
+        species
+
+        Returns
+        -------
+
+        """
+        # Calculate the prefactor
         numerator = 1
-        denominator = 3 * (self.data_range - 1) * self.parent.temperature ** 2 * self.parent.units['boltzman'] \
-                      * self.parent.volume  # we use boltzman constant in the units provided.
+        denominator = 3 * (self.data_range - 1) * self.experiment.temperature ** 2 * self.experiment.units['boltzman'] \
+                      * self.experiment.volume  # we use boltzmann constant in the units provided.
 
-        prefactor = numerator / denominator
-        flux = self.load_flux_matrix()
-        loop_range = int((len(flux) - self.data_range - 1) / self.correlation_time)  # Define the loop range
-        sigma, averaged_jacf = convolution(loop_range=loop_range,
-                                           flux=flux,
-                                           data_range=self.data_range,
-                                           time=self.time, correlation_time=self.correlation_time)
-        sigma = prefactor * np.array(sigma)
+        prefactor_units = self.experiment.units['energy'] / self.experiment.units['length'] / \
+                          self.experiment.units['time']
 
-        # convert to SI units.
-        prefactor_units = self.parent.units['energy'] / self.parent.units['length'] / self.parent.units['time']
-        sigma = prefactor_units * sigma
+        self.prefactor = (numerator / denominator) * prefactor_units
 
+    def _apply_averaging_factor(self):
+        """
+        Apply the averaging factor to the msd array.
+        Returns
+        -------
+        """
+        self.jacf /= max(self.jacf)
+
+    def _apply_operation(self, ensemble, index):
+        """
+        Calculate and return the vacf.
+
+        Parameters
+        ----------
+        ensemble
+
+        Returns
+        -------
+        updates class vacf with the tensor_values.
+        """
+        jacf = sum([signal.correlate(ensemble[:, idx], ensemble[:, idx],
+                                     mode="full",
+                                     method='auto') for idx in range(3)])
+        self.jacf += jacf[int(self.data_range - 1):]
+        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        result = self.prefactor * np.array(self.sigma)
+        self._update_properties_file(data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
+
+        # Update the plot if required
         if self.plot:
-            averaged_jacf /= max(averaged_jacf)
-            plt.plot(self.time, averaged_jacf)
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
             self._plot_data()
-            # plt.xlabel("Time (s)")
-            # plt.ylabel("Normalized Current Autocorrelation Function")
-            # plt.savefig(f"GK_Cond_{self.parent.temperature}.pdf", )
-            # plt.show()
 
-        print(f"Green-Kubo Thermal Conductivity at {self.parent.temperature}K: {np.mean(sigma)} +- "
-              f"{np.std(sigma) / np.sqrt(len(sigma))} W/m/K")
-
-        self._update_properties_file(data=[str(np.mean(sigma)), str(np.std(sigma)/np.sqrt(len(sigma)))])
-
+        # Save the array if required
         if self.save:
-            self._save_data(f'{self.analysis_name}', [self.time, averaged_jacf])
-
-    def load_flux_matrix(self):
-        """
-        Load the flux matrix
-
-        :return: Matrix of the property flux
-        """
-        # TODO: re-implement
-        identifier = 'Flux_Thermal/Flux_Thermal'
-        matrix_data = []
-
-        matrix_data = self.parent.load_matrix(path=identifier, select_slice=np.s_[:])
-        matrix_data = np.squeeze(matrix_data)
-        return matrix_data
-
-    def run_analysis(self):
-        """ Run thermal conductivity calculation analysis
-
-        The thermal conductivity is computed at this step.
-        """
-        self._autocorrelation_time()  # get the autocorrelation time
-
-        self._calculate_thermal_conductivity()  # calculate the singular diffusion coefficients
+            self._save_data(f"{self.analysis_name}", [self.time, self.jacf])

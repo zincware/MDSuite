@@ -1,4 +1,4 @@
-""" Calculate the Nernst-Einstein Conductivity of a system """
+""" Calculate the Nernst-Einstein Conductivity of a experiment """
 
 import numpy as np
 import os
@@ -30,37 +30,37 @@ class NernstEinsteinIonicConductivity:
         self.parent = obj                   # experiment class to call attributes from
         self.corrected = corrected          # if true, calculate the corrected Nernst-Einstein conductivity as well
 
-        self.data = self._load_yaml_data()  # data to be read in
+        self.data = self._load_yaml_data()  # tensor_values to be read in
         self.truth_table = self._build_truth_table()  # build truth table for analysis
 
     def _load_yaml_data(self):
         """
-        Load data from a yaml file
+        Load tensor_values from a yaml file
 
         Returns
         -------
-        data: dict
-                A dictionary of data stored in the yaml file
+        tensor_values: dict
+                A dictionary of tensor_values stored in the yaml file
         """
         filepath = os.path.join(self.parent.database_path, "system_properties.yaml")  # collect the filepath
         f_object = open(filepath)
-        loaded_data = yaml.load(f_object, Loader=yaml.FullLoader)  # load the data
+        loaded_data = yaml.load(f_object, Loader=yaml.FullLoader)  # load the tensor_values
         f_object.close()
 
         return loaded_data
 
     def _update_properties_file(self, analysis_name: str = None, data: list = None):
         """
-        Update the system properties YAML file.
+        Update the experiment properties YAML file.
         """
 
-        # Check if data has been given
+        # Check if tensor_values has been given
         if data is None:
-            print("No data provided")
+            print("No tensor_values provided")
             return
 
         with open(os.path.join(self.parent.database_path, 'system_properties.yaml')) as pfr:
-            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the tensor_values in the yaml file
 
         with open(os.path.join(self.parent.database_path, 'system_properties.yaml'), 'w') as pfw:
             properties['ionic_conductivity'][analysis_name] = data
@@ -68,12 +68,12 @@ class NernstEinsteinIonicConductivity:
 
     def _build_truth_table(self):
         """
-        Builds a truth table to communicate which data is available to the analysis.
+        Builds a truth table to communicate which tensor_values is available to the analysis.
 
         Returns
         -------
         truth_table : list
-                A truth table communication which data is available for the analysis.
+                A truth table communication which tensor_values is available for the analysis.
         """
 
         truth_table = [[[], []], [[], []]]
@@ -106,7 +106,7 @@ class NernstEinsteinIonicConductivity:
 
         Returns
         -------
-        Nernst-Einstein Ionic conductivity of the system in units of S/cm
+        Nernst-Einstein Ionic conductivity of the experiment in units of S/cm
         """
 
         # evaluate the prefactor
@@ -179,7 +179,7 @@ class NernstEinsteinIonicConductivity:
             data = self._nernst_einstein(self.data['diffusion_coefficients']['Green_Kubo_Diffusion']['Singular'])
             self._update_properties_file(analysis_name='Nernst_Einstein_Green_Kubo', data=str(data))
         if not any(ne_table):
-            print("There is no data to analyse, please run a diffusion calculation to proceed")
+            print("There is no tensor_values to analyse, please run a diffusion calculation to proceed")
             sys.exit(1)
 
     def _run_corrected_nernst_einstein(self):
@@ -188,7 +188,7 @@ class NernstEinsteinIonicConductivity:
 
         Returns
         -------
-        Updates the experiment database
+        Updates the experiment database_path
         """
 
         cne_table = [all(self.truth_table[0]), all(self.truth_table[1])]

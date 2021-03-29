@@ -75,7 +75,7 @@ autodoc_default_flags = ['members', 'private-members',
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-html_logo = 'images/logo.png'
+html_logo = 'images/MDSUITE.png'
 html_favicon = 'images/logo.png'
 html_theme_options={
         'logo_only': True,
