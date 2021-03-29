@@ -16,5 +16,5 @@ Molten_NaCl.add_experiment(experiment_name="NaCl_1400K",
 # Create experiment object
 NaCl_1400K = Molten_NaCl.experiments['NaCl_1400K']  # The nice way
 
-# Add data to the experiment
+# Add tensor_values to the experiment
 NaCl_1400K.add_data(trajectory_file='../data/trajectory_files/NaCl_1400K.dump')

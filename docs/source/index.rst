@@ -25,7 +25,7 @@ hear from our users.
 Why MDSuite?
 ------------
 With all the post-processing codes out there why should you use MDSuite? Aside
-from the easytp use interface and large range of analysis available, MDSuite has
+from the easy to use interface and large range of analysis available, MDSuite has
 a number of great features beneath the surface that give us an edge.
 
 What's New?

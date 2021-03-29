@@ -35,7 +35,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Large data files
+# Large tensor_values files
 #examples/trajectory_files/*
 
 

@@ -36,57 +36,60 @@ class RadialDistributionFunction(Calculator, ABC):
 
     Attributes
     ----------
-    obj :  object
+    experiment :  object
             Experiment class to call from
     plot : bool
-            if true, plot the data
+            if true, plot the tensor_values
     data_range :
             Number of configurations to use in each ensemble
     save :
-            If true, data will be saved after the analysis
+            If true, tensor_values will be saved after the analysis
     x_label : str
-            X label of the data when plotted
+            X label of the tensor_values when plotted
     y_label : str
-            Y label of the data when plotted
+            Y label of the tensor_values when plotted
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database for the analysis
+            Property loaded from the database_path for the analysis
     correlation_time : int
             Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, obj, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1, x_label=r'r ($\AA$)',
-                 y_label='g(r)', analysis_name='radial_distribution_function', images=1, start=0, stop=None,
-                 number_of_configurations=1000, **kwargs):
+    def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
+                 images=1, start=0, stop=None, number_of_configurations=1000, **kwargs):
         """
 
         Attributes
         ----------
-        obj :  object
+        experiment :  object
                 Experiment class to call from
         plot : bool
-                if true, plot the data
+                if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
         save :
-                If true, data will be saved after the analysis
+                If true, tensor_values will be saved after the analysis
         x_label : str
-                X label of the data when plotted
+                X label of the tensor_values when plotted
         y_label : str
-                Y label of the data when plotted
+                Y label of the tensor_values when plotted
         analysis_name : str
                 Name of the analysis
         """
-        super().__init__(obj, plot, save, data_range, x_label, y_label, analysis_name)
-        self.parent = obj  # Experiment class to update
+        super().__init__(experiment, plot, save, data_range)
+
+        self.loaded_property = 'Positions'  # Which database_path property to load
+
+        self.database_group = 'radial_distribution_function'  # Which database_path group to save the tensor_values in
+        self.x_label = r'r ($\AA$)'
+        self.y_label = 'g(r)'
+        self.analysis_name = 'radial_distribution_function'
+        self.experimental = True
+
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
         self.cutoff = cutoff  # Cutoff for the RDF
-        self.correlation_time = None  # Correlation time -- not relevant here
-        self.loaded_property = 'Positions'  # Which database property to load
-        self.database_group = 'radial_distribution_function'  # Which database group to save the data in
-
         self.images = images  # number of images to include
         self.start = start  # Which configuration to start at
         self.stop = stop  # Which configuration to stop at
@@ -94,17 +97,17 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Perform checks
         if stop is None:
-            self.stop = obj.number_of_configurations - 1
+            self.stop = experiment.number_of_configurations - 1
 
         if self.cutoff is None:
-            self.cutoff = self.parent.box_array[0] / 2  # set cutoff to half box size if none set
+            self.cutoff = self.experiment.box_array[0] / 2  # set cutoff to half box size if none set
 
         if self.number_of_bins is None:
             self.number_of_bins = int(self.cutoff / 0.01)  # default is 1/100th of an angstrom
 
         # Set calculation specific parameters
         self.bin_range = [0, self.cutoff]  # set the bin range
-        self.index_list = [i for i in range(len(self.parent.species.keys()))]  # Get the indices of the species
+        self.index_list = [i for i in range(len(self.experiment.species.keys()))]  # Get the indices of the species
         self.sample_configurations = np.linspace(self.start,
                                                  self.stop,
                                                  self.number_of_configurations,
@@ -116,18 +119,14 @@ class RadialDistributionFunction(Calculator, ABC):
         if "scaling_factor" in kwargs:
             self.scaling_factor = kwargs.pop("scaling_factor")
         else:
-            self.scaling_factor = 0.05*self.parent.number_of_atoms
-
-    def _autocorrelation_time(self):
-        """ Calculate the position autocorrelation time of the system """
-        raise NotImplementedError
+            self.scaling_factor = 0.05*self.experiment.number_of_atoms
 
     def _get_ideal_gas_probability(self) -> float:
         """
         Get the correct ideal gas term
 
-        In the case of a cutoff value greater than half of the box size, the ideal gas term of the system must be
-        corrected due to the lack of spherical symmetry in the system.
+        In the case of a cutoff value greater than half of the box size, the ideal gas term of the experiment must be
+        corrected due to the lack of spherical symmetry in the experiment.
 
         Returns
         -------
@@ -142,7 +141,7 @@ class RadialDistributionFunction(Calculator, ABC):
             Parameters
             ----------
             data : np.array
-                    data on which to operate
+                    tensor_values on which to operate
             Returns
             -------
             function_values : np.array
@@ -154,8 +153,8 @@ class RadialDistributionFunction(Calculator, ABC):
             """
             First correction to ideal gas.
 
-            data : np.array
-                    data on which to operate
+            tensor_values : np.array
+                    tensor_values on which to operate
             Returns
             -------
             function_values : np.array
@@ -169,8 +168,8 @@ class RadialDistributionFunction(Calculator, ABC):
             """
             Second correction to ideal gas.
 
-            data : np.array
-                    data on which to operate
+            tensor_values : np.array
+                    tensor_values on which to operate
             Returns
             -------
             function_values : np.array
@@ -184,23 +183,23 @@ class RadialDistributionFunction(Calculator, ABC):
 
         def _piecewise(data: np.array) -> np.array:
             """
-            Return a piecewise operation on a set of data
+            Return a piecewise operation on a set of tensor_values
             Parameters
             ----------
             data : np.array
-                    data on which to operate
+                    tensor_values on which to operate
 
             Returns
             -------
             scaled_data : np.array
-                    data that has been operated on.
+                    tensor_values that has been operated on.
             """
 
             # Boundaries on the ideal gsa correction. These go to 73% over half the box size, the most for a cubic box.
-            lower_bound = self.parent.box_array[0] / 2
-            middle_bound = np.sqrt(2) * self.parent.box_array[0] / 2
+            lower_bound = self.experiment.box_array[0] / 2
+            middle_bound = np.sqrt(2) * self.experiment.box_array[0] / 2
 
-            # split the data into parts
+            # split the tensor_values into parts
             split_1 = split_array(data, data <= lower_bound)
             if len(split_1) == 1:
                 return _spherical_symmetry(split_1[0])
@@ -227,14 +226,14 @@ class RadialDistributionFunction(Calculator, ABC):
         Parameters
         ----------
         indices : list
-                List of indices to take from the database
+                List of indices to take from the database_path
         Returns
         -------
         loaded_data : tf.Tensor
-                tf.Tensor of data loaded from the hdf5 database
+                tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
 
-        return self.parent.load_matrix("Positions", select_slice=np.s_[:, indices], tensor=True)
+        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices])
 
     def _get_species_names(self, species_tuple: tuple) -> str:
         """ Get the correct names of the species being studied
@@ -250,7 +249,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Prefix for the saved file
         """
 
-        species = list(self.parent.species)  # load all of the species
+        species = list(self.experiment.species)  # load all of the species
 
         return f"{species[species_tuple[0]]}_{species[species_tuple[1]]}"
 
@@ -381,7 +380,7 @@ class RadialDistributionFunction(Calculator, ABC):
         list, string: returns a 1D array of the positions of the pairs in the r_ij_mat, name of the pairs
 
         """
-        n_atoms = sum(len_elements)  # Get the total number of atoms in the system
+        n_atoms = sum(len_elements)  # Get the total number of atoms in the experiment
         background = np.full((n_atoms, n_atoms), -1)  # Create a full matrix filled with placeholders
         background[np.triu_indices(n_atoms, k=1)] = np.arange(len(np.triu_indices(n_atoms, k=1)[0]))
         # populate the triu with the respecting indices in the r_ij_matrix
@@ -395,24 +394,26 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def _calculate_histograms(self):
         """
-        Build the rdf dictionary up with histogram data
+        Build the rdf dictionary up with histogram tensor_values
 
         Returns
         -------
         update the class state
         """
-        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches["Parallel"]), ncols=70):
+        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
 
-            positions = self._load_positions(i)  # Load the batch of positions
+            if len(self.experiment.species) == 1:
+                positions = [self._load_positions(i)]  # Load the batch of positions
+            else:
+                positions = self._load_positions(i)  # Load the batch of positions
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
             positions_tensor = tf.transpose(positions_tensor, (1, 0, 2))  # Change to (time steps, n_atoms, coords)
             # Compute all distance vectors
-            r_ij_mat = next(self.get_neighbour_list(positions_tensor, cell=self.parent.box_array))
+            r_ij_mat = next(self.get_neighbour_list(positions_tensor, cell=self.experiment.box_array))
             for pair, names in self.get_pair_indices([len(x) for x in positions],
                                                      self.index_list):  # Iterate over all pairs
                 distance_tensor = tf.norm(tf.gather(r_ij_mat, pair, axis=1), axis=2)  # Compute all distances
                 distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)
-                # print(names)
                 self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range,
                                                            nbins=self.number_of_bins), dtype=float)
 
@@ -432,11 +433,11 @@ class RadialDistributionFunction(Calculator, ABC):
             species_scale_factor = 2
 
         # Density of all atoms / total volume
-        rho = len(self.parent.species[species_split[1]]['indices']) / self.parent.volume
+        rho = len(self.experiment.species[species_split[1]]['indices']) / self.experiment.volume
         ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
         numerator = species_scale_factor
         denominator = self.number_of_configurations * rho * ideal_correction * \
-                      len(self.parent.species[species_split[0]]['indices'])
+                      len(self.experiment.species[species_split[0]]['indices'])
         prefactor = numerator / denominator
 
         return prefactor
@@ -458,18 +459,57 @@ class RadialDistributionFunction(Calculator, ABC):
                 self._save_data(f'{names}_{self.analysis_name}',
                                 [np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names)])
 
-        self.parent.radial_distribution_function_state = True  # update the state
+        self.experiment.radial_distribution_function_state = True  # update the state
         if self.plot:
-            self._plot_data()  # Plot the data if necessary
+            self._plot_data()  # Plot the tensor_values if necessary
 
-    def run_analysis(self):
+    def run_experimental_analysis(self):
         """
         Perform the rdf analysis
         """
 
         # collect machine properties and determine batch size
-        self.collect_machine_properties(scaling_factor=self.scaling_factor)
-        if self.n_batches["Parallel"] > self.number_of_configurations:
-            self.n_batches["Parallel"] = self.number_of_configurations
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        pass
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        pass
+
+    def _post_operation_processes(self, species: str = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        pass
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        pass

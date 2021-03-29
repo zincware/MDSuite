@@ -38,20 +38,22 @@ def join_path(a, b):
     Notes
     -----
     h5py 3.1.0 on windows relies on forward slashes but os.path.join returns backward slashes.
-    Here we replace them to enable MDSuite for Windows users.
+    Here we replace them to enable MDSuite for Windows users. To be used ONLY for navigation within a database_path. For
+    navigation through the file experiment in general one should use os.path.join.
 
     """
     return os.path.join(a, b).replace("\\", "/")
 
 
+
 def get_dimensionality(box: list) -> int:
     """
-    Calculate the dimensionality of the system box
+    Calculate the dimensionality of the experiment box
 
     Parameters
     ----------
     box : list
-            box array of the system of the form [x, y, z]
+            box array of the experiment of the form [x, y, z]
 
     Returns
     -------
@@ -106,8 +108,8 @@ def line_counter(filename: str) -> int:
     """
     Count the number of lines in a file
 
-    This function used a memory safe method to count the number of lines in the file. Using the other data collected
-    during the trajectory analysis, this is enough information to completely characterize the system.
+    This function used a memory safe method to count the number of lines in the file. Using the other tensor_values collected
+    during the trajectory analysis, this is enough information to completely characterize the experiment.
 
     Parameters
     ----------
@@ -127,7 +129,7 @@ def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
     """
     Optimize the size of batches during initial processing
 
-    During the database construction a batch size must be chosen in order to process the trajectories with the
+    During the database_path construction a batch size must be chosen in order to process the trajectories with the
     least RAM but reasonable performance.
 
     Parameters
@@ -149,10 +151,10 @@ def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
 
     file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.5 * computer_statistics['memory']  # We take 50% of the available memory
+    database_memory = 0.1 * computer_statistics['memory']  # We take 50% of the available memory
     initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
 
-    # The database generation expands memory by ~5x the read in data size, accommodate this in batch size calculation.
+    # The database_path generation expands memory by ~5x the read in tensor_values size, accommodate this in batch size calculation.
     if 10 * file_size < database_memory:
         return int(number_of_configurations)
     else:
@@ -163,13 +165,13 @@ def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
     """
     Linear function for line fitting
 
-    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some data. This function
+    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some tensor_values. This function
     is called by the scipy curve_fit module as the model to fit to.
 
     Parameters
     ----------
     x : np.array
-            x data for fitting
+            x tensor_values for fitting
     a : float
             Fitting parameter of the gradient
     b : float
@@ -188,7 +190,7 @@ def simple_file_read(filename: str) -> list:
     Trivially read a file and load it into an array
 
     There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
-    and dump data into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+    and dump tensor_values into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
 
     Parameters
     ----------
@@ -201,10 +203,10 @@ def simple_file_read(filename: str) -> list:
             Data read in by the function.
     """
 
-    data_array = []  # define empty data array
+    data_array = []  # define empty tensor_values array
     with open(filename, 'r+') as f:  # Open the file for reading
         for line in f:  # Loop over the lines
-            data_array.append(line.split())  # Split the lines by whitespace and add to data array
+            data_array.append(line.split())  # Split the lines by whitespace and add to tensor_values array
 
     return data_array
 
@@ -248,12 +250,12 @@ def apply_savgol_filter(data: list) -> list:
     Parameters
     ----------
     data : list
-            Array of data to be analysed.
+            Array of tensor_values to be analysed.
 
     Returns
     -------
-    filtered data : list
-            Returns the filtered data directly from the scipy SavGol filter.
+    filtered tensor_values : list
+            Returns the filtered tensor_values directly from the scipy SavGol filter.
     """
 
     return savgol_filter(data, 17, 2)
@@ -358,7 +360,7 @@ def split_array(data: np.array, condition: np.array) -> list:
     Parameters
     ----------
     data : np.array
-            data to split
+            tensor_values to split
     condition : np.array
             condition on which to split by
 
@@ -377,7 +379,7 @@ def split_array(data: np.array, condition: np.array) -> list:
 
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
-    if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw data
+    if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw tensor_values
         return [data[condition]]
     else:  # else return the whole array
         return initial_split
