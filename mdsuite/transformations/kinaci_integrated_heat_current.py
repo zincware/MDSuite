@@ -148,14 +148,14 @@ class KinaciIntegratedHeatCurrent(Transformations):
         type_spec = self._update_type_dict(type_spec, forces_path, 3)
         type_spec = self._update_type_dict(type_spec, pe_path, 1)
 
-        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
 
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
-            data = self._transformation(tf.split(x, 3))
+            data = self._transformation(x)
             self._save_coordinates(data, index, self.batch_size, data_structure)
 
     def _save_coordinates(self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict):

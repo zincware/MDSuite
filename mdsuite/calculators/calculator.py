@@ -13,6 +13,8 @@ import sys
 import h5py as hf
 import matplotlib.pyplot as plt
 import tensorflow as tf
+import yaml
+
 from mdsuite.plot_style.plot_style import apply_style
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
@@ -366,29 +368,19 @@ class Calculator(metaclass=abc.ABCMeta):
             print("No tensor_values provided")
             return
 
-        results = self.parent.results
+        results = self.experiment.results
 
         # TODO: improve this if else blocks. I am sure it can be done in a more elegant way
         if item is None:
-            results[self.database_group][self.analysis_name] = data
+            results[self.database_group][self.analysis_name] = str(data)
         elif sub_item is None:
-            results[self.database_group][self.analysis_name][item] = data
+            results[self.database_group][self.analysis_name][item] = str(data)
         else:
             if add:
                 results[self.database_group][self.analysis_name][item] = {}
-                results[self.database_group][self.analysis_name][item][sub_item] = data
-        with open(os.path.join(self.experiment.database_path, 'system_properties.yaml')) as pfr:
-            properties = yaml.load(pfr, Loader=yaml.Loader)  # collect the tensor_values in the yaml file
+                results[self.database_group][self.analysis_name][item][sub_item] = str(data)
 
-        with open(os.path.join(self.experiment.database_path, 'system_properties.yaml'), 'w') as pfw:
-            if item is None:
-                properties[self.database_group][self.analysis_name] = data
-            elif sub_item is None:
-                properties[self.database_group][self.analysis_name][item] = data
-            else:
-                results[self.database_group][self.analysis_name][item][sub_item] = data
-
-        self.parent.results = results
+        self.experiment.results = results
 
     def _calculate_system_current(self):
         pass
