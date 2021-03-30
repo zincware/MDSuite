@@ -4,7 +4,7 @@ import shutil
 
 import mdsuite as mds # Cool name for professionalism purposes
 
-new_case = True
+new_case = False
 
 if new_case:
     try:
