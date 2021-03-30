@@ -40,7 +40,7 @@ def style():
         "ytick.minor.width": 1.5,
         "xtick.direction": "in",
         "ytick.direction": "in",
-        'axes.autolimit_mode': 'tensor_values',
+        'axes.autolimit_mode': 'round_numbers',
         'figure.autolayout': True,
         'axes.xmargin': 0.03,
         'axes.ymargin': 0.03,
