@@ -17,7 +17,7 @@ from pathlib import Path
 var_names = {
     "Temperature": ["temp"],
     "Time": ["time"],
-    "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
+    "Thermal_Flux": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
     "Stress_visc": ['pxy', 'pxz', 'pyz'],
 }
 
@@ -156,7 +156,6 @@ class LAMMPSFluxFile(FluxFile):
 
         # Get the volume, if not set in initialization
         if self.project.volume is None:
-            print("HEY")
             print(float(header[4][7]))
             self.project.volume = float(header[4][7])  # hopefully always in the same position
 
