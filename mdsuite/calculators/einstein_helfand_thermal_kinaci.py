@@ -71,7 +71,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_helfand_thermal_conductivity'
+        self.analysis_name = 'einstein_helfand_thermal_conductivity_kinaci'
 
         self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
 

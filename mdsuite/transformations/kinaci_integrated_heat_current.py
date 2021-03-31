@@ -81,7 +81,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
             integral = tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
 
             r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
-            r_p = tf.einsum('ijk,ij->jk', tf.squeeze(data[pe_path]), data[positions_path])
+            r_p = tf.einsum('ijk,ijm->jm', data[pe_path], data[positions_path])
 
             system_current += r_k + r_p
 

@@ -12,7 +12,7 @@ if __name__ == '__main__':
     argon = Experiment(analysis_name="Argon_70",
                              storage_path=".",
                              temperature=70.0,
-                             time_step=4,
+                             time_step=2,
                              units='real')
 
     # the rename cols is only used to show here how it works, but in this case, the lammps file has the same column names...
