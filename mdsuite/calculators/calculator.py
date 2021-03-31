@@ -221,7 +221,7 @@ class Calculator(metaclass=abc.ABCMeta):
             popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
             fits.append(10 ** popt[1])
 
-        return [str(np.mean(fits)), str(np.std(fits))]
+        return [np.mean(fits), np.std(fits)]
 
     def _prepare_managers(self, data_path: list):
         """
