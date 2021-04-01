@@ -378,7 +378,7 @@ class Database:
                                                                                       hf.Dataset else None)
 
         path = f'/{path}' # add the / to avoid name overlapping
-        response = any(list(path in item for item in keys))
+        response = any(list(item.endswith(path) for item in keys))
         database_object.close()
         return response
 
