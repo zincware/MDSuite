@@ -418,7 +418,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 'Integrated_Heat_Current': 'IntegratedHeatCurrent',
                 'Thermal_Flux': 'ThermalFlux',
                 'Momentum_Flux': 'MomentumFlux',
-                'Kinaci_Integrated_Heat_Current': 'KinaciIntegratedHeatCurrent'
+                'Kinaci_Heat_Current': 'KinaciIntegratedHeatCurrent'
             }
             choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
             return choice

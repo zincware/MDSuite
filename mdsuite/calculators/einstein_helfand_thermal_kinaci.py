@@ -65,7 +65,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
         # parse to the experiment class
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.loaded_property = 'Kinaci_Integrated_Heat_Current'  # Property to be loaded for the analysis
+        self.loaded_property = 'Kinaci_Heat_Current'  # Property to be loaded for the analysis
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
