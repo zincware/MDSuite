@@ -377,7 +377,7 @@ class Database:
         database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
                                                                                       hf.Dataset else None)
 
-        path = f'/{path}/' # add the / to avoid name overlapping
+        path = f'/{path}' # add the / to avoid name overlapping
         response = any(list(path in item for item in keys))
         database_object.close()
         return response
