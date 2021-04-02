@@ -20,4 +20,4 @@ if new_case:
     argon.add_data(trajectory_file='../gk_data.lmp_traj')
 
 
-argon.run_computation.GreenKuboThermalConductivity(data_range=5000, plot=True, correlation_time=3)
+argon.run_computation.EinsteinHelfandThermalKinaci(data_range=4000, plot=True, correlation_time=2)
