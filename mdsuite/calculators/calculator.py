@@ -30,8 +30,7 @@ from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
-
-
+from mdsuite.calculators.computations_dict import switcher_transformations
 
 class Calculator(metaclass=abc.ABCMeta):
     """
@@ -411,15 +410,11 @@ class Calculator(metaclass=abc.ABCMeta):
             -------
             transformation call.
             """
-            switcher = {
-                'Unwrapped_Positions': self._unwrap_choice(),
-                'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
-                'Ionic_Current': 'IonicCurrent',
-                'Integrated_Heat_Current': 'IntegratedHeatCurrent',
-                'Thermal_Flux': 'ThermalFlux',
-                'Momentum_Flux': 'MomentumFlux',
-                'Kinaci_Heat_Current': 'KinaciIntegratedHeatCurrent'
-            }
+
+            switcher_unwrapping = {'Unwrapped_Positions': self._unwrap_choice(), }
+
+            switcher = {**switcher_unwrapping, **switcher_transformations}
+
             choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
             return choice
 
