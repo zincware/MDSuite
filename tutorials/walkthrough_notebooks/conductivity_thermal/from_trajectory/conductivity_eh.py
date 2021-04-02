@@ -4,7 +4,7 @@ import shutil
 
 import mdsuite as mds # Cool name for professionalism purposes
 
-new_case = False
+new_case = True
 
 if new_case:
     try:
@@ -14,9 +14,10 @@ if new_case:
 
 
 
-argon = mds.Experiment(analysis_name="Argon", time_step=2, temperature=70.0, units='real')
+argon = mds.Experiment(analysis_name="Argon", time_step=1, temperature=70.0, units='real')
 
 if new_case:
     argon.add_data(trajectory_file='../gk_data.lmp_traj')
 
-argon.run_computation('EinsteinHelfandThermalConductivity', data_range=2000, plot=True, correlation_time=3)
+
+argon.run_computation.EinsteinHelfandThermalConductivity(data_range=5000, plot=True, correlation_time=3)
