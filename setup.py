@@ -46,6 +46,7 @@ setuptools.setup(
     install_requires=['seaborn',
                       'tensorflow',
                       'h5py',
+                      'pysmiles',
                       'numpy',
                       'matplotlib',
                       'scipy',

@@ -144,7 +144,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             sys.exit(1)
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
-        print(column_dict_properties)
 
         property_groups = self._extract_properties(var_names, column_dict_properties)
 
