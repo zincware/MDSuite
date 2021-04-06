@@ -404,7 +404,8 @@ class Database:
 
         db.close()
 
-    def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False):
+    def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
+                  scaling: list = None):
         """
         Load tensor_values from the database_path for some operation.
 
@@ -414,11 +415,13 @@ class Database:
 
         """
         data: Union[list, dict] = {}
+        if scaling is None:
+            scaling = [1 for _ in range(len(path_list))]
         database = self.open('r')
         if not dictionary:
             data = []
-            for item in path_list:
-                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64))
+            for i, item in enumerate(path_list):
+                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)*scaling[i])
         if dictionary:
             data = {}
             for item in path_list:

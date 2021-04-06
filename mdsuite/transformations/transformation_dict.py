@@ -11,9 +11,11 @@ from mdsuite.transformations.integrated_heat_current import IntegratedHeatCurren
 from mdsuite.transformations.thermal_flux import ThermalFlux
 from mdsuite.transformations.momentum_flux import MomentumFlux
 from mdsuite.transformations.kinaci_integrated_heat_current import KinaciIntegratedHeatCurrent
+from mdsuite.transformations.wrap_coordinates import CoordinateWrapper
 
 transformations_dict = {
     'UnwrapCoordinates': CoordinateUnwrapper,
+    'WrapCoordinates': CoordinateWrapper,
     'ScaleCoordinates': ScaleCoordinates,
     'UnwrapViaIndices': UnwrapViaIndices,
     'IonicCurrent': IonicCurrent,
