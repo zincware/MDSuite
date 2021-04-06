@@ -151,7 +151,6 @@ class GreenKuboThermalConductivity(Calculator):
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
             self._plot_data()
-
         # Save the array if required
         if self.save:
             self._save_data(f"{self.analysis_name}", [self.time, self.jacf])

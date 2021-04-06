@@ -11,14 +11,14 @@ compare the results of the analysis on that experiment.
 """
 
 import os
+import pickle
 from datetime import datetime
+from pathlib import Path
+
 import numpy as np
 
-from pathlib import Path
-import pickle
-
 from mdsuite.experiment.experiment import Experiment
-from mdsuite.utils.meta_functions import simple_file_read
+from mdsuite.utils.meta_functions import simple_file_read, find_item
 
 
 class Project:
@@ -80,11 +80,14 @@ class Project:
                 experiment.load_class()
 
             # List the experiments available to the user
-            print("List of available experiments")
-            self.list_experiments()
+            self.__str__()
         else:
             os.mkdir(f"{self.storage_path}/{self.name}")  # create a new directory for the project
             self._save_class()  # Save the initial class state
+
+    def __str__(self):
+        print("List of available experiments")
+        return self.list_experiments()
 
     def add_description(self, description: str):
         """
@@ -110,11 +113,15 @@ class Project:
     def list_experiments(self):
         """
         List the available experiments as a numerical list.
-        """
 
-        counter = 0
-        for experiment in self.experiments:
-            print(f"{counter}.) {experiment}")
+        Returns
+        -------
+        str: per-line list of experiments
+        """
+        list_experiments = []
+        for idx, experiment in enumerate(self.experiments):
+            list_experiments.append(f"{idx}.) {experiment}")
+        return '\n'.join(list_experiments)
 
     def _load_class(self):
         """
@@ -134,12 +141,13 @@ class Project:
         In order to keep properties of a class the state must be stored. This method will store the instance of the
         class for later re-loading
         """
+        self.__dict__.update(self.experiments)  # updates the dictionary with the new experiments added
 
         save_file = open(f"{self.storage_path}/{self.name}/{self.name}_state.bin", 'wb')  # Open the class state file
         save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
         save_file.close()  # Close the state file
 
-    def add_experiment(self, experiment_name: str=None, timestep: float = None, temperature: float = None,
+    def add_experiment(self, experiment_name: str = None, timestep: float = None, temperature: float = None,
                        units: str = None, cluster_mode: bool = None):
         """
         Add an experiment to the project
@@ -181,3 +189,51 @@ class Project:
         self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
         self._save_class()  # Save the class state
+
+    def get_results(self, key_to_find):
+        """
+        Gets the results from the experiments and puts them in a dict
+
+        Parameters
+        ----------
+        key_to_find : str
+            name of the parameter to search in the results.
+
+        Returns
+        -------
+        results: dict
+            collects the results from the different experiments
+        """
+
+        results = {}
+        for experiment_name, experiment_class in self.experiments.items():
+            results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
+            result = find_item(results_yaml, key_to_find)
+            if isinstance(result,list):
+                result = [float(res) for res in result] # convert results to floats
+            results[experiment_name] = result
+
+        return results
+
+    def get_attribute(self, attribute):
+        """
+        Get an attribute from the experiments. Equivalent to get_results but for system parameters such as:
+        temperature, time_step, etc.
+
+        Parameters
+        ----------
+        attribute : str
+            name of the parameter to search in the experiment.
+
+        Returns
+        -------
+        results: dict
+            collects the results from the different experiments
+        """
+
+        results = {}
+        for experiment_name, experiment_class in self.experiments.items():
+            value_attr = experiment_class.__getattribute__(attribute)  # this is a dict with the results from the yaml file
+            results[experiment_name] = value_attr
+
+        return results
