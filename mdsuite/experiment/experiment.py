@@ -643,10 +643,6 @@ class Experiment:
         for item in species:
             path_list.append(join_path(item, identifier))
         return database.load_data(path_list=path_list, select_slice=select_slice)
-            path_list = []
-            for item in species:
-                path_list.append(join_path(item, identifier))
-            return database.load_data(path_list=path_list, select_slice=select_slice)
 
     @property
     def results(self):
