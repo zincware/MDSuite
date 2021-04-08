@@ -21,6 +21,7 @@ from mdsuite.utils.meta_functions import *
 from scipy import signal
 from scipy.optimize import curve_fit
 from tqdm import tqdm
+import pandas as pd
 
 if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
@@ -55,7 +56,7 @@ class Calculator(metaclass=abc.ABCMeta):
             Number of barthes to use as a dictionary for both serial and parallel implementations
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=500, correlation_time=1):
+    def __init__(self, experiment, plot=True, save=True, data_range=500, correlation_time=1, export=False):
         """
 
         Parameters
@@ -64,15 +65,14 @@ class Calculator(metaclass=abc.ABCMeta):
         plot
         save
         data_range
-        x_label
-        y_label
-        analysis_name
+        export
 
         """
         self.experiment = experiment  # Experiment object to get properties from
         self.data_range = data_range  # Data range over which to evaluate
         self.plot = plot  # Whether or not to plot the tensor_values and save a figure
         self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+        self.export = export
 
         self.loaded_property = None  # Which dataset to load
         self.dependency = None
@@ -531,3 +531,26 @@ class Calculator(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError
+
+    def export_data_to_csv(self, title, data, species=None):
+        """
+        Save tensor_values to a csv file
+
+        Parameters
+        ----------
+        title : str
+                name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
+                analysis, this will be further appended to include the name of the species.
+        data : np.array
+                Data to be saved.
+        """
+
+        if species is None:
+            species = ''
+        else:
+            species = f'{species} + "_"'
+
+        filename = os.path.join(self.experiment.experiment_path, f"{species}{title}.csv")
+
+        df = pd.DataFrame({self.x_label: data[0], self.y_label: data[1]})
+        df.to_csv(filename, index=False)
