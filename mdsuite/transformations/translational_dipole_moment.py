@@ -102,7 +102,7 @@ class TranslationalDipoleMoment(Transformations):
         else:
             charges = True
 
-        dipole_moment = tf.zeros(shape=(self.batch_size, 3), dtype=tf.float64)
+        dipole_moment = tf.zeros(shape=(data[str.encode('data_size')], 3), dtype=tf.float64)
         if charges:
             for position, charge in zip(positions_keys, charge_keys):
                 dipole_moment += tf.reduce_sum(data[position]*data[charge], axis=0)
@@ -112,7 +112,7 @@ class TranslationalDipoleMoment(Transformations):
                 species = species_string.split('/')[0]
                 # Build the charge tensor for assignment
                 charge = self.experiment.species[species]['charge'][0]
-                charge_tensor = tf.ones(shape=(self.batch_size, 3), dtype=tf.float64) * charge
+                charge_tensor = tf.ones(shape=(data[str.encode('data_size')], 3), dtype=tf.float64) * charge
                 dipole_moment += tf.reduce_sum(data[item]*charge_tensor, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment
@@ -137,7 +137,7 @@ class TranslationalDipoleMoment(Transformations):
         for item in path_list:
             species = item.split('/')[0]
             n_atoms = len(self.experiment.species[species]['indices'])
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms, self.batch_size, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms, None, dimension), dtype=tf.float64)
 
         return dictionary
 
@@ -182,15 +182,15 @@ class TranslationalDipoleMoment(Transformations):
             data_path = positions_path
             self._prepare_monitors(data_path)
             type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
-
-        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
+        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)
-            self._save_coordinates(data, index, self.batch_size, data_structure)
+            self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
 
     def _save_coordinates(self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict):
         """

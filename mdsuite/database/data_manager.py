@@ -51,6 +51,8 @@ class DataManager:
                 self.database.name,
                 self.data_path,
                 dictionary)
+
+
         def generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
             """
             Generator function for the batch loop.
@@ -74,16 +76,15 @@ class DataManager:
             database = Database(name=database)
 
             _remainder = [1 if remainder else 0][0]
-
             for batch in range(batch_number + _remainder):
                 start = int(batch*batch_size)
                 stop = int(start + batch_size)
+                data_size = tf.cast(batch_size, dtype=tf.int16)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
-
-                # print(f'{start}:{stop}:{database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary).shape}')
-
-                yield database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary)
+                    data_size = tf.cast(self.remainder, dtype=tf.int16)
+                yield database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary,
+                                         d_size=data_size)
 
         def system_generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
             """
@@ -114,8 +115,6 @@ class DataManager:
                 stop = int(start + batch_size)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
-
-                # print(f'{start}:{stop}:{database.load_data(data_path, select_slice=np.s_[start:stop], dictionary=dictionary).shape}')
 
                 yield database.load_data(data_path, select_slice=np.s_[start:stop], dictionary=dictionary)
 
