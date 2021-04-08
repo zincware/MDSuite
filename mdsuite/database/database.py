@@ -417,7 +417,7 @@ class Database:
         db.close()
 
     def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
-                  scaling: list = None):
+                  scaling: list = None, d_size: int = None):
         """
         Load tensor_values from the database_path for some operation.
 
@@ -439,6 +439,7 @@ class Database:
             data = {}
             for item in path_list:
                 data[item] = tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)
+            data[str.encode('data_size')] = d_size
         database.close()
 
         if len(data) == 1:
