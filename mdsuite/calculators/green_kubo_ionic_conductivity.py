@@ -48,7 +48,7 @@ class GreenKuboIonicConductivity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time=1):
+    def __init__(self, experiment, data_range=500, correlation_time=1, **kwargs):
         """
 
         Attributes
@@ -64,7 +64,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         # update experiment class
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, data_range=data_range, correlation_time=correlation_time, **kwargs)
 
         self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
         self.system_property = True
@@ -152,3 +152,6 @@ class GreenKuboIonicConductivity(Calculator):
         # Save the array if required
         if self.save:
             self._save_data(f"{self.analysis_name}", [self.time, self.jacf])
+
+        if self.export:
+            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.jacf])

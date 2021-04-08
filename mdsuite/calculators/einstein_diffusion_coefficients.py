@@ -60,8 +60,8 @@ class EinsteinDiffusionCoefficients(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, experiment, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1):
+    def __init__(self, experiment, species: list = None, data_range: int = 100,
+                 optimize: bool = False, correlation_time: int = 1, **kwargs):
         """
 
         Parameters
@@ -80,7 +80,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                 If true, the tensor_values range will be optimized
         """
 
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, data_range=data_range, correlation_time=correlation_time, **kwargs)
 
         self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
 
@@ -173,6 +173,9 @@ class EinsteinDiffusionCoefficients(Calculator):
         # Save the array if required
         if self.save:
             self._save_data(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
+
+        if self.export:
+            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
 
     def _optimized_calculation(self):
         """

@@ -49,8 +49,8 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1):
+    def __init__(self, experiment, species: list = None, data_range: int = 500,
+                 correlation_time: int = 1, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -68,7 +68,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 If true, tensor_values will be saved after the analysis
         """
 
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, data_range=data_range, correlation_time=correlation_time, **kwargs)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
 
@@ -161,3 +161,6 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         # Save the array if required
         if self.save:
             self._save_data(f"{species}_{self.analysis_name}", [self.time, self.vacf])
+
+        if self.export:
+            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.vacf])

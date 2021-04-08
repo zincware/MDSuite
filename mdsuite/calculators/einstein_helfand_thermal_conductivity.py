@@ -46,7 +46,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
     """
 
-    def __init__(self, experiment, plot=True, data_range=500, save=True, correlation_time=1):
+    def __init__(self, experiment, data_range=500, correlation_time=1, **kwargs):
         """
         Python constructor
 
@@ -63,7 +63,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, data_range=data_range, correlation_time=correlation_time, **kwargs)
 
         self.loaded_property = 'Integrated_Heat_Current'  # Property to be loaded for the analysis
         self.dependency = "Unwrapped_Positions"
@@ -153,3 +153,5 @@ class EinsteinHelfandThermalConductivity(Calculator):
         if self.save:
             self._save_data(f"{self.analysis_name}", [self.time * self.experiment.units['time'], self.msd_array])
 
+        if self.export:
+            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.msd_array])

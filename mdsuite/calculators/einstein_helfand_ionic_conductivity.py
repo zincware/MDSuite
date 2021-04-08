@@ -152,3 +152,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # Save the array if required
         if self.save:
             self._save_data(f"{self.analysis_name}", [self.time, self.msd_array])
+
+        if self.export:
+            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
