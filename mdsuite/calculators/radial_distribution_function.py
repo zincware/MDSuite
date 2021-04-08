@@ -452,13 +452,17 @@ class RadialDistributionFunction(Calculator, ABC):
         for names in self.key_list:
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
+
+            plt.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))
+            if self.plot:
+                self._plot_data(title=names)  # Plot the tensor_values if necessary
+
             if self.save:  # get the species names
                 self._save_data(f'{names}_{self.analysis_name}',
                                 [np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names)])
 
         self.experiment.radial_distribution_function_state = True  # update the state
-        if self.plot:
-            self._plot_data()  # Plot the tensor_values if necessary
+
 
     def run_experimental_analysis(self):
         """
