@@ -166,7 +166,7 @@ class Database:
 
         return indices
 
-    def _resize_dataset(self, structure: dict):
+    def resize_dataset(self, structure: dict):
         """
         Resize a dataset so more tensor_values can be added
 
@@ -188,10 +188,25 @@ class Database:
 
         # construct the architecture dict
         architecture = self._build_path_input(structure=structure)
+        # Check for a type error in the dataset information
 
         for identifier in architecture:
-            for data in database[identifier]:
-                data.resize(architecture[identifier], 1)
+            dataset_information = architecture[identifier]
+            try:
+                if type(dataset_information) is not tuple:
+                    print("Invalid input for dataset generation")
+                    raise TypeError
+            except TypeError:
+                raise TypeError
+
+            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
+            if len(dataset_information[:-1]) == 1:
+                axis = 0
+                expansion = dataset_information[0] + database[identifier].shape[0]
+            else:
+                axis = 1
+                expansion = dataset_information[1] + database[identifier].shape[1]
+            database[identifier].resize(expansion, axis)
 
     def initialize_database(self, structure: dict):
         """

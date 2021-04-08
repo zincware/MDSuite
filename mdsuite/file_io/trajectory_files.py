@@ -85,7 +85,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         """
 
         # Define the empty tensor_values array
-        configurations_data = np.empty((number_of_configurations*self.project.number_of_atoms, line_length),
+        configurations_data = np.empty((number_of_configurations * self.experiment.number_of_atoms, line_length),
                                        dtype='<U15')
 
         counter = 0
@@ -95,7 +95,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 file_object.readline()
 
             # Read the tensor_values into the arrays.
-            for k in range(self.project.number_of_atoms):
+            for k in range(self.experiment.number_of_atoms):
                 configurations_data[counter] = np.array(list(file_object.readline().split()))
                 counter += 1  # update the counter
         return configurations_data
@@ -107,15 +107,15 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         structure = {}  # define initial dictionary
         if batch_size is None:
-            batch_size = self.project.batch_size
+            batch_size = self.experiment.batch_size
 
-        for item in self.project.species:
-            positions = np.array([np.array(self.project.species[item]['indices']) + i * self.project.number_of_atoms -
+        for item in self.experiment.species:
+            positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
                                   self.header_lines for i in range(batch_size)]).flatten()
-            length = len(self.project.species[item]['indices'])
-            for observable in self.project.property_groups:
+            length = len(self.experiment.species[item]['indices'])
+            for observable in self.experiment.property_groups:
                 path = join_path(item, observable)
-                columns = self.project.property_groups[observable]
+                columns = self.experiment.property_groups[observable]
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
 
         return structure
