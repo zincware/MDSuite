@@ -34,7 +34,7 @@ class UnwrapViaIndices(Transformations):
         super().__init__()
         self.experiment = experiment
         self.species = species
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database_path.hdf5"),
+        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"),
                                  architecture='simulation')
         if self.species is None:
             self.species = list(self.experiment.species)

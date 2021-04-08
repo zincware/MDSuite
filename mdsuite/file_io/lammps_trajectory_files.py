@@ -25,6 +25,7 @@ var_names = {
     "Angular_Velocity_Spherical": ['omegax', 'omegay', 'omegaz'],
     "Angular_Velocity_Non_Spherical": ['angmomx', 'angmomy', 'angmomz'],
     "Torque": ['tqx', 'tqy', 'tqz'],
+    "Charge": ['q'],
     "KE": ["c_KE"],
     "PE": ["c_PE"],
     "Stress": ['c_Stress[1]', 'c_Stress[2]', 'c_Stress[3]', 'c_Stress[4]', 'c_Stress[5]', 'c_Stress[6]']
