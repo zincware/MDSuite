@@ -270,7 +270,7 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
 
-    def _plot_data(self, title: str = None, manual: bool = False):
+    def _plot_data(self, title: str = None, manual: bool = False, dpi: int = 600):
         """
         Plot the tensor_values generated during the analysis
         """
@@ -279,12 +279,12 @@ class Calculator(metaclass=abc.ABCMeta):
             title = f"{self.analysis_name}"
 
         if manual:
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
         else:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.legend()  # enable the legend
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
 
     def _check_input(self):
         """
