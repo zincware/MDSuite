@@ -25,8 +25,8 @@ def main():
     mapper = MolecularMap(emim, molecules={'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20}})
     mapper.run_transformation()
     emim.perform_transformation('WrapCoordinates', species=['emim'])
-    emim.write_xyz(species=['emim'], name='emim', dump_property='Positions')
-    emim.write_xyz(species=['C', 'H', 'N'], name='atomistic', dump_property='Positions')
+    #emim.write_xyz(species=['emim'], name='emim', dump_property='Positions')
+    #emim.write_xyz(species=['C', 'H', 'N'], name='atomistic', dump_property='Positions')
 
 
 if __name__ == "__main__":

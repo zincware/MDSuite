@@ -28,6 +28,7 @@ from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
+import yaml
 
 
 
