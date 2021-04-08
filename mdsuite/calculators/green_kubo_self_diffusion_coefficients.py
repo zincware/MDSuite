@@ -163,4 +163,4 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
             self._save_data(f"{species}_{self.analysis_name}", [self.time, self.vacf])
 
         if self.export:
-            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.vacf])
+            self.export_data_to_csv(f"{self.analysis_name}", [self.time, self.vacf], species)

@@ -154,4 +154,4 @@ class EinsteinHelfandThermalConductivity(Calculator):
             self._save_data(f"{self.analysis_name}", [self.time * self.experiment.units['time'], self.msd_array])
 
         if self.export:
-            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
+            self.export_data_to_csv(f"{self.analysis_name}", [self.time, self.msd_array], species=species)

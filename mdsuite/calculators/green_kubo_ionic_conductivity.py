@@ -154,4 +154,4 @@ class GreenKuboIonicConductivity(Calculator):
             self._save_data(f"{self.analysis_name}", [self.time, self.jacf])
 
         if self.export:
-            self.export_data_to_csv(f"{species}_{self.analysis_name}", [self.time, self.jacf])
+            self.export_data_to_csv(f"{self.analysis_name}", [self.time, self.jacf], species)
