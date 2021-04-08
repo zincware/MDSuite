@@ -305,17 +305,18 @@ class EXTXYZFileReader(TrajectoryFile):
         species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
 
         if update_class:
-            self.project.batch_size = batch_size
-            self.project.dimensions = get_dimensionality(box)
-            self.project.box_array = box
-            self.project.volume = box[0] * box[1] * box[2]
-            self.project.species = species_summary
-            self.project.number_of_atoms = number_of_atoms
-            self.project.number_of_configurations += number_of_configurations
-            self.project.sample_rate = sample_rate
-            self.project.property_groups = property_groups
+            self.experiment.batch_size = batch_size
+            self.experiment.dimensions = get_dimensionality(box)
+            self.experiment.box_array = box
+            self.experiment.volume = box[0] * box[1] * box[2]
+            self.experiment.species = species_summary
+            self.experiment.number_of_atoms = number_of_atoms
+            self.experiment.number_of_configurations += number_of_configurations
+            self.experiment.sample_rate = sample_rate
+            self.experiment.property_groups = property_groups
 
         else:
-            self.project.batch_size = batch_size
+            self.experiment.batch_size = batch_size
+
 
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

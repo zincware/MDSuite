@@ -40,8 +40,9 @@ class MemoryManager:
         """
         Calculate the batch size of an operation.
 
-        This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values should be for
-        such an operation.
+        This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values
+        should be for such an operation.
+
 
         Parameters
         ----------
@@ -58,6 +59,7 @@ class MemoryManager:
         if self.data_path is []:
             print("No tensor_values has been requested.")
             sys.exit(1)
+
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
@@ -65,7 +67,6 @@ class MemoryManager:
         maximum_loaded_configurations = int(np.clip((self.memory_fraction*self.machine_properties['memory']) /
                                                     per_configuration_memory, 1, n_columns))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        batch_size = 100
         number_of_batches = int(n_columns / batch_size)
         remainder = int(n_columns % batch_size)
 
@@ -106,7 +107,6 @@ class MemoryManager:
                 An optimized batch size
         """
         db_io_time = self.database.get_load_time()
-
 
         return naive_size
 
