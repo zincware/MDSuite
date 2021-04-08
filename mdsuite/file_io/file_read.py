@@ -15,7 +15,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    obj, project : object
+    obj, experiment : object
             File object to be opened and read in.
     header_lines : int
             Number of header lines in the file format being read.
@@ -34,7 +34,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
                 Number of header lines in the given file format.
         """
 
-        self.project = obj  # Experiment class instance to add to.
+        self.experiment = obj  # Experiment class instance to add to.
         self.header_lines = header_lines  # Number of header lines in the given file format.
         self.file_path = file_path   # path to the file being read
 

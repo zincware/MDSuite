@@ -40,8 +40,8 @@ class MemoryManager:
         """
         Calculate the batch size of an operation.
 
-        This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values should be for
-        such an operation.
+        This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values
+        should be for such an operation.
 
         Parameters
         ----------
@@ -58,6 +58,7 @@ class MemoryManager:
         if self.data_path is []:
             print("No tensor_values has been requested.")
             sys.exit(1)
+
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)

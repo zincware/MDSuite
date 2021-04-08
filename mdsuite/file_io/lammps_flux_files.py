@@ -41,7 +41,7 @@ class LAMMPSFluxFile(FluxFile):
         """
 
         super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
-        self.project.flux = True
+        self.experiment.flux = True
 
     @staticmethod
     def _build_architecture(property_groups: dict, number_of_atoms: int,
@@ -122,7 +122,7 @@ class LAMMPSFluxFile(FluxFile):
 
         # Find properties available for analysis
         column_dict_properties = self._get_column_properties(header_line)
-        self.project.property_groups = self._extract_properties(var_names, column_dict_properties)
+        self.experiment.property_groups = self._extract_properties(var_names, column_dict_properties)
 
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 
@@ -136,36 +136,36 @@ class LAMMPSFluxFile(FluxFile):
             time_1_line = f.readline().split()
             time_1 = float(time_1_line[column_dict_properties['time']])
 
-        sample_rate = (time_1 - time_0) / self.project.time_step
+        sample_rate = (time_1 - time_0) / self.experiment.time_step
 
         # Update class attributes with calculated tensor_values
-        self.project.batch_size = batch_size
+        self.experiment.batch_size = batch_size
         # self.properties = properties_summary
-        self.project.number_of_configurations = number_of_configurations
-        self.project.sample_rate = sample_rate
+        self.experiment.number_of_configurations = number_of_configurations
+        self.experiment.sample_rate = sample_rate
         self.time_0 = time_0
 
         # Get the number of atoms if not set in initialization
-        if self.project.number_of_atoms is None:
-            self.project.number_of_atoms = int(header[2][1])  # hopefully always in the same position
+        if self.experiment.number_of_atoms is None:
+            self.experiment.number_of_atoms = int(header[2][1])  # hopefully always in the same position
 
         # Get the volume, if not set in initialization
-        if self.project.volume is None:
+        if self.experiment.volume is None:
             print(float(header[4][7]))
-            self.project.volume = float(header[4][7])  # hopefully always in the same position
+            self.experiment.volume = float(header[4][7])  # hopefully always in the same position
 
-        self.project.species = {'1': []}
+        self.experiment.species = {'1': []}
 
         if update_class:
-            self.project.batch_size = batch_size
-            self.project.volume = self.project.volume
+            self.experiment.batch_size = batch_size
+            self.experiment.volume = self.experiment.volume
 
         else:
-            self.project.batch_size = batch_size
+            self.experiment.batch_size = batch_size
 
         line_length = self._get_line_length()
-        return self._build_architecture(self.project.property_groups,
-                                        self.project.number_of_atoms,
+        return self._build_architecture(self.experiment.property_groups,
+                                        self.experiment.number_of_atoms,
                                         number_of_configurations), line_length
 
     def build_file_structure(self):
@@ -175,9 +175,9 @@ class LAMMPSFluxFile(FluxFile):
 
         structure = {}  # define initial dictionary
 
-        for observable in self.project.property_groups:
+        for observable in self.experiment.property_groups:
             path = join_path(observable, observable)
-            columns = self.project.property_groups[observable]
+            columns = self.experiment.property_groups[observable]
             structure[path] = {'indices': np.s_[:], 'columns': columns, 'length': 1}
 
         return structure
