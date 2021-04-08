@@ -1,4 +1,5 @@
 import setuptools
+from os import path
 
 from setuptools.command.develop import develop
 from setuptools.command.install import install
@@ -20,6 +21,12 @@ class PostInstallCommand(install):
     def run(self):
         install.run(self)
         subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
+
+here = path.abspath(path.dirname(__file__))
+with open(path.join(here, 'requirements.txt')) as requirements_file:
+    # Parse requirements.txt, ignoring any commented-out lines.
+    requirements = [line for line in requirements_file.read().splitlines()
+                    if not line.startswith('#')]
 
 
 with open("README.md", "r") as fh:
@@ -43,30 +50,7 @@ setuptools.setup(
     package_data={'': ['form_fac_coeffs.csv']},
     include_package_data=True,
     python_requires='>=3.7',
-    install_requires=['seaborn',
-                      'tensorflow',
-                      'h5py',
-                      'pysmiles',
-                      'numpy',
-                      'matplotlib',
-                      'scipy',
-                      'tqdm',
-                      'psutil>=5.6.6',
-                      'numpy',
-                      'gputil',
-                      'diagrams',
-                      'pubchempy',
-                      'PyYAML',
-                      'sphinxcontrib.bibtex',
-                      'pybtex',
-                      'dask',
-                      'nbsphinx',
-                      'sphinx_rtd_theme',
-                      'ipython',
-                      'numpydoc',
-                      'sphinx-copybutton',
-                      'vpython',
-                      'colorutils'],
+    install_requires=requirements,
     cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
     # force install of the newest h5py after the dependencies are installed
     # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
