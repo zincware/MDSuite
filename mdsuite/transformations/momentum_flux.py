@@ -136,7 +136,7 @@ class MomentumFlux(Transformations):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, self.batch_size, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None, dimension), dtype=tf.float64)
 
         return dictionary
 
