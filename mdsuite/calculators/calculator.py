@@ -246,6 +246,7 @@ class Calculator(metaclass=abc.ABCMeta):
                                             memory_fraction=0.5)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
             system=self.system_property)
+
         self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
         self.data_manager = DataManager(data_path=data_path,
                                         database=self.database,
@@ -253,7 +254,9 @@ class Calculator(metaclass=abc.ABCMeta):
                                         batch_size=self.batch_size,
                                         n_batches=self.n_batches,
                                         ensemble_loop=self.ensemble_loop,
-                                        correlation_time=self.correlation_time)
+                                        correlation_time=self.correlation_time,
+                                        remainder=self.remainder
+                                        )
         self._update_output_signatures()
 
     def _save_data(self, title: str, data: np.array):
@@ -501,7 +504,7 @@ class Calculator(metaclass=abc.ABCMeta):
             self._calculate_prefactor()
             data_path = [join_path(self.loaded_property, self.loaded_property)]
             self._prepare_managers(data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(system=self.system_property)
             batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
                                                             args=batch_generator_args,
                                                             output_signature=self.batch_output_signature)
