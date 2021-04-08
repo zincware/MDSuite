@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING
 import sys
 
 import h5py as hf
+import matplotlib.figure
 import matplotlib.pyplot as plt
+
+from matplotlib.axes._subplots import Axes
+
 import tensorflow as tf
 import yaml
 
@@ -26,11 +30,12 @@ if TYPE_CHECKING:
     from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
-from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
+from mdsuite.plot_style.plot_style import apply_style  # TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
+
 
 class Calculator(metaclass=abc.ABCMeta):
     """
@@ -84,7 +89,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.system_property = False  # is the calculation on a system property?
         self.multi_species = False  # does the calculation require loading of multiple species?
-        self.experimental = False # experimental calculator.
+        self.experimental = False  # experimental calculator.
         self.species = None
         self.optimize = False
         self.batch_output_signature = None
@@ -239,7 +244,8 @@ class Calculator(metaclass=abc.ABCMeta):
                                             database=self.database,
                                             scaling_factor=1,
                                             memory_fraction=0.5)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(system=self.system_property)
+        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
+            system=self.system_property)
         self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
         self.data_manager = DataManager(data_path=data_path,
                                         database=self.database,
@@ -270,7 +276,34 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
 
-    def _plot_data(self, title: str = None, manual: bool = False):
+    def _plot_fig(self, fig: matplotlib.figure.Figure, ax: Axes, title: str = None, dpi: int = 600,
+                  filetype: str = 'svg'):
+        """Class based plotting using fig, ax = plt.subplots
+
+        Parameters
+        ----------
+        fig: matplotlib figure
+        ax: matplotlib subplot axes
+            currently only a single axes is supported. Subplots aren't yet!
+        title: str
+            Name of the plot
+        dpi: int
+            matplotlib dpi resolution
+        filetype: str
+            matplotlib filetype / format
+        """
+
+        if title is None:
+            title = f"{self.analysis_name}"
+
+        ax.set_xlabel(rf'{self.x_label}')
+        ax.set_ylabel(rf'{self.y_label}')
+        ax.legend()
+        fig.show()
+
+        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format=filetype)
+
+    def _plot_data(self, title: str = None, manual: bool = False, dpi: int = 600):
         """
         Plot the tensor_values generated during the analysis
         """
@@ -279,12 +312,12 @@ class Calculator(metaclass=abc.ABCMeta):
             title = f"{self.analysis_name}"
 
         if manual:
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
         else:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.legend()  # enable the legend
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=600, format='svg')
+            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
 
     def _check_input(self):
         """
@@ -397,6 +430,7 @@ class Calculator(metaclass=abc.ABCMeta):
         -------
 
         """
+
         def _string_to_function(argument):
             """
             Select a transformation based on an input
