@@ -2,6 +2,7 @@
 
 import re
 import os
+from os.path import exists
 from shutil import copyfile
 import time
 
@@ -35,11 +36,15 @@ def find_match(lammpsfilename, match):
         line_with_match = []
         for line in fp:
             if all(x in line for x in match):
-                return line
+                line_with_match.append(line)
+    return line_with_match
 
 def get_property(line_match):
     # this takes the value of a dict (usually a string) and returns a value of the property.
     # it is built this way to handle the possible errors.
+    if line_match.startswith('pair_style'):
+        return line_match.split()[1]
+
     try:
         property_extracted = float(re.findall('\d*\.?\d+', line_match)[0])
     except IndexError:
@@ -52,16 +57,15 @@ def get_property(line_match):
 def read_data(lammpsfilename):
 
     # inputs to match (some variables and the line of headers)
-    things_to_match = {'density':           ['variable','Densi', 'equal'],
-                       'atom_side':         ['variable','atom_side', 'equal'],
-                       'dt':                ['variable', 'dt', 'equal'],
-                       'units':             ['units'],
-                       'molarMass':         ['variable', 'molarMass', 'equal'],
+    things_to_match = {'density':           ['variable','densi', 'equal', '# density'],
+                       'atom_side':         ['variable','repetitions', 'equal'],
+                       'dt':                ['variable', 'dt', 'equal', '# timestep'],
+                       'units':             ['units', '# set units'],
+                       'molarMass':         ['variable', 'M_arg', 'equal'],
                        'pair_style':        ['pair_style'],
-                       'timesteps_conduct': ["variable", 'timesteps_conductivity', 'equal'],
+                       'timesteps': ["variable", 'timesteps', 'equal'],
                        'output_step':       ['variable','output_step', 'equal'],
-                       'temperature':       ['variable', 'T', 'equal'],
-                       'dt_production': ['variable', 'dt_production', 'equal'],
+                       'temperature':       ['variable', 'T', 'equal', '# temperature'],
                        'volume': ['the', 'volume', 'of', 'the', 'box', 'is:']
                        }
 
@@ -69,27 +73,33 @@ def read_data(lammpsfilename):
 
     # match the different properties required
 
-    matches = dict.fromkeys(things_to_match.keys())
     properties_extracted = dict.fromkeys(things_to_match.keys())
 
     for property, indicators in things_to_match.items():
-        matches[property] = find_match(lammpsfilename, indicators)
-        properties_extracted[property] = get_property(matches[property])
+        matches = find_match(lammpsfilename, indicators)
+        if not matches:
+            properties_extracted[property] = None
+        else:
+            if isinstance(matches, str):
+                properties_extracted[property] = get_property(matches)
+            elif isinstance(matches, list):
+                properties_extracted[property] = get_property(matches[-1])
+
         if properties_extracted[property] is None:
             print(f'"{property}" not found, will be printed as "nan"')
             properties_extracted[property] = -1
 
-    properties_extracted['num_atoms'] = properties_extracted["atom_side"]**3
+    properties_extracted['num_atoms'] = 4*properties_extracted["atom_side"]**3
 
 
     # get the header line
-    line_header = find_match(lammpsfilename, line_fix_print_headers)
+    line_header = find_match(lammpsfilename, line_fix_print_headers)[0]
     line_header = line_header.split(sep='"')[1].replace("$","").replace("(","").replace(")","")
 
     text_to_replace = (f'# Fix print output for fix print_data\n'
                        f'# {properties_extracted["pair_style"]} potential \n'
-                       f'# {properties_extracted["num_atoms"]} atoms, dens. {properties_extracted["density"]}g/cm^3 \n'
-                       f'# dt = {properties_extracted["dt"]}, {properties_extracted["timesteps_conduct"]} timesteps, output_step = every {properties_extracted["output_step"]} step \n'
+                       f'# {int(properties_extracted["num_atoms"])} atoms, dens. {properties_extracted["density"]}g/cm^3 \n'
+                       f'# dt = {properties_extracted["dt"]}, {properties_extracted["timesteps"]} timesteps, output_step = every {properties_extracted["output_step"]} step \n'
                        f'# Temperature = {properties_extracted["temperature"]} K, V = {properties_extracted["volume"]} A3 \n'
                        f'# LAMMPS {properties_extracted["units"]} units \n'
                        f'{line_header} \n')
@@ -120,4 +130,7 @@ def add_header(filename, lammpsfilename, keep_copy=True):
         print("Job's Done! header replaced")
 
 if __name__=='__main__':
-    add_header('../flux_1.lmp_flux', '../argon.lammps')
+
+    add_header('../flux_1.lmp_flux', '../log.lammps')
+
+

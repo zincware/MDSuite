@@ -2,8 +2,9 @@
 # to add a new unit experiment, simply add it as a function here, and then in the dictionary in units_to_si.
 
 # we can keep these here, or add them to the corresponding set of units.
-# for example, in the metal and real, the boltzman constant is added in that experiment of units.
-# This allows to perform all the computations using the experiment of units given, and only perform the transformation of the final result.
+# for example, in the metal and real, the boltzman constant is added in that system of units.
+# This allows to perform all the computations using the system of units given,
+# and only perform the transformation of the final result.
 standard_state_pressure = 100000  # Pa -- Standard state pressure
 avogadro_constant = 6.02214076e23  # mol^-1 -- Avogadro's constant
 elementary_charge = 1.602176634e-19  # C -- Elementary charge
@@ -21,14 +22,14 @@ golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 def units_real():
     units = {'time': 1e-15, 'length': 1e-10, 'energy': 4184 / 6.02214076e23,
              'NkTV2p': 68568.415,
-             'boltzman': 0.0019872067, 'temperature':1, 'pressure':101325.0}
+             'boltzman': 0.0019872067, 'temperature': 1, 'pressure': 101325.0}
     return units
 
 
 def units_metal():
     units = {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
              'NkTV2p': 1.6021765e6,
-             'boltzman': 8.617343e-5,'temperature':1, 'pressure':100000}
+             'boltzman': 8.617343e-5, 'temperature': 1, 'pressure': 100000}
     return units
 
 
@@ -36,7 +37,7 @@ def units_SI():
     units = {'time': 1, 'length': 1, 'energy': 1,
              'boltzman': 1.380649e-23,
              'avogadro': 6.02214076e23,
-             'elementary_charge': 1.602176634e-19,'temperature':1, 'pressure':1}
+             'elementary_charge': 1.602176634e-19, 'temperature': 1, 'pressure': 1}
     return units
 
 
