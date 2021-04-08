@@ -103,7 +103,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         # Calculate the prefactor
         numerator = 1
-        denominator = 2 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
+        denominator = 6 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
         units_change = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
             'time'] / self.experiment.units['temperature']
         self.prefactor = numerator / denominator * units_change
@@ -141,7 +141,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = self._fit_einstein_curve([self.time * self.experiment.units['time'], self.msd_array])
         self._update_properties_file(data=result)
 
         # Update the plot if required
@@ -151,5 +151,5 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time, self.msd_array])
+            self._save_data(f"{self.analysis_name}", [self.time * self.experiment.units['time'], self.msd_array])
 

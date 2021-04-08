@@ -11,8 +11,9 @@ import numpy as np
 from tqdm import tqdm
 
 from mdsuite.file_io.file_read import FileProcessor
+
+
 # from .file_io_dict import lammps_flux
-from mdsuite.utils.meta_functions import optimize_batch_size
 
 
 class FluxFile(FileProcessor):
@@ -37,8 +38,7 @@ class FluxFile(FileProcessor):
         """
 
         super().__init__(obj, header_lines, file_path)  # fill the experiment class
-        self.project.volume = None
-        self.project.number_of_atoms = None
+
         self.sort = sort
 
     def build_database_skeleton(self):
@@ -84,7 +84,8 @@ class FluxFile(FileProcessor):
                         batch_data = self.read_configurations(self.project.batch_size, f,
                                                               skip=True)  # load the batch tensor_values
                     else:
-                        batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch tensor_values
+                        batch_data = self.read_configurations(self.project.batch_size,
+                                                              f)  # load the batch tensor_values
                     self.process_configurations(batch_data, database, counter)  # process the trajectory
                     skip_header = 1  # turn off the header skip
                     counter += len(batch_data)  # Update counter
