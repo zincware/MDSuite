@@ -63,6 +63,24 @@ class TranslationalDipoleMoment(Transformations):
         self.data_manager.n_batches = self.n_batches
         self.data_manager.remainder = self.remainder
 
+    def _check_for_charges(self):
+        """
+        Check the database_path for indices
+
+        Returns
+        -------
+
+        """
+        truth_table = []
+        for item in self.experiment.species:
+            path = join_path(item, 'Charge')
+            truth_table.append(self.database.check_existence(path))
+
+        if not all(truth_table):
+            return False
+        else:
+            return True
+
     def _transformation(self, data: tf.Tensor):
         """
         Calculate the translational dipole moment of the system.
@@ -71,20 +89,57 @@ class TranslationalDipoleMoment(Transformations):
         -------
 
         """
-        dipole_moment = tf.reduce_sum(data, axis=1)  # Convert the results to a tf.tensor
+        positions_keys = []
+        charge_keys = []
+        for item in data:
+            if str.encode('Unwrapped_Positions') in item:
+                positions_keys.append(item)
+            elif str.encode('Charge') in item:
+                charge_keys.append(item)
 
-        # Build the charge tensor for assignment
-        system_charges = [self.experiment.species[atom]['charge'][0] for atom in
-                          self.experiment.species]  # load species charge
-        charge_tuple = []  # define empty array for the charges
-        for charge in system_charges:  # loop over each species charge
-            # Build a tensor of charges allowing for memory management.
-            charge_tuple.append(tf.ones([self.batch_size, 3], dtype=tf.float64) * charge)
+        if len(charge_keys) != len(positions_keys):
+            charges = False
+        else:
+            charges = True
 
-        charge_tensor = tf.stack(charge_tuple)  # stack the tensors into a single object
-        dipole_moment = tf.reduce_sum(dipole_moment*charge_tensor, axis=0)  # Calculate the final dipole moments
+        dipole_moment = tf.zeros(shape=(self.batch_size, 3), dtype=tf.float64)
+        if charges:
+            for position, charge in zip(positions_keys, charge_keys):
+                dipole_moment += tf.reduce_sum(data[position]*data[charge], axis=0)
+        else:
+            for item in positions_keys:
+                species_string = item.decode("utf-8")
+                species = species_string.split('/')[0]
+                # Build the charge tensor for assignment
+                charge = self.experiment.species[species]['charge'][0]
+                charge_tensor = tf.ones(shape=(self.batch_size, 3), dtype=tf.float64) * charge
+                dipole_moment += tf.reduce_sum(data[item]*charge_tensor, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment
+
+    def _update_species_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+        """
+        Update a type spec dictionary for a species input.
+
+        Parameters
+        ----------
+        dictionary : dict
+                Dictionary to append
+        path_list : list
+                List of paths for the dictionary
+        dimension : int
+                Dimension of the property
+        Returns
+        -------
+        type dict : dict
+                Dictionary for the type spec.
+        """
+        for item in path_list:
+            species = item.split('/')[0]
+            n_atoms = len(self.experiment.species[species]['indices'])
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms, self.batch_size, dimension), dtype=tf.float64)
+
+        return dictionary
 
     def _prepare_database_entry(self):
         """
@@ -113,16 +168,25 @@ class TranslationalDipoleMoment(Transformations):
         -------
 
         """
+        type_spec = {}
         data_structure = self._prepare_database_entry()
-        data_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
-        self._prepare_monitors(data_path)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
+
+        if self._check_for_charges():
+            charge_path = [join_path(species, 'Charge') for species in self.experiment.species]
+            data_path = np.concatenate((positions_path, charge_path))
+            self._prepare_monitors(data_path)
+            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+            type_spec = self._update_species_type_dict(type_spec, charge_path, 1)
+        else:
+            data_path = positions_path
+            self._prepare_monitors(data_path)
+            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
-                                                  output_signature=tf.TensorSpec(shape=(len(data_path),
-                                                                                        None,
-                                                                                        self.batch_size,
-                                                                                        3), dtype=tf.float64))
+                                                  output_signature=type_spec)
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)

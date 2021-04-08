@@ -106,6 +106,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         denominator = 6 * self.experiment.units['time'] * (
                     self.experiment.volume * self.experiment.units['length'] ** 3) * \
                       self.experiment.temperature * boltzmann_constant
+
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
