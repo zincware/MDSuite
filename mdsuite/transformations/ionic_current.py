@@ -143,7 +143,7 @@ class IonicCurrent(Transformations):
                                                   args=batch_generator_args,
                                                   output_signature=tf.TensorSpec(shape=(len(data_path),
                                                                                         None,
-                                                                                        self.batch_size,
+                                                                                        None,
                                                                                         3), dtype=tf.float64))
         data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
