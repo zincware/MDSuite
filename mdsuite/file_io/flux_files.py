@@ -85,6 +85,7 @@ class FluxFile(FileProcessor):
                                                               skip=True)  # load the batch tensor_values
                     else:
                         batch_data = self.read_configurations(self.experiment.batch_size,
+
                                                               f)  # load the batch tensor_values
                     self.process_configurations(batch_data, database, counter)  # process the trajectory
                     skip_header = 1  # turn off the header skip
@@ -144,6 +145,7 @@ class FluxFile(FileProcessor):
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
         # Fill the database_path
         for property_group, columns in self.experiment.property_groups.items():
+
             num_columns = len(columns)
             if num_columns == 1:
                 database['1'][property_group][counter:counter + len(data)] = data[:, columns[0]].astype(float)

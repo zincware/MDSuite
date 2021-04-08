@@ -43,6 +43,7 @@ class MemoryManager:
         This method takes the tensor_values requirements of an operation and returns how big each batch of tensor_values
         should be for such an operation.
 
+
         Parameters
         ----------
         system : bool
@@ -68,6 +69,7 @@ class MemoryManager:
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
         number_of_batches = int(n_columns / batch_size)
         remainder = int(n_columns % batch_size)
+
         self.batch_size = batch_size
         self.n_batches = number_of_batches
         self.remainder = remainder
@@ -105,6 +107,7 @@ class MemoryManager:
                 An optimized batch size
         """
         db_io_time = self.database.get_load_time()
+
         return naive_size
 
     def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> int:

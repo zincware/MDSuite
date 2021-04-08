@@ -43,6 +43,7 @@ class LAMMPSFluxFile(FluxFile):
         super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
         self.experiment.flux = True
 
+
     @staticmethod
     def _build_architecture(property_groups: dict, number_of_atoms: int,
                             number_of_configurations: int):
@@ -124,6 +125,7 @@ class LAMMPSFluxFile(FluxFile):
         column_dict_properties = self._get_column_properties(header_line)
         self.experiment.property_groups = self._extract_properties(var_names, column_dict_properties)
 
+
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 
         # get time related properties of the experiment
@@ -178,6 +180,7 @@ class LAMMPSFluxFile(FluxFile):
         for observable in self.experiment.property_groups:
             path = join_path(observable, observable)
             columns = self.experiment.property_groups[observable]
+
             structure[path] = {'indices': np.s_[:], 'columns': columns, 'length': 1}
 
         return structure

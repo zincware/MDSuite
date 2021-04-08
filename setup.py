@@ -56,7 +56,7 @@ setuptools.setup(
                       'gputil',
                       'diagrams',
                       'pubchempy',
-                      'PyYAML',
+                      'PyYAML>=5.4',
                       'sphinxcontrib.bibtex',
                       'pybtex',
                       'dask',

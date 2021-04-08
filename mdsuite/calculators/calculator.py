@@ -32,7 +32,6 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
 
-
 class Calculator(metaclass=abc.ABCMeta):
     """
     Parent class for analysis modules
