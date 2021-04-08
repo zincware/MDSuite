@@ -299,6 +299,7 @@ class Calculator(metaclass=abc.ABCMeta):
         ax.set_xlabel(rf'{self.x_label}')
         ax.set_ylabel(rf'{self.y_label}')
         ax.legend()
+        fig.set_facecolor("w")
         fig.show()
 
         fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format=filetype)
