@@ -38,7 +38,7 @@ class DataManager:
         self.ensemble_loop = ensemble_loop
         self.correlation_time = correlation_time
 
-    def batch_generator(self, dictionary: bool = False) -> tuple:
+    def batch_generator(self, dictionary: bool = False, system: bool = False, remainder: bool = False) -> tuple:
         """
         Build a generator object for the batch loop
         Returns
@@ -72,12 +72,57 @@ class DataManager:
 
             """
             database = Database(name=database)
-            for batch in range(batch_number):
+
+            _remainder = [1 if remainder else 0][0]
+
+            for batch in range(batch_number + _remainder):
                 start = int(batch*batch_size)
                 stop = int(start + batch_size)
+                if batch == batch_number:
+                    stop = int(start + self.remainder)
+
+                # print(f'{start}:{stop}:{database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary).shape}')
+
                 yield database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary)
 
-        return generator, args
+        def system_generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
+            """
+            Generator function for the batch loop.
+
+            Parameters
+            ----------
+            batch_number : int
+                    Number of batches to be looped over
+            batch_size : int
+                    size of each batch to load
+            database : Database
+                    database_path from which to load the tensor_values
+            data_path : str
+                    Path to the tensor_values in the database_path
+            dictionary : bool
+                    If true, tensor_values is returned in a dictionary
+            Returns
+            -------
+
+            """
+            database = Database(name=database)
+
+            _remainder = [1 if remainder else 0][0]
+
+            for batch in range(batch_number + _remainder):  # +1 for the remainder
+                start = int(batch*batch_size)
+                stop = int(start + batch_size)
+                if batch == batch_number:
+                    stop = int(start + self.remainder)
+
+                # print(f'{start}:{stop}:{database.load_data(data_path, select_slice=np.s_[start:stop], dictionary=dictionary).shape}')
+
+                yield database.load_data(data_path, select_slice=np.s_[start:stop], dictionary=dictionary)
+
+        if system:
+            return system_generator, args
+        else:
+            return generator, args
 
     def ensemble_generator(self, system: bool = False) -> tuple:
         """
