@@ -65,13 +65,13 @@ class EinsteinHelfandThermalKinaci(Calculator):
         # parse to the experiment class
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
-        self.loaded_property = 'Kinaci_Integrated_Heat_Current'  # Property to be loaded for the analysis
+        self.loaded_property = 'Kinaci_Heat_Current'  # Property to be loaded for the analysis
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_helfand_thermal_conductivity'
+        self.analysis_name = 'einstein_helfand_thermal_conductivity_kinaci'
 
         self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
 
@@ -103,7 +103,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
         """
         # Calculate the prefactor
         numerator = 1
-        denominator = 2 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
+        denominator = 6 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
         units_change = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
             'time'] / self.experiment.units['temperature']
         self.prefactor = numerator / denominator * units_change
@@ -141,7 +141,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = self._fit_einstein_curve([self.time * self.experiment.units['time'], self.msd_array])
         self._update_properties_file(data=result)
 
         # Update the plot if required
@@ -151,4 +151,4 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time, self.msd_array])
+            self._save_data(f"{self.analysis_name}", [self.time * self.experiment.units['time'], self.msd_array])

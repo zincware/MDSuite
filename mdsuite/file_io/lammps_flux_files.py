@@ -6,18 +6,15 @@ Summary
 """
 
 import numpy as np
-import os
 
 from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size, join_path
 
-from pathlib import Path
-
 var_names = {
     "Temperature": ["temp"],
     "Time": ["time"],
-    "Flux_Thermal": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
+    "Thermal_Flux": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
     "Stress_visc": ['pxy', 'pxz', 'pyz'],
 }
 
@@ -44,8 +41,6 @@ class LAMMPSFluxFile(FluxFile):
         """
 
         super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
-        self.project.volume = None
-        self.project.number_of_atoms = None
         self.project.flux = True
 
     @staticmethod
@@ -156,7 +151,6 @@ class LAMMPSFluxFile(FluxFile):
 
         # Get the volume, if not set in initialization
         if self.project.volume is None:
-            print("HEY")
             print(float(header[4][7]))
             self.project.volume = float(header[4][7])  # hopefully always in the same position
 
@@ -164,6 +158,7 @@ class LAMMPSFluxFile(FluxFile):
 
         if update_class:
             self.project.batch_size = batch_size
+            self.project.volume = self.project.volume
 
         else:
             self.project.batch_size = batch_size

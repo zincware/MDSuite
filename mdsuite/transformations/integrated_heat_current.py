@@ -62,7 +62,7 @@ class IntegratedHeatCurrent(Transformations):
         self.data_manager.n_batches = self.n_batches
         self.data_manager.remainder = self.remainder
 
-    def _transformation(self, data: tf.Tensor):
+    def _transformation(self, data: dict):
         """
         Calculate the integrated thermal current of the system.
 

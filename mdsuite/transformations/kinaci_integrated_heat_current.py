@@ -81,7 +81,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
             integral = tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
 
             r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
-            r_p = tf.einsum('ijk,ij->jk', tf.squeeze(data[pe_path]), data[positions_path])
+            r_p = tf.einsum('ijk,ijm->jm', data[pe_path], data[positions_path])
 
             system_current += r_k + r_p
 
@@ -119,7 +119,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
         """
 
         number_of_configurations = self.experiment.number_of_configurations
-        path = join_path('Kinaci_Integrated_Heat_Current', 'Kinaci_Integrated_Heat_Current')
+        path = join_path('Kinaci_Heat_Current', 'Kinaci_Heat_Current')
         dataset_structure = {path: (number_of_configurations, 3)}
         self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
