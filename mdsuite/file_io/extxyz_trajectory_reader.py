@@ -318,4 +318,5 @@ class EXTXYZFileReader(TrajectoryFile):
         else:
             self.experiment.batch_size = batch_size
 
+
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

@@ -163,5 +163,4 @@ log.lammps
 *.yaml
 *.hdf5
 *.pdf
-
 ./tutorials/data/trajectory_files

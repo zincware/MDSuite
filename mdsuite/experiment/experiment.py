@@ -453,6 +453,7 @@ class Experiment:
 
         if database_path.exists():
             self._update_database(trajectory_reader, trajectory_file, database, rename_cols)
+
         else:
             self._build_new_database(trajectory_reader, trajectory_file, database, rename_cols=rename_cols, flux=flux)
 
@@ -750,3 +751,4 @@ class Experiment:
                     for atom in data_matrix[j].numpy():
                         f.write(
                             f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
+

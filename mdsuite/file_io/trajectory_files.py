@@ -86,6 +86,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         # Define the empty tensor_values array
         configurations_data = np.empty((number_of_configurations * self.experiment.number_of_atoms, line_length),
+
                                        dtype='<U15')
 
         counter = 0
@@ -96,6 +97,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
             # Read the tensor_values into the arrays.
             for k in range(self.experiment.number_of_atoms):
+
                 configurations_data[counter] = np.array(list(file_object.readline().split()))
                 counter += 1  # update the counter
         return configurations_data
@@ -116,6 +118,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             for observable in self.experiment.property_groups:
                 path = join_path(item, observable)
                 columns = self.experiment.property_groups[observable]
+
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
 
         return structure
