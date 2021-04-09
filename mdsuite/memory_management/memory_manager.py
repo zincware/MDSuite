@@ -22,15 +22,14 @@ class MemoryManager:
     The class can work with several tensor_values-sets in the case an analysis requires this much tensor_values.
     """
 
-    def __init__(self, data_path: list = None, database: Database = None, scaling_factor: int = 1,
-                 parallel: bool = False, memory_fraction: float = 0.5, scale_function: dict = None):
+    def __init__(self, data_path: list = None, database: Database = None, parallel: bool = False,
+                 memory_fraction: float = 0.5, scale_function: dict = None):
         """
         Constructor for the memory management class
         """
         if scale_function is None:
             scale_function = {'linear': {'scale_factor': 1}}
         self.data_path = data_path
-        self.scaling_factor = scaling_factor
         self.parallel = parallel
         self.database = database
         self.memory_fraction = memory_fraction
