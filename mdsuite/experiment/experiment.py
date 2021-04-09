@@ -106,6 +106,7 @@ class Experiment:
         self.experiment_path: str
         self.database_path: str
         self.figures_path: str
+        self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
@@ -124,8 +125,12 @@ class Experiment:
         self.run_computation = self.RunComputation(self)
 
         # Add logging object
-        self.loggo = Logger('output.log')
-        self.loggo.logger1.info('Starting logfile output.log')
+        # self.loggo = Logger('output.log')
+        # self.loggo.logger1.info('Starting logfile output.log')
+
+        print(self.logfile_path)
+
+        self.log = Logger(self.logfile_path)
 
     def _create_internal_file_paths(self):
         """
@@ -134,8 +139,9 @@ class Experiment:
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
         self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
         self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
+        self.logfile_path = os.path.join(self.experiment_path, 'logfiles')
 
-    def _load_or_build(self):
+    def _load_or_build(self) -> bool:
         """
         Check if the experiment already exists and decide whether to load it or build a new one.
         """
@@ -144,9 +150,11 @@ class Experiment:
         if Path(self.experiment_path).exists():
             print("This experiment already exists! I'll load it up now.")
             self.load_class()
+            return True
         else:
             print("Creating a new experiment! How exciting!")
             self._build_model()
+            return False
 
     def load_class(self):
         """
@@ -161,18 +169,13 @@ class Experiment:
             If the paths are different, the database_path has been moved and the internal file paths will be updated.
             """
 
-            if storage_path != self.storage_path:
-                print("Database has been moved - Updating internals!")
-                self.storage_path = storage_path
-                self._create_internal_file_paths()
+        with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
+            self.__dict__ = pickle.loads(f.read())
 
-        class_file = open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb')  # open file
-        pickle_data = class_file.read()  # read file
-        class_file.close()  # close file
-        storage_path = self.storage_path
-        self.__dict__ = pickle.loads(pickle_data)
-        update_path()
-        self.run_computation = self.RunComputation(self)
+        self._create_internal_file_paths()  # force rebuild every time
+
+        # self.run_computation = self.RunComputation(self)
+        # TODO check what self.__dict__ = pickle.loads does with run_computation and logger!
 
     def save_class(self):
         """
@@ -234,7 +237,8 @@ class Experiment:
         """
 
         if mapping is None:
-            self.loggo.logger1.info("Must provide a mapping")
+            self.log("Must provide a mapping")
+            # self.loggo.logger1.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -398,6 +402,7 @@ class Experiment:
             os.mkdir(self.experiment_path)  # Make the experiment directory
             os.mkdir(self.figures_path)  # Create a directory to save images
             os.mkdir(self.database_path)  # Create a directory for tensor_values
+            os.mkdir(self.logfile_path)
 
         except FileExistsError:  # throw exception if the file exits
             return
@@ -419,7 +424,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            self.loggo.logger1.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")  # Format the print statement
+            self.log(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 
@@ -758,4 +763,3 @@ class Experiment:
                     for atom in data_matrix[j].numpy():
                         f.write(
                             f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
-
