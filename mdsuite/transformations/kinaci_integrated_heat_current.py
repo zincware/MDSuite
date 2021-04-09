@@ -4,7 +4,6 @@ Python module to calculate the Kinaci integrated heat current in a experiment.
 
 import numpy as np
 import tensorflow as tf
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -29,6 +28,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
     def _transformation(self, data: tf.Tensor):
         """

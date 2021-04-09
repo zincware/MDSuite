@@ -29,6 +29,8 @@ class IntegratedHeatCurrent(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 3}}
+
 
     def _transformation(self, data: dict):
         """

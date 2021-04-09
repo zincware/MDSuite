@@ -30,6 +30,7 @@ class TranslationalDipoleMoment(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 2}}
 
     def _check_for_charges(self):
         """

@@ -82,6 +82,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
                          atom_selection=atom_selection)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
 

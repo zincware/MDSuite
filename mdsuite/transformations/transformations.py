@@ -128,7 +128,7 @@ class Transformations:
 
         """
         self.memory_manager = MemoryManager(data_path=data_path, database=self.database, scaling_factor=5,
-                                            memory_fraction=0.5)
+                                            memory_fraction=0.5, scale_function=self.scale_function)
         self.data_manager = DataManager(data_path=data_path, database=self.database)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
         self.data_manager.batch_size = self.batch_size

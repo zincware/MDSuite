@@ -30,6 +30,7 @@ class UnwrapViaIndices(Transformations):
                 Box vectors to multiply the indices by
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 2}}
 
         self.species = species
         if self.species is None:
@@ -131,7 +132,7 @@ class UnwrapViaIndices(Transformations):
                                                                                             self.batch_size, 3),
                                                                                      dtype=tf.float64)
                                                       )
-            data_set.prefetch(tf.data.experimental.AUTOTUNE)
+            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, batch in enumerate(data_set):
                 data = self._transformation(batch)
                 self._save_coordinates(data=data,
