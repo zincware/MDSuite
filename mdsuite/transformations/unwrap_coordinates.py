@@ -14,7 +14,6 @@ import os
 import tensorflow as tf
 
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.database import Database
 from mdsuite.utils.meta_functions import join_path
 
 
@@ -63,9 +62,8 @@ class CoordinateUnwrapper(Transformations):
         center_box : bool
                 If true, the box coordinates will be centered before the unwrapping occurs
         """
+        super().__init__(experiment)
 
-        super().__init__()
-        self.experiment = experiment  # assign the experiment attribute
         self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
         self.analysis_name = self.experiment.analysis_name  # get the analysis name
 
@@ -135,30 +133,14 @@ class CoordinateUnwrapper(Transformations):
 
         self.data = self.data - scaled_mask  # apply the scaling
 
-    def _save_unwrapped_coordinates(self, species, database):
-        """
-        Save the unwrapped coordinates
-        """
-
-        path = join_path(species, 'Unwrapped_Positions')
-        dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
-        database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
-        database.add_data(data=self.data,
-                          structure=data_structure,
-                          start_index=0,
-                          batch_size=np.shape(self.data)[1],
-                          tensor=True)
-
     def unwrap_particles(self):
         """
         Collect the methods in the class and unwrap the coordinates
         """
 
-        database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"), architecture='simulation')
         for species in self.species:
 
-            exists = database.check_existence(os.path.join(species, "Unwrapped_Positions"))
+            exists = self.database.check_existence(os.path.join(species, "Unwrapped_Positions"))
             # Check if the tensor_values has already been unwrapped
             if exists:
                 print(f"Unwrapped positions exists for {species}, using the saved coordinates")
@@ -173,9 +155,18 @@ class CoordinateUnwrapper(Transformations):
 
                 self._build_image_mask()  # build the image mask
                 self._apply_mask()  # Apply the mask and unwrap the coordinates
-                self._save_unwrapped_coordinates(species, database)  # save the newly unwrapped coordinates
+                path = join_path(species, 'Unwrapped_Positions')
+                dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
+                self.database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
+                data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
+                self._save_coordinates(data=self.data,
+                                       data_structure=data_structure,
+                                       index=0,
+                                       batch_size=np.shape(self.data)[1],
+                                       system_tensor=False,
+                                       tensor=True)
 
-        self.experiment.memory_requirements = database.get_memory_information()
+        self.experiment.memory_requirements = self.database.get_memory_information()
         self.experiment.save_class()  # update the class state
 
     def run_transformation(self):
