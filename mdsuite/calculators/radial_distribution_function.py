@@ -471,6 +471,7 @@ class RadialDistributionFunction(Calculator, ABC):
         """
 
         # collect machine properties and determine batch size
+        self.experiment.log('Starting RDF Calculation')
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
 
