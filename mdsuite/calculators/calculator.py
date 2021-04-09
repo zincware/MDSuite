@@ -28,7 +28,7 @@ from mdsuite.plot_style.plot_style import apply_style  #TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
-
+import yaml
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -366,7 +366,7 @@ class Calculator(metaclass=abc.ABCMeta):
             print("No tensor_values provided")
             return
 
-        results = self.parent.results
+        results = self.experiment.results
 
         # TODO: improve this if else blocks. I am sure it can be done in a more elegant way
         if item is None:
@@ -388,7 +388,7 @@ class Calculator(metaclass=abc.ABCMeta):
             else:
                 results[self.database_group][self.analysis_name][item][sub_item] = data
 
-        self.parent.results = results
+        self.experiment.results = results
 
     def _calculate_system_current(self):
         pass

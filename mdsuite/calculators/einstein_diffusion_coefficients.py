@@ -99,6 +99,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.experiment.species)
 
+        self.experiment.loggo.logger1.info('starting Einstein Diffusion Computation')
+
     def _update_output_signatures(self):
         """
         After having run _prepare managers, update the output signatures.

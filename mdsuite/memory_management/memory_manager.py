@@ -65,7 +65,6 @@ class MemoryManager:
         maximum_loaded_configurations = int(np.clip((self.memory_fraction*self.machine_properties['memory']) /
                                                     per_configuration_memory, 1, n_columns))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        batch_size = 100
         number_of_batches = int(n_columns / batch_size)
         remainder = int(n_columns % batch_size)
 
