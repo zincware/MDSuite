@@ -61,6 +61,7 @@ class GreenKuboViscosity(Calculator):
                 If true, tensor_values will be saved after the analysis
         """
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Momentum_Flux'  # property to be loaded for the analysis
         self.database_group = 'viscosity'  # Which database_path group to save the tensor_values in
