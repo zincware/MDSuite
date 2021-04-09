@@ -2,6 +2,7 @@
 Python module for the tensor_values fetch class
 """
 
+from typing import Union
 import numpy as np
 import tensorflow as tf
 
@@ -19,7 +20,7 @@ class DataManager:
 
     def __init__(self, database: Database = None, data_path: list = None, data_range: int = None,
                  n_batches: int = None, batch_size: int = None, ensemble_loop: int = None,
-                 correlation_time: int = 1, remainder: int = None):
+                 correlation_time: int = 1, remainder: int = None, atom_selection=np.s_[:]):
         """
         Constructor for the DataManager class
 
@@ -37,6 +38,7 @@ class DataManager:
         self.remainder = remainder
         self.ensemble_loop = ensemble_loop
         self.correlation_time = correlation_time
+        self.atom_selection = atom_selection
 
     def batch_generator(self, dictionary: bool = False, system: bool = False, remainder: bool = False) -> tuple:
         """
@@ -51,7 +53,6 @@ class DataManager:
                 self.database.name,
                 self.data_path,
                 dictionary)
-
 
         def generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
             """
@@ -71,11 +72,12 @@ class DataManager:
                     If true, tensor_values is returned in a dictionary
             Returns
             -------
-
             """
             database = Database(name=database)
 
             _remainder = [1 if remainder else 0][0]
+            if self.remainder == 0:
+                _remainder = 0
             for batch in range(batch_number + _remainder):
                 start = int(batch*batch_size)
                 stop = int(start + batch_size)
@@ -83,7 +85,9 @@ class DataManager:
                 if batch == batch_number:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
-                yield database.load_data(data_path, select_slice=np.s_[:, start:stop], dictionary=dictionary,
+                yield database.load_data(data_path,
+                                         select_slice=np.s_[self.atom_selection, start:stop],
+                                         dictionary=dictionary,
                                          d_size=data_size)
 
         def system_generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
@@ -109,6 +113,8 @@ class DataManager:
             database = Database(name=database)
 
             _remainder = [1 if remainder else 0][0]
+            if self.remainder == 0:
+                _remainder = 0
 
             for batch in range(batch_number + _remainder):  # +1 for the remainder
                 start = int(batch*batch_size)
