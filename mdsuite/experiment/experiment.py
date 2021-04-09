@@ -29,6 +29,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.visualizer.visualizer import TrajectoryVisualizer
+from mdsuite.utils.logger import Logger
 
 
 class Experiment:
@@ -76,6 +77,8 @@ class Experiment:
         cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
+        loggo : logging object
+                Logging object used to write things to the log file or the console
         """
 
         # Taken upon instantiation
@@ -119,6 +122,10 @@ class Experiment:
 
         # Run Computations
         self.run_computation = self.RunComputation(self)
+
+        # Add logging object
+        self.loggo = Logger('output.log')
+        self.loggo.logger1.info('Starting logfile output.log')
 
     def _create_internal_file_paths(self):
         """
@@ -227,7 +234,7 @@ class Experiment:
         """
 
         if mapping is None:
-            print("Must provide a mapping")
+            self.loggo.logger1.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -412,7 +419,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            print(f"{tuple_attributes[0]}: {tuple_attributes[1]}")  # Format the print statement
+            self.loggo.logger1.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")  # Format the print statement
 
         return attributes
 
