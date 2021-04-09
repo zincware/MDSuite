@@ -3,6 +3,7 @@ from pathlib import Path
 
 import GPUtil
 import scooby
+import re
 
 
 class Report(scooby.Report):
@@ -38,14 +39,20 @@ class Report(scooby.Report):
         main_mdsuite_folder = Path(path.dirname(path.dirname(here)))  # go two folders up
         requirements_file = main_mdsuite_folder / 'requirements.txt'
 
-        with open(requirements_file) as requirements_file:
+        requirements = []
+        with open(requirements_file, "r") as requirements_file:
             # Parse requirements.txt, ignoring any commented-out lines.
-            requirements = [line.split('~')[0] for line in requirements_file.read().splitlines()
-                            if not line.startswith('#')]
+            for line in requirements_file:
+                if line.startswith('#'):
+                    continue
+                requirements.append(re.split(r"[^a-zA-Z0-9]", line)[0])
 
         # add yaml and remove PyYAML...the package is called in one way and then it is imported in another...
         requirements.append('yaml')
         requirements.remove('PyYAML')
+
+        requirements.append('MDSuite')
+
         try:
             gpus = GPUtil.getGPUs()
 
