@@ -129,7 +129,7 @@ class DataManager:
         else:
             return generator, args
 
-    def ensemble_generator(self, system: bool = False) -> tuple:
+    def ensemble_generator(self, system: bool = False, dictionary: bool = False) -> tuple:
         """
         Build a generator for the ensemble loop
 
@@ -193,7 +193,35 @@ class DataManager:
                 stop = start + data_range
                 yield data[start:stop]
 
+        def dictionary_generator(ensemble_loop, correlation_time, data_range, data_dict):
+            """
+            Generator for the ensemble loop
+            Parameters
+            ----------
+            ensemble_loop : int
+                    Number of ensembles to loop over
+            correlation_time : int
+                    Distance between ensembles
+            data_range : int
+                    Size of each ensemble
+            data_dict : Dictionary
+                    Data from which to draw ensembles
+
+            Returns
+            -------
+            None
+            """
+            for ensemble in range(ensemble_loop):
+                start = ensemble * correlation_time
+                stop = start + data_range
+                output_dict = []
+                for item in data_dict[:-1]:
+                    output_dict[item] = data_dict[item][:, start:stop]
+                yield output_dict
+
         if system:
             return system_generator, args
+        elif dictionary:
+            return dictionary_generator, args
         else:
             return generator, args

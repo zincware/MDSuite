@@ -24,7 +24,7 @@ tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class GreenKuboDistinctDiffusionCoefficients(Calculator):
+class EinsteinDistinctDiffusionCoefficients(Calculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
     Attributes
@@ -73,24 +73,25 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
-        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
+        self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
         self.species = species  # Which species to calculate for
 
         self.database_group = 'distinct_diffusion_coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'green_kubo_diffusion_coefficients'
+        self.analysis_name = 'einstein_diffusion_coefficients'
         self.experimental = True
 
         self.vacf = np.zeros(self.data_range)
         self.sigma = []
+        self.msd_array = np.zeros(self.data_range)  # define empty msd array
 
         if self.species is None:
             self.species = list(self.experiment.species)
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
-    def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
+    def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
         Compute the vacf on the given dictionary of data.
 
@@ -107,18 +108,16 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             start = ensemble * self.correlation_time
             stop = start + self.data_range
-            vacf = np.zeros(2*self.data_range - 1)
+            msd_a = (data[str.encode(data_path[0])][:, start:stop] - (
+                tf.repeat(tf.expand_dims(data[str.encode(data_path[0])][:, 0], 1), self.data_range, axis=1)))
+            msd_b = (data[str.encode(data_path[0])][:, start:stop] - (
+                tf.repeat(tf.expand_dims(data[str.encode(data_path[0])][:, 0], 1), self.data_range, axis=1)))
             for i in range(len(data[str.encode(data_path[0])])):
                 for j in range(i+1, len(data[str.encode(data_path[1])])):
                     if i == j:
                         continue
                     else:
-                        vacf += sum([signal.correlate(data[str.encode(data_path[0])][i][start:stop, idx],
-                                                      data[str.encode(data_path[1])][j][start:stop, idx],
-                                                      mode="full",
-                                                      method='auto') for idx in range(3)])
-            self.vacf += vacf[int(self.data_range - 1):]  # Update the averaged function
-            self.sigma.append(np.trapz(vacf[int(self.data_range - 1):], x=self.time))
+                        self.msd_array += self.prefactor*np.array(tf.reduce_sum(msd_a[i]*msd_b[j], axis=1))
 
     def run_experimental_analysis(self):
         """
@@ -126,7 +125,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         for combination in self.combinations:
             type_spec = {}
-            data_path = [join_path(item, 'Velocities') for item in combination]
+            self._calculate_prefactor(combination)
+            data_path = [join_path(item, 'Unwrapped_Positions') for item in combination]
             self._prepare_managers(data_path=data_path)
             type_spec = self._update_species_type_dict(type_spec, data_path, 3)
             type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
@@ -136,8 +136,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                                                       output_signature=type_spec)
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for batch in data_set:
-                self._compute_vacf(batch, data_path, combination)
-            self._calculate_prefactor(combination)
+                self._compute_msd(batch, data_path, combination)
             self._apply_averaging_factor()
             self._post_operation_processes(combination)
 
@@ -154,13 +153,13 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          (len(self.experiment.species[species[1]]['indices']) - 1)
         else:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          len(self.experiment.species[species[1]]['indices'])
         numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * atom_scale
+        denominator = 6 * self.experiment.units['time'] * atom_scale
         self.prefactor = numerator / denominator
 
     def _apply_operation(self, data, index):
@@ -199,12 +198,12 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                                      data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=species)
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=species)
             plt.show()
 
         # Save the array if required
         if self.save:
-            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.vacf])
+            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
 
     def _update_output_signatures(self):
         """

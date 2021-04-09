@@ -17,6 +17,8 @@ switcher_transformations = {
 dict_classes_db = {
     'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
                                'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
+    'distinct_diffusion_coefficients': {'einstein_diffusion_coefficients': {},
+                                        'green_kubo_diffusion_coefficients': {}},
     'ionic_conductivity': {},
     'thermal_conductivity': {},
     'coordination_numbers': {'Coordination_Numbers': {}},
@@ -43,10 +45,14 @@ from mdsuite.calculators.nernst_einstein_ionic_conductivity import NernstEinstei
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.calculators.structure_factor import StructureFactor
+from mdsuite.calculators.green_kubo_distinct_diffusion_coefficients import GreenKuboDistinctDiffusionCoefficients
+from mdsuite.calculators.einstein_distinct_diffusion_coefficients import EinsteinDistinctDiffusionCoefficients
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
-    'GreenKuboSelfDiffusionCoefficients': GreenKuboSelfDiffusionCoefficients,
+    'EinsteinDistinctDiffusionCoefficients': EinsteinDistinctDiffusionCoefficients,
+    'GreenKuboDiffusionCoefficients': GreenKuboSelfDiffusionCoefficients,
+    'GreenKuboDistinctDiffusionCoefficients': GreenKuboDistinctDiffusionCoefficients,
     'GreenKuboIonicConductivity': GreenKuboIonicConductivity,
     'EinsteinHelfandIonicConductivity': EinsteinHelfandIonicConductivity,
     'RadialDistributionFunction': RadialDistributionFunction,
