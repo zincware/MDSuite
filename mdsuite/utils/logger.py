@@ -6,8 +6,10 @@ Summary
 Description: This module provides the functionality to write to a logging file and or print to console.
 """
 
-
 import logging
+from datetime import datetime
+import os
+
 
 class Logger:
     """
@@ -23,7 +25,7 @@ class Logger:
             logging object for logging of calculator files
    """
 
-    def __init__(self, logfile_name):
+    def __init__(self, logfile_path, logfile_name: str = None):
         """
         Initialise the experiment class.
 
@@ -38,13 +40,18 @@ class Logger:
         """
 
         # Taken upon instantiation
-        self.logfile_name = logfile_name  # Name of the logfile.
+        if logfile_name is None:
+            logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
+
+        logfile = os.path.join(logfile_path, logfile_name)
+
+        # self.logfile_name = logfile_name  # Name of the logfile.
 
         # set up logging to file - see previous section for more details
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                             datefmt='%m-%d %H:%M',
-                            filename='output.log',
+                            filename=logfile,
                             filemode='w')
         # define a Handler which writes INFO messages or higher to the sys.stderr
         console = logging.StreamHandler()
@@ -56,7 +63,6 @@ class Logger:
         # add the handler to the root logger
         logging.getLogger().addHandler(console)
 
-
         # Now, define a couple of other loggers which might represent areas in your
         # application:
 
@@ -64,6 +70,11 @@ class Logger:
         self.logger1 = logger1
         logger2 = logging.getLogger('calculators')
         self.logger2 = logger2
+
+    def __call__(self, context: str = None, level: str = 'INFO', **kwargs):
+        # Use switch case in python3.10
+        if level == "INFO":
+            self.logger1.info(context)
 
 
 if __name__ == "__main__":
