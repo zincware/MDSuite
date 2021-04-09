@@ -3,12 +3,10 @@ Unwrap a set of coordinates based on dumped indices.
 """
 
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.database import Database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.utils.meta_functions import join_path
 
-import os
 import sys
 import tensorflow as tf
 import time
@@ -31,19 +29,11 @@ class UnwrapViaIndices(Transformations):
         box : list
                 Box vectors to multiply the indices by
         """
-        super().__init__()
-        self.experiment = experiment
+        super().__init__(experiment)
+
         self.species = species
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database_path.hdf5"),
-                                 architecture='simulation')
         if self.species is None:
             self.species = list(self.experiment.species)
-
-        self.data_manager: DataManager
-        self.memory_manager: MemoryManager
-        self.batch_size: int
-        self.n_batches: int
-        self.remainder: int
 
     def _check_for_indices(self):
         """
@@ -61,27 +51,6 @@ class UnwrapViaIndices(Transformations):
         if not all(truth_table):
             print("Indices were not included in the database_path generation. Please check your simulation files.")
             sys.exit(1)
-
-    def _prepare_monitors(self, data_path: list):
-        """
-        Prepare the tensor_values and memory managers.
-
-        Parameters
-        ----------
-        data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
-
-        Returns
-        -------
-
-        """
-        self.memory_manager = MemoryManager(data_path=data_path, database=self.database, scaling_factor=5,
-                                            memory_fraction=0.5)
-        self.data_manager = DataManager(data_path=data_path, database=self.database)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
-        self.data_manager.batch_size = self.batch_size
-        self.data_manager.n_batches = self.n_batches
-        self.data_manager.remainder = self.remainder
 
     def _transformation(self, data: tf.Tensor):
         """
@@ -165,7 +134,12 @@ class UnwrapViaIndices(Transformations):
             data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, batch in enumerate(data_set):
                 data = self._transformation(batch)
-                self._save_unwrapped_coordinates(data, index, self.batch_size, data_structure)
+                self._save_coordinates(data=data,
+                                       data_structure=data_structure,
+                                       index=index,
+                                       batch_size=self.batch_size,
+                                       system_tensor=False,
+                                       tensor=True)
 
     def run_transformation(self):
         """

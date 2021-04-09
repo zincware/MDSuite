@@ -57,7 +57,7 @@ class MemoryManager:
                 loaded to collect unused tensor_values.
         """
         if self.data_path is []:
-            print("No tensor_values has been requested.")
+            print("No tensor_values have been requested.")
             sys.exit(1)
 
         per_configuration_memory: float = 0

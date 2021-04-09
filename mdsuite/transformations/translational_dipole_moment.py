@@ -4,14 +4,10 @@ Python module to calculate the translational dipole in a experiment.
 
 import numpy as np
 from tqdm import tqdm
-import os
 import tensorflow as tf
 
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.database import Database
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.memory_management.memory_manager import MemoryManager
-from mdsuite.database.data_manager import DataManager
 
 
 class TranslationalDipoleMoment(Transformations):
@@ -33,35 +29,25 @@ class TranslationalDipoleMoment(Transformations):
         experiment : object
                 Experiment this transformation is attached to.
         """
-        super().__init__()
-        self.experiment = experiment
-        self.batch_size: int
-        self.n_batches: int
-        self.remainder: int
+        super().__init__(experiment)
 
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"),
-                                 architecture='simulation')
-
-    def _prepare_monitors(self, data_path: list):
+    def _check_for_charges(self):
         """
-        Prepare the tensor_values and memory managers.
-
-        Parameters
-        ----------
-        data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
+        Check the database_path for indices
 
         Returns
         -------
 
         """
-        self.memory_manager = MemoryManager(data_path=data_path, database=self.database, scaling_factor=5,
-                                            memory_fraction=0.5)
-        self.data_manager = DataManager(data_path=data_path, database=self.database)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
-        self.data_manager.batch_size = self.batch_size
-        self.data_manager.n_batches = self.n_batches
-        self.data_manager.remainder = self.remainder
+        truth_table = []
+        for item in self.experiment.species:
+            path = join_path(item, 'Charge')
+            truth_table.append(self.database.check_existence(path))
+
+        if not all(truth_table):
+            return False
+        else:
+            return True
 
     def _transformation(self, data: tf.Tensor):
         """
@@ -71,18 +57,31 @@ class TranslationalDipoleMoment(Transformations):
         -------
 
         """
-        dipole_moment = tf.reduce_sum(data, axis=1)  # Convert the results to a tf.tensor
+        positions_keys = []
+        charge_keys = []
+        for item in data:
+            if str.encode('Unwrapped_Positions') in item:
+                positions_keys.append(item)
+            elif str.encode('Charge') in item:
+                charge_keys.append(item)
 
-        # Build the charge tensor for assignment
-        system_charges = [self.experiment.species[atom]['charge'][0] for atom in
-                          self.experiment.species]  # load species charge
-        charge_tuple = []  # define empty array for the charges
-        for charge in system_charges:  # loop over each species charge
-            # Build a tensor of charges allowing for memory management.
-            charge_tuple.append(tf.ones([self.batch_size, 3], dtype=tf.float64) * charge)
+        if len(charge_keys) != len(positions_keys):
+            charges = False
+        else:
+            charges = True
 
-        charge_tensor = tf.stack(charge_tuple)  # stack the tensors into a single object
-        dipole_moment = tf.reduce_sum(dipole_moment*charge_tensor, axis=0)  # Calculate the final dipole moments
+        dipole_moment = tf.zeros(shape=(data[str.encode('data_size')], 3), dtype=tf.float64)
+        if charges:
+            for position, charge in zip(positions_keys, charge_keys):
+                dipole_moment += tf.reduce_sum(data[position]*data[charge], axis=0)
+        else:
+            for item in positions_keys:
+                species_string = item.decode("utf-8")
+                species = species_string.split('/')[0]
+                # Build the charge tensor for assignment
+                charge = self.experiment.species[species]['charge'][0]
+                charge_tensor = tf.ones(shape=(data[str.encode('data_size')], 3), dtype=tf.float64) * charge
+                dipole_moment += tf.reduce_sum(data[item]*charge_tensor, axis=0)  # Calculate the final dipole moments
 
         return dipole_moment
 
@@ -90,10 +89,6 @@ class TranslationalDipoleMoment(Transformations):
         """
         Add the relevant tensor_values sets and groups in the database_path
 
-        Parameters
-        ----------
-        species : str
-                Species for which tensor_values will be added.
         Returns
         -------
         tensor_values structure for use in saving the tensor_values to the database_path.
@@ -111,40 +106,32 @@ class TranslationalDipoleMoment(Transformations):
         Loop over batches and compute the dipole moment
         Returns
         -------
-
+        performs computation and updates the database.
         """
+        type_spec = {}
         data_structure = self._prepare_database_entry()
-        data_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
-        self._prepare_monitors(data_path)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
+
+        if self._check_for_charges():
+            charge_path = [join_path(species, 'Charge') for species in self.experiment.species]
+            data_path = np.concatenate((positions_path, charge_path))
+            self._prepare_monitors(data_path)
+            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+            type_spec = self._update_species_type_dict(type_spec, charge_path, 1)
+        else:
+            data_path = positions_path
+            self._prepare_monitors(data_path)
+            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+
+        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
-                                                  output_signature=tf.TensorSpec(shape=(len(data_path),
-                                                                                        None,
-                                                                                        self.batch_size,
-                                                                                        3), dtype=tf.float64))
-        data_set.prefetch(tf.data.experimental.AUTOTUNE)
+                                                  output_signature=type_spec)
+        data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
         for index, x in enumerate(data_set):
             data = self._transformation(x)
-            self._save_coordinates(data, index, self.batch_size, data_structure)
-
-    def _save_coordinates(self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict):
-        """
-        Save the tensor_values into the database_path
-
-        Parameters
-        ----------
-        species : str
-                name of species to update in the database_path.
-        Returns
-        -------
-        saves the tensor_values to the database_path.
-        """
-        self.database.add_data(data=data,
-                               structure=data_structure,
-                               start_index=index,
-                               batch_size=batch_size,
-                               system_tensor=True)
+            self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
 
     def run_transformation(self):
         """

@@ -86,7 +86,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
+        self.batch_output_signature = (tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64))
         self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
 
     def _calculate_prefactor(self, species: str = None):
@@ -106,6 +106,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         denominator = 6 * self.experiment.units['time'] * (
                     self.experiment.volume * self.experiment.units['length'] ** 3) * \
                       self.experiment.temperature * boltzmann_constant
+
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
