@@ -45,7 +45,7 @@ class Report(scooby.Report):
             for line in requirements_file:
                 if line.startswith('#'):
                     continue
-                requirements.append(re.split(r"[^a-zA-Z0-9]", line)[0])
+                requirements.append(re.split(r"[^a-zA-Z0-9_-]", line)[0])
 
         # add yaml and remove PyYAML...the package is called in one way and then it is imported in another...
         requirements.append('yaml')
