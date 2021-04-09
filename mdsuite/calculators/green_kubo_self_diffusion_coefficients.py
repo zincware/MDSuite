@@ -113,7 +113,8 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1)
+        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) *\
+                      len(self.experiment.species[species]['indices'])
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

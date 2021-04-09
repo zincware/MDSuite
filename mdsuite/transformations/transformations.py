@@ -131,11 +131,12 @@ class Transformations:
                                             database=self.database,
                                             memory_fraction=0.5,
                                             scale_function=self.scale_function)
-        self.data_manager = DataManager(data_path=data_path, database=self.database)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
-        self.data_manager.batch_size = self.batch_size
-        self.data_manager.n_batches = self.n_batches
-        self.data_manager.remainder = self.remainder
+        self.data_manager = DataManager(data_path=data_path,
+                                        database=self.database,
+                                        batch_size=self.batch_size,
+                                        n_batches=self.n_batches,
+                                        remainder=self.remainder)
 
     def run_transformation(self):
         """

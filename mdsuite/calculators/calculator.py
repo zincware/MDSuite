@@ -7,34 +7,22 @@ Summary
 
 import abc
 import random
-from typing import TYPE_CHECKING
 import sys
-
 import h5py as hf
 import matplotlib.figure
 import matplotlib.pyplot as plt
-
 from matplotlib.axes._subplots import Axes
-
 import tensorflow as tf
-import yaml
-
-from mdsuite.plot_style.plot_style import apply_style
-from mdsuite.utils.exceptions import *
-from mdsuite.utils.meta_functions import *
-from scipy import signal
 from scipy.optimize import curve_fit
 from tqdm import tqdm
-
-if TYPE_CHECKING:
-    from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
-from mdsuite.plot_style.plot_style import apply_style  # TODO killed the code.
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
+
+from typing import Union
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -116,7 +104,7 @@ class Calculator(metaclass=abc.ABCMeta):
             matplotlib.use('Agg')
 
     @abc.abstractmethod
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
         calculate the calculator pre-factor.
 
@@ -156,7 +144,7 @@ class Calculator(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
         call the post-op processes
         Returns
@@ -228,6 +216,30 @@ class Calculator(metaclass=abc.ABCMeta):
             fits.append(10 ** popt[1])
 
         return [np.mean(fits), np.std(fits)]
+
+    def _update_species_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+        """
+        Update a type spec dictionary for a species input.
+
+        Parameters
+        ----------
+        dictionary : dict
+                Dictionary to append
+        path_list : list
+                List of paths for the dictionary
+        dimension : int
+                Dimension of the property
+        Returns
+        -------
+        type dict : dict
+                Dictionary for the type spec.
+        """
+        for item in path_list:
+            species = item.split('/')[0]
+            n_atoms = len(self.experiment.species[species]['indices'])
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None, dimension), dtype=tf.float64)
+
+        return dictionary
 
     def _prepare_managers(self, data_path: list):
         """
@@ -539,7 +551,7 @@ class Calculator(metaclass=abc.ABCMeta):
                                                                 output_signature=self.batch_output_signature)
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
                 for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop",
-                                               ncols=100, total=self.n_batches):
+                                               ncols=70, total=self.n_batches):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),

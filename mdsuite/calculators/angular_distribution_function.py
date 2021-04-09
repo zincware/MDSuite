@@ -64,6 +64,8 @@ class AngularDistributionFunction(Calculator, ABC):
             so this might only be useful for a larger number of batches.
         """
         super().__init__(experiment, data_range=1)
+        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+
         self.use_tf_function = use_tf_function
         self.loaded_property = 'Positions'
         self.r_cut = r_cut

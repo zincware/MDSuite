@@ -11,7 +11,6 @@ The methods in class can then be called by the Experiment.radial_distribution_fu
 calculations performed.
 """
 from abc import ABC
-from typing import Iterable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -79,7 +78,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Name of the analysis
         """
         super().__init__(experiment, plot, save, data_range)
-        self.scale_function = {'quadratic': {'scale_factor': 10}}
+        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
 
@@ -464,7 +463,6 @@ class RadialDistributionFunction(Calculator, ABC):
                                 [np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names)])
 
         self.experiment.radial_distribution_function_state = True  # update the state
-
 
     def run_experimental_analysis(self):
         """
