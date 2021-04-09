@@ -1,9 +1,9 @@
 # Sample LAMMPS input script for thermal conductivity of solid Ar
 
 units       real
-variable    T equal 70
+variable    T equal 70 # temperature
 variable    V equal vol
-variable    dt equal 2.0
+variable    dt equal 1.0 # timestep
 variable    p equal 200     # correlation length
 variable    s equal 10      # sample interval
 variable    d equal $p*$s   # dump interval
@@ -54,7 +54,7 @@ variable     Jy equal c_flux_thermal[2]/vol
 variable     Jz equal c_flux_thermal[3]/vol
 fix          JJ all ave/correlate $s $p $d &
              c_flux_thermal[1] c_flux_thermal[2] c_flux_thermal[3] type auto file J0Jt.dat ave running
-fix print_data all print 2 "$(step) $(time) $(temp) $(c_pe_total) $(c_ke_total) $(c_flux_thermal[1]) $(c_flux_thermal[2]) $(c_flux_thermal[3]) $(c_flux_thermal[4]) $(c_flux_thermal[5]) $(c_flux_thermal[6])" file flux_1.dat screen no
+fix print_data all print 2 "$(step) $(time) $(temp) $(c_pe_total) $(c_ke_total) $(c_flux_thermal[1]) $(c_flux_thermal[2]) $(c_flux_thermal[3]) $(c_flux_thermal[4]) $(c_flux_thermal[5]) $(c_flux_thermal[6])" file flux_1.lmp_flux screen no
 variable     scale equal ${convert}/${kB}/$T/$T/$V*$s*${dt}
 variable     k11 equal trap(f_JJ[3])*${scale}
 variable     k22 equal trap(f_JJ[4])*${scale}
@@ -63,13 +63,13 @@ variable     k33 equal trap(f_JJ[5])*${scale}
 # shell mkdir energy
 # dump energy all custom 400 energy/energy_dump.* id type x y z vx vy vz c_myKE c_myPE
 # dump the data required for G-K computations
-dump position all custom 2 gk_data.txt id type x y z vx vy vz c_KE c_PE c_Stress[1] c_Stress[2] c_Stress[3] c_Stress[4] c_Stress[5] c_Stress[6]
+dump position all custom 5 gk_data.lmp_traj id type x y z vx vy vz fx fy fz c_KE c_PE c_Stress[1] c_Stress[2] c_Stress[3] c_Stress[4] c_Stress[5] c_Stress[6]
 dump_modify position sort id
 
 
 thermo_style custom step temp v_Jx v_Jy v_Jz v_k11 v_k22 v_k33
 # run          500000
-run          120000
+run          250000
 variable     k equal (v_k11+v_k22+v_k33)/3.0
 variable     ndens equal count(all)/vol
 print        "the volume of the box is: $V"

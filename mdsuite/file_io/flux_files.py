@@ -11,8 +11,9 @@ import numpy as np
 from tqdm import tqdm
 
 from mdsuite.file_io.file_read import FileProcessor
+
+
 # from .file_io_dict import lammps_flux
-from mdsuite.utils.meta_functions import optimize_batch_size
 
 
 class FluxFile(FileProcessor):
@@ -37,8 +38,7 @@ class FluxFile(FileProcessor):
         """
 
         super().__init__(obj, header_lines, file_path)  # fill the experiment class
-        self.project.volume = None
-        self.project.number_of_atoms = None
+
         self.sort = sort
 
     def build_database_skeleton(self):
@@ -49,22 +49,22 @@ class FluxFile(FileProcessor):
         #                    libver='latest')
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz', 'yx', 'zx', 'zy')
 
-        with hf.File(os.path.join(self.project.database_path, 'database_path.hdf5'), 'w', libver='latest') as database:
+        with hf.File(os.path.join(self.experiment.database_path, 'database_path.hdf5'), 'w', libver='latest') as database:
             # Build the database_path structure
             database.create_group('1')
-            for property_in, columns in self.project.property_groups.items():
+            for property_in, columns in self.experiment.property_groups.items():
                 if len(columns) == 1:
-                    database['1'].create_dataset(property_in, (self.project.number_of_configurations -
-                                                               self.project.number_of_configurations %
-                                                               self.project.batch_size,),
+                    database['1'].create_dataset(property_in, (self.experiment.number_of_configurations -
+                                                               self.experiment.number_of_configurations %
+                                                               self.experiment.batch_size,),
                                                  compression="gzip", compression_opts=9)
                 else:
                     n_cols = len(columns)
                     database['1'].create_group(property_in)
                     for axis in axis_names[0:n_cols]:
-                        database['1'][property_in].create_dataset(axis, (self.project.number_of_configurations -
-                                                                         self.project.number_of_configurations %
-                                                                         self.project.batch_size,),
+                        database['1'][property_in].create_dataset(axis, (self.experiment.number_of_configurations -
+                                                                         self.experiment.number_of_configurations %
+                                                                         self.experiment.batch_size,),
                                                                   compression="gzip", compression_opts=9)
 
     def fill_database(self, counter=0):
@@ -75,16 +75,18 @@ class FluxFile(FileProcessor):
         counter
         """
         # loop range for the tensor_values.
-        loop_range = int((self.project.number_of_configurations - counter) / self.project.batch_size)
+        loop_range = int((self.experiment.number_of_configurations - counter) / self.experiment.batch_size)
         skip_header = 0
-        with hf.File(os.path.join(self.project.database_path, 'database_path.hdf5'), "r+") as database:
-            with open(self.project.trajectory_file) as f:
+        with hf.File(os.path.join(self.experiment.database_path, 'database_path.hdf5'), "r+") as database:
+            with open(self.experiment.trajectory_file) as f:
                 for _ in tqdm(range(loop_range), ncols=70):
                     if skip_header == 0:
-                        batch_data = self.read_configurations(self.project.batch_size, f,
+                        batch_data = self.read_configurations(self.experiment.batch_size, f,
                                                               skip=True)  # load the batch tensor_values
                     else:
-                        batch_data = self.read_configurations(self.project.batch_size, f)  # load the batch tensor_values
+                        batch_data = self.read_configurations(self.experiment.batch_size,
+
+                                                              f)  # load the batch tensor_values
                     self.process_configurations(batch_data, database, counter)  # process the trajectory
                     skip_header = 1  # turn off the header skip
                     counter += len(batch_data)  # Update counter
@@ -142,7 +144,8 @@ class FluxFile(FileProcessor):
         """
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz')
         # Fill the database_path
-        for property_group, columns in self.project.property_groups.items():
+        for property_group, columns in self.experiment.property_groups.items():
+
             num_columns = len(columns)
             if num_columns == 1:
                 database['1'][property_group][counter:counter + len(data)] = data[:, columns[0]].astype(float)
