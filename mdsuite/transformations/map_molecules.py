@@ -31,9 +31,9 @@ class MolecularMap(Transformations):
         """
         super().__init__(experiment)
         self.molecules = molecules
-
         self.reference_molecules = {}
         self.adjacency_graphs = {}
+        self.scale_function = {'quadratic': {'scale_factor': 5}}
 
     def _prepare_database_entry(self, species, number_of_molecules: int):
         """

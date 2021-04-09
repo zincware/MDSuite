@@ -33,6 +33,7 @@ class ScaleCoordinates(Transformations):
         """
         super().__init__(experiment)
         self.species = species
+        self.scale_function = {'linear': {'scale_factor': 2}}
 
         if self.species is None:
             self.species = list(self.experiment.species)
@@ -107,7 +108,7 @@ class ScaleCoordinates(Transformations):
                                                       output_signature=tf.TensorSpec(shape=(None, self.batch_size, 3),
                                                                                      dtype=tf.float64)
                                                       )
-            data_set.prefetch(tf.data.experimental.AUTOTUNE)
+            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, x in enumerate(data_set):
                 data = self._transformation(x)
                 self._save_coordinates(data=data,

@@ -62,6 +62,8 @@ class CoordinateWrapper(Transformations):
         """
         super().__init__(experiment)
 
+        self.scale_function = {'linear': {'scale_factor': 5}}
+
         self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
         self.analysis_name = self.experiment.analysis_name  # get the analysis name
         self.center_box = center_box

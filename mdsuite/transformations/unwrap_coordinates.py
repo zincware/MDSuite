@@ -63,6 +63,7 @@ class CoordinateUnwrapper(Transformations):
                 If true, the box coordinates will be centered before the unwrapping occurs
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
         self.analysis_name = self.experiment.analysis_name  # get the analysis name

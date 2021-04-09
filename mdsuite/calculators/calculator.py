@@ -245,7 +245,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
                                             scaling_factor=1,
-                                            memory_fraction=0.5)
+                                            memory_fraction=0.5,
+                                            scale_function=self.scale_function)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(system=self.system_property)
 
         self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)

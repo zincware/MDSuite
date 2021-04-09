@@ -72,6 +72,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                          atom_selection=atom_selection)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.species = species  # Which species to calculate for
 

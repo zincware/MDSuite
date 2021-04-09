@@ -29,6 +29,7 @@ class MomentumFlux(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
+        self.scale_function = {'linear': {'scale_factor': 4}}
 
     def _prepare_database_entry(self):
         """

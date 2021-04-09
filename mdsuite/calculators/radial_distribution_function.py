@@ -79,6 +79,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Name of the analysis
         """
         super().__init__(experiment, plot, save, data_range)
+        self.scale_function = {'quadratic': {'scale_factor': 10}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
 
