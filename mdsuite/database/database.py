@@ -22,7 +22,9 @@ class Database:
     Attributes
     ----------
     architecture : str
-                The type of the database_path implemented, either a simulation database_path, or an analysis database_path.
+                The type of the database_path implemented, either a simulation database_path, or an
+                analysis database_path.
+
     name : str
             The name of the database_path in question.
     """
@@ -34,7 +36,8 @@ class Database:
         Parameters
         ----------
         architecture : str
-                The type of the database_path implemented, either a simulation database_path, or an analysis database_path.
+                The type of the database_path implemented, either a simulation
+        database_path, or an analysis database_path. name : str The name of the database_path in question.
         name : str
                 The name of the database_path in question.
         """
@@ -93,8 +96,7 @@ class Database:
                 Number of configurations in each batch
         start_index : int
                 Point in database_path from which to start filling.
-        database : hf.File
-                Database in which to store the tensor_values
+
         structure : dict
                 Structure of the tensor_values to be loaded into the database_path e.g.
                 {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
@@ -155,20 +157,22 @@ class Database:
 
         """
         atom_ids = np.tile(indices, batch_size)
-        simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size/n_atoms))
-        indices = np.zeros(int(batch_size*len(atom_ids)))
+        simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size / n_atoms))
+        indices = np.zeros(int(batch_size * len(atom_ids)))
+
 
         counter = 0
         for i, item in enumerate(simulation_ids):
             stop = counter + len(atom_ids)
-            correction = i*n_atoms
+            correction = i * n_atoms
+
             sorter = np.argsort(item)
             simulation_ids[counter:stop] = sorter[np.searchsorted(item, atom_ids, sorter=sorter)] + correction
             counter += len(atom_ids)
 
         return indices
 
-    def _resize_dataset(self, structure: dict):
+    def resize_dataset(self, structure: dict):
         """
         Resize a dataset so more tensor_values can be added
 
@@ -190,17 +194,34 @@ class Database:
 
         # construct the architecture dict
         architecture = self._build_path_input(structure=structure)
+        # Check for a type error in the dataset information
 
         for identifier in architecture:
-            for data in database[identifier]:
-                data.resize(architecture[identifier], 1)
+            dataset_information = architecture[identifier]
+            try:
+                if type(dataset_information) is not tuple:
+                    print("Invalid input for dataset generation")
+                    raise TypeError
+            except TypeError:
+                raise TypeError
+
+            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
+            if len(dataset_information[:-1]) == 1:
+                axis = 0
+                expansion = dataset_information[0] + database[identifier].shape[0]
+            else:
+                axis = 1
+                expansion = dataset_information[1] + database[identifier].shape[1]
+            database[identifier].resize(expansion, axis)
+
 
     def initialize_database(self, structure: dict):
         """
         Build a database_path with a general structure.
 
-        Note, this method WILL overwrite a pre-existing database_path. This is because it is only to be called on the initial
-        construction of an experiment class and the first addition of tensor_values to it.
+        Note, this method WILL overwrite a pre-existing database_path. This is because it is only to be called on the
+        initial construction of an experiment class and the first addition of tensor_values to it.
+
 
         Parameters
         ----------
@@ -221,31 +242,27 @@ class Database:
         """
         Build an input to a hdf5 database_path from a dictionary
 
-        In many cases, whilst a dict can be passed on to a method, it is not ideal for use in the hdf5 database_path. This
-        method takes a dictionary and return a new dictionary with the relevant file path.
+        In many cases, whilst a dict can be passed on to a method, it is not ideal for use in the hdf5 database_path.
+        This method takes a dictionary and return a new dictionary with the relevant file path.
+
 
         Parameters
         ----------
         structure : dict
-                General structure of the dictionary with relevant dataset sizes.
-                e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
-                In this case, the last value in the tuple corresponds to the number of components that wil be parsed
-                to the database_path. The value in the dict can also be an integer corresponding to a resize operation such
-                as {'Na': {'velocities' 100}}. In any case, the deepest portion of the dict must be a non-dict object
-                and will be returned as the value of the path to it in the new dictionary.
+                General structure of the dictionary with relevant dataset sizes. e.g.
+        {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)} In this case,
+        the last value in the tuple corresponds to the number of components that wil be parsed to the database_path.
+        The value in the dict can also be an integer corresponding to a resize operation such as {'Na': {'velocities'
+        100}}. In any case, the deepest portion of the dict must be a non-dict object and will be returned as the
+        value of the path to it in the new dictionary.
+
 
         Returns
         -------
         architecture : dict
-                Corrected path in the hdf5 database_path. e.g. {'/Na/Velocities': 100}, or {'/Na/Forces': (200, 5000, 3)}
+                Corrected path in the hdf5 database_path. e.g. {'/Na/Velocities': 100}, or
+                {'/Na/Forces': (200, 5000, 3)}
 
-        Examples
-        --------
-        >>> database_path = Database
-        >>> database_path._build_path_input(structure = {'Na' : {'Forces': (200, 5000, 3)}})
-        {'Na/Forces': (200, 5000, 3)}
-        >>> database_path._build_path_input(structure={'Na': {'velocities' 100}})
-        {'Na/Velocities': 100}
         """
 
         # Build file paths for the addition.
@@ -264,19 +281,17 @@ class Database:
         """
         Add a dataset of the necessary size to the database_path
 
-        Just as a separate method exists for building the group structure of the hdf5 database_path, so too do we include
-        a separate method for adding a dataset. This is so datasets can be added not just upon the initial construction
-        of the database_path, but also if tensor_values is added in the future that should also be stored. This method will assume
-        that a group has already been built, although this is not necessary for HDF5, the separation of the actions is
-        good practice.
+        Just as a separate method exists for building the group structure of the hdf5 database_path, so too do we
+        include a separate method for adding a dataset. This is so datasets can be added not just upon the initial
+        construction of the database_path, but also if tensor_values is added in the future that should also be
+        stored. This method will assume that a group has already been built, although this is not necessary for HDF5,
+        the separation of the actions is good practice.
 
         Parameters
         ----------
         structure : dict
                 Structure of a single property to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
-        database_path: hf.File
-                Open hdf5 database_path object to be added to.
 
         Returns
         -------
@@ -306,23 +321,21 @@ class Database:
                 max_shape[1] = None
                 max_shape = tuple(max_shape)
 
-            database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5)
+            database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5, chunks=True)
         database.close()
 
     def _add_group_structure(self, structure: dict):
         """
         Add a simple group structure to a database_path.
+        This method will take an input structure and build the required group structure in the hdf5 database_path.
+        This will NOT however instantiate the dataset for the structure, only the group hierarchy.
 
-        This method will take an input structure and build the required group structure in the hdf5 database_path. This will
-        NOT however instantiate the dataset for the structure, only the group hierarchy.
 
         Parameters
         ----------
         structure : dict
                 Structure of a single property to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
-        database: hf.File
-                Open hdf5 database_path object to be added to.
 
         Returns
         -------
@@ -376,8 +389,9 @@ class Database:
         keys = []
         database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
                                                                                       hf.Dataset else None)
+        path = f'/{path}'  # add the / to avoid name overlapping
 
-        response = any(list(path in item for item in keys))
+        response = any(list(item.endswith(path) for item in keys))
         database_object.close()
         return response
 
@@ -421,7 +435,8 @@ class Database:
         if not dictionary:
             data = []
             for i, item in enumerate(path_list):
-                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)*scaling[i])
+                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64) * scaling[i])
+
         if dictionary:
             data = {}
             for item in path_list:
@@ -475,7 +490,8 @@ class Database:
         database_path: (optional) str
                 path to a specific database_path, if None, the class instance database_path will be used
         system : bool
-                If true, the row number is the relavent property
+                If true, the row number is the relevant property
+
         Returns
         -------
         dataset_properties : tuple

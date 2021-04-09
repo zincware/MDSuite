@@ -12,15 +12,39 @@ import matplotlib.pyplot as plt
 
 
 class AngularDistributionFunction(Calculator, ABC):
+    """
+    Compute the Angular Distribution Function for all species combinations
 
-    def __init__(self, experiment, n_batches: int = 1, n_minibatches: int = 50, n_confs: int = 50, data_range=1,
-                 r_cut: int = 6.0, start: int = 0, stop: int = 10000, bins: int = 500, use_tf_function: bool = False):
+    Parameters
+    ----------
+    batch_size : int
+        Number of batches, to split the configurations into.
+    n_minibatches: int
+        Number of minibatches for computing the angles to split each batch into
+    n_confs: int
+        Number of configurations to analyse
+    r_cut: float
+        cutoff radius for the ADF
+    start: int
+        Index of the first configuration
+    stop: int
+        Index of the last configuration
+    bins: int
+        bins for the ADF
+    use_tf_function: bool, default False
+        activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
+        may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
+        so this might only be useful for a larger number of batches.
+    """
+
+    def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
+                 r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False):
         """
         Compute the Angular Distribution Function for all species combinations
 
         Parameters
         ----------
-        n_batches : int
+        batch_size : int
             Number of batches, to split the configurations into.
         n_minibatches: int
             Number of minibatches for computing the angles to split each batch into
@@ -39,18 +63,27 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=data_range)
+        super().__init__(experiment, data_range=1)
         self.use_tf_function = use_tf_function
         self.loaded_property = 'Positions'
         self.r_cut = r_cut
         self.start = start
         self.experimental = True
-        self.stop = stop
+        if stop is None:
+            self.stop = experiment.number_of_configurations - 1
+        else:
+            self.stop = stop
         self.n_confs = n_confs
         self.bins = bins
-        self.bin_range = [0.0, 3.15]  # from 0 to pi -. ??? 3.1415 -> 3.15 = failed rounding.
-        self.n_batches = n_batches  # memory management for all batches
+        self.bin_range = [0.0, 3.15]  # from 0 to pi -. ??? 3.1415 -> 3.15 = failed rounding. I rounding up here, to
+        # get a nice plot. If I would go down it would cut off some values.
+        self._batch_size = batch_size  # memory management for all batches
+        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
+
+        self.analysis_name = "AngularDistributionFunction"
+        self.x_label = r'Angle ($\theta$)'
+        self.y_label = 'ADF /a.u.'
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
@@ -88,21 +121,36 @@ class AngularDistributionFunction(Calculator, ABC):
 
         angles = {}
 
+        # TODO select when to enable tqdm of get_triplets
+
         if self.use_tf_function:
             @tf.function
             def _get_triplets(x):
-                return get_triplets(x, r_cut=self.r_cut,
-                                    n_atoms=self.experiment.number_of_atoms, n_batches=self.n_minibatches)
+                return get_triplets(x, r_cut=self.r_cut, n_atoms=self.experiment.number_of_atoms,
+                                    n_batches=self.n_minibatches, disable_tqdm=True)
         else:
             def _get_triplets(x):
-                return get_triplets(x, r_cut=self.r_cut,
-                                    n_atoms=self.experiment.number_of_atoms, n_batches=self.n_minibatches)
+                return get_triplets(x, r_cut=self.r_cut, n_atoms=self.experiment.number_of_atoms,
+                                    n_batches=self.n_minibatches, disable_tqdm=True)
 
-        for idx in tqdm(np.array_split(sample_configs, self.n_batches), ncols=70):
-            positions = self._load_positions(idx)
+        def generator():
+            for idx in sample_configs:
+                if len(self.experiment.species) == 1:
+                    yield self._load_positions(idx)  # Load the batch of positions
+                else:
+                    yield tf.concat(self._load_positions(idx), axis=0)  # Load th
+                # yield self._load_positions(idx)  # <- bottleneck, because loading single configurations
+
+        dataset = tf.data.Dataset.from_generator(generator, output_signature=(
+            tf.TensorSpec(shape=(None, None), dtype=tf.float32)
+        ))
+
+        dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
+
+        for positions in tqdm(dataset, ncols=70):
+            timesteps, atoms, _ = tf.shape(positions)
 
             tmp = tf.concat(positions, axis=0)
-            tmp = tf.transpose(tmp, (1, 0, 2))
 
             r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1))  # TODO batch_size!
             r_ij_indices = get_triu_indicies(self.experiment.number_of_atoms)
@@ -110,7 +158,7 @@ class AngularDistributionFunction(Calculator, ABC):
             r_ij_mat = tf.scatter_nd(
                 indices=tf.transpose(r_ij_indices),
                 updates=tf.transpose(r_ij_flat, (1, 2, 0)),  # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
-                shape=(self.experiment.number_of_atoms, self.experiment.number_of_atoms, 3, len(idx))
+                shape=(self.experiment.number_of_atoms, self.experiment.number_of_atoms, 3, timesteps)
             )
             r_ij_mat -= tf.transpose(r_ij_mat, (1, 0, 2, 3))
             r_ij_mat = tf.transpose(r_ij_mat, (3, 0, 1, 2))
@@ -153,13 +201,11 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
-            fig, ax = plt.subplots()
-            ax.plot(bin_range_to_angles, hist)
-            ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-            fig.show()
-            # fig.savefig(f"{self.experiment.figures_path}/adf_{name}.png")
-            fig.savefig(fr"adf_{name}.png")
-            np.save(f"{species}", (bin_range_to_angles, hist))
+            if self.plot:
+                fig, ax = plt.subplots()
+                ax.plot(bin_range_to_angles, hist)
+                ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
+                self._plot_fig(fig, ax, title=name)
 
     def _calculate_prefactor(self, species: str = None):
         """
