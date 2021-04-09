@@ -46,7 +46,6 @@ setuptools.setup(
     install_requires=['tensorflow',
                       'h5py',
                       'pysmiles',
-                      'numpy',
                       'matplotlib',
                       'scipy',
                       'tqdm',
