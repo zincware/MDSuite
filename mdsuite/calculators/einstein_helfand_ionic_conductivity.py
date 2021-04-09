@@ -65,6 +65,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         # parse to the experiment class
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
         self.dependency = "Unwrapped_Positions"
@@ -86,7 +87,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
+        self.batch_output_signature = (tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64))
         self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
 
     def _calculate_prefactor(self, species: str = None):
@@ -106,6 +107,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         denominator = 6 * self.experiment.units['time'] * (
                     self.experiment.volume * self.experiment.units['length'] ** 3) * \
                       self.experiment.temperature * boltzmann_constant
+
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

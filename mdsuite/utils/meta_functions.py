@@ -45,7 +45,6 @@ def join_path(a, b):
     return os.path.join(a, b).replace("\\", "/")
 
 
-
 def get_dimensionality(box: list) -> int:
     """
     Calculate the dimensionality of the experiment box
@@ -407,3 +406,4 @@ def find_item(obj, key):
             item = find_item(v, key)
             if item is not None:
                 return item
+
