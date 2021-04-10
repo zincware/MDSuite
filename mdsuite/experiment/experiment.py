@@ -79,8 +79,6 @@ class Experiment:
         cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
-        loggo : logging object
-                Logging object used to write things to the log file or the console
         """
 
         # Taken upon instantiation
@@ -149,11 +147,11 @@ class Experiment:
             pass
 
         root.setLevel(logging.DEBUG)  # <- seems to be the lowest possible loglevel so we set it to debug here!
-                                      # if we set it to info, we can not set the file oder stream to debug
+        # if we set it to info, we can not set the file oder stream to debug
 
         # Logging to the logfile
         file_handler = logging.FileHandler(filename=logfile)
-        file_handler.setLevel(logging.INFO)  # <- filelog loglevel
+        file_handler.setLevel(logging.INFO)  # <- file log loglevel
 
         formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
         file_handler.setFormatter(formatter)
@@ -807,3 +805,22 @@ class Experiment:
                     for atom in data_matrix[j].numpy():
                         f.write(
                             f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
+
+    def export_data(self, group: str, key: str = None, sub_key: str = None):
+        """
+        Export data from the analysis database.
+
+        Parameters
+        ----------
+        group : str
+                Group in the database from which data should be loaded
+        key  : str
+                Additional identifier.
+        sub_key : str
+                Additional identifier
+        Returns
+        -------
+        saves a csv to the working directory.
+        """
+        database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
+        database.export_csv(group=group, key=key, sub_key=sub_key)

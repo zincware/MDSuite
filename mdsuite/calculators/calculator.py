@@ -48,24 +48,22 @@ class Calculator(metaclass=abc.ABCMeta):
             Number of barthes to use as a dictionary for both serial and parallel implementations
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=500, correlation_time=1, atom_selection=np.s_[:]):
+    def __init__(self, experiment: object, plot: bool = True, save: bool = True, data_range: int = 500,
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True):
         """
-
+        Constructor for the calculator class
         Parameters
         ----------
         experiment
         plot
         save
         data_range
-        x_label
-        y_label
-        analysis_name
-
         """
         self.experiment = experiment  # Experiment object to get properties from
         self.data_range = data_range  # Data range over which to evaluate
         self.plot = plot  # Whether or not to plot the tensor_values and save a figure
         self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+        self.export = export  # Whether or not to export the data
 
         self.atom_selection = atom_selection
 
@@ -95,6 +93,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.analysis_name: str  # what to save the figure as
 
         self.database_group = None  # Which database_path group to save the tensor_values in
+        self.analysis_name = None
         self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
                                 self.data_range)
 
@@ -539,6 +538,8 @@ class Calculator(metaclass=abc.ABCMeta):
             data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
             self._prepare_managers(data_path)
             self.run_experimental_analysis()
+            if self.export:
+                self.export_data()
 
         else:
             for species in self.species:
@@ -574,6 +575,8 @@ class Calculator(metaclass=abc.ABCMeta):
             pass
         else:
             self.perform_computation()
+        if self.export:
+            self.export_data()
 
     def run_experimental_analysis(self):
         """
@@ -583,3 +586,14 @@ class Calculator(metaclass=abc.ABCMeta):
 
         """
         raise NotImplementedError
+
+    def export_data(self):
+        """
+        Export data from the analysis database.
+        Returns
+        -------
+        Prints a csv file (or multiple)
+        """
+        database = Database(name=os.path.join(self.experiment.database_path, 'analysis_data.hdf5'),
+                            architecture='analysis')
+        database.export_csv(self.database_group, self.analysis_name)

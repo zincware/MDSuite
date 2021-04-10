@@ -53,7 +53,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1):
+                 correlation_time: int = 1, export: bool = False):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -70,7 +70,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis

@@ -15,8 +15,8 @@ switcher_transformations = {
 }
 
 dict_classes_db = {
-    'diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}, 'Distinct': {}},
-                               'Green_Kubo_Diffusion': {'Singular': {}, 'Distinct': {}}},
+    'self_diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}},
+                               'Green_Kubo_Diffusion': {'Singular': {}}},
     'distinct_diffusion_coefficients': {'einstein_diffusion_coefficients': {},
                                         'green_kubo_diffusion_coefficients': {}},
     'ionic_conductivity': {},

@@ -50,7 +50,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, atom_selection=np.s_[:]):
+                 correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -69,14 +69,14 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
 
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
-                         atom_selection=atom_selection)
+                         atom_selection=atom_selection, export=export)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.species = species  # Which species to calculate for
 
-        self.database_group = 'diffusion_coefficients'  # Which database_path group to save the tensor_values in
+        self.database_group = 'self_diffusion_coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
         self.analysis_name = 'Green_Kubo_Diffusion'

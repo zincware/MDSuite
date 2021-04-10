@@ -58,7 +58,7 @@ class RadialDistributionFunction(Calculator, ABC):
     """
 
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
-                 images=1, start=0, stop=None, number_of_configurations=1000, **kwargs):
+                 images=1, start=0, stop=None, number_of_configurations=100, export: bool = False, **kwargs):
         """
 
         Attributes
@@ -78,7 +78,7 @@ class RadialDistributionFunction(Calculator, ABC):
         analysis_name : str
                 Name of the analysis
         """
-        super().__init__(experiment, plot, save, data_range)
+        super().__init__(experiment, plot, save, data_range, export=export)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load

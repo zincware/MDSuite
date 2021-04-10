@@ -47,7 +47,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
     """
 
-    def __init__(self, experiment, plot=True, data_range=500, save=True, correlation_time=1):
+    def __init__(self, experiment, plot=True, data_range=500, save=True, correlation_time=1, export: bool = False):
         """
         Python constructor
 
@@ -64,7 +64,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis

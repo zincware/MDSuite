@@ -46,7 +46,8 @@ class GreenKuboViscosity(Calculator):
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time: int = 1):
+    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time: int = 1,
+                 export: bool = False):
         """
 
         Attributes
@@ -60,7 +61,7 @@ class GreenKuboViscosity(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Momentum_Flux'  # property to be loaded for the analysis

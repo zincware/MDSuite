@@ -41,7 +41,7 @@ class GreenKuboViscosityFlux(Calculator):
             if true, plot the tensor_values
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, correlation_time=1, save=True):
+    def __init__(self, experiment, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False):
         """
         Python constructor for the experiment class.
 
@@ -54,7 +54,7 @@ class GreenKuboViscosityFlux(Calculator):
         data_range : int
                 Number of configurations to include in each ensemble
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis

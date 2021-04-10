@@ -9,6 +9,7 @@ from mdsuite.utils.exceptions import *
 import tensorflow as tf
 import time
 from typing import Union
+import pandas as pd
 
 
 class Database:
@@ -37,7 +38,7 @@ class Database:
         ----------
         architecture : str
                 The type of the database_path implemented, either a simulation
-        database_path, or an analysis database_path. name : str The name of the database_path in question.
+                database_path, or an analysis database_path.
         name : str
                 The name of the database_path in question.
         """
@@ -507,3 +508,74 @@ class Database:
                 data_tuple = (db[data_path].shape[0], db[data_path].shape[1], db[data_path].nbytes)
 
         return data_tuple
+
+    def export_csv(self, group: str, key: str = None, sub_key: str = None):
+        """
+        Export a csv of database data.
+
+        This method is not designed for simulation databases, only for analysis databases.
+
+        Parameters
+        ----------
+        group : str
+                Group in the database from which data should be loaded
+        key  : str
+                Additional identifier.
+        sub_key : str
+                Additional identifier.
+
+        Returns
+        -------
+        saves a csv to the working directory.
+        """
+        if self.architecture == 'simulation':
+            print("Method cannot be called in simulation databases.")
+            return
+
+        identifier = None
+        database = hf.File(self.name, 'r')  # open the database
+        first_layer = list(database.keys())
+        for item in first_layer:
+            if group in item:
+                identifier = item
+        if identifier is None:
+            print("This group does not seem to exist.")
+            return
+        second_layer = list(database[identifier].keys())
+        print((database[identifier][second_layer[0]]))
+        if type(database[identifier][second_layer[0]]) is hf.Dataset:
+            for item in second_layer:
+                data = np.array(database[identifier][item])
+                data = data.reshape((len(data[0]), 2))
+                df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                df.to_csv(f"{identifier}_{item}.csv")
+        else:
+            if key is None:
+                for item in second_layer:
+                    third_layer = list(database[identifier][item].keys())
+                    for sub_item in third_layer:
+                        data = np.array(database[identifier][item][sub_item])
+                        data = data.reshape((len(data[0]), 2))
+                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                        df.to_csv(f"{identifier}_{item}.csv")
+            else:
+                for item in second_layer:
+                    if key in item:
+                        sub_item = item
+                if sub_key is None:
+                    for dataset in database[identifier][sub_item]:
+                        data = np.array(database[identifier][sub_item][dataset])
+                        data = data.reshape((len(data[0]), 2))
+                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                        df.to_csv(f"{identifier}_{item}_{dataset}.csv")
+                else:
+                    last_layer = list(database[identifier][sub_item])
+                    for sub_sub_item in last_layer:
+                        if sub_key in sub_sub_item:
+                            final_identifier = sub_sub_item
+                    data = np.array(database[identifier][sub_item][final_identifier])
+                    data = data.reshape((len(data[0]), 2))
+                    df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                    df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
+
+        database.close()
