@@ -284,7 +284,7 @@ class Calculator(metaclass=abc.ABCMeta):
         data : np.array
                 Data to be saved.
         """
-
+        title = '_'.join([title, str(self.data_range)])
         with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r+') as db:
             if title in db[self.database_group].keys():
                 del db[self.database_group][title]

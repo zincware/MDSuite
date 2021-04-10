@@ -542,7 +542,6 @@ class Database:
             print("This group does not seem to exist.")
             return
         second_layer = list(database[identifier].keys())
-        print((database[identifier][second_layer[0]]))
         if type(database[identifier][second_layer[0]]) is hf.Dataset:
             for item in second_layer:
                 data = np.array(database[identifier][item])
