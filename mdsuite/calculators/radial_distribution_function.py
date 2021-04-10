@@ -12,7 +12,6 @@ calculations performed.
 """
 import logging
 from abc import ABC
-from typing import Iterable
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -80,6 +79,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Name of the analysis
         """
         super().__init__(experiment, plot, save, data_range)
+        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
 

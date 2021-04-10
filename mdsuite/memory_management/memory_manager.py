@@ -4,8 +4,11 @@ Class for memory management in MDSuite operations.
 
 from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.database.database import Database
+from mdsuite.utils.scale_functions import *
 import numpy as np
 import sys
+
+from typing import Callable
 
 
 class MemoryManager:
@@ -19,13 +22,14 @@ class MemoryManager:
     The class can work with several tensor_values-sets in the case an analysis requires this much tensor_values.
     """
 
-    def __init__(self, data_path: list = None, database: Database = None, scaling_factor: int = 1,
-                 parallel: bool = False, memory_fraction: float = 0.5):
+    def __init__(self, data_path: list = None, database: Database = None, parallel: bool = False,
+                 memory_fraction: float = 0.5, scale_function: dict = None):
         """
         Constructor for the memory management class
         """
+        if scale_function is None:
+            scale_function = {'linear': {'scale_factor': 1}}
         self.data_path = data_path
-        self.scaling_factor = scaling_factor
         self.parallel = parallel
         self.database = database
         self.memory_fraction = memory_fraction
@@ -35,6 +39,48 @@ class MemoryManager:
         self.batch_size = None
         self.n_batches = None
         self.remainder = None
+
+        self.scale_function, self.scale_function_parameters = self._select_scale_function(scale_function)
+
+    @staticmethod
+    def _select_scale_function(input_dict: dict):
+        """
+        select a scale function
+
+        Parameters
+        ----------
+        input_dict : dict
+                Input dict which selects the correct function.
+
+        Returns
+        -------
+        Updates the class state
+        """
+
+        def _string_to_function(argument: str):
+            """
+            Convert a string to a function choice.
+
+            Parameters
+            ----------
+            argument : str
+                    String to use in the matching.
+            Returns
+            -------
+            function : Callable
+            """
+            switcher = {
+                'linear': linear_scale_function,
+                'log-linear': linearithmic_scale_function,
+                'quadratic': quadratic_scale_function,
+                'polynomial': polynomial_scale_function
+            }
+            return switcher.get(argument, lambda: "Invalid choice")
+
+        scale_function = _string_to_function(list(input_dict.keys())[0])
+        scale_function_parameters = input_dict[list(input_dict.keys())[0]]
+
+        return scale_function, scale_function_parameters
 
     def get_batch_size(self, system: bool = False) -> tuple:
         """
@@ -57,14 +103,15 @@ class MemoryManager:
                 loaded to collect unused tensor_values.
         """
         if self.data_path is []:
-            print("No tensor_values has been requested.")
+            print("No tensor_values have been requested.")
             sys.exit(1)
 
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
-            per_configuration_memory += (n_bytes / n_columns)*self.scaling_factor
-        maximum_loaded_configurations = int(np.clip((self.memory_fraction*self.machine_properties['memory']) /
+            per_configuration_memory += (n_bytes / n_columns)
+        per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
+        maximum_loaded_configurations = int(np.clip((self.memory_fraction * self.machine_properties['memory']) /
                                                     per_configuration_memory, 1, n_columns))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
         number_of_batches = int(n_columns / batch_size)

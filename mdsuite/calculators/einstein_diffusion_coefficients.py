@@ -63,7 +63,7 @@ class EinsteinDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1):
+                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:]):
         """
 
         Parameters
@@ -82,7 +82,9 @@ class EinsteinDiffusionCoefficients(Calculator):
                 If true, the tensor_values range will be optimized
         """
 
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
+                         atom_selection=atom_selection)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Unwrapped_Positions'    # Property to be loaded
 

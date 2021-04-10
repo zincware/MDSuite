@@ -65,6 +65,7 @@ class GreenKuboIonicConductivity(Calculator):
 
         # update experiment class
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Ionic_Current'  # property to be loaded for the analysis
         self.system_property = True

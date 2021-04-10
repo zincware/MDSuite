@@ -138,7 +138,7 @@ class Database:
         """
         if sort:
             indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
-            tf.gather_nd(tf.convert_to_tensor(data), indices)[
+            data[indices][
                 np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
                 (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
         else:
@@ -159,7 +159,6 @@ class Database:
         atom_ids = np.tile(indices, batch_size)
         simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size / n_atoms))
         indices = np.zeros(int(batch_size * len(atom_ids)))
-
 
         counter = 0
         for i, item in enumerate(simulation_ids):
@@ -213,7 +212,6 @@ class Database:
                 axis = 1
                 expansion = dataset_information[1] + database[identifier].shape[1]
             database[identifier].resize(expansion, axis)
-
 
     def initialize_database(self, structure: dict):
         """
@@ -419,7 +417,7 @@ class Database:
         db.close()
 
     def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
-                  scaling: list = None):
+                  scaling: list = None, d_size: int = None):
         """
         Load tensor_values from the database_path for some operation.
 
@@ -441,6 +439,7 @@ class Database:
             data = {}
             for item in path_list:
                 data[item] = tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)
+            data[str.encode('data_size')] = d_size
         database.close()
 
         if len(data) == 1:
