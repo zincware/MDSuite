@@ -5,6 +5,7 @@ Summary
 -------
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
+import logging
 
 import json
 import os
@@ -19,6 +20,8 @@ import pubchempy as pcp
 import yaml
 from tqdm import tqdm
 import importlib.resources
+
+from datetime import datetime
 
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
@@ -76,6 +79,8 @@ class Experiment:
         cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
+        loggo : logging object
+                Logging object used to write things to the log file or the console
         """
 
         # Taken upon instantiation
@@ -104,6 +109,7 @@ class Experiment:
         self.experiment_path: str
         self.database_path: str
         self.figures_path: str
+        self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
         self.radial_distribution_function_state = False  # Set true if this has been calculated
@@ -121,6 +127,53 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
+        self.log = None
+        self._start_logging()
+
+    def _start_logging(self):
+        logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
+        logfile = os.path.join(self.logfile_path, logfile_name)
+
+        # there is a good chance, that the root logger is already defined so we have to make some changes to it!
+        root = logging.getLogger()
+
+        try:
+            if not hasattr(root.handlers[0], 'baseFilename'):
+                # we remove all existing handlers, to avoid messages being written multiple times,
+                # but we only do this when it is not a file handler, because we define the file handler first, so we
+                # know that there already exist one and this might be a second experiment that has been loaded!
+                while root.hasHandlers():
+                    root.removeHandler(root.handlers[0])
+        except IndexError:
+            # No handlers available, so we have a new root handler
+            pass
+
+        root.setLevel(logging.DEBUG)  # <- seems to be the lowest possible loglevel so we set it to debug here!
+                                      # if we set it to info, we can not set the file oder stream to debug
+
+        # Logging to the logfile
+        file_handler = logging.FileHandler(filename=logfile)
+        file_handler.setLevel(logging.INFO)  # <- filelog loglevel
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+        file_handler.setFormatter(formatter)
+        # attaching the stdout handler to the configured logging
+        root.addHandler(file_handler)
+
+        # Logging to the stdout (Terminal, Jupyter, ...)
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+        stream_handler.setFormatter(formatter)
+        # attaching the stdout handler to the configured logging
+        root.addHandler(stream_handler)
+
+        # get the file specific logger to get information where the log was written!
+        self.log = logging.getLogger(__name__)
+
+        self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
+
     def _create_internal_file_paths(self):
         """
         Create or update internal file paths
@@ -128,8 +181,9 @@ class Experiment:
         self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
         self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
         self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
+        self.logfile_path = os.path.join(self.experiment_path, 'logfiles')
 
-    def _load_or_build(self):
+    def _load_or_build(self) -> bool:
         """
         Check if the experiment already exists and decide whether to load it or build a new one.
         """
@@ -137,10 +191,14 @@ class Experiment:
         # Check if the experiment exists and load if it does.
         if Path(self.experiment_path).exists():
             print("This experiment already exists! I'll load it up now.")
+            # Can not log this to a file, because we don't know the file path yet!
             self.load_class()
+            return True
         else:
             print("Creating a new experiment! How exciting!")
+            # Can not log this to a file, because we don't know the file path yet!
             self._build_model()
+            return False
 
     def load_class(self):
         """
@@ -155,18 +213,13 @@ class Experiment:
             If the paths are different, the database_path has been moved and the internal file paths will be updated.
             """
 
-            if storage_path != self.storage_path:
-                print("Database has been moved - Updating internals!")
-                self.storage_path = storage_path
-                self._create_internal_file_paths()
+        with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
+            self.__dict__ = pickle.loads(f.read())
 
-        class_file = open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb')  # open file
-        pickle_data = class_file.read()  # read file
-        class_file.close()  # close file
-        storage_path = self.storage_path
-        self.__dict__ = pickle.loads(pickle_data)
-        update_path()
-        self.run_computation = self.RunComputation(self)
+        self._create_internal_file_paths()  # force rebuild every time
+
+        # self.run_computation = self.RunComputation(self)
+        # TODO check what self.__dict__ = pickle.loads does with run_computation and logger!
 
     def save_class(self):
         """
@@ -228,7 +281,8 @@ class Experiment:
         """
 
         if mapping is None:
-            print("Must provide a mapping")
+            # self.log("Must provide a mapping")
+            self.log.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -392,6 +446,7 @@ class Experiment:
             os.mkdir(self.experiment_path)  # Make the experiment directory
             os.mkdir(self.figures_path)  # Create a directory to save images
             os.mkdir(self.database_path)  # Create a directory for tensor_values
+            os.mkdir(self.logfile_path)
 
         except FileExistsError:  # throw exception if the file exits
             return
@@ -413,7 +468,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            print(f"{tuple_attributes[0]}: {tuple_attributes[1]}")  # Format the print statement
+            self.log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 
@@ -752,4 +807,3 @@ class Experiment:
                     for atom in data_matrix[j].numpy():
                         f.write(
                             f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
-
