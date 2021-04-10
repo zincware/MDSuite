@@ -134,8 +134,8 @@ class CoordinateWrapper(Transformations):
                 self._apply_mask()  # Apply the mask and unwrap the coordinates
                 if self.center_box:
                     self._center_box()
-                path = join_path(species, 'Unwrapped_Positions')
-                dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
+                path = join_path(species, 'Positions')
+                dataset_structure = {species: {'Positions': tuple(np.shape(self.data))}}
                 self.database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
                 data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
                 self._save_coordinates(data=self.data,
