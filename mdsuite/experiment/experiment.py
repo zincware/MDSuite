@@ -90,6 +90,7 @@ class Experiment:
         self.number_of_configurations = 0  # Number of configurations in the trajectory.
         self.number_of_atoms = None  # Number of atoms in the simulation.
         self.species = None  # Species dictionary.
+        self.molecules = {}  # molecules
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
@@ -112,7 +113,7 @@ class Experiment:
         self._results = list(dict_classes_db.keys())
 
         # Memory properties
-        self.memory_requirements = {}  # TODO I think this can be removed.
+        self.memory_requirements = {}  # TODO I think this can be removed. - Not until all calcs are under tf Dataset
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()

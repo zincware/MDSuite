@@ -5,6 +5,7 @@ Module for mapping atoms to molecules
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+from typing import List
 
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
@@ -33,7 +34,7 @@ class MolecularMap(Transformations):
         self.molecules = molecules
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.scale_function = {'quadratic': {'scale_factor': 5}}
+        self.scale_function = {'quadratic': {'outer_scale_factor': 5}}
 
     def _prepare_database_entry(self, species, number_of_molecules: int):
         """
@@ -181,7 +182,10 @@ class MolecularMap(Transformations):
             path_list = [join_path(s, 'Unwrapped_Positions') for s in species]
             self._prepare_monitors(data_path=path_list)
             scaling_factor = self.reference_molecules[item]['mass']
-
+            self.experiment.molecules[item] = {}
+            self.experiment.molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
+            self.experiment.molecules[item]['mass'] = scaling_factor
+            self.experiment.molecules[item]['groups'] = {}
             for i in tqdm(range(self.n_batches), ncols=70):
                 start = i * self.batch_size
                 stop = start + self.batch_size
@@ -189,6 +193,7 @@ class MolecularMap(Transformations):
                 trajectory = np.zeros(shape=(len(self.adjacency_graphs[item]['molecules']), self.batch_size, 3))
                 for t, molecule in enumerate(self.adjacency_graphs[item]['molecules']):
                     indices = list(self.adjacency_graphs[item]['molecules'][molecule].numpy())
+                    self.experiment.molecules[item]['groups'][t] = self._build_indices_dict(indices, species)
                     trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
                 self._save_coordinates(data=trajectory,
                                        data_structure=data_structure,
@@ -196,9 +201,44 @@ class MolecularMap(Transformations):
                                        batch_size=self.batch_size,
                                        system_tensor=False,
                                        tensor=True)
-            self.experiment.species[item] = {}
-            self.experiment.species[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
-            self.experiment.species[item]['mass'] = scaling_factor
+
+    def _build_indices_dict(self, indices: List[int], species: List[str]):
+        """
+        Build an indices dict to store the groups of atoms in each molecule.
+
+        Parameters
+        ----------
+        indices : list[int]
+                Indices of atoms belonging in the molecule
+        species : list[str]
+                Elements in the molecules, in the order that they are loaded.
+        Returns
+        -------
+        group_dict : dict
+                A dictionary of atoms and indices that specify that indices of this species is in a molecule.
+        """
+        indices_dict = {}
+        lengths = []
+        for i, item in enumerate(species):
+            length = len(self.experiment.species[item]['indices'])
+            if i == 0:
+                lengths.append(length)
+            else:
+                lengths.append(length + lengths[i-1])
+
+        for i, item in enumerate(species):
+            if i == 0:
+                indices_dict[item] = list(filter(lambda x: x < lengths[i], indices))
+            else:
+                greater_array = list(filter(lambda x: x >= lengths[i-1], indices))
+                constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
+                indices_dict[item] = constrained_array
+
+        return indices_dict
+
+
+
+
 
     def run_transformation(self):
         """
