@@ -55,6 +55,7 @@ class GreenKuboViscosityFlux(Calculator):
                 Number of configurations to include in each ensemble
         """
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
         self.system_property = True

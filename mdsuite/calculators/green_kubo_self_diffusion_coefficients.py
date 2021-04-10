@@ -50,7 +50,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1):
+                 correlation_time: int = 1, atom_selection=np.s_[:]):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -68,9 +68,11 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 If true, tensor_values will be saved after the analysis
         """
 
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
+                         atom_selection=atom_selection)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.species = species  # Which species to calculate for
 
@@ -111,7 +113,8 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1)
+        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) *\
+                      len(self.experiment.species[species]['indices'])
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

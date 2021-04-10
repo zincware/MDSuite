@@ -101,8 +101,11 @@ class EXTXYZFileReader(TrajectoryFile):
         time = None
         for item in data:
             if var_names['Time'] in item:
-                time = float(item.split('=')[-1])
-
+                try:
+                    time = float(item.split('=')[-1])
+                    raise ValueError
+                except ValueError:
+                    time = float(item.split('=')[-1].split(',')[0])
         return time
 
     def _get_time_information(self, number_of_atoms: int) -> Union[float, None]:

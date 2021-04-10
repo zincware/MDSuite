@@ -64,6 +64,7 @@ class GreenKuboThermalConductivity(Calculator):
         correlation_time: int
         """
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time)
+        self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Thermal_Flux'  # property to be loaded for the analysis
         self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in

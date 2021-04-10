@@ -2,19 +2,16 @@
 Module for mapping atoms to molecules
 """
 
-import os
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
-from mdsuite.database.data_manager import DataManager
-from mdsuite.memory_management.memory_manager import MemoryManager
-from mdsuite.database.database import Database
+from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
 
-class MolecularMap:
+class MolecularMap(Transformations):
     """
     Class for mapping atoms in a database to molecules.
     """
@@ -32,34 +29,11 @@ class MolecularMap:
                                                                 'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
                 would be the input for the emim-PF6 ionic liquid.
         """
-        self.experiment = experiment
+        super().__init__(experiment)
         self.molecules = molecules
-
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"),
-                                 architecture='simulation')
-
-    def _prepare_monitors(self, data_path: list):
-        """
-        Prepare the tensor_values and memory managers.
-
-        Parameters
-        ----------
-        data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
-
-        Returns
-        -------
-
-        """
-        self.memory_manager = MemoryManager(data_path=data_path, database=self.database, scaling_factor=5,
-                                            memory_fraction=0.5)
-        self.data_manager = DataManager(data_path=data_path, database=self.database)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
-        self.data_manager.batch_size = self.batch_size
-        self.data_manager.n_batches = self.n_batches
-        self.data_manager.remainder = self.remainder
+        self.scale_function = {'quadratic': {'scale_factor': 5}}
 
     def _prepare_database_entry(self, species, number_of_molecules: int):
         """
@@ -216,10 +190,11 @@ class MolecularMap:
                 for t, molecule in enumerate(self.adjacency_graphs[item]['molecules']):
                     indices = list(self.adjacency_graphs[item]['molecules'][molecule].numpy())
                     trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
-                self.database.add_data(data=trajectory,
-                                       structure=data_structure,
-                                       start_index=start,
+                self._save_coordinates(data=trajectory,
+                                       data_structure=data_structure,
+                                       index=start,
                                        batch_size=self.batch_size,
+                                       system_tensor=False,
                                        tensor=True)
             self.experiment.species[item] = {}
             self.experiment.species[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
