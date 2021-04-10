@@ -5,6 +5,7 @@ Summary
 -------
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
+import logging
 
 import json
 import os
@@ -20,6 +21,8 @@ import yaml
 from tqdm import tqdm
 import importlib.resources
 
+from datetime import datetime
+
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
@@ -29,7 +32,6 @@ from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.visualizer.visualizer import TrajectoryVisualizer
-from mdsuite.utils.logger import Logger
 
 
 class Experiment:
@@ -124,13 +126,52 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
-        # Add logging object
-        # self.loggo = Logger('output.log')
-        # self.loggo.logger1.info('Starting logfile output.log')
+        self.log = None
+        self._start_logging()
 
-        print(self.logfile_path)
+    def _start_logging(self):
+        logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
+        logfile = os.path.join(self.logfile_path, logfile_name)
 
-        self.log = Logger(self.logfile_path)
+        # there is a good chance, that the root logger is already defined so we have to make some changes to it!
+        root = logging.getLogger()
+
+        try:
+            if not hasattr(root.handlers[0], 'baseFilename'):
+                # we remove all existing handlers, to avoid messages being written multiple times,
+                # but we only do this when it is not a file handler, because we define the file handler first, so we
+                # know that there already exist one and this might be a second experiment that has been loaded!
+                while root.hasHandlers():
+                    root.removeHandler(root.handlers[0])
+        except IndexError:
+            # No handlers available, so we have a new root handler
+            pass
+
+        root.setLevel(logging.DEBUG)  # <- seems to be the lowest possible loglevel so we set it to debug here!
+                                      # if we set it to info, we can not set the file oder stream to debug
+
+        # Logging to the logfile
+        file_handler = logging.FileHandler(filename=logfile)
+        file_handler.setLevel(logging.INFO)  # <- filelog loglevel
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+        file_handler.setFormatter(formatter)
+        # attaching the stdout handler to the configured logging
+        root.addHandler(file_handler)
+
+        # Logging to the stdout (Terminal, Jupyter, ...)
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
+
+        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+        stream_handler.setFormatter(formatter)
+        # attaching the stdout handler to the configured logging
+        root.addHandler(stream_handler)
+
+        # get the file specific logger to get information where the log was written!
+        self.log = logging.getLogger(__name__)
+
+        self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
 
     def _create_internal_file_paths(self):
         """
@@ -149,10 +190,12 @@ class Experiment:
         # Check if the experiment exists and load if it does.
         if Path(self.experiment_path).exists():
             print("This experiment already exists! I'll load it up now.")
+            # Can not log this to a file, because we don't know the file path yet!
             self.load_class()
             return True
         else:
             print("Creating a new experiment! How exciting!")
+            # Can not log this to a file, because we don't know the file path yet!
             self._build_model()
             return False
 
@@ -237,8 +280,8 @@ class Experiment:
         """
 
         if mapping is None:
-            self.log("Must provide a mapping")
-            # self.loggo.logger1.info("Must provide a mapping")
+            # self.log("Must provide a mapping")
+            self.log.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -424,7 +467,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            self.log(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
+            self.log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 

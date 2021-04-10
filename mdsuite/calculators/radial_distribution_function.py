@@ -10,6 +10,7 @@ the Experiment class and instantiated when the user calls the Experiment.radial_
 The methods in class can then be called by the Experiment.radial_distribution_function method and all necessary
 calculations performed.
 """
+import logging
 from abc import ABC
 from typing import Iterable
 
@@ -120,6 +121,8 @@ class RadialDistributionFunction(Calculator, ABC):
             self.scaling_factor = kwargs.pop("scaling_factor")
         else:
             self.scaling_factor = 0.05*self.experiment.number_of_atoms
+
+        self.log = logging.getLogger(__name__)
 
     def _get_ideal_gas_probability(self) -> float:
         """
@@ -464,14 +467,13 @@ class RadialDistributionFunction(Calculator, ABC):
 
         self.experiment.radial_distribution_function_state = True  # update the state
 
-
     def run_experimental_analysis(self):
         """
         Perform the rdf analysis
         """
 
         # collect machine properties and determine batch size
-        self.experiment.log('Starting RDF Calculation')
+        self.log.info('Starting RDF Calculation')
         self._calculate_histograms()  # Calculate the RDFs
         self._calculate_radial_distribution_functions()
 

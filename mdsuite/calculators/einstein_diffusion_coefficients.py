@@ -9,6 +9,8 @@ The methods in class can then be called by the Experiment.einstein_diffusion_coe
 calculations performed.
 """
 
+import logging
+
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,7 +101,9 @@ class EinsteinDiffusionCoefficients(Calculator):
         if species is None:
             self.species = list(self.experiment.species)
 
-        self.experiment.log('starting Einstein Diffusion Computation')
+        self.log = logging.getLogger(__name__)
+
+        self.log.info('starting Einstein Diffusion Computation')
 
     def _update_output_signatures(self):
         """
