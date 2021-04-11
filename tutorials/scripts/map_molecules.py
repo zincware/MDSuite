@@ -25,7 +25,7 @@ def main():
     emim.species['H']['mass'] = 1.008
     emim.species['F']['mass'] = 18.998
     emim.run_computation.EinsteinHelfandIonicConductivity(plot=True, data_range=50)
-    emim.run_computation.EinsteinDiffusionCoefficients(plot=True, data_range=50)
+    #emim.run_computation.EinsteinDiffusionCoefficients(plot=True, data_range=50)
     #emim.run_computation.GreenKuboIonicConductivity(plot=True, data_range=50)
     #emim.perform_transformation("UnwrapCoordinates")
     #mapper = MolecularMap(emim, molecules={'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20}})
@@ -33,7 +33,7 @@ def main():
     #emim.perform_transformation('WrapCoordinates', species=['emim'])
     #emim.write_xyz(species=['emim'], name='emim', dump_property='Positions')
     #emim.write_xyz(species=['C', 'H', 'N'], name='atomistic', dump_property='Positions')
-    emim.export_data('self_diffusion', 'C_einstein')
+    #emim.export_data('self_diffusion', 'C_einstein')
 
 
 if __name__ == "__main__":

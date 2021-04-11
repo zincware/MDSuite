@@ -439,7 +439,11 @@ class Database:
         if dictionary:
             data = {}
             for item in path_list:
-                data[item] = tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64)
+                if type(select_slice) is dict:
+                    my_slice = select_slice[item]
+                else:
+                    my_slice = select_slice
+                data[item] = tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
             data[str.encode('data_size')] = d_size
         database.close()
 

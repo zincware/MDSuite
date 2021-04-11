@@ -85,8 +85,14 @@ class DataManager:
                 if batch == batch_number:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
+                if type(self.atom_selection) is dict:
+                    select_slice = {}
+                    for item in self.atom_selection:
+                        select_slice[item] = np.s_[self.atom_selection[item], start:stop]
+                else:
+                    select_slice = np.s_[self.atom_selection, start:stop]
                 yield database.load_data(data_path,
-                                         select_slice=np.s_[self.atom_selection, start:stop],
+                                         select_slice=select_slice,
                                          dictionary=dictionary,
                                          d_size=data_size)
 

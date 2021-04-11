@@ -53,7 +53,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, export: bool = False):
+                 correlation_time: int = 1, export: bool = False,  atom_selection: dict = np.s_[:]):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -70,7 +70,8 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
+        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export,
+                         atom_selection=atom_selection)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
@@ -123,6 +124,11 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         """
         Perform the distinct coefficient analysis analysis
         """
+        if type(self.atom_selection) is dict:
+            select_atoms = {}
+            for item in self.atom_selection:
+                select_atoms[str.encode(join_path(item, "Unwrapped_Positions"))] = self.atom_selection[item]
+            self.atom_selection = select_atoms
         for combination in self.combinations:
             type_spec = {}
             self._calculate_prefactor(combination)
