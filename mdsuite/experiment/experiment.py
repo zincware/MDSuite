@@ -509,13 +509,13 @@ class Experiment:
             self._update_database(trajectory_reader, trajectory_file, database, rename_cols)
 
         else:
-            self._build_new_database(trajectory_reader, trajectory_file, database, rename_cols=rename_cols, flux=flux)
+            self._build_new_database(trajectory_reader, trajectory_file, database, rename_cols=rename_cols, flux=flux, sort=sort)
 
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
     def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
-                            rename_cols: dict, flux: bool = False):
+                            rename_cols: dict, flux: bool = False, sort: bool =False):
         """
         Build a new database_path
         """
@@ -535,7 +535,7 @@ class Experiment:
                               start_index=counter,
                               batch_size=self.batch_size,
                               flux=flux,
-                              n_atoms=self.number_of_atoms)
+                              n_atoms=self.number_of_atoms, sort=sort)
             counter += self.batch_size
 
         if remainder > 0:
@@ -544,7 +544,7 @@ class Experiment:
                               structure=structure,
                               start_index=counter,
                               batch_size=remainder,
-                              flux=flux)
+                              flux=flux, sort=sort)
 
         f_object.close()
 
