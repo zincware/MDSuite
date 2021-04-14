@@ -85,7 +85,6 @@ class IonicCurrent(Transformations):
             charges = False
         else:
             charges = True
-
         system_current = tf.zeros(shape=(data[str.encode('data_size')], 3), dtype=tf.float64)
         if charges:
             for position, charge in zip(positions_keys, charge_keys):
@@ -124,13 +123,13 @@ class IonicCurrent(Transformations):
             self._prepare_monitors(data_path)
             type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
 
-        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
+        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int32)
         batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        for index, x in enumerate(data_set):
+        for index, x in tqdm(enumerate(data_set), ncols=70, desc="Ionic Current", total=self.n_batches):
             data = self._transformation(x)
             self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
 

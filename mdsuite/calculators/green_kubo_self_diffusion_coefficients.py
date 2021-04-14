@@ -113,7 +113,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) *\
+        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
                       len(self.experiment.species[species]['indices'])
         self.prefactor = numerator / denominator
 
@@ -138,7 +138,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
         MSD of the tensor_values.
         """
-        vacf = np.zeros(2*self.data_range - 1)
+        vacf = np.zeros(2 * self.data_range - 1)
         for item in ensemble:
             vacf += sum([signal.correlate(item[:, idx], item[:, idx], mode="full", method='auto') for idx in range(3)])
 
@@ -159,7 +159,9 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                                      data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=species)
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=fr"{species}: "
+                                                                                           f"{np.mean(result): .3E} $\pm$ "
+                                                                                           f"{np.std(result) / (np.sqrt(len(result))): .3E}")
 
         # Save the array if required
         if self.save:

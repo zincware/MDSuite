@@ -81,7 +81,7 @@ class DataManager:
             for batch in range(batch_number + _remainder):
                 start = int(batch*batch_size)
                 stop = int(start + batch_size)
-                data_size = tf.cast(batch_size, dtype=tf.int16)
+                data_size = tf.cast(batch_size, dtype=tf.int32)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)

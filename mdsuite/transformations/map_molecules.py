@@ -34,6 +34,7 @@ class MolecularMap(Transformations):
         self.molecules = molecules
         self.reference_molecules = {}
         self.adjacency_graphs = {}
+        self.dependency = 'Unwrapped_Positions'
         self.scale_function = {'quadratic': {'outer_scale_factor': 5}}
 
     def _prepare_database_entry(self, species, number_of_molecules: int):
@@ -81,7 +82,7 @@ class MolecularMap(Transformations):
         """
         mass = 0.0
         for item in species_dict:
-            mass += self.experiment.species[item]['mass'] * species_dict[item]
+            mass += self.experiment.species[item]['mass'][0] * species_dict[item]
 
         return mass
 
@@ -101,7 +102,7 @@ class MolecularMap(Transformations):
             mol = MolecularGraph(self.experiment,
                                  from_configuration=True,
                                  species=self.reference_molecules[item]['species'])
-            self.adjacency_graphs[item]['graph'] = mol.build_configuration_graph(cutoff=cutoff)
+            self.adjacency_graphs[item]['graph'] = mol.build_configuration_graph(cutoff=self.molecules[item]['cutoff'])
 
     def _get_molecule_indices(self):
         """
@@ -186,7 +187,7 @@ class MolecularMap(Transformations):
             self.experiment.molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
             self.experiment.molecules[item]['mass'] = scaling_factor
             self.experiment.molecules[item]['groups'] = {}
-            for i in tqdm(range(self.n_batches), ncols=70):
+            for i in tqdm(range(self.n_batches), ncols=70, desc='Mapping molecules'):
                 start = i * self.batch_size
                 stop = start + self.batch_size
                 data = self._load_batch(path_list, np.s_[:, start:stop], factor=np.array(mass_factor) / scaling_factor)
@@ -228,17 +229,13 @@ class MolecularMap(Transformations):
 
         for i, item in enumerate(species):
             if i == 0:
-                indices_dict[item] = list(filter(lambda x: x < lengths[i], indices))
+                indices_dict[item] = np.sort(list(filter(lambda x: x < lengths[i], indices)))
             else:
                 greater_array = list(filter(lambda x: x >= lengths[i-1], indices))
                 constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
-                indices_dict[item] = constrained_array
+                indices_dict[item] = np.sort(np.array(constrained_array) - (lengths[i-1]-1))
 
         return indices_dict
-
-
-
-
 
     def run_transformation(self):
         """
@@ -247,8 +244,10 @@ class MolecularMap(Transformations):
         -------
         Update the experiment database.
         """
+        self._run_dependency_check()
         self._build_reference_graphs()
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
+        self.experiment.perform_transformation('WrapCoordinates', species=[item for item in self.molecules])
         self.experiment.save_class()

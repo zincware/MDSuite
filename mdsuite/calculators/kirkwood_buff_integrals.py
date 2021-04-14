@@ -6,6 +6,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import h5py as hf
+from typing import Union
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -36,8 +37,6 @@ class KirkwoodBuffIntegral(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
@@ -50,8 +49,7 @@ class KirkwoodBuffIntegral(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$G(\mathbf{r})$',
-                 analysis_name='Kirkwood-Buff_Integral'):
+    def __init__(self, experiment, plot=True, save=True, data_range=1):
         """
         Python constructor for the class
 
@@ -75,16 +73,19 @@ class KirkwoodBuffIntegral(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
-        self.file_to_study = None                                             # RDF file being studied
-        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # directory in which tensor_values is stored
-        self.data_files = []                                                  # array of the files in tensor_values directory
-        self.rdf = None                                                       # rdf being studied
-        self.radii = None                                                     # radii of the rdf
-        self.species_tuple = None                                             # Which species are being studied
-        self.kb_integral = None                                               # Kirkwood-Buff integral for the rdf
-        self.database_group = 'kirkwood_buff_integral'                        # Which database_path group to save the tensor_values in
+        super().__init__(experiment, plot, save, data_range)
+        self.file_to_study = None
+        self.data_files = []
+        self.rdf = None
+        self.radii = None
+        self.species_tuple = None
+        self.kb_integral = None
+        self.database_group = 'kirkwood_buff_integral'
+        self.x_label = r'r ($\AA$)'
+        self.y_label = r'$G(\mathbf{r})$'
+        self.analysis_name = 'Kirkwood-Buff_Integral'
 
+        self.post_generation = True
 
     def _autocorrelation_time(self):
         """
@@ -118,7 +119,7 @@ class KirkwoodBuffIntegral(Calculator):
         for i in range(1, len(self.radii)):
             self.kb_integral.append(4*np.pi*(np.trapz((self.rdf[1:i] - 1)*(self.radii[1:i])**2, x=self.radii[1:i])))
 
-    def run_analysis(self):
+    def run_post_generation_analysis(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """
@@ -139,3 +140,58 @@ class KirkwoodBuffIntegral(Calculator):
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
 
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
+
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

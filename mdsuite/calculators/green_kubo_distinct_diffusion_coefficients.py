@@ -73,7 +73,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export,
                          atom_selection=atom_selection)
 
-        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+        self.scale_function = {'linear': {'scale_factor': 5}}
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
         self.species = species  # Which species to calculate for
 
@@ -82,6 +82,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.y_label = 'VACF $(m^{2}/s^{2})$'
         self.analysis_name = 'green_kubo_diffusion_coefficients'
         self.experimental = True
+        self._return_arrays = {}
 
         self.vacf = np.zeros(self.data_range)
         self.sigma = []
@@ -106,6 +107,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         updates the class state
         """
         for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
+            self.vacf = np.zeros(self.data_range)
             start = ensemble * self.correlation_time
             stop = start + self.data_range
             vacf = np.zeros(2*self.data_range - 1)
@@ -146,6 +148,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
             self._calculate_prefactor(combination)
             self._apply_averaging_factor()
             self._post_operation_processes(combination)
+            self._return_arrays[str(combination)] = self.vacf
+        return self._return_arrays
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -206,7 +210,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         # Update the plot if required
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=species)
-            plt.show()
+            plt.savefig(f'{species}.pdf')
 
         # Save the array if required
         if self.save:

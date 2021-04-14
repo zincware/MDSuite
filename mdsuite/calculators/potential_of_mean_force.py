@@ -21,6 +21,7 @@ import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import h5py as hf
+from typing import Union
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -72,8 +73,7 @@ class PotentialOfMeanForce(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=None, x_label=r'r ($\AA$)', y_label=r'$w^{(2)}(r)$',
-                 analysis_name='Potential_of_Mean_Force'):
+    def __init__(self, experiment, plot=True, save=True, data_range=1):
         """
         Python constructor for the class
 
@@ -97,9 +97,8 @@ class PotentialOfMeanForce(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
+        super().__init__(experiment, plot, save, data_range)
         self.file_to_study = None                                             # RDF file being studied
-        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # directory in which tensor_values is stored
         self.data_files = []                                                  # array of the files in tensor_values directory
         self.rdf = None                                                       # rdf being studied
         self.radii = None                                                     # radii of the rdf
@@ -107,7 +106,11 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = None                                                      # potential of mean force array
         self.indices = None                                                   # Indices of the pomf range
         self.database_group = 'potential_of_mean_force_values'                # Which database_path group to save the tensor_values in
+        self.x_label = r'r ($\AA$)'
+        self.y_label = r'$w^{(2)}(r)$'
+        self.analysis_name = 'Potential_of_Mean_Force'
 
+        self.post_generation = True
 
     def _get_rdf_data(self):
         """
@@ -184,7 +187,6 @@ class PotentialOfMeanForce(Calculator):
         # Update the experiment class
         self._update_properties_file(item=self.species_tuple, data= [str(pomf_value), str(pomf_error)])
 
-
     def _plot_fits(self):
         """
         Plot the predicted minimum value before parsing the other tensor_values for plotting
@@ -192,7 +194,7 @@ class PotentialOfMeanForce(Calculator):
         plt.plot(self.radii, self.pomf, label=f'{self.species_tuple}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
-    def run_analysis(self):
+    def run_post_generation_analysis(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """
@@ -216,3 +218,58 @@ class PotentialOfMeanForce(Calculator):
         if self.plot:
             self._plot_data()
 
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
+
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

@@ -7,6 +7,7 @@ import numpy as np
 from pysmiles import read_smiles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.database.database import Database
+from tqdm import tqdm
 
 import tensorflow as tf
 
@@ -143,7 +144,7 @@ class MolecularGraph:
                 Adjacency tensor to reduce.
         """
         molecules = {}
-        for i in range(len(adjacency_matrix)):
+        for i in tqdm(range(len(adjacency_matrix)), desc="Building molecules"):
             indices = tf.where(adjacency_matrix[i])
             indices = tf.reshape(indices, (len(indices)))
             if len(molecules) == 0:
@@ -172,5 +173,5 @@ class MolecularGraph:
         for item in del_list:
             molecules.pop(item)
 
-        return molecules
 
+        return molecules

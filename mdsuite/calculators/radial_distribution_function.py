@@ -79,7 +79,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Name of the analysis
         """
         super().__init__(experiment, plot, save, data_range, export=export)
-        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+        self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
 
@@ -403,6 +403,11 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
         update the class state
         """
+        if self.batch_size > self.number_of_configurations:
+            self.batch_size = self.number_of_configurations
+            self.n_batches = 1
+        else:
+            self.n_batches = int(self.number_of_configurations/self.batch_size)
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
 
             if len(self.experiment.species) == 1:
@@ -458,7 +463,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             if self.plot:
                 fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))
+                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
                 self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
 
             if self.save:  # get the species names

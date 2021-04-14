@@ -124,7 +124,7 @@ class TranslationalDipoleMoment(Transformations):
             self._prepare_monitors(data_path)
             type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
 
-        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
+        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int32)
         batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,

@@ -5,11 +5,9 @@ import os
 import yaml
 import sys
 import itertools
+from typing import Union
 
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-
-from typing import TYPE_CHECKING
-
 
 class NernstEinsteinIonicConductivity:
     """
@@ -29,6 +27,8 @@ class NernstEinsteinIonicConductivity:
         """
         self.parent = obj                   # experiment class to call attributes from
         self.corrected = corrected          # if true, calculate the corrected Nernst-Einstein conductivity as well
+
+        self.post_generation = True
 
         self.data = self._load_yaml_data()  # tensor_values to be read in
         self.truth_table = self._build_truth_table()  # build truth table for analysis
@@ -207,8 +207,7 @@ class NernstEinsteinIonicConductivity:
                                                    ['Distinct'])
             self._update_properties_file(analysis_name='Corrected_Nernst_Einstein_Green_Kubo', data=str(data))
 
-
-    def run_analysis(self):
+    def run_post_generation_analysis(self):
         """
         Run the analysis
         """
@@ -216,3 +215,59 @@ class NernstEinsteinIonicConductivity:
         self._run_nernst_einstein()
         if self.corrected:
             self._run_corrected_nernst_einstein()
+
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
+
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

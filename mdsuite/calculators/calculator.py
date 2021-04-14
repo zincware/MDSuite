@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
 import tensorflow as tf
 from scipy.optimize import curve_fit
-from tqdm import tqdm
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
+from tqdm import tqdm
 
 from typing import Union
 
@@ -77,6 +77,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.system_property = False  # is the calculation on a system property?
         self.multi_species = False  # does the calculation require loading of multiple species?
+        self.post_generation = False  # Things like coordination number or structure factor.
         self.experimental = False  # experimental calculator.
         self.species = None
         self.optimize = False
@@ -257,7 +258,8 @@ class Calculator(metaclass=abc.ABCMeta):
                                             database=self.database,
                                             memory_fraction=0.5,
                                             scale_function=self.scale_function)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(system=self.system_property)
+        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
+            system=self.system_property)
 
         self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
         self.data_manager = DataManager(data_path=data_path,
@@ -493,6 +495,10 @@ class Calculator(metaclass=abc.ABCMeta):
         -------
         Will call transformations if required.
         """
+
+        if self.loaded_property is None:
+            return
+
         if self.dependency is not None:
             dependency = self.database.check_existence(self.dependency)
             if not dependency:
@@ -522,24 +528,31 @@ class Calculator(metaclass=abc.ABCMeta):
                                                             args=batch_generator_args,
                                                             output_signature=self.batch_output_signature)
             batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop", ncols=100):
+            for batch_index, batch in enumerate(batch_data_set):
                 ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator(
                     system=self.system_property)
                 ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                    args=ensemble_generators_args + (batch,),
                                                                    output_signature=self.ensemble_output_signature)
-                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop", ncols=100):
+                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop", ncols=70,
+                                                     total=self.ensemble_loop):
                     self._apply_operation(ensemble, ensemble_index)
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+            if self.export:
+                self.export_data()
 
         elif self.experimental:
             data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
             self._prepare_managers(data_path)
-            self.run_experimental_analysis()
+            output = self.run_experimental_analysis()
             if self.export:
                 self.export_data()
+            return output
+
+        elif self.post_generation:
+            self.run_post_generation_analysis()
 
         else:
             for species in self.species:
@@ -551,18 +564,23 @@ class Calculator(metaclass=abc.ABCMeta):
                                                                 args=batch_generator_args,
                                                                 output_signature=self.batch_output_signature)
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in tqdm(enumerate(batch_data_set), desc="Batch Loop",
-                                               ncols=70, total=self.n_batches):
+                for batch_index, batch in enumerate(batch_data_set):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),
                                                                        output_signature=self.ensemble_output_signature)
                     ensemble_data_set = ensemble_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
+                    for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc=species, ncols=70,
+                                                         total=self.ensemble_loop):
                         self._apply_operation(ensemble, ensemble_index)
 
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
+            if self.export:
+                self.export_data()
+            if self.plot:
+                plt.legend()
+                plt.show()
 
     def run_analysis(self):
         """
@@ -574,9 +592,7 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.optimize:
             pass
         else:
-            self.perform_computation()
-        if self.export:
-            self.export_data()
+            return self.perform_computation()
 
     def run_experimental_analysis(self):
         """
@@ -584,6 +600,12 @@ class Calculator(metaclass=abc.ABCMeta):
         Returns
         -------
 
+        """
+        raise NotImplementedError
+
+    def run_post_generation_analysis(self):
+        """
+        Run a post-generation analysis.
         """
         raise NotImplementedError
 

@@ -158,18 +158,23 @@ class Experiment:
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
 
-        # Logging to the stdout (Terminal, Jupyter, ...)
-        stream_handler = logging.StreamHandler(sys.stdout)
-        stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
+        sys_handler = False
+        for handler in root.handlers:
+            if not hasattr(handler, 'baseFilename'):  # assume that  every handler is filehandler except for sys handler
+                sys_handler = True
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
-        stream_handler.setFormatter(formatter)
-        # attaching the stdout handler to the configured logging
-        root.addHandler(stream_handler)
+        if not sys_handler:
+            # Logging to the stdout (Terminal, Jupyter, ...)
+            stream_handler = logging.StreamHandler(sys.stdout)
+            stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
+
+            formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+            stream_handler.setFormatter(formatter)
+            # attaching the stdout handler to the configured logging
+            root.addHandler(stream_handler)
 
         # get the file specific logger to get information where the log was written!
         self.log = logging.getLogger(__name__)
-
         self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
 
     def _create_internal_file_paths(self):
@@ -359,7 +364,8 @@ class Experiment:
                     """
                     Introduce call method.
                     """
-                    self.parent.compute(self.class_compute, **kwargs)
+                    output = self.parent.compute(self.class_compute, **kwargs)
+                    return output
 
             return Func(self, class_compute)
 
@@ -376,7 +382,7 @@ class Experiment:
                 [print(key) for key in dict_classes_computations.keys()]
                 return
 
-            self.compute(class_compute, **kwargs)
+            return self.compute(class_compute, **kwargs)
 
         def __repr__(self):
             """Print available computations if no computation method is called
@@ -400,8 +406,9 @@ class Experiment:
 
             """
             object_compute = class_compute(self.parent, **kwargs)
-            object_compute.run_analysis()
+            dat = object_compute.run_analysis()
             self.parent.save_class()
+            return dat
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
@@ -511,6 +518,7 @@ class Experiment:
         else:
             self._build_new_database(trajectory_reader, trajectory_file, database, rename_cols=rename_cols, flux=flux)
 
+        self.build_species_dictionary()
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
@@ -637,6 +645,7 @@ class Experiment:
                 except (ElementMassAssignedZero, IndexError):
                     self.species[element]['mass'] = [0.0]
                     print(f'WARNING element {element} has been assigned mass=0.0')
+        self.save_class()
 
     def set_element(self, old_name, new_name):
         """
@@ -824,3 +833,37 @@ class Experiment:
         """
         database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
         database.export_csv(group=group, key=key, sub_key=sub_key)
+
+    def summarise(self):
+        """
+        Summarise the properties of the experiment.
+        """
+        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
+        print(f"MDSuite {self.analysis_name} Summary\n")
+        print("==================================================================================\n")
+        print(f"Name: {self.analysis_name}\n")
+        print(f"Temperature: {self.temperature} K\n")
+        print(f"Number of Configurations: {self.number_of_configurations}\n")
+        print(f"Number of Atoms: {self.number_of_atoms}\n")
+        print("Species Summary\n")
+        print("---------------\n")
+        print("Atomic Species\n")
+        print("***************\n")
+        for item in self.species:
+            try:
+                print(f"{item}: {len(self.species[item]['indices'])}\n")
+            except ValueError:
+                pass
+        print("Molecule Species\n")
+        print("*****************\n")
+        for item in self.molecules:
+            try:
+                print(f"{item}: {len(self.molecules[item]['indices'])}\n")
+            except ValueError:
+                pass
+        print("Database Information\n")
+        print("---------------\n")
+        print(f"Database Path: {self.database_path}/database.hdf5\n")
+        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5'))*1e-9: 6.3f}GB\n")
+        print(f"Data Groups: {database.get_database_summary()}\n")
+        print("==================================================================================\n")

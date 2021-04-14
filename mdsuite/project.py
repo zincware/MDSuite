@@ -15,8 +15,8 @@ import pickle
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
-
+from typing import Union
+from typing import List
 from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
 
@@ -87,7 +87,7 @@ class Project:
 
     def __str__(self):
         print("List of available experiments")
-        return self.list_experiments()
+        print(self.list_experiments())
 
     def add_description(self, description: str):
         """
@@ -102,9 +102,9 @@ class Project:
 
         # Check the file type and read accordingly
         if description[-3:] == "txt":
-            self.description = "".join(np.array(simple_file_read(description)).flatten())
+            self.description = simple_file_read(description)
         elif description[-2:] == "md":
-            self.description = "".join(np.array(simple_file_read(description)).flatten())
+            self.description = simple_file_read(description)
         else:
             self.description = description
 
@@ -147,7 +147,7 @@ class Project:
         save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
         save_file.close()  # Close the state file
 
-    def add_experiment(self, experiment_name: str = None, timestep: float = None, temperature: float = None,
+    def add_experiment(self, experiment: Union[str, dict] = None, timestep: float = None, temperature: float = None,
                        units: str = None, cluster_mode: bool = None):
         """
         Add an experiment to the project
@@ -166,29 +166,59 @@ class Project:
                 LAMMPS units used
         """
 
-        # Set a name in case none is given
-        if experiment_name is None:
-            experiment_name = f"Experiment_{datetime.now()}"  # set the experiment name to the current date and time
+        if type(experiment) is str:
+            # Set a name in case none is given
+            if experiment is None:
+                experiment = f"Experiment_{datetime.now()}"  # set the experiment name to the current date and time
 
-        # Run a check to see if that experiment already exists
-        test_file = Path(f"{self.storage_path}/{self.name}/{experiment_name}")
+            # Run a check to see if that experiment already exists
+            test_file = Path(f"{self.storage_path}/{self.name}/{experiment}")
 
-        # Check if the file exists, if so, return the method without changing the class state
-        if test_file.exists():
-            print("This experiment already exists, aborting addition")
-            return
+            # Check if the file exists, if so, return the method without changing the class state
+            if test_file.exists():
+                print("This experiment already exists, aborting addition")
+                return
 
-        # If the experiment does not exists, instantiate a new Experiment
-        new_experiment = Experiment(experiment_name,
-                                    storage_path=f"{self.storage_path}/{self.name}",
-                                    time_step=timestep,
-                                    units=units,
-                                    temperature=temperature,
-                                    cluster_mode=cluster_mode)
+            # If the experiment does not exists, instantiate a new Experiment
+            new_experiment = Experiment(experiment,
+                                        storage_path=f"{self.storage_path}/{self.name}",
+                                        time_step=timestep,
+                                        units=units,
+                                        temperature=temperature,
+                                        cluster_mode=cluster_mode)
 
-        self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
+            self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
+        else:
+            for item in experiment:
+                # Run a check to see if that experiment already exists
+                test_file = Path(f"{self.storage_path}/{self.name}/{item}")
+
+                # Check if the file exists, if so, return the method without changing the class state
+                if test_file.exists():
+                    print("This experiment already exists, aborting addition")
+                    continue
+
+                # If the experiment does not exists, instantiate a new Experiment
+                new_experiment = Experiment(item,
+                                            storage_path=f"{self.storage_path}/{self.name}",
+                                            **experiment[item])
+
+                self.experiments[
+                    new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
         self._save_class()  # Save the class state
+
+    def add_data(self, data_sets: dict):
+        """
+        Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
+        different experiments at the same time.
+
+        Returns
+        -------
+        Updates the experiment classes.
+        """
+        for item in data_sets:
+            self.experiments[item].add_data(data_sets[item])
 
     def get_results(self, key_to_find):
         """

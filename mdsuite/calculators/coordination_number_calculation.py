@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import h5py as hf
 
+from typing import Union
 # MDSuite imports
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
@@ -61,8 +62,7 @@ class CoordinationNumbers(Calculator):
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = None, x_label: str = r'r ($\AA$)',
-                 y_label: str = 'CN', analysis_name: str = 'Coordination_Numbers'):
+    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1):
         """
         Python constructor
 
@@ -86,21 +86,25 @@ class CoordinationNumbers(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
-        self.file_to_study = None  # Which rdf to use in the analysis at a time
-        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # where to store the tensor_values
-        self.data_files = []  # array of the files in tensor_values directory
-        self.rdf = None  # rdf being studied
-        self.radii = None  # radii of the rdf
-        self.integral_data = None  # integrated rdf being studied
-        self.species_tuple = None  # Which species are being studied - important for the density calculation
-        self.indices = None  # indices of the coordination shells being studied
+        super().__init__(experiment, plot, save, data_range)
+        self.file_to_study = None
+        self.data_files = []
+        self.rdf = None
+        self.radii = None
+        self.integral_data = None
+        self.species_tuple = None
+        self.indices = None
 
-        self.database_group = 'coordination_numbers'  # Which database_path group to save the tensor_values in
+        self.post_generation = True
+
+        self.database_group = 'coordination_numbers'
+        self.x_label = r'r ($\AA$)'
+        self.y_label = 'CN'
+        self.analysis_name = 'Coordination_Numbers'
 
         # Calculate the rdf if it has not been done already
         if self.experiment.radial_distribution_function_state is False:
-            self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)  # run rdf calculation.
+            self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)
 
     def _get_rdf_data(self):
         """
@@ -232,14 +236,13 @@ class CoordinationNumbers(Calculator):
         plt.savefig(f'{self.species_tuple}.svg', dpi=800)
         plt.show()
 
-    def run_analysis(self):
+    def run_post_generation_analysis(self):
         """
         Calculate the coordination numbers and perform error analysis
         """
 
         self._get_rdf_data()  # fill the tensor_values array with tensor_values
         for data in self.data_files:  # Loop over all existing RDFs
-            print(data)
             self.file_to_study = data  # set the working file
             self.species_tuple = data[:-29]  # set the tuple
             self._load_rdf_from_file()  # load the tensor_values from it
@@ -256,3 +259,59 @@ class CoordinationNumbers(Calculator):
             if self.plot:
                 self._plot_coordination_shells()
             self._plot_data(manual=True)  # Call plot function to prevent later issues
+
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
+
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

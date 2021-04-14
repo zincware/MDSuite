@@ -150,7 +150,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
 
-        for positions in tqdm(dataset, ncols=70):
+        for positions in dataset:
             timesteps, atoms, _ = tf.shape(positions)
 
             tmp = tf.concat(positions, axis=0)
@@ -206,7 +206,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
             if self.plot:
                 fig, ax = plt.subplots()
-                ax.plot(bin_range_to_angles, hist)
+                ax.plot(bin_range_to_angles, hist, label=species)
                 ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
                 self._plot_fig(fig, ax, title=name)
 

@@ -9,6 +9,16 @@ import tensorflow as tf
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
+from mdsuite.utils.meta_functions import join_path
+
+switcher_transformations = {
+    'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
+    'Ionic_Current': 'IonicCurrent',
+    'Integrated_Heat_Current': 'IntegratedHeatCurrent',
+    'Thermal_Flux': 'ThermalFlux',
+    'Momentum_Flux': 'MomentumFlux',
+    'Kinaci_Heat_Current': 'KinaciIntegratedHeatCurrent'
+}
 
 
 class Transformations:
@@ -48,9 +58,81 @@ class Transformations:
         self.batch_size: int
         self.n_batches: int
         self.remainder: int
+        self.dependency = None
 
         self.data_manager: DataManager
         self.memory_manager: MemoryManager
+
+    def _run_dependency_check(self):
+        """
+        Check that dependencies are fulfilled.
+        Parameters
+        ----------
+        path_list : list
+                A list of paths on which to check dependencies.
+        Returns
+        -------
+        Calls a resolve method if dependencies are not met.
+        """
+        path_list = []
+        truth_array = [join_path(species, self.dependency) for species in self.experiment.species]
+        for item in path_list:
+            truth_array.append(self.database.check_existence(item))
+        if all(truth_array):
+            return
+        else:
+            self._resolve_dependencies(self.dependency)
+
+    def _resolve_dependencies(self, dependency):
+        """
+        Resolve any calculation dependencies if possible.
+
+        Parameters
+        ----------
+        dependency : str
+                Name of the dependency to resolve.
+
+        Returns
+        -------
+
+        """
+
+        def _string_to_function(argument):
+            """
+            Select a transformation based on an input
+
+            Parameters
+            ----------
+            argument : str
+                    Name of the transformation required
+
+            Returns
+            -------
+            transformation call.
+            """
+
+            switcher_unwrapping = {'Unwrapped_Positions': self._unwrap_choice(), }
+
+            switcher = {**switcher_unwrapping, **switcher_transformations}
+
+            choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
+            return choice
+
+        transformation = _string_to_function(dependency)
+        self.experiment.perform_transformation(transformation)
+
+    def _unwrap_choice(self):
+        """
+        Unwrap either with indices or with box arrays.
+        Returns
+        -------
+
+        """
+        indices = self.database.check_existence('Box_Images')
+        if indices:
+            return 'UnwrapViaIndices'
+        else:
+            return 'UnwrapCoordinates'
 
     def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
         """

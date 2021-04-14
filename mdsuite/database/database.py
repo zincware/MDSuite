@@ -12,6 +12,12 @@ from typing import Union
 import pandas as pd
 
 
+var_names = ["Temperature", "Time", "Thermal_Flux", "Stress_visc", "Positions", "Scaled_Positions",
+             "Unwrapped_Positions", "Scaled_Unwrapped_Positions", "Velocities", "Forces", "Box_Images",
+             "Dipole_Orientation_Magnitude", "Angular_Velocity_Spherical", "Angular_Velocity_Non_Spherical", "Torque",
+             "Charge", "KE", "PE", "Stress"]
+
+
 class Database:
     """
     Database class
@@ -582,3 +588,25 @@ class Database:
                     df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
 
         database.close()
+
+    def get_database_summary(self):
+        """
+        Print a summary of the database properties.
+        Returns
+        -------
+        summary : list
+                A list of properties that are in the database
+        """
+        dump_list = []
+        database = hf.File(self.name, 'r')
+        initial_list = list(database.keys())
+        for item in var_names:
+            if item in initial_list:
+                dump_list.append(item)
+        for item in initial_list:
+            sub_items = list(database[item].keys())
+            for var in var_names:
+                if var in sub_items:
+                    dump_list.append(var)
+        database.close()
+        return np.unique(dump_list)

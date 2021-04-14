@@ -7,6 +7,7 @@ from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
 import h5py as hf
+from typing import Union
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -55,8 +56,7 @@ class StructureFactor(Calculator):
                         radii tensor_values corresponding to the rdf.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=None, x_label=r'Q ($\AA ^{-1}$)', y_label=r'S(Q)',
-                 analysis_name='total_structure_factor'):
+    def __init__(self, experiment, plot=True, save=True, data_range=1):
         """
         Python constructor for the class
 
@@ -80,19 +80,23 @@ class StructureFactor(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, x_label, y_label, analysis_name)
-        self.file_to_study = None  # RDF file being studied
-        self.data_directory = f'{experiment.storage_path}/{experiment.analysis_name}/tensor_values'  # directory in which tensor_values is stored
-        self.data_files = []  # array of the files in tensor_values directory
-        self.rdf = None  # rdf being studied
-        self.radii = None  # radii of the rdf
-        self.Q_arr = np.linspace(0.5, 25, 700)  # array of scattering vectors
-        self.obj = experiment  # instance of the experiment class
+        super().__init__(experiment, plot, save, data_range)
+        self.file_to_study = None
+        self.data_files = []
+        self.rdf = None
+        self.radii = None
+        self.Q_arr = np.linspace(0.5, 25, 700)
+        self.obj = experiment
 
-        self.database_group = 'structure_factor'  # Which database_path group to save the tensor_values in
+        self.post_generation = True
+
+        self.database_group = 'structure_factor'
+        self.x_label = r'Q ($\AA ^{-1}$)'
+        self.y_label = r'S(Q)'
+        self.analysis_name = 'total_structure_factor'
 
         self.rho = self.obj.number_of_atoms / (self.obj.box_array[0] *
-                                               self.obj.box_array[1] * self.obj.box_array[2])  # particle density
+                                               self.obj.box_array[1] * self.obj.box_array[2])
         with open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
 
@@ -232,7 +236,7 @@ class StructureFactor(Calculator):
             total_struc_fac += s_in
         return total_struc_fac
 
-    def run_analysis(self):
+    def run_post_generation_analysis(self):
         """
         Calculates the total structure factor for all the different Q-values of the Q_arr
         (magnitude of the scattering vector)
@@ -287,3 +291,59 @@ class StructureFactor(Calculator):
         plt.plot(self.radii, running_integral, label='running integral')
         plt.legend()
         plt.show()
+
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        calculate the calculator pre-factor.
+
+        Parameters
+        ----------
+        species : str
+                Species property if required.
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_operation(self, data, index):
+        """
+        Perform operation on an ensemble.
+
+        Parameters
+        ----------
+        One tensor_values range of tensor_values to operate on.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _apply_averaging_factor(self):
+        """
+        Apply an averaging factor to the tensor_values.
+        Returns
+        -------
+        averaged copy of the tensor_values
+        """
+        raise NotImplementedError
+
+    def _post_operation_processes(self, species: Union[str, tuple] = None):
+        """
+        call the post-op processes
+        Returns
+        -------
+
+        """
+        raise NotImplementedError
+
+    def _update_output_signatures(self):
+        """
+        After having run _prepare managers, update the output signatures.
+
+        Returns
+        -------
+
+        """
+        raise NotImplementedError

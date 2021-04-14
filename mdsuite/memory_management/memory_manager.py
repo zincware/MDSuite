@@ -161,8 +161,9 @@ class MemoryManager:
         """
         Get the tensor_values range partition quantity.
 
-        Not only does tensor_values need to be batched, it then needs to be looped over in order to calculate some property. This
-        method will return the number of loops possible given the tensor_values range and the correlation time
+        Not only does tensor_values need to be batched, it then needs to be looped over in order to calculate some
+        property. This method will return the number of loops possible given the tensor_values range and the
+        correlation time
 
         Parameters
         ----------
