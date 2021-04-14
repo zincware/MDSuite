@@ -55,6 +55,8 @@ class RadialDistributionFunction(Calculator, ABC):
     correlation_time : int
             Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+    minibatch: int, default None
+            Size of a individual minibatch, if set. By default minibatching is not applied
     """
 
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
@@ -78,6 +80,8 @@ class RadialDistributionFunction(Calculator, ABC):
                 Y label of the tensor_values when plotted
         analysis_name : str
                 Name of the analysis
+        minibatch: int, default None
+            Size of a individual minibatch, if set. By default minibatching is not applied
         """
         super().__init__(experiment, plot, save, data_range, export=export)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
