@@ -55,10 +55,13 @@ class RadialDistributionFunction(Calculator, ABC):
     correlation_time : int
             Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
             on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+    minibatch: int, default None
+            Size of a individual minibatch, if set. By default minibatching is not applied
     """
 
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
-                 images=1, start=0, stop=None, number_of_configurations=100, export: bool = False, **kwargs):
+                 images=1, start=0, stop=None, number_of_configurations=100, export: bool = False,
+                 minibatch: int = None, **kwargs):
         """
 
         Attributes
@@ -77,6 +80,8 @@ class RadialDistributionFunction(Calculator, ABC):
                 Y label of the tensor_values when plotted
         analysis_name : str
                 Name of the analysis
+        minibatch: int, default None
+            Size of a individual minibatch, if set. By default minibatching is not applied
         """
         super().__init__(experiment, plot, save, data_range, export=export)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
@@ -95,6 +100,9 @@ class RadialDistributionFunction(Calculator, ABC):
         self.start = start  # Which configuration to start at
         self.stop = stop  # Which configuration to stop at
         self.number_of_configurations = number_of_configurations  # Number of configurations to use
+
+        self.minibatch = minibatch
+        self.use_tf_function = kwargs.pop("use_tf_function", False)
 
         # Perform checks
         if stop is None:
@@ -120,7 +128,7 @@ class RadialDistributionFunction(Calculator, ABC):
         if "scaling_factor" in kwargs:
             self.scaling_factor = kwargs.pop("scaling_factor")
         else:
-            self.scaling_factor = 0.05*self.experiment.number_of_atoms
+            self.scaling_factor = 0.05 * self.experiment.number_of_atoms
 
         self.log = logging.getLogger(__name__)
 
@@ -150,7 +158,7 @@ class RadialDistributionFunction(Calculator, ABC):
             function_values : np.array
                     result of the operation
             """
-            return 4*np.pi*(data**2)
+            return 4 * np.pi * (data ** 2)
 
         def _correction_1(data: np.array) -> np.array:
             """
@@ -165,7 +173,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             """
 
-            return 2*np.pi*data*(3 - 4*data)
+            return 2 * np.pi * data * (3 - 4 * data)
 
         def _correction_2(data: np.array) -> np.array:
             """
@@ -180,9 +188,10 @@ class RadialDistributionFunction(Calculator, ABC):
 
             """
 
-            arctan_1 = np.arctan(np.sqrt(4*(data**2) - 1))
-            arctan_2 = 8*data*np.arctan((2*data*(4*(data**2) - 3))/(np.sqrt(4*(data**2) - 2)*(4*(data**2) + 1)))
-            return 2*data*(3*np.pi - 12*arctan_1 + arctan_2)
+            arctan_1 = np.arctan(np.sqrt(4 * (data ** 2) - 1))
+            arctan_2 = 8 * data * np.arctan(
+                (2 * data * (4 * (data ** 2) - 3)) / (np.sqrt(4 * (data ** 2) - 2) * (4 * (data ** 2) + 1)))
+            return 2 * data * (3 * np.pi - 12 * arctan_1 + arctan_2)
 
         def _piecewise(data: np.array) -> np.array:
             """
@@ -218,7 +227,7 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_width = self.cutoff / self.number_of_bins
         bin_edges = np.linspace(0.0, self.cutoff, self.number_of_bins)
 
-        return bin_width*_piecewise(np.array(bin_edges))
+        return bin_width * _piecewise(np.array(bin_edges))
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
@@ -383,6 +392,7 @@ class RadialDistributionFunction(Calculator, ABC):
         list, string: returns a 1D array of the positions of the pairs in the r_ij_mat, name of the pairs
 
         """
+
         n_atoms = sum(len_elements)  # Get the total number of atoms in the experiment
         background = np.full((n_atoms, n_atoms), -1)  # Create a full matrix filled with placeholders
         background[np.triu_indices(n_atoms, k=1)] = np.arange(len(np.triu_indices(n_atoms, k=1)[0]))
@@ -403,6 +413,7 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
         update the class state
         """
+
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
 
             if len(self.experiment.species) == 1:
@@ -454,6 +465,7 @@ class RadialDistributionFunction(Calculator, ABC):
         """
         for names in self.key_list:
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
+
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
 
             if self.plot:
@@ -474,8 +486,124 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # collect machine properties and determine batch size
         self.log.info('Starting RDF Calculation')
-        self._calculate_histograms()  # Calculate the RDFs
+
+        if self.minibatch is None:
+            if self.use_tf_function:
+                @tf.function
+                def func():
+                    self._calculate_histograms()
+                func()
+            else:
+                self._calculate_histograms()  # Calculate the RDFs
+        else:
+            if self.use_tf_function:
+                @tf.function
+                def func():
+                    self.mini_calculate_histograms()
+                func()
+            else:
+                self.mini_calculate_histograms()
+
         self._calculate_radial_distribution_functions()
+
+    def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> (tf.Tensor, tf.Tensor):
+        """Calculate the indices of a slice of the triu values
+
+        Parameters
+        ----------
+        n_atoms: total number of atoms in the system
+        m_atoms: size of the slice (horizontal)
+        idx: start index of slize
+
+        Returns
+        -------
+        tf.Tensor, tf.Tensor
+
+        """
+
+        bool_mat = tf.ones((m_atoms, n_atoms), dtype=tf.bool)
+        bool_vector = ~tf.linalg.band_part(bool_mat, -1, idx)  # rename!
+
+        indices = tf.where(bool_vector)
+        indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
+        indices = tf.transpose(indices)
+        return indices, bool_vector
+
+    def mini_get_pair_indices(self, n_atoms, atoms_per_batch, start, index_list, len_elements):
+        """Similar to the pair indices, compute the mini pair indices
+
+        Parameters
+        ----------
+        n_atoms: int number of atoms
+        atoms_per_batch: int number of atoms in the batch
+        start: start value of the slice of the batch
+        index_list: list of the atoms, e.g. [0, 1, 2] for a three species system
+        len_elements: list, length of the elements in the list, e.g. [50, 50, 100]
+
+        Returns
+        -------
+
+        tf.Tensor, str
+
+        """
+        indices, _ = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
+        indices = tf.transpose(indices)
+        background = tf.tensor_scatter_nd_update(tf.fill((atoms_per_batch, n_atoms), -1), indices,
+                                                 tf.range(len(indices)))
+
+        for tuples in itertools.combinations_with_replacement(index_list, 2):
+            row_slice = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[0] + 1]) - start)
+            col_slice = (sum(len_elements[:tuples[1]]), sum(len_elements[:tuples[1] + 1]))
+            names = self._get_species_names(tuples)
+            indices = background[slice(*row_slice), slice(*col_slice)]
+            yield indices[indices != -1], names
+
+    def mini_calculate_histograms(self):
+        """Do the minibatch calculation"""
+
+        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
+
+            if len(self.experiment.species) == 1:
+                positions = [self._load_positions(i)]  # Load the batch of positions
+            else:
+                positions = self._load_positions(i)  # Load the batch of positions
+            positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
+
+            per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
+            # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
+
+            n_atoms = tf.shape(positions_tensor)[0]
+
+            start = 0
+            stop = 0
+            for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
+                atoms_per_batch = tf.shape(atoms)[0]
+                stop += atoms_per_batch
+
+                indices, mask = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
+
+                # apply the mask to this, to only get the triu values and don't compute anything twice
+                _positions = tf.gather(positions_tensor, indices[1], axis=0)
+
+                # for atoms_per_batch > 1, flatten the array according to the positions
+                x = tf.gather(atoms, indices[0], axis=0)
+
+                r_ij = _positions - x
+
+                # apply minimum image convention
+                if self.experiment.box_array is not None:
+                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
+
+                out = tf.linalg.norm(r_ij, axis=-1)
+                for species_indices, key in self.mini_get_pair_indices(n_atoms, atoms_per_batch, start, self.index_list,
+                                                                       len_elements=[len(x) for x in positions]):
+                    _tmp = tf.gather(out, species_indices)
+                    _tmp = self._apply_system_cutoff(_tmp, self.cutoff)
+                    # need to do this here! otherwise indices get mixed up
+                    self.rdf[key] += np.array(self._bin_data(_tmp, bin_range=self.bin_range,
+                                                             nbins=self.number_of_bins), dtype=float)
+
+                start = stop
 
     def _apply_operation(self, data, index):
         """
