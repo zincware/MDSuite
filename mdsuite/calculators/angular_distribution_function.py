@@ -39,7 +39,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
                  r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
-                 export: bool = False):
+                 export: bool = False, molecules: bool = False):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -71,6 +71,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.loaded_property = 'Positions'
         self.r_cut = r_cut
         self.start = start
+        self.molecules = molecules
         self.experimental = True
         if stop is None:
             self.stop = experiment.number_of_configurations - 1
@@ -104,7 +105,11 @@ class AngularDistributionFunction(Calculator, ABC):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
 
-        return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices])
+        if self.molecules:
+            path_list = [join_path(species, "Positions") for species in self.experiment.molecules]
+            return self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
+        else:
+            return self.experiment.load_matrix("Positions", select_slice=np.s_[:, indices])
 
     def run_experimental_analysis(self):
         """

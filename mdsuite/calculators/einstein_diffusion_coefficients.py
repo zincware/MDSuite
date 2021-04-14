@@ -63,7 +63,8 @@ class EinsteinDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False):
+                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
+                 molecules: bool = False):
         """
 
         Parameters
@@ -87,6 +88,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.scale_function = {'linear': {'scale_factor': 5}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = species
+        self.molecules = molecules
         self.database_group = 'self_diffusion_coefficients'
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
@@ -95,7 +97,10 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.optimize = optimize
         self.msd_array = np.zeros(self.data_range)  # define empty msd array
         if species is None:
-            self.species = list(self.experiment.species)
+            if molecules:
+                self.species = list(self.experiment.molecules)
+            else:
+                self.species = list(self.experiment.species)
         self.log = logging.getLogger(__name__)
         self.log.info('starting Einstein Diffusion Computation')
 
@@ -123,9 +128,15 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         Updates the class state.
         """
-        # Calculate the prefactor
-        numerator = self.experiment.units['length'] ** 2
-        denominator = (self.experiment.units['time'] * len(self.experiment.species[species]['indices'])) * 6
+        if self.molecules:
+            # Calculate the prefactor
+            numerator = self.experiment.units['length'] ** 2
+            denominator = (self.experiment.units['time'] * len(self.experiment.molecules[species]['indices'])) * 6
+        else:
+            # Calculate the prefactor
+            numerator = self.experiment.units['length'] ** 2
+            denominator = (self.experiment.units['time'] * len(self.experiment.species[species]['indices'])) * 6
+
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

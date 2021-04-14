@@ -50,7 +50,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
     """
 
     def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False):
+                 correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False, molecules: bool = False):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -74,6 +74,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
         self.scale_function = {'linear': {'scale_factor': 5}}
 
+        self.molecules = molecules
         self.species = species  # Which species to calculate for
 
         self.database_group = 'self_diffusion_coefficients'  # Which database_path group to save the tensor_values in
@@ -84,8 +85,11 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.vacf = np.zeros(self.data_range)
         self.sigma = []
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
+        if species is None:
+            if molecules:
+                self.species = list(self.experiment.molecules)
+            else:
+                self.species = list(self.experiment.species)
 
     def _update_output_signatures(self):
         """
@@ -111,11 +115,18 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
         Updates the class state.
         """
-        # Calculate the prefactor
-        numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
-                      len(self.experiment.species[species]['indices'])
-        self.prefactor = numerator / denominator
+        if self.molecules:
+            # Calculate the prefactor
+            numerator = self.experiment.units['length'] ** 2
+            denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
+                          len(self.experiment.molecules[species]['indices'])
+            self.prefactor = numerator / denominator
+        else:
+            # Calculate the prefactor
+            numerator = self.experiment.units['length'] ** 2
+            denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
+                          len(self.experiment.species[species]['indices'])
+            self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
         """
