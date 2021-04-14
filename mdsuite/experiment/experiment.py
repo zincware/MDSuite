@@ -205,19 +205,13 @@ class Experiment:
         A function to load a class instance given the project name.
         """
 
-        def update_path():
-            """Check if the Path of the database_path is different form the stored storage_path
-
-            If the paths are different, the database_path has been moved and the internal file paths will be updated.
-            """
-
         with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
             self.__dict__ = pickle.loads(f.read())
 
         self._create_internal_file_paths()  # force rebuild every time
 
-        # self.run_computation = self.RunComputation(self)
-        # TODO check what self.__dict__ = pickle.loads does with run_computation and logger!
+        self.run_computation = self.RunComputation(self)
+        # TODO Why is this necessary? What does it exactly?
 
     def save_class(self):
         """
