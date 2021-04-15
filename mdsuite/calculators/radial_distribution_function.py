@@ -118,7 +118,8 @@ class RadialDistributionFunction(Calculator, ABC):
         # Set calculation specific parameters
         self.bin_range = [0, self.cutoff]  # set the bin range
         if self.molecules:
-            self.index_list = [i for i in range(len(self.experiment.molecules.keys()))]  # Get the indices of the species
+            self.index_list = [i for i in range(len(self.experiment.molecules.keys()))]
+            # Get the indices of the species
         else:
             self.index_list = [i for i in range(len(self.experiment.species.keys()))]  # Get the indices of the species
         self.sample_configurations = np.linspace(self.start,
@@ -508,28 +509,19 @@ class RadialDistributionFunction(Calculator, ABC):
             self.batch_size = self.number_of_configurations
             self.n_batches = 1
         else:
-            self.n_batches = int(self.number_of_configurations/self.batch_size)
+            self.n_batches = int(self.number_of_configurations / self.batch_size)
 
         if self.minibatch is None:
             if self.use_tf_function:
-                @tf.function
-                def func():
-                    self._calculate_histograms()
-                func()
+                raise NotImplementedError('tf.function is only supported with minibatching')
             else:
                 self._calculate_histograms()  # Calculate the RDFs
         else:
-            if self.use_tf_function:
-                @tf.function
-                def func():
-                    self.mini_calculate_histograms()
-                func()
-            else:
-                self.mini_calculate_histograms()
+            self.mini_calculate_histograms()
 
         self._calculate_radial_distribution_functions()
 
-    def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> (tf.Tensor, tf.Tensor):
+    def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
         """Calculate the indices of a slice of the triu values
 
         Parameters
@@ -540,19 +532,18 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
-        tf.Tensor, tf.Tensor
+        tf.Tensor
 
         """
-
         bool_mat = tf.ones((m_atoms, n_atoms), dtype=tf.bool)
         bool_vector = ~tf.linalg.band_part(bool_mat, -1, idx)  # rename!
 
         indices = tf.where(bool_vector)
         indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
         indices = tf.transpose(indices)
-        return indices, bool_vector
+        return indices
 
-    def mini_get_pair_indices(self, n_atoms, atoms_per_batch, start, index_list, len_elements):
+    def mini_get_pair_indices(self, indices, n_atoms, atoms_per_batch, start, index_list, len_elements):
         """Similar to the pair indices, compute the mini pair indices
 
         Parameters
@@ -569,20 +560,91 @@ class RadialDistributionFunction(Calculator, ABC):
         tf.Tensor, str
 
         """
-        indices, _ = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
         indices = tf.transpose(indices)
         background = tf.tensor_scatter_nd_update(tf.fill((atoms_per_batch, n_atoms), -1), indices,
-                                                 tf.range(len(indices)))
+                                                 tf.range(tf.shape(indices)[0]))
+
+        output = []
 
         for tuples in itertools.combinations_with_replacement(index_list, 2):
             row_slice = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[0] + 1]) - start)
             col_slice = (sum(len_elements[:tuples[1]]), sum(len_elements[:tuples[1] + 1]))
             names = self._get_species_names(tuples)
             indices = background[slice(*row_slice), slice(*col_slice)]
-            yield indices[indices != -1], names
+
+            output.append([indices[indices != -1], names])
+
+        return output
 
     def mini_calculate_histograms(self):
         """Do the minibatch calculation"""
+
+        def tf_function(func):
+            """Enable/Disbale tf.function based on self.use_tf_function"""
+            if not self.use_tf_function:  # no use of decorator
+                return func
+
+            @tf.function
+            def tf_func(*args, **kwargs):
+                return func(*args, **kwargs)
+
+            return tf_func
+
+        @tf_function
+        def compute_species_values(indices, atoms_per_batch, start, d_ij):
+            rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
+            for species_indices, key in self.mini_get_pair_indices(
+                    indices, n_atoms, atoms_per_batch, start, self.index_list, [x.shape[0] for x in positions]):
+                # iterate over the permutations between the species
+                distance_between_species = tf.gather(d_ij, species_indices)
+                distance_between_species = self._apply_system_cutoff(distance_between_species, self.cutoff)
+                # need to do this here! otherwise indices get mixed up
+
+                bin_data = tf.histogram_fixed_width(distance_between_species, self.bin_range, self.number_of_bins)
+
+                rdf[key] = bin_data
+            return rdf
+
+        @tf_function
+        def combine_dictionaries(dict_a, dict_b):
+            out = dict()
+            for key in dict_a:
+                out[key] = dict_a[key] + dict_b[key]
+            return out
+
+        @tf_function
+        def run_minibatch_loop():
+            start = 0
+            stop = 0
+            rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
+            # rdf = tf.zeros((10, 10))
+            # test = tf.zeros(self.number_of_bins, dtype=tf.int32)
+            for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
+
+                atoms_per_batch = tf.shape(atoms)[0]
+                stop += atoms_per_batch
+
+                indices = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
+
+                # apply the mask to this, to only get the triu values and don't compute anything twice
+                _positions = tf.gather(positions_tensor, indices[1], axis=0)
+
+                # for atoms_per_batch > 1, flatten the array according to the positions
+                atoms_position = tf.gather(atoms, indices[0], axis=0)
+
+                r_ij = _positions - atoms_position
+
+                # apply minimum image convention
+                if self.experiment.box_array is not None:
+                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
+
+                d_ij = tf.linalg.norm(r_ij, axis=-1)
+                _rdf = compute_species_values(indices, atoms_per_batch, start, d_ij)
+
+                rdf = combine_dictionaries(rdf, _rdf)
+
+                start = stop
+            return rdf
 
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
 
@@ -597,36 +659,9 @@ class RadialDistributionFunction(Calculator, ABC):
 
             n_atoms = tf.shape(positions_tensor)[0]
 
-            start = 0
-            stop = 0
-            for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
-                atoms_per_batch = tf.shape(atoms)[0]
-                stop += atoms_per_batch
+            self.rdf = run_minibatch_loop()
 
-                indices, mask = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
-
-                # apply the mask to this, to only get the triu values and don't compute anything twice
-                _positions = tf.gather(positions_tensor, indices[1], axis=0)
-
-                # for atoms_per_batch > 1, flatten the array according to the positions
-                x = tf.gather(atoms, indices[0], axis=0)
-
-                r_ij = _positions - x
-
-                # apply minimum image convention
-                if self.experiment.box_array is not None:
-                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
-
-                out = tf.linalg.norm(r_ij, axis=-1)
-                for species_indices, key in self.mini_get_pair_indices(n_atoms, atoms_per_batch, start, self.index_list,
-                                                                       len_elements=[len(x) for x in positions]):
-                    _tmp = tf.gather(out, species_indices)
-                    _tmp = self._apply_system_cutoff(_tmp, self.cutoff)
-                    # need to do this here! otherwise indices get mixed up
-                    self.rdf[key] += np.array(self._bin_data(_tmp, bin_range=self.bin_range,
-                                                             nbins=self.number_of_bins), dtype=float)
-
-                start = stop
+        self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
 
     def _apply_operation(self, data, index):
         """
