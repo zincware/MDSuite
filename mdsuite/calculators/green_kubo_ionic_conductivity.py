@@ -147,8 +147,8 @@ class GreenKuboIonicConductivity(Calculator):
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf, label=fr'{np.mean(result)} $\pm$ '
-                                                                                           f'{np.std(result) / np.sqrt(len(result))}')
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf, label=fr'{np.mean(result): 0.3E} $\pm$ '
+                                                                                           f'{np.std(result) / np.sqrt(len(result)): 0.3E}')
             self._plot_data()
 
         # Save the array if required

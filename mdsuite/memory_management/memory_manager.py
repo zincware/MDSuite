@@ -23,18 +23,20 @@ class MemoryManager:
     """
 
     def __init__(self, data_path: list = None, database: Database = None, parallel: bool = False,
-                 memory_fraction: float = 0.5, scale_function: dict = None):
+                 memory_fraction: float = 0.2, scale_function: dict = None, gpu: bool = False):
         """
         Constructor for the memory management class
         """
         if scale_function is None:
-            scale_function = {'linear': {'scale_factor': 1}}
+            scale_function = {'linear': {'scale_factor': 10}}
         self.data_path = data_path
         self.parallel = parallel
         self.database = database
         self.memory_fraction = memory_fraction
 
         self.machine_properties = get_machine_properties()
+        if self.machine_properties['memory'] > 20e9:
+            self.machine_properties['memory'] = 20e9
 
         self.batch_size = None
         self.n_batches = None
@@ -105,7 +107,6 @@ class MemoryManager:
         if self.data_path is []:
             print("No tensor_values have been requested.")
             sys.exit(1)
-
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)

@@ -163,16 +163,14 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
 
         """
-
         result = self.prefactor * np.array(self.sigma)
 
         self._update_properties_file(item='Singular', sub_item=species,
                                      data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=fr"{species}: "
-                                                                                           f"{np.mean(result): .3E} $\pm$ "
-                                                                                           f"{np.std(result) / (np.sqrt(len(result))): .3E}")
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf,
+                     label=fr"{species}: {np.mean(result): .3E} $\pm$ {np.std(result) / (np.sqrt(len(result))): .3E}")
 
         # Save the array if required
         if self.save:

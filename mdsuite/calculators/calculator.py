@@ -256,7 +256,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
-                                            memory_fraction=0.5,
+                                            memory_fraction=0.2,
                                             scale_function=self.scale_function)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
             system=self.system_property)
@@ -564,14 +564,13 @@ class Calculator(metaclass=abc.ABCMeta):
                                                                 args=batch_generator_args,
                                                                 output_signature=self.batch_output_signature)
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in enumerate(batch_data_set):
+                for batch_index, batch in tqdm(enumerate(batch_data_set), ncols=70, desc=species, total=self.n_batches):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),
                                                                        output_signature=self.ensemble_output_signature)
                     ensemble_data_set = ensemble_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                    for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc=species, ncols=70,
-                                                         total=self.ensemble_loop):
+                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
                         self._apply_operation(ensemble, ensemble_index)
 
                 self._apply_averaging_factor()

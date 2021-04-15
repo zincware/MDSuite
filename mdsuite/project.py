@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from typing import Union
-from typing import List
+import shutil
 from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
 
@@ -176,7 +176,7 @@ class Project:
 
             # Check if the file exists, if so, return the method without changing the class state
             if test_file.exists():
-                print("This experiment already exists, aborting addition")
+                print("This experiment already exists")
                 return
 
             # If the experiment does not exists, instantiate a new Experiment
@@ -267,3 +267,27 @@ class Project:
             results[experiment_name] = value_attr
 
         return results
+
+    def remove_experiment(self, experiment_name: str):
+        """
+        Delete an experiment from the project
+        Parameters
+        ----------
+        experiment_name
+
+        Returns
+        -------
+        Updates the class state.
+        """
+        if experiment_name not in list(self.experiments):
+            print("Experiment does not exist")
+            return
+        else:
+            try:
+                dir_path = os.path.join(self.storage_path, self.name, experiment_name)
+                shutil.rmtree(dir_path)
+                self.experiments.pop(experiment_name, None)
+                self._save_class()
+            except InterruptedError:
+                print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
+                      "to do this again.")

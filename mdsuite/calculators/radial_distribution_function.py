@@ -61,7 +61,7 @@ class RadialDistributionFunction(Calculator, ABC):
     """
 
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
-                 images=1, start=0, stop=None, number_of_configurations=100, export: bool = False,
+                 images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
                  minibatch: int = None, molecules: bool = False, **kwargs):
         """
 
