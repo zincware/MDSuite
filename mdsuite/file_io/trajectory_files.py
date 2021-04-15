@@ -121,4 +121,7 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
 
+        # if sort:
+        #     np.linspace(0, self.project.number_of_atoms, dtype - int)
+
         return structure
