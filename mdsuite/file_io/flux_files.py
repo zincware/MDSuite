@@ -4,6 +4,7 @@ Module for reading lammps trajectory files
 Summary
 -------
 """
+import abc
 import os
 
 import h5py as hf
@@ -16,7 +17,7 @@ from mdsuite.file_io.file_read import FileProcessor
 # from .file_io_dict import lammps_flux
 
 
-class FluxFile(FileProcessor):
+class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
     """
     Child class for the lammps file reader to read Flux files.
 
@@ -152,3 +153,30 @@ class FluxFile(FileProcessor):
             else:
                 for column, axis in zip(columns, axis_names):
                     database['1'][property_group][axis][counter:counter + len(data)] = data[:, column].astype(float)
+
+    @staticmethod
+    def _build_architecture(property_groups: dict, number_of_atoms: int,
+                            number_of_configurations: int):
+        """
+        Build the database_path architecture for use by the database_path class
+
+        Parameters
+        ----------
+        species_summary : dict
+                Species summary passed to the experiment class
+        property_groups : dict
+                Property information passed to the experiment class
+        number_of_atoms : int
+                Number of atoms in each configurations
+        number_of_configurations : int
+                Number of configurations in the file
+
+        """
+        architecture = {}  # instantiate the database_path architecture dictionary
+        for observable in property_groups:
+            architecture[f"{observable}/{observable}"] = (number_of_configurations, len(property_groups[observable]))
+        return architecture
+
+    @abc.abstractmethod
+    def _get_line_length(self):
+        pass
