@@ -94,7 +94,7 @@ class CoordinateUnwrapper(Transformations):
         Load the tensor_values to be unwrapped
         """
         path = join_path(species, "Positions")
-        self.data = np.array(self.experiment.load_matrix(path=path, select_slice=np.s_[:]))
+        self.data = np.array(self.experiment.load_matrix(path=[path], select_slice=np.s_[:]))
 
     def _calculate_difference_tensor(self):
         """
@@ -140,7 +140,6 @@ class CoordinateUnwrapper(Transformations):
         """
 
         for species in self.species:
-
             exists = self.database.check_existence(os.path.join(species, "Unwrapped_Positions"))
             # Check if the tensor_values has already been unwrapped
             if exists:

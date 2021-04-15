@@ -72,7 +72,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                          atom_selection=atom_selection, export=export)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {'linear': {'scale_factor': 50}}
 
         self.molecules = molecules
         self.species = species  # Which species to calculate for
@@ -80,7 +80,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.database_group = 'self_diffusion_coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'Green_Kubo_Diffusion'
+        self.analysis_name = 'Green_Kubo_Self_Diffusion'
 
         self.vacf = np.zeros(self.data_range)
         self.sigma = []

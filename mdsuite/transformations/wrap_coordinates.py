@@ -81,7 +81,7 @@ class CoordinateWrapper(Transformations):
         Load the tensor_values to be unwrapped
         """
         path = join_path(species, "Unwrapped_Positions")
-        self.data = np.array(self.experiment.load_matrix(path=path, select_slice=np.s_[:]))
+        self.data = np.array(self.experiment.load_matrix(path=[path], select_slice=np.s_[:]))
 
     def _center_box(self):
         """

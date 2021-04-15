@@ -185,13 +185,16 @@ class PotentialOfMeanForce(Calculator):
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])/np.sqrt(2)
 
         # Update the experiment class
-        self._update_properties_file(item=self.species_tuple, data= [str(pomf_value), str(pomf_error)])
+        self._update_properties_file(item=self.species_tuple, data=[str(pomf_value), str(pomf_error)])
 
-    def _plot_fits(self):
+        return pomf_value, pomf_error
+
+    def _plot_fits(self, data: list):
         """
         Plot the predicted minimum value before parsing the other tensor_values for plotting
         """
-        plt.plot(self.radii, self.pomf, label=f'{self.species_tuple}')
+        print(self.species_tuple)
+        plt.plot(self.radii, self.pomf, label=fr'{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
     def run_post_generation_analysis(self):
@@ -203,20 +206,21 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self.data_files:
             self.file_to_study = data                  # Set the correct tensor_values file in the class
-            self.species_tuple = data[:-33]            # set the tuple
+            self.species_tuple = data[:-31]            # set the tuple
             self._load_rdf_from_file()                 # load up the tensor_values
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
-            self._get_pomf_value()                     # Determine the min values of the function and update experiment
+            data = self._get_pomf_value()              # Determine the min values of the function and update experiment
 
             # Plot and save the tensor_values if necessary
             if self.save:
                 self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.pomf])
 
             if self.plot:
-                self._plot_fits()
+                self._plot_fits(data)
 
         if self.plot:
-            self._plot_data()
+            plt.legend()
+            plt.show()
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

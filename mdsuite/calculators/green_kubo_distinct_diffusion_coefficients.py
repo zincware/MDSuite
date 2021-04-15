@@ -80,7 +80,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.database_group = 'distinct_diffusion_coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'green_kubo_diffusion_coefficients'
+        self.analysis_name = 'Green_Kubo_Distinct_Diffusion_Coefficients'
         self.experimental = True
         self._return_arrays = {}
 

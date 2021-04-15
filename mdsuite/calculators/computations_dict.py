@@ -15,10 +15,10 @@ switcher_transformations = {
 }
 
 dict_classes_db = {
-    'self_diffusion_coefficients': {'einstein_diffusion_coefficients': {'Singular': {}},
-                               'Green_Kubo_Diffusion': {'Singular': {}}},
-    'distinct_diffusion_coefficients': {'einstein_diffusion_coefficients': {},
-                                        'green_kubo_diffusion_coefficients': {}},
+    'self_diffusion_coefficients': {'Einstein_Self_Diffusion_Coefficients': {},
+                               'Green_Kubo_Self_Diffusion': {}},
+    'distinct_diffusion_coefficients': {'Einstein_Distinct_Diffusion_Coefficients': {},
+                                        'Green_Kubo_Distinct_Diffusion_Coefficients': {}},
     'ionic_conductivity': {},
     'thermal_conductivity': {},
     'coordination_numbers': {'Coordination_Numbers': {}},

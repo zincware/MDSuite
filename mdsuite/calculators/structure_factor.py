@@ -6,6 +6,7 @@ import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
+plt.rcParams['figure.facecolor'] = 'white'
 import h5py as hf
 from typing import Union
 
@@ -86,7 +87,6 @@ class StructureFactor(Calculator):
         self.rdf = None
         self.radii = None
         self.Q_arr = np.linspace(0.5, 25, 700)
-        self.obj = experiment
 
         self.post_generation = True
 
@@ -95,8 +95,8 @@ class StructureFactor(Calculator):
         self.y_label = r'S(Q)'
         self.analysis_name = 'total_structure_factor'
 
-        self.rho = self.obj.number_of_atoms / (self.obj.box_array[0] *
-                                               self.obj.box_array[1] * self.obj.box_array[2])
+        self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
+                                                      self.experiment.box_array[1] * self.experiment.box_array[2])
         with open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
 
@@ -133,13 +133,13 @@ class StructureFactor(Calculator):
         Calculates the atomic form factors for all elements in the species dictionary and returns it
         """
         atomic_form_di = {}
-        for el in list(self.obj.species):
-            if self.obj.species[el]['charge'][0] == 0:
+        for el in list(self.experiment.species):
+            if self.experiment.species[el]['charge'][0] == 0:
                 el_key = el
-            if self.obj.species[el]['charge'][0] > 0:
-                el_key = el + str(self.obj.species[el]['charge'][0]) + '+'
-            if self.obj.species[el]['charge'][0] < 0:
-                el_key = el + str(self.obj.species[el]['charge'][0])[1:] + '-'
+            elif self.experiment.species[el]['charge'][0] > 0:
+                el_key = el + str(self.experiment.species[el]['charge'][0]) + '+'
+            elif self.experiment.species[el]['charge'][0] < 0:
+                el_key = el + str(self.experiment.species[el]['charge'][0])[1:] + '-'
             else:
                 print("Impossible input")
                 return
@@ -158,18 +158,18 @@ class StructureFactor(Calculator):
         Calculates the molar fractions for all elements in the species dictionary and add it to the species
         dictionary
         """
-        for el in self.obj.species:
-            self.obj.species[el]['molar_fraction'] = len(self.obj.species[el]['indices']) / self.obj.number_of_atoms
+        for el in self.experiment.species:
+            self.experiment.species[el]['molar_fraction'] = len(self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
 
     def species_densities(self):
         """
         Calculates the particle densities for all the speies in the species dictionary and add it to the species
         dictionary
         """
-        for el in self.obj.species:
-            self.obj.species[el]['particle_density'] = len(self.obj.species[el]['indices']) / (self.obj.box_array[0] *
-                                                                                               self.obj.box_array[1] *
-                                                                                               self.obj.box_array[2])
+        for el in self.experiment.species:
+            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (self.experiment.box_array[0] *
+                                                                                                             self.experiment.box_array[1] *
+                                                                                                             self.experiment.box_array[2])
 
     def average_atomic_form_factor(self, scattering_scalar):
         """
@@ -177,8 +177,8 @@ class StructureFactor(Calculator):
         """
         sum1 = 0
         atomic_form_facs = self.atomic_form_factors(scattering_scalar)
-        for el in self.obj.species:
-            sum1 += self.obj.species[el]['molar_fraction'] * atomic_form_facs[el]['atomic_form_factor']
+        for el in self.experiment.species:
+            sum1 += self.experiment.species[el]['molar_fraction'] * atomic_form_facs[el]['atomic_form_factor']
         average_atomic_factor = sum1 ** 2
         return average_atomic_factor
 
@@ -197,7 +197,7 @@ class StructureFactor(Calculator):
                     self.rdf[counter] - 1)
         running_integral = cumtrapz(integrand, self.radii, initial=0.0)
         integral = simps(integrand, self.radii)
-        particle_density = self.obj.species[elements[0]][
+        particle_density = self.experiment.species[elements[0]][
             'particle_density']  # given g_ab take the particle density of a
         s_12 = 1 + 4 * np.pi * particle_density * integral
         return s_12, running_integral, integral
@@ -207,8 +207,8 @@ class StructureFactor(Calculator):
         Calculates the weight factor
         """
         species_lst = self.file_to_study.split('_')[:2]
-        c_a = self.obj.species[species_lst[0]]['molar_fraction']
-        c_b = self.obj.species[species_lst[1]]['molar_fraction']
+        c_a = self.experiment.species[species_lst[0]]['molar_fraction']
+        c_b = self.experiment.species[species_lst[1]]['molar_fraction']
         form_factors = self.atomic_form_factors(scattering_scalar)
         avg_form_fac = self.average_atomic_form_factor(scattering_scalar)
         atom_form_fac_a = form_factors[species_lst[0]]['atomic_form_factor']
@@ -254,11 +254,14 @@ class StructureFactor(Calculator):
 
             total_structure_factor_li = np.array(total_structure_factor_li)
             if self.plot:
-                plt.plot(self.Q_arr, total_structure_factor_li, 'bo', label='total structure factor')
+                plt.plot(self.Q_arr, total_structure_factor_li, label='total structure factor')
+                plt.xlabel(rf'{self.x_label}')  # set the x label
+                plt.ylabel(rf'{self.y_label}')  # set the y label
+                plt.show()
 
             # Save a figure if required
-            if self.plot:
-                self._plot_data()
+            #if self.plot:
+            #    self._plot_data()
 
             if self.save:
                 self._save_data(f"{self.analysis_name}", [self.Q_arr, total_structure_factor_li])

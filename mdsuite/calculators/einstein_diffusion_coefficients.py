@@ -85,14 +85,14 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
                          atom_selection=atom_selection, export=export)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {'linear': {'scale_factor': 50}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = species
         self.molecules = molecules
         self.database_group = 'self_diffusion_coefficients'
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_diffusion_coefficients'
+        self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
         self.loop_condition = False
         self.optimize = optimize
         self.msd_array = np.zeros(self.data_range)  # define empty msd array

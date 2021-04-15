@@ -256,7 +256,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
-                                            memory_fraction=0.2,
+                                            memory_fraction=0.5,
                                             scale_function=self.scale_function)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
             system=self.system_property)
@@ -427,7 +427,10 @@ class Calculator(metaclass=abc.ABCMeta):
         elif sub_item is None:
             results[self.database_group][self.analysis_name][item] = str(data)
         else:
-            if add:
+            try:
+                results[self.database_group][self.analysis_name][item][sub_item] = str(data)
+            except KeyError:
+                results[self.database_group][self.analysis_name] = {}
                 results[self.database_group][self.analysis_name][item] = {}
                 results[self.database_group][self.analysis_name][item][sub_item] = str(data)
 
@@ -575,6 +578,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
+
             if self.export:
                 self.export_data()
             if self.plot:

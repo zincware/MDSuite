@@ -217,13 +217,15 @@ class CoordinationNumbers(Calculator):
         self._update_properties_file(item=self.species_tuple, sub_item='second_shell', add=True,
                                      data=[str(second_shell), str(second_shell_error)])
 
-    def _plot_coordination_shells(self):
+        return first_shell, first_shell_error
+
+    def _plot_coordination_shells(self, data: list):
         """
         Plot the calculated coordination numbers on top of the rdfs
         """
 
         fig, ax1 = plt.subplots()  # define the plot
-        ax1.plot(self.radii, self.rdf, label=f"{self.species_tuple} RDF")  # plot the RDF
+        ax1.plot(self.radii, self.rdf, label=fr"{self.species_tuple}: {data[0]:.3f} $\pm$ {data[1]:.3f} ")
         ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
         ax2 = ax1.twinx()  # split the axis
         ax2.set_ylabel('CN')  # set the RHS y axis label
@@ -233,6 +235,7 @@ class CoordinationNumbers(Calculator):
         ax1.axvspan(self.radii[self.indices[0][0]] - 0.01, self.radii[self.indices[0][1]] + 0.01, color='g')
         ax1.axvspan(self.radii[self.indices[1][0]] - 0.01, self.radii[self.indices[1][1]] + 0.01, color='b')
         ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
+        ax1.legend()
         plt.savefig(f'{self.species_tuple}.svg', dpi=800)
         plt.show()
 
@@ -244,11 +247,11 @@ class CoordinationNumbers(Calculator):
         self._get_rdf_data()  # fill the tensor_values array with tensor_values
         for data in self.data_files:  # Loop over all existing RDFs
             self.file_to_study = data  # set the working file
-            self.species_tuple = data[:-29]  # set the tuple
+            self.species_tuple = data[:-31]  # set the tuple
             self._load_rdf_from_file()  # load the tensor_values from it
             self._integrate_rdf()  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
-            self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment class
+            data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
 
             # Save the tensor_values if required
             if self.save:
@@ -257,8 +260,7 @@ class CoordinationNumbers(Calculator):
 
             # Plot the tensor_values if required
             if self.plot:
-                self._plot_coordination_shells()
-            self._plot_data(manual=True)  # Call plot function to prevent later issues
+                self._plot_coordination_shells(data)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

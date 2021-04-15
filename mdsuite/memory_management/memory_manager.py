@@ -35,8 +35,6 @@ class MemoryManager:
         self.memory_fraction = memory_fraction
 
         self.machine_properties = get_machine_properties()
-        if self.machine_properties['memory'] > 20e9:
-            self.machine_properties['memory'] = 20e9
 
         self.batch_size = None
         self.n_batches = None

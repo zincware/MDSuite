@@ -80,7 +80,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         self.database_group = 'distinct_diffusion_coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'einstein_diffusion_coefficients'
+        self.analysis_name = 'Einstein_Distinct_Diffusion_Coefficients'
         self.experimental = True
 
         self.vacf = np.zeros(self.data_range)
