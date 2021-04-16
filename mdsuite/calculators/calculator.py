@@ -20,6 +20,7 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
+from mdsuite.database.properties_database import PropertiesDatabase
 from tqdm import tqdm
 
 from typing import Union
@@ -412,11 +413,17 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, item: str = None, sub_item: str = None, data: list = None, add: bool = False):
+    def _update_properties_file(self, parameters: dict):
         """
         Update the experiment properties YAML file.
         """
 
+        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+        database.add_data(parameters)
+
+
+
+        """
         # Check if tensor_values has been given
         if data is None:
             print("No tensor_values provided")
@@ -438,6 +445,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 results[self.database_group][self.analysis_name][item][sub_item] = str(data)
 
         self.experiment.results = results
+        """
 
     def _calculate_system_current(self):
         pass

@@ -32,6 +32,7 @@ from mdsuite.utils.exceptions import *
 from mdsuite.database.database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.visualizer.visualizer import TrajectoryVisualizer
+from mdsuite.database.properties_database import PropertiesDatabase
 
 
 class Experiment:
@@ -564,6 +565,9 @@ class Experiment:
             data = dict_classes_db
 
             yaml.dump(data, f)
+
+        property_database = PropertiesDatabase(name=os.path.join(self.database_path, "property_database"))
+        property_database.build_database()
 
         self.save_class()  # Update the class state
 

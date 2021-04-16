@@ -11,6 +11,7 @@ calculations performed.
 
 import logging
 
+import sqlalchemy as sql
 # Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
@@ -176,7 +177,13 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        self._update_properties_file(item='Singular', sub_item=species, data=result)
+        #self._update_properties_file(item='Singular', sub_item=species, data=result)
+        properties = {"Analysis": "Einstein_Self_Diffusion_Coefficients",
+                      "Subject": species,
+                      "data_range": self.data_range,
+                      'data': result[0],
+                      'uncertainty': result[1]}
+        self._update_properties_file(properties)
         # Update the plot if required
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
