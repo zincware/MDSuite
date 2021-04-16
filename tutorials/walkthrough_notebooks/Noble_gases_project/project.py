@@ -19,22 +19,22 @@ gases = mds.Project(name="Gases", storage_path="./")
 
 gases.add_description("Project to analyze and compare gases")
 
-gases.add_experiment(experiment_name="Argon_135",
+gases.add_experiment(experiment="Argon_135",
                      timestep=3,
                      temperature=135.6,
                      units='real')
 
-gases.add_experiment(experiment_name="Argon_93",
+gases.add_experiment(experiment="Argon_93",
                      timestep=3,
                      temperature=92.97,
                      units='real')
 
-gases.add_experiment(experiment_name="Xenon_229",
+gases.add_experiment(experiment="Xenon_229",
                      timestep=3,
                      temperature=229.0,
                      units='real')
 
-gases.add_experiment(experiment_name="Xenon_176",
+gases.add_experiment(experiment="Xenon_176",
                      timestep=3,
                      temperature=176.2,
                      units='real')
