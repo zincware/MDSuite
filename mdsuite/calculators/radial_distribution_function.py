@@ -62,7 +62,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
                  images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = None, molecules: bool = False, **kwargs):
+                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
         """
 
         Attributes
@@ -84,7 +84,7 @@ class RadialDistributionFunction(Calculator, ABC):
         minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
         """
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment, plot, save, data_range, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
@@ -617,8 +617,7 @@ class RadialDistributionFunction(Calculator, ABC):
             start = 0
             stop = 0
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
-            # rdf = tf.zeros((10, 10))
-            # test = tf.zeros(self.number_of_bins, dtype=tf.int32)
+
             for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
 
                 atoms_per_batch = tf.shape(atoms)[0]

@@ -7,8 +7,7 @@ from mdsuite.database.database import Database
 from mdsuite.utils.scale_functions import *
 import numpy as np
 import sys
-
-from typing import Callable
+import tensorflow as tf
 
 
 class MemoryManager:
@@ -35,6 +34,16 @@ class MemoryManager:
         self.memory_fraction = memory_fraction
 
         self.machine_properties = get_machine_properties()
+        if gpu:
+            memory = 0
+            for item in self.machine_properties['gpu']:
+                if self.machine_properties['gpu'][item]['memory'] > memory:
+                    memory = self.machine_properties['gpu'][item]['memory']
+
+            self.machine_properties['memory'] = memory*1e6
+            tf.device('gpu')
+        else:
+            tf.device('cpu')
 
         self.batch_size = None
         self.n_batches = None

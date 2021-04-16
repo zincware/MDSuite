@@ -193,7 +193,6 @@ class PotentialOfMeanForce(Calculator):
         """
         Plot the predicted minimum value before parsing the other tensor_values for plotting
         """
-        print(self.species_tuple)
         plt.plot(self.radii, self.pomf, label=fr'{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 

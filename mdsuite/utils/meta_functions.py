@@ -96,7 +96,9 @@ def get_machine_properties() -> dict:
     try:
         total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
         for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id] = gpu.name
+            machine_properties['gpu'][gpu.id]= {}
+            machine_properties['gpu'][gpu.id]['name'] = gpu.name
+            machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryFree
     except NoGPUInSystem:
         raise NoGPUInSystem
 

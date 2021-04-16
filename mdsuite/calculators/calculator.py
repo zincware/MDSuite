@@ -49,7 +49,7 @@ class Calculator(metaclass=abc.ABCMeta):
     """
 
     def __init__(self, experiment: object, plot: bool = True, save: bool = True, data_range: int = 500,
-                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True):
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False):
         """
         Constructor for the calculator class
         Parameters
@@ -59,6 +59,7 @@ class Calculator(metaclass=abc.ABCMeta):
         save
         data_range
         """
+        self.scale_function = None
         self.experiment = experiment  # Experiment object to get properties from
         self.data_range = data_range  # Data range over which to evaluate
         self.plot = plot  # Whether or not to plot the tensor_values and save a figure
@@ -74,6 +75,7 @@ class Calculator(metaclass=abc.ABCMeta):
         self.n_batches: int  # Number of batches to be calculated over
         self.remainder: int  # remainder after batching
         self.prefactor: float
+        self.gpu = gpu
 
         self.system_property = False  # is the calculation on a system property?
         self.multi_species = False  # does the calculation require loading of multiple species?
@@ -257,7 +259,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
                                             memory_fraction=0.5,
-                                            scale_function=self.scale_function)
+                                            scale_function=self.scale_function,
+                                            gpu=self.gpu)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
             system=self.system_property)
 
@@ -430,7 +433,7 @@ class Calculator(metaclass=abc.ABCMeta):
             try:
                 results[self.database_group][self.analysis_name][item][sub_item] = str(data)
             except KeyError:
-                results[self.database_group][self.analysis_name] = {}
+                #results[self.database_group][self.analysis_name] = {}
                 results[self.database_group][self.analysis_name][item] = {}
                 results[self.database_group][self.analysis_name][item][sub_item] = str(data)
 

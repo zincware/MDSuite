@@ -212,9 +212,9 @@ class CoordinationNumbers(Calculator):
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
         # update the experiment information file
-        self._update_properties_file(item=self.species_tuple, sub_item='first_shell', add=True,
+        self._update_properties_file(item=self.species_tuple, sub_item='first_shell',
                                      data=[str(first_shell), str(first_shell_error)])
-        self._update_properties_file(item=self.species_tuple, sub_item='second_shell', add=True,
+        self._update_properties_file(item=self.species_tuple, sub_item='second_shell',
                                      data=[str(second_shell), str(second_shell_error)])
 
         return first_shell, first_shell_error

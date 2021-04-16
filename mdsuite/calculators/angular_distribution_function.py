@@ -39,7 +39,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
                  r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
-                 export: bool = False, molecules: bool = False):
+                 export: bool = False, molecules: bool = False, gpu: bool = False):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -64,7 +64,7 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=1, export=export)
+        super().__init__(experiment, data_range=1, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = use_tf_function
