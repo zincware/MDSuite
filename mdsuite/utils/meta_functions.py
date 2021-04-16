@@ -98,7 +98,7 @@ def get_machine_properties() -> dict:
         for gpu in total_gpu_devices:
             machine_properties['gpu'][gpu.id]= {}
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
-            machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryFree
+            machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
     except NoGPUInSystem:
         raise NoGPUInSystem
 
