@@ -646,19 +646,20 @@ class RadialDistributionFunction(Calculator, ABC):
             return rdf
 
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-
+            self.log.debug('Loading Data')
             if len(self.experiment.species) == 1:
                 positions = [self._load_positions(i)]  # Load the batch of positions
             else:
                 positions = self._load_positions(i)  # Load the batch of positions
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
-
+            self.log.debug('Data loaded - creating dataset')
             per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
             # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
 
             n_atoms = tf.shape(positions_tensor)[0]
-
+            self.log.debug('Starting calculation')
             self.rdf = run_minibatch_loop()
+            self.log.debug('Calculation done')
 
         self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
 
