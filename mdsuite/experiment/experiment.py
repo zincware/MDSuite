@@ -216,6 +216,7 @@ class Experiment:
         self._create_internal_file_paths()  # force rebuild every time
 
         self.run_computation = self.RunComputation(self)
+        self._start_logging()
         # TODO Why is this necessary? What does it exactly?
 
     def save_class(self):
