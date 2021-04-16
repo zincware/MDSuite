@@ -86,8 +86,7 @@ class Project:
             self._save_class()  # Save the initial class state
 
     def __str__(self):
-        print("List of available experiments")
-        print(self.list_experiments())
+        return self.list_experiments()
 
     def add_description(self, description: str):
         """
