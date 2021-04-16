@@ -1,5 +1,7 @@
 from abc import ABC
 
+import logging
+
 import tensorflow as tf
 import itertools
 import numpy as np
@@ -88,6 +90,8 @@ class AngularDistributionFunction(Calculator, ABC):
         self.analysis_name = "AngularDistributionFunction"
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
+
+        self.log = logging.getLogger(__name__)
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
