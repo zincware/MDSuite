@@ -210,9 +210,12 @@ class Experiment:
         A function to load a class instance given the project name.
         """
 
+        storage_path = self.storage_path  # store the new storage path
+
         with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
             self.__dict__ = pickle.loads(f.read())
 
+        self.storage_path = storage_path  # set the one form the database to the new one
         self._create_internal_file_paths()  # force rebuild every time
 
         self.run_computation = self.RunComputation(self)
