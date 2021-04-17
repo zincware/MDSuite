@@ -18,3 +18,4 @@ sphinx-copybutton
 vpython
 colorutils
 scooby
+sqlalchemy

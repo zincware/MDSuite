@@ -62,7 +62,7 @@ class CoordinationNumbers(Calculator):
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1):
+    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False):
         """
         Python constructor
 
@@ -86,7 +86,7 @@ class CoordinationNumbers(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range)
+        super().__init__(experiment, plot, save, data_range, export=export)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -97,7 +97,7 @@ class CoordinationNumbers(Calculator):
 
         self.post_generation = True
 
-        self.database_group = 'coordination_numbers'
+        self.database_group = 'Coordination_Numbers'
         self.x_label = r'r ($\AA$)'
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
@@ -211,11 +211,20 @@ class CoordinationNumbers(Calculator):
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
-        # update the experiment information file
-        self._update_properties_file(item=self.species_tuple, sub_item='first_shell',
-                                     data=[str(first_shell), str(first_shell_error)])
-        self._update_properties_file(item=self.species_tuple, sub_item='second_shell',
-                                     data=[str(second_shell), str(second_shell_error)])
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": f"{self.species_tuple}_1st_Shell",
+                      "data_range": self.data_range,
+                      'data': first_shell,
+                      'uncertainty': first_shell_error}
+        self._update_properties_file(properties)
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": f"{self.species_tuple}_2nd_Shell",
+                      "data_range": self.data_range,
+                      'data': second_shell,
+                      'uncertainty': second_shell_error}
+        self._update_properties_file(properties)
 
         return first_shell, first_shell_error
 
@@ -236,7 +245,6 @@ class CoordinationNumbers(Calculator):
         ax1.axvspan(self.radii[self.indices[1][0]] - 0.01, self.radii[self.indices[1][1]] + 0.01, color='b')
         ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
         ax1.legend()
-        plt.savefig(f'{self.species_tuple}.svg', dpi=800)
         plt.show()
 
     def run_post_generation_analysis(self):
@@ -252,15 +260,16 @@ class CoordinationNumbers(Calculator):
             self._integrate_rdf()  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
             data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
-
-            # Save the tensor_values if required
-            if self.save:
-                self._save_data(f"{self.species_tuple}_{self.analysis_name}", [np.array(self.radii[1:]),
-                                                                               np.array(self.integral_data)])
-
             # Plot the tensor_values if required
             if self.plot:
                 self._plot_coordination_shells(data)
+
+            if self.save:
+                self._save_data(name=self._build_table_name(self.species_tuple),
+                                data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
+            if self.export:
+                self._export_data(name=self._build_table_name(self.species_tuple),
+                                  data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

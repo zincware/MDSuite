@@ -87,7 +87,8 @@ class AngularDistributionFunction(Calculator, ABC):
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
 
-        self.analysis_name = "AngularDistributionFunction"
+        self.analysis_name = "Angular_Distribution_Function"
+        self.database_group = "Angular_Distribution_Function"
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
 
@@ -215,6 +216,13 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            self.data_range = self.n_confs
+            if self.save:
+                self._save_data(name=self._build_table_name(str(species)),
+                                data=self._build_pandas_dataframe(bin_range_to_angles, hist))
+            if self.export:
+                self._export_data(name=self._build_table_name(str(species)),
+                                  data=self._build_pandas_dataframe(bin_range_to_angles, hist))
             if self.plot:
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=species)

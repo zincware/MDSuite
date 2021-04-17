@@ -14,7 +14,7 @@ import importlib.resources
 import json
 import colorutils as cu
 
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
 

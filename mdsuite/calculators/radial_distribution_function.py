@@ -84,15 +84,15 @@ class RadialDistributionFunction(Calculator, ABC):
         minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
         """
-        super().__init__(experiment, plot, save, data_range, export=export, gpu=gpu)
+        super().__init__(experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
 
-        self.database_group = 'radial_distribution_function'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
-        self.analysis_name = 'radial_distribution_function'
+        self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
 
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
@@ -493,9 +493,15 @@ class RadialDistributionFunction(Calculator, ABC):
                 ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
                 self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
 
-            if self.save:  # get the species names
-                self._save_data(f'{names}_{self.analysis_name}',
-                                [np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names)])
+            self.data_range = self.number_of_configurations
+            if self.save:
+                self._save_data(name=self._build_table_name(names),
+                                data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
+                                                                  self.rdf.get(names)))
+            if self.export:
+                self._export_data(name=self._build_table_name(names),
+                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
+                                                                  self.rdf.get(names)))
 
         self.experiment.radial_distribution_function_state = True  # update the state
 

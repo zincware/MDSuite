@@ -49,7 +49,7 @@ class KirkwoodBuffIntegral(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1):
+    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
         """
         Python constructor for the class
 
@@ -73,14 +73,14 @@ class KirkwoodBuffIntegral(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range)
+        super().__init__(experiment, plot, save, data_range, export=export)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
         self.radii = None
         self.species_tuple = None
         self.kb_integral = None
-        self.database_group = 'kirkwood_buff_integral'
+        self.database_group = 'Kirkwood_Buff_Integral'
         self.x_label = r'r ($\AA$)'
         self.y_label = r'$G(\mathbf{r})$'
         self.analysis_name = 'Kirkwood-Buff_Integral'
@@ -132,13 +132,17 @@ class KirkwoodBuffIntegral(Calculator):
             self._load_rdf_from_file()       # Load the rdf tensor_values for the set file
             self._calculate_kb_integral()    # Integrate the rdf and calculate the KB integral
 
-            # Save if necessary
-            if self.save:
-                self._save_data(f"{self.analysis_name}_{self.species_tuple}", [self.radii[1:], self.kb_integral])
             # Plot if necessary
             if self.plot:
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
+
+            if self.save:
+                self._save_data(name=self._build_table_name(self.species_tuple),
+                                data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
+            if self.export:
+                self._export_data(name=self._build_table_name(self.species_tuple),
+                                  data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

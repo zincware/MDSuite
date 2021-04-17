@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
 switcher_transformations = {

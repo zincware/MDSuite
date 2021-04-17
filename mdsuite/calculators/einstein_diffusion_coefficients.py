@@ -10,20 +10,13 @@ calculations performed.
 """
 
 import logging
-
-# Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-
-# Import user packages
 from tqdm import tqdm
 import tensorflow as tf
-
-# Import MDSuite packages
 from mdsuite.calculators.calculator import Calculator
 
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -89,7 +82,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.loaded_property = 'Unwrapped_Positions'
         self.species = species
         self.molecules = molecules
-        self.database_group = 'self_diffusion_coefficients'
+        self.database_group = 'Diffusion_Coefficients'
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
         self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
@@ -176,14 +169,23 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        self._update_properties_file(item='Singular', sub_item=species, data=result)
-        # Update the plot if required
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": species,
+                      "data_range": self.data_range,
+                      'data': result[0],
+                      'uncertainty': result[1]}
+        self._update_properties_file(properties)
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
-        # Save the array if required
+
         if self.save:
-            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
+            self._save_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                    self.msd_array))
+        if self.export:
+            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))
 
     def _optimized_calculation(self):
         """

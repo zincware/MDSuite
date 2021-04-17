@@ -65,12 +65,12 @@ class GreenKuboViscosity(Calculator):
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Momentum_Flux'  # property to be loaded for the analysis
-        self.database_group = 'viscosity'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Viscosity'  # Which database_path group to save the tensor_values in
         self.system_property = True
 
         self.x_label = 'Time (s)'
         self.y_label = r'SACF ($C^{2}\cdot m^{2}/s^{2}$)'
-        self.analysis_name = 'green_kubo_viscosity'
+        self.analysis_name = 'Green_Kubo_Viscosity'
 
         self.jacf = np.zeros(self.data_range)
         self.prefactor: float
@@ -108,7 +108,7 @@ class GreenKuboViscosity(Calculator):
                           self.experiment.units[
                               'time'] / self.experiment.units['energy']
 
-        self.prefactor = (numerator / denominator)*prefactor_units
+        self.prefactor = (numerator / denominator) * prefactor_units
 
     def _apply_averaging_factor(self):
         """
@@ -145,13 +145,21 @@ class GreenKuboViscosity(Calculator):
 
         """
         result = self.prefactor * np.array(self.sigma)
-        self._update_properties_file(data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
-
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": "System",
+                      "data_range": self.data_range,
+                      'data': np.mean(result),
+                      'uncertainty': np.std(result) / (np.sqrt(len(result)))}
+        self._update_properties_file(properties)
         # Update the plot if required
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
             self._plot_data()
 
-        # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time, self.jacf])
+            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                     self.jacf))
+        if self.export:
+            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                       self.jacf))

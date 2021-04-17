@@ -73,7 +73,7 @@ class PotentialOfMeanForce(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1):
+    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
         """
         Python constructor for the class
 
@@ -97,7 +97,7 @@ class PotentialOfMeanForce(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range)
+        super().__init__(experiment, plot, save, data_range, export=export)
         self.file_to_study = None                                             # RDF file being studied
         self.data_files = []                                                  # array of the files in tensor_values directory
         self.rdf = None                                                       # rdf being studied
@@ -105,7 +105,7 @@ class PotentialOfMeanForce(Calculator):
         self.species_tuple = None                                             # Which species are being studied
         self.pomf = None                                                      # potential of mean force array
         self.indices = None                                                   # Indices of the pomf range
-        self.database_group = 'potential_of_mean_force_values'                # Which database_path group to save the tensor_values in
+        self.database_group = 'Potential_Of_Mean_Force'
         self.x_label = r'r ($\AA$)'
         self.y_label = r'$w^{(2)}(r)$'
         self.analysis_name = 'Potential_of_Mean_Force'
@@ -186,6 +186,13 @@ class PotentialOfMeanForce(Calculator):
 
         # Update the experiment class
         self._update_properties_file(item=self.species_tuple, data=[str(pomf_value), str(pomf_error)])
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": self.species_tuple,
+                      "data_range": self.data_range,
+                      'data': pomf_value,
+                      'uncertainty': pomf_error}
+        self._update_properties_file(properties)
 
         return pomf_value, pomf_error
 
@@ -210,9 +217,12 @@ class PotentialOfMeanForce(Calculator):
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
             data = self._get_pomf_value()              # Determine the min values of the function and update experiment
 
-            # Plot and save the tensor_values if necessary
             if self.save:
-                self._save_data(f"{self.species_tuple}_{self.analysis_name}", [self.radii, self.pomf])
+                self._save_data(name=self._build_table_name(self.species_tuple),
+                                data=self._build_pandas_dataframe(self.radii, self.pomf))
+            if self.export:
+                self._export_data(name=self._build_table_name(self.species_tuple),
+                                  data=self._build_pandas_dataframe(self.radii, self.pomf))
 
             if self.plot:
                 self._plot_fits(data)
