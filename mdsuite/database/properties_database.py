@@ -82,8 +82,9 @@ class PropertiesDatabase:
         """
 
         with self.engine.begin() as conn:
-            stmt = delete(self.table).where(column('Subject') == parameters['Subject'],
-                                            column('data_range') == parameters['data_range'])
+            cond= and_(*[column('Subject') == parameters['Subject'], column('data_range') == parameters['data_range'],
+                         column('Analysis') == parameters['Analysis']])
+            stmt = delete(self.table).where(cond)
             conn.execute(stmt)
 
     def add_data(self, parameters: dict, delete_duplicate: bool = True):

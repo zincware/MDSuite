@@ -84,7 +84,7 @@ class RadialDistributionFunction(Calculator, ABC):
         minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
         """
-        super().__init__(experiment, plot, save, data_range=number_of_configurations, export=export, gpu=gpu)
+        super().__init__(experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
@@ -493,6 +493,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
                 self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
 
+            self.data_range = self.number_of_configurations
             if self.save:
                 self._save_data(name=self._build_table_name(names),
                                 data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),

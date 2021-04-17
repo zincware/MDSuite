@@ -64,7 +64,7 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=n_confs, export=export, gpu=gpu)
+        super().__init__(experiment, data_range=1, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = use_tf_function
@@ -210,6 +210,7 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            self.data_range = self.n_confs
             if self.save:
                 self._save_data(name=self._build_table_name(str(species)),
                                 data=self._build_pandas_dataframe(bin_range_to_angles, hist))
