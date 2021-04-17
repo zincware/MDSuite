@@ -1,5 +1,7 @@
 from abc import ABC
 
+import logging
+
 import tensorflow as tf
 import itertools
 import numpy as np
@@ -39,7 +41,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
                  r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
-                 export: bool = False, molecules: bool = False, gpu: bool = False):
+                 export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -64,7 +66,7 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=n_confs, export=export, gpu=gpu)
+        super().__init__(experiment, data_range=n_confs, export=export, gpu=gpu, plot=plot)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = use_tf_function
@@ -89,6 +91,8 @@ class AngularDistributionFunction(Calculator, ABC):
         self.database_group = "Angular_Distribution_Function"
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
+
+        self.log = logging.getLogger(__name__)
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
@@ -156,7 +160,9 @@ class AngularDistributionFunction(Calculator, ABC):
 
         dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
 
-        for positions in dataset:
+        self.log.debug(f'batch_size: {self._batch_size}')
+
+        for positions in tqdm(dataset, total=self.n_confs):
             timesteps, atoms, _ = tf.shape(positions)
 
             tmp = tf.concat(positions, axis=0)
