@@ -1,5 +1,5 @@
 """
-Python module for the properties database.
+Python module for the Analysis database class.
 """
 
 import sqlalchemy as sql
@@ -8,11 +8,12 @@ from sqlalchemy import column
 from sqlalchemy import table
 from sqlalchemy import delete
 from sqlalchemy import and_
+import pandas as pd
 
 
-class PropertiesDatabase:
+class AnalysisDatabase:
     """
-    A class to control the properties database.
+    Class of the MDSuite Analysis database.
     """
 
     def __init__(self, name: str):
@@ -25,10 +26,7 @@ class PropertiesDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=True)
-        self.table = table('system_properties', column('Property'), column('Analysis'),
-                           column('Subject'), column('data_range'),
-                           column('data'), column('uncertainty'))
+        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=False)
 
     def build_database(self):
         """
@@ -39,11 +37,9 @@ class PropertiesDatabase:
         Constructs a new database
         """
         with self.engine.begin() as conn:
-            stmt = sql.text("CREATE TABLE system_properties (Property varchar(255), Analysis varchar(255), "
-                            "Subject varchar(255), data_range INT, data REAL , uncertainty REAL)")
-            conn.execute(stmt)
+            print("Constructed new database")
 
-    def _check_row_existence(self, parameters: dict):
+    def _check_table_existence(self, parameters: dict):
         """
         Check if a row exists.
 
@@ -66,48 +62,18 @@ class PropertiesDatabase:
 
         return any(truth_table)
 
-    def _delete_duplicate_rows(self, parameters: dict):
-        """
-        Delete duplicate rows
-
-        Parameters
-        ----------
-        parameters : dict
-                Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500, "data": 1.8e-9}
-        Returns
-        -------
-        result : bool
-                True or False depending on existence.
-        """
-
-        with self.engine.begin() as conn:
-            stmt = delete(self.table).where(column('Subject') == parameters['Subject'],
-                                            column('data_range') == parameters['data_range'])
-            conn.execute(stmt)
-
-    def add_data(self, parameters: dict, delete_duplicate: bool = True):
+    def add_data(self, name: str, data_frame: pd.DataFrame):
         """
         Add data to the database
 
         Parameters
         ----------
-        parameters : dict
-                Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500, "data": 1.8e-9}
-        delete_duplicate : bool
-                If true, duplicate entries will be deleted.
+
         Returns
         -------
         Updates the sql database
         """
-        if delete_duplicate:
-            self._delete_duplicate_rows(parameters)
-        else:
-            if self._check_row_existence(parameters):
-                print("Note, an entry with these parameters already exists in the database.")
-        with self.engine.begin() as conn:
-            conn.execute(self.table.insert().values(parameters))
+        data_frame.to_sql(name, self.engine, if_exists='replace')
 
     def load_data(self, parameters: dict):
         """

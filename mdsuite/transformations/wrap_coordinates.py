@@ -11,7 +11,7 @@ import os
 import tensorflow as tf
 
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
 

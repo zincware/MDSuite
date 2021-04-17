@@ -9,6 +9,7 @@ from typing import Union
 
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
+
 class NernstEinsteinIonicConductivity:
     """
     Class for the calculation of the Nernst-Einstein ionic conductivity

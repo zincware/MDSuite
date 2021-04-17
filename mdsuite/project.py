@@ -245,6 +245,34 @@ class Project:
 
         return results
 
+    def get_properties(self, parameters: dict, experiments: list = None):
+        """
+        Get some property of each experiment.
+
+        Parameters
+        ----------
+        parameters : dict
+                Parameters to be used in the addition, i.e.
+                {"Analysis": "Green_Kubo_Self_Diffusion",
+                 "Subject": "Na",
+                 "data_range": 500}
+        experiments : list
+                List of experiments to fetch information for. If None, all will be searched.
+
+        Returns
+        -------
+        properties_dict : dict
+                A dictionary of lists of properties for each system
+        """
+        if experiments is None:
+            experiments = list(self.experiments)
+
+        properties_dict = {}
+        for item in experiments:
+            properties_dict[item] = self.experiments[item].export_property_data(parameters)
+
+        return properties_dict
+
     def get_attribute(self, attribute):
         """
         Get an attribute from the experiments. Equivalent to get_results but for system parameters such as:

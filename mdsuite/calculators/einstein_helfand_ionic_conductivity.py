@@ -72,10 +72,10 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.database_group = 'ionic_conductivity'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Ionic_Conductivity'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_helfand_ionic_conductivity'
+        self.analysis_name = 'Einstein_Helfand_Ionic_Conductivity'
 
         self.msd_array = np.zeros(self.data_range)
         self.prefactor: float
@@ -145,7 +145,13 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        self._update_properties_file(data=result)
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": "System",
+                      "data_range": self.data_range,
+                      'data': result[0],
+                      'uncertainty': result[1]}
+        self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
@@ -153,6 +159,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
                                                                                                 f'{result[1]}')
             self._plot_data()
 
-        # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time, self.msd_array])
+            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                    self.msd_array))
+        if self.export:
+            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))

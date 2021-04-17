@@ -8,19 +8,20 @@ Summary
 import abc
 import random
 import sys
-import h5py as hf
 import matplotlib.figure
 import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
 import tensorflow as tf
+import pandas as pd
 from scipy.optimize import curve_fit
 from mdsuite.utils.exceptions import *
 from mdsuite.utils.meta_functions import *
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.computations_dict import switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
 
 from typing import Union
@@ -278,17 +279,57 @@ class Calculator(metaclass=abc.ABCMeta):
                                         )
         self._update_output_signatures()
 
-    def _save_data(self, title: str, data: np.array):
+    def _build_table_name(self, species: str = "System"):
+        """
+        Build the sql table name for the data storage.
+
+        Parameters
+        ----------
+        species : str
+                In the case of a species specific analysis, make sure a species is put here. Otherwise, it is set to
+                System.
+        Returns
+        -------
+        name : str
+                A correctly formatted name for the SQL database.
+        """
+        return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
+
+    @staticmethod
+    def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
+        """
+        Build a pandas dataframe with x and y data.
+
+        Parameters
+        ----------
+        x : np.array
+                x data to go into the data frame
+        y : np.array
+                y data to go into the data frame
+
+        Returns
+        -------
+        data : pd.DataFrame
+                Pandas data frame of the data
+        """
+
+        return pd.DataFrame({'x': x, 'y': y})
+
+    def _save_data(self, name: str, data: pd.DataFrame):
         """
         Save tensor_values to the save tensor_values directory
 
         Parameters
         ----------
-        title : str
+        name : str
                 name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
                 analysis, this will be further appended to include the name of the species.
-        data : np.array
+        data : pd.DataFrame
                 Data to be saved.
+        """
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        database.add_data(name=name, data_frame=data)
+
         """
         title = '_'.join([title, str(self.data_range)])
         with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r+') as db:
@@ -297,6 +338,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
             else:
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
+        """
 
     def _plot_fig(self, fig: matplotlib.figure.Figure, ax: Axes, title: str = None, dpi: int = 600,
                   filetype: str = 'svg'):
@@ -421,32 +463,6 @@ class Calculator(metaclass=abc.ABCMeta):
         database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
         database.add_data(parameters)
 
-
-
-        """
-        # Check if tensor_values has been given
-        if data is None:
-            print("No tensor_values provided")
-            return
-
-        results = self.experiment.results
-
-        # TODO: improve this if else blocks. I am sure it can be done in a more elegant way
-        if item is None:
-            results[self.database_group][self.analysis_name] = str(data)
-        elif sub_item is None:
-            results[self.database_group][self.analysis_name][item] = str(data)
-        else:
-            try:
-                results[self.database_group][self.analysis_name][item][sub_item] = str(data)
-            except KeyError:
-                #results[self.database_group][self.analysis_name] = {}
-                results[self.database_group][self.analysis_name][item] = {}
-                results[self.database_group][self.analysis_name][item][sub_item] = str(data)
-
-        self.experiment.results = results
-        """
-
     def _calculate_system_current(self):
         pass
 
@@ -554,15 +570,12 @@ class Calculator(metaclass=abc.ABCMeta):
 
             self._apply_averaging_factor()
             self._post_operation_processes()
-            if self.export:
-                self.export_data()
 
         elif self.experimental:
             data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
             self._prepare_managers(data_path)
             output = self.run_experimental_analysis()
-            if self.export:
-                self.export_data()
+
             return output
 
         elif self.post_generation:
@@ -590,8 +603,6 @@ class Calculator(metaclass=abc.ABCMeta):
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
 
-            if self.export:
-                self.export_data()
             if self.plot:
                 plt.legend()
                 plt.show()
@@ -623,13 +634,19 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def export_data(self):
+    def _export_data(self, name: str, data: pd.DataFrame):
         """
         Export data from the analysis database.
+
+        Parameters
+        ----------
+        name : str
+                name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
+                analysis, this will be further appended to include the name of the species.
+        data : pd.DataFrame
+                Data to be saved.
         Returns
         -------
-        Prints a csv file (or multiple)
+        Saves a csv file to disc.
         """
-        database = Database(name=os.path.join(self.experiment.database_path, 'analysis_data.hdf5'),
-                            architecture='analysis')
-        database.export_csv(self.database_group, self.analysis_name)
+        data.to_csv(name)

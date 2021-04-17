@@ -77,14 +77,12 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
         self.species = species  # Which species to calculate for
 
-        self.database_group = 'distinct_diffusion_coefficients'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Diffusion_Coefficients'
         self.x_label = 'Time $(s)$'
         self.y_label = 'VACF $(m^{2}/s^{2})$'
         self.analysis_name = 'Einstein_Distinct_Diffusion_Coefficients'
         self.experimental = True
 
-        self.vacf = np.zeros(self.data_range)
-        self.sigma = []
         self.msd_array = np.zeros(self.data_range)  # define empty msd array
 
         if self.species is None:
@@ -189,7 +187,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
         averaged copy of the tensor_values
         """
-        self.vacf /= max(abs(self.vacf))
+        self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
@@ -198,18 +196,26 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
 
         """
-        result = self.prefactor * np.array(self.sigma)
+        result = self._fit_einstein_curve([self.time, self.msd_array])
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": species,
+                      "data_range": self.data_range,
+                      'data': result[0],
+                      'uncertainty': result[1]}
+        self._update_properties_file(properties)
 
-        self._update_properties_file(item='Singular', sub_item=species,
-                                     data=[np.mean(result), np.std(result) / (np.sqrt(len(result)))])
         # Update the plot if required
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=species)
             plt.show()
 
-        # Save the array if required
         if self.save:
-            self._save_data(f"{species}_{self.analysis_name}", [self.time, self.msd_array])
+            self._save_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                    self.msd_array))
+        if self.export:
+            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))
 
     def _update_output_signatures(self):
         """

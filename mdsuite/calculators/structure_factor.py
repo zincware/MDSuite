@@ -57,7 +57,7 @@ class StructureFactor(Calculator):
                         radii tensor_values corresponding to the rdf.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1):
+    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
         """
         Python constructor for the class
 
@@ -81,7 +81,7 @@ class StructureFactor(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range)
+        super().__init__(experiment, plot, save, data_range, export=export)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -259,12 +259,12 @@ class StructureFactor(Calculator):
                 plt.ylabel(rf'{self.y_label}')  # set the y label
                 plt.show()
 
-            # Save a figure if required
-            #if self.plot:
-            #    self._plot_data()
-
             if self.save:
-                self._save_data(f"{self.analysis_name}", [self.Q_arr, total_structure_factor_li])
+                self._save_data(name=self._build_table_name("System"),
+                                data=self._build_pandas_dataframe(self.Q_arr, total_structure_factor_li))
+            if self.export:
+                self._export_data(name=self._build_table_name("System"),
+                                  data=self._build_pandas_dataframe(self.Q_arr, total_structure_factor_li))
 
     def run_test(self):
         """

@@ -73,9 +73,9 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'einstein_helfand_thermal_conductivity_kinaci'
+        self.analysis_name = 'Einstein_Helfand_Thermal_Conductivity_Kinaci'
 
-        self.database_group = 'thermal_conductivity'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in
 
         self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
         self.prefactor: float
@@ -143,14 +143,23 @@ class EinsteinHelfandThermalKinaci(Calculator):
         -------
 
         """
-        result = self._fit_einstein_curve([self.time * self.experiment.units['time'], self.msd_array])
-        self._update_properties_file(data=result)
+        result = self._fit_einstein_curve([self.time, self.msd_array])
+        properties = {"Property": self.database_group,
+                      "Analysis": self.analysis_name,
+                      "Subject": "System",
+                      "data_range": self.data_range,
+                      'data': result[0],
+                      'uncertainty': result[1]}
+        self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array)
             self._plot_data()
 
-        # Save the array if required
         if self.save:
-            self._save_data(f"{self.analysis_name}", [self.time * self.experiment.units['time'], self.msd_array])
+            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                    self.msd_array))
+        if self.export:
+            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))

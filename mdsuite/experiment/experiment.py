@@ -29,10 +29,11 @@ from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.visualizer.visualizer import TrajectoryVisualizer
 from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.analysis_database import AnalysisDatabase
 
 
 class Experiment:
@@ -555,17 +556,8 @@ class Experiment:
 
         f_object.close()
 
-        # Build database_path for analysis output
-        with hf.File(os.path.join(self.database_path, "analysis_data.hdf5"), "w") as db:
-            for key in self._results:
-                db.create_group(key)
-
-        # Instantiate YAML file for experiment properties
-        with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as f:
-            data = dict_classes_db
-
-            yaml.dump(data, f)
-
+        analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
+        analysis_database.build_database()
         property_database = PropertiesDatabase(name=os.path.join(self.database_path, "property_database"))
         property_database.build_database()
 
@@ -869,3 +861,22 @@ class Experiment:
         print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5'))*1e-9: 6.3f}GB\n")
         print(f"Data Groups: {database.get_database_summary()}\n")
         print("==================================================================================\n")
+
+    def export_property_data(self, parameters: dict):
+        """
+        Export property data from the SQL database.
+
+        Parameters
+        ----------
+        parameters : dict
+                Parameters to be used in the addition, i.e.
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
+        Returns
+        -------
+        output : list
+                A list of rows represneted as dictionaries.
+        """
+        database = PropertiesDatabase(name=os.path.join(self.database_path, 'property_database'))
+        output = database.load_data(parameters)
+
+        return output

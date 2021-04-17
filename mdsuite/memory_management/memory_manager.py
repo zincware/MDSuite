@@ -3,7 +3,7 @@ Class for memory management in MDSuite operations.
 """
 
 from mdsuite.utils.meta_functions import get_machine_properties
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 from mdsuite.utils.scale_functions import *
 import numpy as np
 import sys

@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 import tensorflow as tf
 
-from mdsuite.database.database import Database
+from mdsuite.database.simulation_database import Database
 
 
 class DataManager:

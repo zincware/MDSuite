@@ -64,7 +64,7 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=1, export=export, gpu=gpu)
+        super().__init__(experiment, data_range=n_confs, export=export, gpu=gpu)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = use_tf_function
@@ -85,7 +85,8 @@ class AngularDistributionFunction(Calculator, ABC):
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
 
-        self.analysis_name = "AngularDistributionFunction"
+        self.analysis_name = "Angular_Distribution_Function"
+        self.database_group = "Angular_Distribution_Function"
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
 
@@ -209,6 +210,12 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            if self.save:
+                self._save_data(name=self._build_table_name(str(species)),
+                                data=self._build_pandas_dataframe(bin_range_to_angles, hist))
+            if self.export:
+                self._export_data(name=self._build_table_name(str(species)),
+                                  data=self._build_pandas_dataframe(bin_range_to_angles, hist))
             if self.plot:
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=species)
