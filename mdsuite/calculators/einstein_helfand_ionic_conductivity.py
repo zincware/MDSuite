@@ -155,8 +155,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=fr'{result[0]} $\pm$ '
-                                                                                                f'{result[1]}')
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=fr'{result[0]:.3E} $\pm$ '
+                                                                                                f'{result[1]:.3E}')
             self._plot_data()
 
         if self.save:

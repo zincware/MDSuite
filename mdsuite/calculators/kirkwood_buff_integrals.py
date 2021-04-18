@@ -5,8 +5,8 @@ Class for the calculation of the coordinated numbers
 import numpy as np
 import os
 import matplotlib.pyplot as plt
-import h5py as hf
 from typing import Union
+from mdsuite.database.analysis_database import AnalysisDatabase
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -97,17 +97,17 @@ class KirkwoodBuffIntegral(Calculator):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            for item in db['radial_distribution_function']:  # loop over the files
-                self.data_files.append(item)  # Append to the data_file attribute
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        self.data_files = database.get_tables("Radial_Distribution_Function")
 
     def _load_rdf_from_file(self):
         """
         Load the raw rdf tensor_values from a directory
         """
-
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        data = database.load_pandas(self.file_to_study).to_numpy()
+        self.radii = data[1:, 1]
+        self.rdf = data[1:, 2]
 
     def _calculate_kb_integral(self):
         """
@@ -128,7 +128,8 @@ class KirkwoodBuffIntegral(Calculator):
 
         for data in self.data_files:
             self.file_to_study = data        # Set the file to study
-            self.species_tuple = data[:-33]  # set the tuple
+            self.species_tuple = "_".join([data.split("_")[-1], data.split("_")[-2]])
+            self.data_range = int(data.split("_")[-3])
             self._load_rdf_from_file()       # Load the rdf tensor_values for the set file
             self._calculate_kb_integral()    # Integrate the rdf and calculate the KB integral
 

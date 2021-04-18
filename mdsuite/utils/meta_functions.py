@@ -241,7 +241,7 @@ def timeit(f: Callable) -> Callable:
     return wrap
 
 
-def apply_savgol_filter(data: list) -> list:
+def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> list:
     """
     Apply a savgol filter for function smoothing
 
@@ -252,6 +252,8 @@ def apply_savgol_filter(data: list) -> list:
     ----------
     data : list
             Array of tensor_values to be analysed.
+    order : int
+            Order of polynomial to use in the smoothing.
 
     Returns
     -------
@@ -259,7 +261,7 @@ def apply_savgol_filter(data: list) -> list:
             Returns the filtered tensor_values directly from the scipy SavGol filter.
     """
 
-    return savgol_filter(data, 17, 2)
+    return savgol_filter(data, window_length, order)
 
 
 def golden_section_search(data: np.array, a: float, b: float) -> tuple:

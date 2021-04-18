@@ -20,13 +20,10 @@ import numpy as np
 import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
-import h5py as hf
 from typing import Union
-
-# MDSuite imports
+from mdsuite.database.analysis_database import AnalysisDatabase
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
-
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
@@ -73,7 +70,8 @@ class PotentialOfMeanForce(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
+    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False,
+                 savgol_order: int = 2, savgol_window_length: int = 17):
         """
         Python constructor for the class
 
@@ -109,24 +107,27 @@ class PotentialOfMeanForce(Calculator):
         self.x_label = r'r ($\AA$)'
         self.y_label = r'$w^{(2)}(r)$'
         self.analysis_name = 'Potential_of_Mean_Force'
-
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
         self.post_generation = True
 
     def _get_rdf_data(self):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            for item in db['radial_distribution_function']:  # loop over the files
-                self.data_files.append(item)  # Append to the data_file attribute
+
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        self.data_files = database.get_tables("Radial_Distribution_Function")
 
     def _load_rdf_from_file(self):
         """
         Load the raw rdf tensor_values from a directory
         """
 
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        data = database.load_pandas(self.file_to_study).to_numpy()
+        self.radii = data[1:, 1]
+        self.rdf = data[1:, 2]
 
     def _autocorrelation_time(self):
         """
@@ -145,7 +146,8 @@ class PotentialOfMeanForce(Calculator):
         """
         Calculate the maximums of the rdf
         """
-        filtered_data = apply_savgol_filter(self.pomf)  # Apply a filter to the tensor_values to smooth curve
+        filtered_data = apply_savgol_filter(self.pomf, order=self.savgol_order, window_length=self.savgol_window_length)
+
         peaks = find_peaks(filtered_data)[0]               # Find the maximums in the filtered dataset
 
         return [peaks[0], peaks[1]]
@@ -185,7 +187,6 @@ class PotentialOfMeanForce(Calculator):
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])/np.sqrt(2)
 
         # Update the experiment class
-        self._update_properties_file(item=self.species_tuple, data=[str(pomf_value), str(pomf_error)])
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
                       "Subject": self.species_tuple,
@@ -212,7 +213,8 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self.data_files:
             self.file_to_study = data                  # Set the correct tensor_values file in the class
-            self.species_tuple = data[:-31]            # set the tuple
+            self.species_tuple = "_".join([data.split("_")[-1], data.split("_")[-2]])
+            self.data_range = int(data.split("_")[-3])
             self._load_rdf_from_file()                 # load up the tensor_values
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
             data = self._get_pomf_value()              # Determine the min values of the function and update experiment

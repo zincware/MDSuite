@@ -206,7 +206,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         result = self.prefactor * np.array(self.sigma)
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": species,
+                      "Subject": "_".join(species),
                       "data_range": self.data_range,
                       'data': np.mean(result),
                       'uncertainty': np.std(result) / (np.sqrt(len(result)))}

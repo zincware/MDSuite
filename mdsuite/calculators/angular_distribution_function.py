@@ -218,14 +218,14 @@ class AngularDistributionFunction(Calculator, ABC):
 
             self.data_range = self.n_confs
             if self.save:
-                self._save_data(name=self._build_table_name(str(species)),
+                self._save_data(name=self._build_table_name(name),
                                 data=self._build_pandas_dataframe(bin_range_to_angles, hist))
             if self.export:
-                self._export_data(name=self._build_table_name(str(species)),
+                self._export_data(name=self._build_table_name(name),
                                   data=self._build_pandas_dataframe(bin_range_to_angles, hist))
             if self.plot:
                 fig, ax = plt.subplots()
-                ax.plot(bin_range_to_angles, hist, label=species)
+                ax.plot(bin_range_to_angles, hist, label=name)
                 ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
                 self._plot_fig(fig, ax, title=name)
 

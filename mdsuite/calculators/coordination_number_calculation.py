@@ -9,13 +9,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-import h5py as hf
 
 from typing import Union
-# MDSuite imports
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
-
+from mdsuite.database.analysis_database import AnalysisDatabase
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
@@ -62,7 +60,8 @@ class CoordinationNumbers(Calculator):
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False):
+    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
+                 savgol_order: int = 2, savgol_window_length: int = 17):
         """
         Python constructor
 
@@ -78,12 +77,6 @@ class CoordinationNumbers(Calculator):
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
-        x_label : str
-                            How to label the x axis of the saved plot.
-        y_label : str
-                            How to label the y axis of the saved plot.
-        analysis_name : str
-                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
         super().__init__(experiment, plot, save, data_range, export=export)
@@ -94,6 +87,8 @@ class CoordinationNumbers(Calculator):
         self.integral_data = None
         self.species_tuple = None
         self.indices = None
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
 
         self.post_generation = True
 
@@ -110,9 +105,8 @@ class CoordinationNumbers(Calculator):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            for item in db['radial_distribution_function']:  # loop over the files
-                self.data_files.append(item)  # Append to the data_file attribute
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        self.data_files = database.get_tables("Radial_Distribution_Function")
 
     def _get_density(self) -> float:
         """
@@ -128,9 +122,10 @@ class CoordinationNumbers(Calculator):
         """
         Load the raw rdf tensor_values from a directory
         """
-
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r') as db:
-            self.radii, self.rdf = db['radial_distribution_function'][self.file_to_study]
+        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        data = database.load_pandas(self.file_to_study).to_numpy()
+        self.radii = data[1:, 1]
+        self.rdf = data[1:, 2]
 
     def _autocorrelation_time(self):
         """
@@ -161,11 +156,13 @@ class CoordinationNumbers(Calculator):
                 If an exception is not raised, the function will return a list of peaks in the rdf.
         """
 
-        filtered_data = apply_savgol_filter(self.rdf)  # filter the tensor_values
+        filtered_data = apply_savgol_filter(self.rdf, order=self.savgol_order, window_length=self.savgol_window_length)
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
         # Check that more than one peak exists. If not, the GS search cannot be performed.
         if len(peaks) < 2:
+            print("Not enough peaks were found for the minimum analysis (First shell). Try adjusting the filter "
+                  "parameters or re-calculating the RDF for a smoother function.")
             raise CannotPerformThisAnalysis
         else:
             return [peaks[0], peaks[1], peaks[2]]  # return peaks if they exist
@@ -255,7 +252,8 @@ class CoordinationNumbers(Calculator):
         self._get_rdf_data()  # fill the tensor_values array with tensor_values
         for data in self.data_files:  # Loop over all existing RDFs
             self.file_to_study = data  # set the working file
-            self.species_tuple = data[:-31]  # set the tuple
+            self.species_tuple = "_".join([data.split("_")[-1], data.split("_")[-2]])
+            self.data_range = int(data.split("_")[-3])
             self._load_rdf_from_file()  # load the tensor_values from it
             self._integrate_rdf()  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied

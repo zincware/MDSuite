@@ -459,7 +459,6 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         Update the experiment properties YAML file.
         """
-
         database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
         database.add_data(parameters)
 

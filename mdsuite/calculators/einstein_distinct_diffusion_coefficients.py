@@ -196,14 +196,24 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": species,
-                      "data_range": self.data_range,
-                      'data': result[0],
-                      'uncertainty': result[1]}
-        self._update_properties_file(properties)
+        if np.sign(self.msd_array[-1]) == -1:
+            result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": "_".join(species),
+                          "data_range": self.data_range,
+                          'data': -1*result[0],
+                          'uncertainty': result[1]}
+            self._update_properties_file(properties)
+        else:
+            result = self._fit_einstein_curve([self.time, self.msd_array])
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": species,
+                          "data_range": self.data_range,
+                          'data': result[0],
+                          'uncertainty': result[1]}
+            self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:

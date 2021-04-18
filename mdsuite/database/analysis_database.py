@@ -75,6 +75,38 @@ class AnalysisDatabase:
         """
         data_frame.to_sql(name, self.engine, if_exists='replace')
 
+    def get_tables(self, analysis: str) -> list:
+        """
+        Return a list of table names matching an input
+
+        Parameters
+        ----------
+        analysis : str
+                Name of the analysis string to look for.
+        Returns
+        -------
+        tables : list
+              A list of names matching the searched for table.
+        """
+        tables = []
+        primitive = self.engine.table_names()
+        for item in primitive:
+            check = [i in item.split("_") for i in analysis.split("_")]
+            if all(check):
+                tables.append(item)
+
+        return tables
+
+    def load_pandas(self, table_name: str) -> pd.DataFrame:
+        """
+        Load a pandas data frame from a table name
+        Returns
+        -------
+        data : pd.DataFrame
+                A pandas data frame of data.
+        """
+        return pd.read_sql_table(table_name, self.engine)
+
     def load_data(self, parameters: dict):
         """
         Load some data from the database.
