@@ -177,6 +177,8 @@ class EinsteinDiffusionCoefficients(Calculator):
                       'uncertainty': result[1]}
         self._update_properties_file(properties)
         if self.plot:
+            plt.xlabel(rf'{self.x_label}')  # set the x label
+            plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
 
