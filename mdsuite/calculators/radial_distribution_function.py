@@ -421,7 +421,7 @@ class RadialDistributionFunction(Calculator, ABC):
         update the class state
         """
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-
+            self.log.debug('Loading Data')
             if self.molecules:
                 if len(self.experiment.molecules) == 1:
                     positions = [self._load_positions(i)]  # Load the batch of positions
@@ -432,6 +432,8 @@ class RadialDistributionFunction(Calculator, ABC):
                     positions = [self._load_positions(i)]  # Load the batch of positions
                 else:
                     positions = self._load_positions(i)  # Load the batch of positions
+            self.log.debug('Finished data loading.')
+
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
             positions_tensor = tf.transpose(positions_tensor, (1, 0, 2))  # Change to (time steps, n_atoms, coords)
             # Compute all distance vectors
@@ -442,6 +444,8 @@ class RadialDistributionFunction(Calculator, ABC):
                 distance_tensor = self._apply_system_cutoff(distance_tensor, self.cutoff)
                 self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range,
                                                            nbins=self.number_of_bins), dtype=float)
+
+            self.log.debug('Finished RDF computation')
 
     def _calculate_prefactor(self, species: str) -> float:
         """
