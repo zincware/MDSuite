@@ -40,6 +40,7 @@ class Data(Base):
     id = Column(Integer, primary_key=True)
     x = Column(Float)
     y = Column(Float, nullable=True)
+    z = Column(Float, nullable=True)
 
     uncertainty = Column(Float, nullable=True)
 
