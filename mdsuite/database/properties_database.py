@@ -2,12 +2,14 @@
 Python module for the properties database.
 """
 
-import sqlalchemy as sql
-from sqlalchemy import select
-from sqlalchemy import column
-from sqlalchemy import table
-from sqlalchemy import delete
-from sqlalchemy import and_
+import logging
+
+import sqlalchemy as sa
+
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm.session import Session
+
+from .database_scheme import Base, SystemProperty, Data
 
 
 class PropertiesDatabase:
@@ -25,23 +27,24 @@ class PropertiesDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=True)
-        self.table = table('system_properties', column('Property'), column('Analysis'),
-                           column('Subject'), column('data_range'),
-                           column('data'), column('uncertainty'))
+        self.log = logging.getLogger(__file__)
+        self.engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=True)
+
+        # self.engine = sa.create_engine(f"sqlite:///:memory:", echo=True)
+        self.Session: sessionmaker
+
+        self.Base = Base
+
+        self.get_session()
+        self.build_database()
+
+    def get_session(self):
+        self.log.debug('Creating sessionmaker')
+        self.Session = sessionmaker(bind=self.engine, future=True)
 
     def build_database(self):
-        """
-        Build a new database
-
-        Returns
-        -------
-        Constructs a new database
-        """
-        with self.engine.begin() as conn:
-            stmt = sql.text("CREATE TABLE system_properties (Property varchar(255), Analysis varchar(255), "
-                            "Subject varchar(255), data_range INT, data REAL , uncertainty REAL)")
-            conn.execute(stmt)
+        self.log.debug('Creating Database if not existing')
+        self.Base.metadata.create_all(self.engine)
 
     def _check_row_existence(self, parameters: dict):
         """
@@ -57,14 +60,16 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
-        truth_table = []
-        with self.engine.begin() as conn:
-            stmt = select(self.table).where(column('Subject') == parameters['Subject'],
-                                            column('data_range') == parameters['data_range'])
-            for _ in conn.execute(stmt):
-                truth_table.append(True)
+        self.log.debug(f'Check if row for {parameters} exists')
+        with self.Session() as ses:
+            ses: Session
 
-        return any(truth_table)
+            # TODO use **parameters instead
+            query = ses.query(SystemProperty).filter_by(
+                subject=parameters['Subject'], data_range=parameters['data_range']).all()
+
+        self.log.debug(f'Check yielded {query}')
+        return len(query) > 0
 
     def _delete_duplicate_rows(self, parameters: dict):
         """
@@ -80,12 +85,22 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
+        # return None
 
-        with self.engine.begin() as conn:
-            cond= and_(*[column('Subject') == parameters['Subject'], column('data_range') == parameters['data_range'],
-                         column('Analysis') == parameters['Analysis']])
-            stmt = delete(self.table).where(cond)
-            conn.execute(stmt)
+        with self.Session() as ses:
+            ses: Session
+
+            # TODO use **parameters instead
+            system_properties = ses.query(SystemProperty).filter_by(
+                subject=parameters['Subject'],
+                data_range=parameters['data_range'],
+                analysis=parameters['Analysis']).all()
+
+            self.log.debug(f'Removing {system_properties} from database')
+            for system_property in system_properties:
+                ses.delete(system_property)
+
+            ses.commit()
 
     def add_data(self, parameters: dict, delete_duplicate: bool = True):
         """
@@ -107,8 +122,39 @@ class PropertiesDatabase:
         else:
             if self._check_row_existence(parameters):
                 print("Note, an entry with these parameters already exists in the database.")
-        with self.engine.begin() as conn:
-            conn.execute(self.table.insert().values(parameters))
+
+        self.log.debug(f'Adding {parameters.get("Property")} to database!')
+
+        with self.Session() as ses:
+            ses: Session
+
+            # Create a Data instance to store the value
+            # TODO use **parameters instead with parameters.pop
+            try:
+                # self.log.debug(f"Constructing data objects from {len(parameters['data'])} passed values")
+                data = []
+                for data_point in parameters['data']:
+                    data.append(Data(**data_point))
+            except TypeError:
+                # self.log.debug(f"Constructing data objects from {parameters['data']}")
+                data.append(Data(x=parameters['data'], uncertainty=parameters.get('uncertainty')))
+
+            # Create s SystemProperty instance to store the values
+            # TODO use **parameters instead
+            system_property = SystemProperty(
+                property=parameters['Property'],
+                analysis=parameters['Analysis'],
+                subject=parameters['Subject'],
+                data_range=parameters['data_range'],
+                data=data)
+
+            # add to the session
+            ses.add(system_property)
+
+            # commit to the database
+            ses.commit()
+
+        self.log.debug("Values successfully written to database. Closed database session.")
 
     def load_data(self, parameters: dict):
         """
@@ -126,11 +172,17 @@ class PropertiesDatabase:
         output : list
                 All rows matching the parameters represented as a dictionary.
         """
-        output = []
-        with self.engine.begin() as conn:
-            cond = and_(*[column(item).ilike(parameters[item]) for item in parameters])
-            stmt = select(self.table).where(cond)
-            for i, row in enumerate(conn.execute(stmt)):
-                output.append(dict(row))
 
-        return output
+        self.log.debug(f'querying {parameters} from database')
+
+        with self.Session() as ses:
+            ses: Session
+
+            system_properties = ses.query(SystemProperty).filter_by(**parameters).all()
+
+            # Iterate over data so that the information gets pulled from the database
+            # Note: If you keep the session open, this would not be necessary
+            for system_property in system_properties:
+                _ = system_property.data
+
+        return system_properties
