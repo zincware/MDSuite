@@ -20,7 +20,7 @@ class SystemProperty(Base):
     subject = Column(String)
     data_range = Column(Integer)
 
-    data = relationship("Data", cascade="all,delete", back_populates="system_property")
+    data = relationship("Data", cascade="all, delete", back_populates="system_property")
     # TODO check that cascade is working properly!
 
     def __repr__(self):
@@ -44,7 +44,7 @@ class Data(Base):
 
     uncertainty = Column(Float, nullable=True)
 
-    system_property_id = Column(Integer, ForeignKey('system_properties.id'))
+    system_property_id = Column(Integer, ForeignKey('system_properties.id', ondelete="CASCADE"))
 
     system_property = relationship("SystemProperty", back_populates="data")
 
