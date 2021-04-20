@@ -231,10 +231,9 @@ class Experiment:
         In order to keep properties of a class the state must be stored. This method will store the instance of the
         class for later re-loading
         """
-
-        save_file = open(os.path.join(self.experiment_path, f"{self.analysis_name}.bin"), 'wb')  # construct file
-        save_file.write(pickle.dumps(self.__dict__))  # write to file
-        save_file.close()  # close the file
+        filename = os.path.join(self.experiment_path, f"{self.analysis_name}.bin")
+        with open(filename, 'wb') as save_file:
+            save_file.write(pickle.dumps(self.__dict__))  # write to file
 
     def units_to_si(self, units_system):
         """

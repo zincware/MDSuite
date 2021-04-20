@@ -118,21 +118,24 @@ class Database:
         Adds tensor_values to the database_path
         """
 
-        database = self.open()
+        # database = self.open()
         # Loop over items
-        stop_index = start_index + batch_size  # get the stop index
-        for item in structure:
-            if tensor:
-                database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
-            elif system_tensor:
-                database[item][start_index:stop_index, :] = data[:, 0:3]
-            elif flux:
-                database[item][start_index:stop_index, :] = data[structure[item]['indices']][
-                    np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
-            else:
-                database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
-                                                                              n_atoms=n_atoms)
-        database.close()
+
+        time.sleep(0.5)
+        with hf.File(self.name, 'r+') as database:
+            stop_index = start_index + batch_size  # get the stop index
+            for item in structure:
+                if tensor:
+                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
+                elif system_tensor:
+                    database[item][start_index:stop_index, :] = data[:, 0:3]
+                elif flux:
+                    database[item][start_index:stop_index, :] = data[structure[item]['indices']][
+                        np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
+                else:
+                    database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
+                                                                                  n_atoms=n_atoms)
+        # database.close()
 
     def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
                   n_atoms: int = None):
@@ -303,31 +306,30 @@ class Database:
         Updates the database_path directly.
         """
 
-        database = self.open()
-        architecture = self._build_path_input(structure)  # get the correct file path
-        for item in architecture:
-            dataset_information = architecture[item]  # get the tuple information
-            dataset_path = item  # get the dataset path in the database_path
+        with hf.File(self.name, 'a') as database:
+            architecture = self._build_path_input(structure)  # get the correct file path
+            for item in architecture:
+                dataset_information = architecture[item]  # get the tuple information
+                dataset_path = item  # get the dataset path in the database_path
 
-            # Check for a type error in the dataset information
-            try:
-                if type(dataset_information) is not tuple:
-                    print("Invalid input for dataset generation")
+                # Check for a type error in the dataset information
+                try:
+                    if type(dataset_information) is not tuple:
+                        print("Invalid input for dataset generation")
+                        raise TypeError
+                except TypeError:
                     raise TypeError
-            except TypeError:
-                raise TypeError
 
-            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
-            if len(dataset_information[:-1]) == 1:
-                vector_length = dataset_information[-1]
-                max_shape = (None, vector_length)
-            else:
-                max_shape = list(dataset_information)
-                max_shape[1] = None
-                max_shape = tuple(max_shape)
+                # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
+                if len(dataset_information[:-1]) == 1:
+                    vector_length = dataset_information[-1]
+                    max_shape = (None, vector_length)
+                else:
+                    max_shape = list(dataset_information)
+                    max_shape[1] = None
+                    max_shape = tuple(max_shape)
 
-            database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5, chunks=True)
-        database.close()
+                database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5, chunks=True)
 
     def _add_group_structure(self, structure: dict):
         """
@@ -347,15 +349,14 @@ class Database:
         Updates the database_path directly.
         """
 
-        database = hf.File(self.name)
-        # Build file paths for the addition.
-        architecture = self._build_path_input(structure=structure)
-        for item in list(architecture):
-            if item in database:
-                print("Group structure already exists")
-            else:
-                database.create_group(item)
-        database.close()
+        with hf.File(self.name, 'a') as database:
+            # Build file paths for the addition.
+            architecture = self._build_path_input(structure=structure)
+            for item in list(architecture):
+                if item in database:
+                    print("Group structure already exists")
+                else:
+                    database.create_group(item)
 
     def get_memory_information(self) -> dict:
         """
@@ -366,13 +367,12 @@ class Database:
         memory_database : dict
                 A dictionary of the memory information of the groups in the database_path
         """
-
-        database = hf.File(self.name)
-
-        memory_database = {}
-        for item in database:
-            for ds in database[item]:
-                memory_database[join_path(item, ds)] = database[item][ds].nbytes
+        with hf.File(self.name, 'r') as database:
+        # database = hf.File(self.name)
+            memory_database = {}
+            for item in database:
+                for ds in database[item]:
+                    memory_database[join_path(item, ds)] = database[item][ds].nbytes
 
         return memory_database
 
@@ -390,14 +390,13 @@ class Database:
         response : bool
                 If true, the path exists, else, it does not.
         """
-        database_object = hf.File(self.name, 'r')
-        keys = []
-        database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
-                                                                                      hf.Dataset else None)
-        path = f'/{path}'  # add the / to avoid name overlapping
+        with hf.File(self.name, 'r') as database_object:
+            keys = []
+            database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
+                                                                                          hf.Dataset else None)
+            path = f'/{path}'  # add the / to avoid name overlapping
 
-        response = any(list(item.endswith(path) for item in keys))
-        database_object.close()
+            response = any(list(item.endswith(path) for item in keys))
         return response
 
     def change_key_names(self, mapping: dict):
@@ -414,14 +413,14 @@ class Database:
         Updates the database_path
         """
 
-        db = hf.File(self.name, 'r+')  # open the database_path object
-        groups = list(db.keys())
+        # db = hf.File(self.name, 'r+')  # open the database_path object
+        with hf.File(self.name, 'r+') as db:
+            groups = list(db.keys())
 
-        for item in groups:
-            if item in mapping:
-                db.move(item, mapping[item])
+            for item in groups:
+                if item in mapping:
+                    db.move(item, mapping[item])
 
-        db.close()
 
     def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
                   scaling: list = None, d_size: int = None):
@@ -436,22 +435,22 @@ class Database:
         data: Union[list, dict] = {}
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
-        database = self.open('r')
-        if not dictionary:
-            data = []
-            for i, item in enumerate(path_list):
-                data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64) * scaling[i])
 
-        if dictionary:
-            data = {}
-            for item in path_list:
-                if type(select_slice) is dict:
-                    my_slice = select_slice[item]
-                else:
-                    my_slice = select_slice
-                data[item] = tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
-            data[str.encode('data_size')] = d_size
-        database.close()
+        with hf.File(self.name, 'r') as database:
+            if not dictionary:
+                data = []
+                for i, item in enumerate(path_list):
+                    data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64) * scaling[i])
+
+            if dictionary:
+                data = {}
+                for item in path_list:
+                    if type(select_slice) is dict:
+                        my_slice = select_slice[item]
+                    else:
+                        my_slice = select_slice
+                    data[item] = tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
+                data[str.encode('data_size')] = d_size
 
         if len(data) == 1:
             if dictionary:
@@ -543,51 +542,50 @@ class Database:
             return
 
         identifier = None
-        database = hf.File(self.name, 'r')  # open the database
-        first_layer = list(database.keys())
-        for item in first_layer:
-            if group in item:
-                identifier = item
-        if identifier is None:
-            print("This group does not seem to exist.")
-            return
-        second_layer = list(database[identifier].keys())
-        if type(database[identifier][second_layer[0]]) is hf.Dataset:
-            for item in second_layer:
-                data = np.array(database[identifier][item])
-                data = data.reshape((len(data[0]), 2))
-                df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                df.to_csv(f"{identifier}_{item}.csv")
-        else:
-            if key is None:
+        with hf.File(self.name, 'r') as database:
+            first_layer = list(database.keys())
+            for item in first_layer:
+                if group in item:
+                    identifier = item
+            if identifier is None:
+                print("This group does not seem to exist.")
+                return
+            second_layer = list(database[identifier].keys())
+            if type(database[identifier][second_layer[0]]) is hf.Dataset:
                 for item in second_layer:
-                    third_layer = list(database[identifier][item].keys())
-                    for sub_item in third_layer:
-                        data = np.array(database[identifier][item][sub_item])
-                        data = data.reshape((len(data[0]), 2))
-                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                        df.to_csv(f"{identifier}_{item}.csv")
-            else:
-                for item in second_layer:
-                    if key in item:
-                        sub_item = item
-                if sub_key is None:
-                    for dataset in database[identifier][sub_item]:
-                        data = np.array(database[identifier][sub_item][dataset])
-                        data = data.reshape((len(data[0]), 2))
-                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                        df.to_csv(f"{identifier}_{item}_{dataset}.csv")
-                else:
-                    last_layer = list(database[identifier][sub_item])
-                    for sub_sub_item in last_layer:
-                        if sub_key in sub_sub_item:
-                            final_identifier = sub_sub_item
-                    data = np.array(database[identifier][sub_item][final_identifier])
+                    data = np.array(database[identifier][item])
                     data = data.reshape((len(data[0]), 2))
                     df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                    df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
+                    df.to_csv(f"{identifier}_{item}.csv")
+            else:
+                if key is None:
+                    for item in second_layer:
+                        third_layer = list(database[identifier][item].keys())
+                        for sub_item in third_layer:
+                            data = np.array(database[identifier][item][sub_item])
+                            data = data.reshape((len(data[0]), 2))
+                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                            df.to_csv(f"{identifier}_{item}.csv")
+                else:
+                    for item in second_layer:
+                        if key in item:
+                            sub_item = item
+                    if sub_key is None:
+                        for dataset in database[identifier][sub_item]:
+                            data = np.array(database[identifier][sub_item][dataset])
+                            data = data.reshape((len(data[0]), 2))
+                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                            df.to_csv(f"{identifier}_{item}_{dataset}.csv")
+                    else:
+                        last_layer = list(database[identifier][sub_item])
+                        for sub_sub_item in last_layer:
+                            if sub_key in sub_sub_item:
+                                final_identifier = sub_sub_item
+                        data = np.array(database[identifier][sub_item][final_identifier])
+                        data = data.reshape((len(data[0]), 2))
+                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
+                        df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
 
-        database.close()
 
     def get_database_summary(self):
         """
