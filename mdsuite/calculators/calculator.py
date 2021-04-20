@@ -495,6 +495,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
             switcher_unwrapping = {'Unwrapped_Positions': self._unwrap_choice(), }
 
+            # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
             choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
