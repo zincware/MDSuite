@@ -132,7 +132,7 @@ class Project:
         pickle_data = class_file.read()  # Read in the tensor_values
         class_file.close()  # Close the state file
 
-        self.__dict__ = pickle.loads(pickle_data)  # Initialize the class with the loaded parameters
+        self.__dict__.update(pickle.loads(pickle_data))  # Initialize the class with the loaded parameters
 
     def _save_class(self):
         """
