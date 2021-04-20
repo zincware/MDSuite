@@ -130,9 +130,13 @@ class TranslationalDipoleMoment(Transformations):
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        for index, x in enumerate(data_set):
+
+        idx_start = 0
+        for x in tqdm(data_set, ncols=70, desc="Translational Dipole Moment", total=self.n_batches):
+            current_batch_size = int(x[str.encode('data_size')])
             data = self._transformation(x)
-            self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
+            self._save_coordinates(data, idx_start, current_batch_size, data_structure)
+            idx_start += current_batch_size  # instead of using self.batch_size, we use  current_batch_size to take into account the reminders
 
     def run_transformation(self):
         """
