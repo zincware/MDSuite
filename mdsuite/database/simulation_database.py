@@ -121,7 +121,7 @@ class Database:
         # database = self.open()
         # Loop over items
 
-        time.sleep(0.5)
+        # time.sleep(0.5)
         with hf.File(self.name, 'r+') as database:
             stop_index = start_index + batch_size  # get the stop index
             for item in structure:
