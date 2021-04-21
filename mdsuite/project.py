@@ -86,8 +86,7 @@ class Project:
             self._save_class()  # Save the initial class state
 
     def __str__(self):
-        print("List of available experiments")
-        print(self.list_experiments())
+        return self.list_experiments()
 
     def add_description(self, description: str):
         """
@@ -239,6 +238,13 @@ class Project:
         for experiment_name, experiment_class in self.experiments.items():
             results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
             result = find_item(results_yaml, key_to_find)
+
+            if isinstance(result, str):
+                if result.startswith('['):
+                    result = list(result.replace('[', '').replace(']', '').split(','))
+                else:
+                    result = float(result)
+
             if isinstance(result, list):
                 result = [float(res) for res in result] # convert results to floats
             results[experiment_name] = result
