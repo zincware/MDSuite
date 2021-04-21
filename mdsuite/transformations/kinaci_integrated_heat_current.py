@@ -41,9 +41,8 @@ class KinaciIntegratedHeatCurrent(Transformations):
         -------
         Integrated heat current
         """
-        # integral = np.zeros((self.experiment.number_of_atoms, self.batch_size)) # initialize the tensor
-        # # integral[:, 0] = cumul_integral.ravel() # accumulate the values
-        # integral = tf.convert_to_tensor(integral)
+
+        system_current = tf.zeros((self.experiment.number_of_configurations, 3), dtype=tf.float64)
         for species in self.experiment.species:
             positions_path = str.encode(join_path(species, 'Unwrapped_Positions'))
             velocity_path = str.encode(join_path(species, 'Velocities'))
@@ -51,12 +50,13 @@ class KinaciIntegratedHeatCurrent(Transformations):
             pe_path = str.encode(join_path(species, 'PE'))
 
             integrand = tf.einsum('ijk,ijk->ij', data[force_path], data[velocity_path])
+            # add here the value from the previous iteration to all the steps in this batch.
             integral += tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
 
             r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
             r_p = tf.einsum('ijk,ijm->jm', data[pe_path], data[positions_path])
 
-            system_current = r_k + r_p
+            system_current += r_k + r_p
 
         cumul_integral = tf.expand_dims(integral[:, -1], axis=1)
         return system_current, cumul_integral
@@ -107,8 +107,9 @@ class KinaciIntegratedHeatCurrent(Transformations):
                                                   output_signature=type_spec)
 
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        #
+
         cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
+
         # x is batch of data.
         for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
