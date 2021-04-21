@@ -1,6 +1,7 @@
 """
 Python module to calculate the Kinaci integrated heat current in a experiment.
 """
+import time
 
 import numpy as np
 import tensorflow as tf
@@ -109,14 +110,11 @@ class KinaciIntegratedHeatCurrent(Transformations):
         #
         cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
         # x is batch of data.
-        idx_start = 0
-        for x in tqdm(data_set, ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
-            # time.sleep(0.5)
+        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             integral = tf.tile(cumul_integral, (1, current_batch_size))
             data, cumul_integral = self._transformation(x, integral=integral)
-            self._save_coordinates(data, idx_start, current_batch_size, data_structure)
-            idx_start += current_batch_size  # instead of using self.batch_size, we use  current_batch_size to take into account the reminders
+            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
 
     def run_transformation(self):
         """
