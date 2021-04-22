@@ -21,6 +21,7 @@ hear from our users.
    _architecture/data_structures
    tools
    bibliography
+   developer
 
 Why MDSuite?
 ------------
