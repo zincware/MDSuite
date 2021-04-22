@@ -11,7 +11,6 @@ import time
 from typing import Union
 import pandas as pd
 
-
 var_names = ["Temperature", "Time", "Thermal_Flux", "Stress_visc", "Positions", "Scaled_Positions",
              "Unwrapped_Positions", "Scaled_Unwrapped_Positions", "Velocities", "Forces", "Box_Images",
              "Dipole_Orientation_Magnitude", "Angular_Velocity_Spherical", "Angular_Velocity_Non_Spherical", "Torque",
@@ -145,7 +144,7 @@ class Database:
         """
         if sort:
             indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
-            data[indices][
+            return data[indices][
                 np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
                 (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
         else:
@@ -155,7 +154,7 @@ class Database:
                 (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
 
     @staticmethod
-    def _update_indices(data: np.array, indices: np.array, batch_size: int, n_atoms: int):
+    def _update_indices(data: np.array, reference: np.array, batch_size: int, n_atoms: int):
         """
         Update the indices key of the structure dictionary if the tensor_values must be sorted.
 
@@ -163,20 +162,15 @@ class Database:
         -------
 
         """
-        atom_ids = np.tile(indices, batch_size)
-        simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size / n_atoms))
-        indices = np.zeros(int(batch_size * len(atom_ids)))
-
+        simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size))
+        output_ids = np.zeros(n_atoms*batch_size)
         counter = 0
         for i, item in enumerate(simulation_ids):
-            stop = counter + len(atom_ids)
+            stop = counter + n_atoms
             correction = i * n_atoms
-
-            sorter = np.argsort(item)
-            simulation_ids[counter:stop] = sorter[np.searchsorted(item, atom_ids, sorter=sorter)] + correction
-            counter += len(atom_ids)
-
-        return indices
+            output_ids[counter:stop] = np.array([np.where(np.isin(item, index))[0] for index in reference]).flatten() + correction
+            counter += n_atoms
+        return output_ids.astype(int)
 
     def resize_dataset(self, structure: dict):
         """

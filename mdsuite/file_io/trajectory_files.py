@@ -112,17 +112,17 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             batch_size = self.experiment.batch_size
 
         for item in self.experiment.species:
-            positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
-                                  self.header_lines for i in range(batch_size)]).flatten()
+            if self.sort:
+                positions = np.array(self.experiment.species[item]['indices'])
+            else:
+                positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
+                                      self.header_lines for i in range(batch_size)]).flatten()
             length = len(self.experiment.species[item]['indices'])
             for observable in self.experiment.property_groups:
                 path = join_path(item, observable)
                 columns = self.experiment.property_groups[observable]
 
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
-
-        # if sort:
-        #     np.linspace(0, self.project.number_of_atoms, dtype - int)
 
         return structure
 
