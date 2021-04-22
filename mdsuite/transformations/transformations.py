@@ -180,6 +180,19 @@ class Transformations:
 
         return dictionary
 
+    def _remainder_to_binary(self):
+        """
+        If a remainder is > 0, return 1, else, return 0
+        Returns
+        -------
+        binary_map : int
+                If remainder > 0, return 1, else,  return 0
+        """
+        if self.remainder > 0:
+            return 1
+        else:
+            return 0
+
     def _save_coordinates(self, data: Union[tf.Tensor, np.array], index: int, batch_size: int, data_structure: dict,
                           system_tensor: bool = True, tensor: bool = False):
         """
