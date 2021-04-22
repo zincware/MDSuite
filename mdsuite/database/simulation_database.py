@@ -166,16 +166,8 @@ class Database:
         ids = np.reshape(np.array(data[:, 0]).astype(int), (-1, n_atoms))
         ref_ids = np.argsort(ids, axis=1)
         n_batches = ids.shape[0]
+
         return (ref_ids[:, reference-1] + (np.arange(n_batches) * n_atoms)[None].T).flatten()
-        #simulation_ids = np.split(np.array(data[:, 0]).astype(int), int(batch_size))
-        #output_ids = np.zeros(n_atoms*batch_size)
-        #counter = 0
-        #for i, item in enumerate(simulation_ids):
-        #    stop = counter + n_atoms
-        #    correction = i * n_atoms
-        #    output_ids[counter:stop] = np.array([np.where(np.isin(item, index))[0] for index in reference]).flatten() + correction
-        #    counter += n_atoms
-        #return output_ids.astype(int)
 
     def resize_dataset(self, structure: dict):
         """

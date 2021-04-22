@@ -34,4 +34,21 @@ Calculators
    _calculators/structure_factor
    _calculators/flux_analyses
 
+Transformations
+---------------
 
+.. toctree::
+    :maxdepth: 1
+
+    _transformations/integrated_heat_current
+    _transformations/ionic_current.rst
+    _transformations/kinaci_integrated_heat_current.rst
+    _transformations/map_molecules.rst
+    _transformations/momentum_flux.rst
+    _transformations/scale_coordinates.rst
+    _transformations/thermal_flux.rst
+    _transformations/transformations.rst
+    _transformations/translational_dipole_moment.rst
+    _transformations/unwrap_coordinates.rst
+    _transformations/unwrap_via_indices.rst
+    _transformations/wrap_coordinates.rst
