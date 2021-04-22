@@ -94,7 +94,8 @@ class KinaciIntegratedHeatCurrent(Transformations):
         type_spec = self._update_species_type_dict(type_spec, forces_path, 3)
         type_spec = self._update_species_type_dict(type_spec, pe_path, 1)
         type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True,
+                                                                                  remainder=True)
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
