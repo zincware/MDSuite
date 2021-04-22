@@ -563,6 +563,7 @@ class Experiment:
                               start_index=counter,
                               batch_size=remainder,
                               flux=flux,
+                              n_atoms=self.number_of_atoms,
                               sort=sort)
         f_object.close()
 
