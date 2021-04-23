@@ -1,9 +1,12 @@
 """
 Python module to calculate the Kinaci integrated heat current in a experiment.
 """
+import time
 
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -30,7 +33,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
         super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
-    def _transformation(self, data: tf.Tensor):
+    def _transformation(self, data: tf.Tensor, cumul_integral, batch_size):
         """
         Calculate the integrated thermal current of the system.
 
@@ -38,7 +41,9 @@ class KinaciIntegratedHeatCurrent(Transformations):
         -------
         Integrated heat current
         """
-        system_current = np.zeros((self.batch_size, 3))
+        integral = tf.tile(cumul_integral, (1, batch_size))
+        system_current = tf.zeros((batch_size, 3), dtype=tf.float64)
+
         for species in self.experiment.species:
             positions_path = str.encode(join_path(species, 'Unwrapped_Positions'))
             velocity_path = str.encode(join_path(species, 'Velocities'))
@@ -46,14 +51,16 @@ class KinaciIntegratedHeatCurrent(Transformations):
             pe_path = str.encode(join_path(species, 'PE'))
 
             integrand = tf.einsum('ijk,ijk->ij', data[force_path], data[velocity_path])
-            integral = tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
+            # add here the value from the previous iteration to all the steps in this batch.
+            integral += tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
 
             r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
             r_p = tf.einsum('ijk,ijm->jm', data[pe_path], data[positions_path])
 
             system_current += r_k + r_p
 
-        return system_current
+        cumul_integral = tf.expand_dims(integral[:, -1], axis=1)
+        return system_current, cumul_integral
 
     def _prepare_database_entry(self):
         """
@@ -72,7 +79,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
 
         return data_structure
 
-    def _compute_thermal_conductivity(self):
+    def _compute_thermal_flux(self):
         """
         Loop over batches and compute the dipole moment
         Returns
@@ -89,6 +96,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
         data_path = np.concatenate((positions_path, velocities_path, forces_path, pe_path))
 
         self._prepare_monitors(data_path)
+        # update the dictionary (mutable object)
         type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
         type_spec = self._update_species_type_dict(type_spec, velocities_path, 3)
         type_spec = self._update_species_type_dict(type_spec, forces_path, 3)
@@ -101,9 +109,14 @@ class KinaciIntegratedHeatCurrent(Transformations):
                                                   output_signature=type_spec)
 
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        for index, x in enumerate(data_set):
-            data = self._transformation(x)
-            self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
+
+        cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
+
+        # x is batch of data.
+        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
+            current_batch_size = int(x[str.encode('data_size')])
+            data, cumul_integral = self._transformation(x, cumul_integral=cumul_integral, batch_size=current_batch_size)
+            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
 
     def run_transformation(self):
         """
@@ -112,5 +125,5 @@ class KinaciIntegratedHeatCurrent(Transformations):
         -------
 
         """
-        self._compute_thermal_conductivity()  # run the transformation.
+        self._compute_thermal_flux()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()

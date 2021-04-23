@@ -4,6 +4,7 @@ Python module to calculate the momentum flux in an experiment.
 
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
@@ -93,11 +94,14 @@ class MomentumFlux(Transformations):
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        for index, x in enumerate(data_set):
-            data = self._transformation(x)
-            self._save_coordinates(data, index, x[str.encode('data_size')], data_structure)
 
-    def run_transformation(self):
+        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Momentum Flux", total=self.n_batches):
+            current_batch_size = int(x[str.encode('data_size')])
+            data = self._transformation(x)
+            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
+
+
+def run_transformation(self):
         """
         Run the ionic current transformation
         Returns
