@@ -317,7 +317,7 @@ class Experiment:
         """
 
         def __init__(self, parent):
-            self.parent = parent
+            self.parent: Experiment = parent
             for key in dict_classes_computations:
                 self.__setattr__(key, dict_classes_computations[key])
 
@@ -331,83 +331,7 @@ class Experiment:
             except KeyError:
                 return super().__getattribute__(item)
 
-            class Func:
-                """Return the documentation if the function is not called.
-
-                This class represents the "calculator" in "run_computation.calculator"
-
-                """
-
-                def __init__(self, parent, class_func_compute):
-                    self.parent = parent
-                    self.class_compute = class_func_compute
-
-                def get_documentation(self):
-                    """
-                    Get the documentation for the calculator
-                    You can print the documentation via
-                    self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
-                    """
-                    print(inspect.getdoc(self.class_compute))
-
-                def __repr__(self):
-                    """
-                    Get the documentation for the calculator
-                    You can print the documentation if you don't call the class
-                    self.run_computation.EinsteinDiffusionCoefficients
-                    """
-                    self.get_documentation()
-                    return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
-
-                def __call__(self, **kwargs):
-                    """
-                    Introduce call method.
-                    """
-                    output = self.parent.compute(self.class_compute, **kwargs)
-                    return output
-
-            return Func(self, class_compute)
-
-        def __call__(self, computation_name, **kwargs):
-            """Call directly
-            You can call the computation directly via
-            >>> self.run_computation("EinsteinDiffusionCoefficients", plot=True)
-            """
-            try:
-                class_compute = dict_classes_computations[computation_name]
-            except KeyError:
-                print(f'{computation_name} not found')
-                print(f'Available computations are:')
-                [print(key) for key in dict_classes_computations.keys()]
-                return
-
-            return self.compute(class_compute, **kwargs)
-
-        def __repr__(self):
-            """Print available computations if no computation method is called
-            """
-            return_string = 'Available computations are: \n \n'
-            for key in dict_classes_computations:
-                return_string += key
-                return_string += "\n"
-            return return_string
-
-        def compute(self, class_compute, **kwargs):
-            """
-            A doc string that should have been added by the person who wrote the method.
-            Parameters
-            ----------
-            class_compute
-            kwargs
-
-            Returns
-            -------
-
-            """
-            object_compute = class_compute(self.parent, **kwargs)
-            dat = object_compute.run_analysis()
-            self.parent.save_class()
-            return dat
+            return class_compute(experiment=self.parent)
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
