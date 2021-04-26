@@ -298,25 +298,21 @@ class Experiment:
         self.save_class()  # update the class state
 
     class RunComputation:
-        """ Run a computation
+        """Run a calculator from the experiment class
 
-        The type of computation will be stored in a dictionary.
-
-        This class represents the "run_computation" in "run_computation.calculator"
-
-        Parameters
-        ----------
-        parent : object
-                Experiment class in which this class is contained.
-
-        Returns
-        -------
-        sigma : float
-                The ionic conductivity in units of S/cm
-
+        Notes
+        -----
+        This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
+        attributes of the `experiment.run_computation` helper class.
         """
 
         def __init__(self, parent):
+            """Initialize the attributes
+            Parameters
+            ----------
+            parent: Experiment
+                the experiment to be passed to the calculator afterwards
+            """
             self.parent: Experiment = parent
             for key in dict_classes_computations:
                 self.__setattr__(key, dict_classes_computations[key])
@@ -325,6 +321,9 @@ class Experiment:
             """Call via function
             You can call the computation via a function and autocompletion
             >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
+
+            Returns
+                Instantiated calculator class with added experiment that can be called.
             """
             try:
                 class_compute = dict_classes_computations[item]
