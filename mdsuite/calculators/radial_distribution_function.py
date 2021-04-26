@@ -65,6 +65,8 @@ class RadialDistributionFunction(Calculator, ABC):
     def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
                  images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
                  minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
+        # TODO move all arguments from the __init__ to __call__ except for those, that are independent of user input,
+        #  e.g. experiment
         """
 
         Attributes
@@ -135,6 +137,19 @@ class RadialDistributionFunction(Calculator, ABC):
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
         self.log = logging.getLogger(__name__)
+
+    def __call__(self, plot=False, number_of_bins=None, cutoff=None):
+        self.plot = plot
+        self.number_of_bins = number_of_bins
+
+        if self.cutoff is None:
+            self.cutoff = self.experiment.box_array[0] / 2
+
+        self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
+
+        self.run_analysis()
+
+        # self.experiment
 
     def _get_ideal_gas_probability(self) -> float:
         """
