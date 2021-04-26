@@ -62,9 +62,7 @@ class RadialDistributionFunction(Calculator, ABC):
             Size of a individual minibatch, if set. By default minibatching is not applied
     """
 
-    def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
-                 images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
+    def __init__(self, experiment):
         # TODO move all arguments from the __init__ to __call__ except for those, that are independent of user input,
         #  e.g. experiment
         """
@@ -88,7 +86,10 @@ class RadialDistributionFunction(Calculator, ABC):
         minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
         """
-        super().__init__(experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
+        self.experiment = experiment
+
+        self.log = logging.getLogger(__name__)
+
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
@@ -99,6 +100,83 @@ class RadialDistributionFunction(Calculator, ABC):
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
 
+        # Arguments set by the user in __call__
+        self.number_of_bins = None  # Number of number_of_bins to use in the histogram
+        self.cutoff = None  # Cutoff for the RDF
+        self.images = None  # number of images to include
+        self.start = None  # Which configuration to start at
+        self.stop = None  # Which configuration to stop at
+        self.number_of_configurations = None  # Number of configurations to use
+        self.molecules = None
+        self.minibatch = None
+        self.use_tf_function = None
+
+        self.override_n_batches = None
+
+        # variables generated from user input in __call__
+        self.index_list = None
+        self.bin_range = [0, self.cutoff]  # set the bin range
+        self.sample_configurations = None
+        self.key_list = None  # Select combinations
+        self.rdf = None  # instantiate the rdf tuples
+
+    def __call__(self, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
+                 images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
+                 minibatch: int = 5000, molecules: bool = False, gpu: bool = False, **kwargs):
+        """Compute the RDF with the given user parameters
+
+        Parameters
+        ----------
+        plot: bool
+            Plot the RDF after the computation
+        number_of_bins: int
+            The number of bins for the RDF histogram
+        cutoff: float
+            The cutoff value for the RDF. Default is half the box size
+        save: bool
+            save the data
+        data_range: int
+            TODO
+        images # TODO
+        start: int
+            Starting position in the database. All values before start will be ignored.
+        stop: int
+            Stopping position in the database. All values after stop will be ignored.
+        number_of_configurations: int
+            The number of uniformly sampled configuration between start and stop to be used for the RDF.
+        export: bool
+            TODO
+        minibatch: int
+            Size of a minibatch over atoms in the batch over configurations. Decrease this value if you run into memory
+            issues. Increase this value for better performance.
+        molecules: bool
+            TODO
+        gpu: bool
+            Calculate batch size based on GPU memory instead of CPU memory
+        kwargs:
+            override_n_batches: int - override the automatic batch size calculation
+
+        Returns
+        -------
+
+        """
+        # Do the super call here, instead of in the __init__ so you can pass user arguments
+        super().__init__(self.experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
+
+        # Given arguments  # TODO I need to set them here, because they get overwritten in the super call!
+        self.log = logging.getLogger(__name__)
+
+        self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
+
+        self.loaded_property = 'Positions'  # Which database_path property to load
+
+        self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
+        self.x_label = r'r ($\AA$)'
+        self.y_label = 'g(r)'
+        self.analysis_name = 'Radial_Distribution_Function'
+        self.experimental = True
+
+        # User Arguments
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
         self.cutoff = cutoff  # Cutoff for the RDF
         self.images = images  # number of images to include
@@ -113,7 +191,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Perform checks
         if stop is None:
-            self.stop = experiment.number_of_configurations - 1
+            self.stop = self.experiment.number_of_configurations - 1
 
         if self.cutoff is None:
             self.cutoff = self.experiment.box_array[0] / 2  # set cutoff to half box size if none set
@@ -136,20 +214,12 @@ class RadialDistributionFunction(Calculator, ABC):
                          list(itertools.combinations_with_replacement(self.index_list, r=2))]  # Select combinations
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
-        self.log = logging.getLogger(__name__)
+        out = self.run_analysis()
 
-    def __call__(self, plot=False, number_of_bins=None, cutoff=None):
-        self.plot = plot
-        self.number_of_bins = number_of_bins
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
 
-        if self.cutoff is None:
-            self.cutoff = self.experiment.box_array[0] / 2
-
-        self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
-
-        self.run_analysis()
-
-        # self.experiment
+        return out
 
     def _get_ideal_gas_probability(self) -> float:
         """
@@ -524,7 +594,7 @@ class RadialDistributionFunction(Calculator, ABC):
             if self.export:
                 self._export_data(name=self._build_table_name(names),
                                   data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                  self.rdf.get(names)))
+                                                                    self.rdf.get(names)))
 
         self.experiment.radial_distribution_function_state = True  # update the state
 
