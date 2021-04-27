@@ -39,9 +39,7 @@ class AngularDistributionFunction(Calculator, ABC):
         so this might only be useful for a larger number of batches.
     """
 
-    def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
-                 r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
-                 export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
+    def __init__(self, experiment):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -66,7 +64,38 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
-        super().__init__(experiment, data_range=1, export=export, gpu=gpu, plot=plot)
+        self.experiment = experiment
+        # super().__init__(experiment, data_range=1, export=export, gpu=gpu, plot=plot)
+        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+
+        self.use_tf_function = None
+        self.loaded_property = 'Positions'
+        self.r_cut = None
+        self.start = None
+        self.molecules = None
+        self.experimental = True
+        self.stop = None
+
+        self.n_confs = None
+        self.bins = None
+        self.bin_range = [0.0, 3.15]  # from 0 to pi -. ??? 3.1415 -> 3.15 = failed rounding. I rounding up here, to
+        # get a nice plot. If I would go down it would cut off some values.
+        self._batch_size = None  # memory management for all batches
+        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
+        self.n_minibatches = None  # memory management for triples generation per batch.
+
+        self.analysis_name = "Angular_Distribution_Function"
+        self.database_group = "Angular_Distribution_Function"
+        self.x_label = r'Angle ($\theta$)'
+        self.y_label = 'ADF /a.u.'
+
+        self.log = logging.getLogger(__name__)
+
+    def __call__(self, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
+                 r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
+                 export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
+        super().__init__(self.experiment, data_range=1, export=export, gpu=gpu, plot=plot)
+
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = use_tf_function
@@ -76,7 +105,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.molecules = molecules
         self.experimental = True
         if stop is None:
-            self.stop = experiment.number_of_configurations - 1
+            self.stop = self.experiment.number_of_configurations - 1
         else:
             self.stop = stop
         self.n_confs = n_confs
@@ -93,6 +122,12 @@ class AngularDistributionFunction(Calculator, ABC):
         self.y_label = 'ADF /a.u.'
 
         self.log = logging.getLogger(__name__)
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+
+        return out
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
