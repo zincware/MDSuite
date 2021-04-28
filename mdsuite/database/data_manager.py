@@ -2,9 +2,10 @@
 Python module for the tensor_values fetch class
 """
 
-from typing import Union
+import sys
 import numpy as np
 import tensorflow as tf
+from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 
@@ -20,7 +21,9 @@ class DataManager:
 
     def __init__(self, database: Database = None, data_path: list = None, data_range: int = None,
                  n_batches: int = None, batch_size: int = None, ensemble_loop: int = None,
-                 correlation_time: int = 1, remainder: int = None, atom_selection=np.s_[:]):
+                 correlation_time: int = 1, remainder: int = None, atom_selection=np.s_[:],
+                 minibatch: bool = False, atom_batch_size : int = None, n_atom_batches: int = None,
+                 atom_remainder: int = None):
         """
         Constructor for the DataManager class
 
@@ -31,6 +34,10 @@ class DataManager:
         """
         self.database = database
         self.data_path = data_path
+        self.minibatch = minibatch
+        self.atom_batch_size = atom_batch_size
+        self.n_atom_batches = n_atom_batches
+        self.atom_remainder = atom_remainder
 
         self.data_range = data_range
         self.n_batches = n_batches
@@ -130,8 +137,57 @@ class DataManager:
 
                 yield database.load_data(data_path, select_slice=np.s_[start:stop], dictionary=dictionary)
 
+        def atom_generator(batch_number: int, batch_size: int, database: str, data_path: list, dictionary: bool):
+            """
+            Generator function for the batch loop.
+
+            Parameters
+            ----------
+            batch_number : int
+                    Number of batches to be looped over
+            batch_size : int
+                    size of each batch to load
+            database : Database
+                    database_path from which to load the tensor_values
+            data_path : str
+                    Path to the tensor_values in the database_path
+            dictionary : bool
+                    If true, tensor_values is returned in a dictionary
+            Returns
+            -------
+            """
+            database = Database(name=database)
+            _atom_remainder = [1 if self.atom_remainder else 0][0]
+            for atom_batch in tqdm(range(self.n_atom_batches + _atom_remainder),
+                                   total=self.n_atom_batches + _atom_remainder):
+                atom_start = atom_batch*self.atom_batch_size
+                atom_stop = atom_start + self.atom_batch_size
+                if atom_batch == self.n_atom_batches:
+                    atom_stop = start + self.atom_remainder
+                _remainder = [1 if remainder else 0][0]
+                if self.remainder == 0:
+                    _remainder = 0
+                for batch in range(batch_number + _remainder):
+                    start = int(batch*batch_size)
+                    stop = int(start + batch_size)
+                    data_size = tf.cast(batch_size, dtype=tf.int32)
+                    if batch == batch_number:
+                        stop = int(start + self.remainder)
+                        data_size = tf.cast(self.remainder, dtype=tf.int16)
+                    if type(self.atom_selection) is dict:
+                        print("Atom selection is not available for mini-batched calculations")
+                        sys.exit(1)
+                    else:
+                        select_slice = np.s_[atom_start:atom_stop, start:stop]
+                    yield database.load_data(data_path,
+                                             select_slice=select_slice,
+                                             dictionary=dictionary,
+                                             d_size=data_size)
+
         if system:
             return system_generator, args
+        elif self.minibatch:
+            return atom_generator, args
         else:
             return generator, args
 
