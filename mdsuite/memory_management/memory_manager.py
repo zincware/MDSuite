@@ -2,6 +2,8 @@
 Class for memory management in MDSuite operations.
 """
 
+import logging
+
 from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.scale_functions import *
@@ -9,6 +11,8 @@ import numpy as np
 import sys
 from typing import Tuple
 import tensorflow as tf
+
+log = logging.getLogger(__file__)
 
 
 class MemoryManager:
@@ -41,7 +45,7 @@ class MemoryManager:
                 if self.machine_properties['gpu'][item]['memory'] > memory:
                     memory = self.machine_properties['gpu'][item]['memory']
 
-            self.machine_properties['memory'] = memory*1e6
+            self.machine_properties['memory'] = memory * 1e6
             tf.device('gpu')
         else:
             tf.device('cpu')
@@ -119,9 +123,9 @@ class MemoryManager:
                 loaded to collect unused tensor_values.
         """
         if self.data_path is []:
-            print("No tensor_values have been requested.")
+            log.warning("No tensor_values have been requested.")
             sys.exit(1)
-            
+
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
@@ -188,46 +192,34 @@ class MemoryManager:
             per_atom_memory += per_configuration_memory / n_rows
             total_rows += n_rows
 
-        per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
+        # This does not seem to be used anywhere?
+        # per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
         per_atom_memory = self.scale_function(per_atom_memory, **self.scale_function_parameters)
-        condition = False
-        fractions = [0.5, 0.25, 0.12, 0.05, 0.01, 0.005, 0]
-        counter = 0
-        while not condition:
+        fractions = [1/2, 1/4, 1/8, 1/20, 1/100, 1/200, 0]
 
-            if fractions[counter] == 0:
-                atom_batch_memory = per_atom_memory
-                batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
-                                         1, n_columns)
-                                 )
-                number_of_batches = int(n_columns / batch_size)
-                remainder = int(n_columns % batch_size)
-                self.batch_size = batch_size
-                self.n_batches = number_of_batches
-                self.remainder = remainder
-                self.atom_batch_size = 1
-                self.n_atom_batches = int(n_rows / self.atom_batch_size)
-                self.atom_remainder = int(n_rows % self.atom_batch_size)
+        for fraction in fractions:  # iterate over possible mini batch fractions to fit memory
+            if fraction == 0:
+                # All fractions failed, try atom wise mini batching - Set to one atom at a time in the worst case.
+                log.info("Could not find a good mini batch fraction - using single atom mini batching!")
+                batch_size = int(
+                    np.clip(self.memory_fraction * self.machine_properties['memory'] / per_atom_memory, 1, n_columns)
+                )
+                self.atom_batch_size = 1  # Set the mini batch size to single atom
                 break
 
-            # Set to one atom at a time in the worst case.
-            atom_batch_memory = fractions[counter] * per_atom_memory
-            batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
-                                     1, n_columns)
-                             )
-            final_window = batch_size - data_range
-            if final_window > 0:
-                number_of_batches = int(n_columns / batch_size)
-                remainder = int(n_columns % batch_size)
-                self.batch_size = batch_size
-                self.n_batches = number_of_batches
-                self.remainder = remainder
-                self.atom_batch_size = n_rows * fractions[counter]
-                self.n_atom_batches = int(n_rows / self.atom_batch_size)
-                self.atom_remainder = int(n_rows % self.atom_batch_size)
+            atom_batch_memory = fraction * per_atom_memory
+            batch_size = int(
+                np.clip(self.memory_fraction * self.machine_properties['memory'] / atom_batch_memory, 1, n_columns)
+            )
+            if batch_size > data_range:  # the batch size has to be larger than the data_range
+                self.atom_batch_size = n_rows * fraction  # Set the mini batch size to total_data_points * fraction
                 break
 
-            counter += 1
+        self.batch_size = batch_size
+        self.n_batches = int(n_columns / batch_size)
+        self.remainder = int(n_columns % batch_size)
+        self.n_atom_batches = int(n_rows / self.atom_batch_size)
+        self.atom_remainder = int(n_rows % self.atom_batch_size)
 
     def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> Tuple[int, bool]:
         """
