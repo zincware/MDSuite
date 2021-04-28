@@ -191,29 +191,43 @@ class MemoryManager:
         per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
         per_atom_memory = self.scale_function(per_atom_memory, **self.scale_function_parameters)
         condition = False
-        fractions = [0.5, 0.25, 0.12, 0.05, 0.01, 0]
+        fractions = [0.5, 0.25, 0.12, 0.05, 0.01, 0.005, 0]
         counter = 0
         while not condition:
+
+            if fractions[counter] == 0:
+                atom_batch_memory = per_atom_memory
+                batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
+                                         1, n_columns)
+                                 )
+                number_of_batches = int(n_columns / batch_size)
+                remainder = int(n_columns % batch_size)
+                self.batch_size = batch_size
+                self.n_batches = number_of_batches
+                self.remainder = remainder
+                self.atom_batch_size = 1
+                self.n_atom_batches = int(n_rows / self.atom_batch_size)
+                self.atom_remainder = int(n_rows % self.atom_batch_size)
+                break
+
             # Set to one atom at a time in the worst case.
-            atom_batch_memory = fractions[counter]*per_atom_memory
+            atom_batch_memory = fractions[counter] * per_atom_memory
             batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
                                      1, n_columns)
                              )
             final_window = batch_size - data_range
             if final_window > 0:
-                condition = True
+                number_of_batches = int(n_columns / batch_size)
+                remainder = int(n_columns % batch_size)
+                self.batch_size = batch_size
+                self.n_batches = number_of_batches
+                self.remainder = remainder
+                self.atom_batch_size = n_rows * fractions[counter]
+                self.n_atom_batches = int(n_rows / self.atom_batch_size)
+                self.atom_remainder = int(n_rows % self.atom_batch_size)
                 break
 
             counter += 1
-
-        number_of_batches = int(n_columns / batch_size)
-        remainder = int(n_columns % batch_size)
-        self.batch_size = batch_size
-        self.n_batches = number_of_batches
-        self.remainder = remainder
-        self.atom_batch_size = n_rows * fractions[counter]
-        self.n_atom_batches = int(n_rows / self.atom_batch_size)
-        self.atom_remainder = int(n_rows % self.atom_batch_size)
 
     def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> Tuple[int, bool]:
         """
