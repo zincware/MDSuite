@@ -98,10 +98,16 @@ class PropertiesDatabase:
                 data_range=parameters['data_range'],
                 analysis=parameters['Analysis'])
 
-            # TODO try with multi species system!
-            # Note - this does not work with Li Cl - because Li - Li will also be removed, right?!
-            for subject in parameters['subjects']:
+            # assume subjects are only two values
+            if parameters['subjects'][0] == parameters['subjects'][1]:
+                subject = parameters['subjects'][0]
                 query = query.filter(SystemProperty.subjects.any(subject=subject))
+                # filter by subject in
+                query = query.filter(~SystemProperty.subjects.any(Subject.subject != subject))
+                # filter by not in (not subject)
+            else:
+                for subject in parameters['subjects']:
+                    query = query.filter(SystemProperty.subjects.any(subject=subject))
 
             system_properties = query.all()
 
@@ -160,6 +166,8 @@ class PropertiesDatabase:
                 data_range=parameters['data_range'],
                 subjects=subjects,
                 data=data)
+
+            log.debug(f"Created: {system_property}")
 
             # add to the session
             ses.add(system_property)
