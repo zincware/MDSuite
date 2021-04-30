@@ -221,31 +221,37 @@ class CoordinationNumbers(Calculator):
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
-        # TODO what to save?
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": f"{self.species_tuple}_1st_Shell",
-                      "data_range": self.data_range,
-                      'data': first_shell,
-                      'uncertainty': first_shell_error}
-        # self._update_properties_file(properties)
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": f"{self.species_tuple}_2nd_Shell",
-                      "data_range": self.data_range,
-                      'data': second_shell,
-                      'uncertainty': second_shell_error}
-        # self._update_properties_file(properties)
+        # Mean values
+        self._update_properties_file({
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "subjects": self.species_tuple.split("_"),
+            "data_range": self.data_range,
+            "data": [{"x": idx, "y": shell, "uncertainty": uncertainty} for idx, shell, uncertainty in
+                     [[1, first_shell, first_shell_error], [2, second_shell, second_shell_error]]],
+            "information": "Mean Values"
+        })
+
+        # actual data
+        data = [{"x": x, "y": y} for x, y in zip(self.radii[1:], self.integral_data)]
+        self._update_properties_file({
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "subjects": self.species_tuple.split("_"),
+            "data_range": self.data_range,
+            "data": data,
+            "information": "Full data"
+        })
 
         return first_shell, first_shell_error
 
-    def _plot_coordination_shells(self, data: tuple, subjects: str):
+    def _plot_coordination_shells(self, data: tuple):
         """
         Plot the calculated coordination numbers on top of the rdfs
         """
 
         fig, ax1 = plt.subplots()  # define the plot
-        ax1.plot(self.radii, self.rdf, label=fr"{subjects}: {data[0]:.3f} $\pm$ {data[1]:.3f} ")
+        ax1.plot(self.radii, self.rdf, label=fr"{self.species_tuple}: {data[0]:.3f} $\pm$ {data[1]:.3f} ")
         ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
         ax2 = ax1.twinx()  # split the axis
         ax2.set_ylabel('CN')  # set the RHS y axis label
@@ -269,14 +275,14 @@ class CoordinationNumbers(Calculator):
             self._load_rdf_from_file(data)  # load the tensor_values from it
             density = self._get_density(data.subjects[0].subject)  # calculate the density
 
-            subjects = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
             _data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
             # Plot the tensor_values if required
             if self.plot:
-                self._plot_coordination_shells(_data, subjects)
+                self._plot_coordination_shells(_data)
 
             # TODO what to save?
             if self.save:
