@@ -2,6 +2,8 @@
 Class for the calculation of the coordinated numbers
 """
 
+import logging
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -12,6 +14,8 @@ from mdsuite.database.database_scheme import SystemProperty
 # MDSuite imports
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
+
+log = logging.getLogger(__file__)
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -128,7 +132,8 @@ class KirkwoodBuffIntegral(Calculator):
         self.kb_integral = []  # empty the integration tensor_values
 
         for i in range(1, len(self.radii)):
-            self.kb_integral.append(4*np.pi*(np.trapz((self.rdf[1:i] - 1)*(self.radii[1:i])**2, x=self.radii[1:i])))
+            self.kb_integral.append(
+                4 * np.pi * (np.trapz((self.rdf[1:i] - 1) * (self.radii[1:i]) ** 2, x=self.radii[1:i])))
 
     def run_post_generation_analysis(self):
         """
@@ -141,20 +146,23 @@ class KirkwoodBuffIntegral(Calculator):
 
             self._load_rdf_from_file(data)  # load the tensor_values from it
 
-            self._calculate_kb_integral()    # Integrate the rdf and calculate the KB integral
+            self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
 
             # Plot if required
             if self.plot:
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
 
-            # TODO what to save!
-            # if self.save:
-            #     self._save_data(name=self._build_table_name(self.species_tuple),
-            #                     data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
-            # if self.export:
-            #     self._export_data(name=self._build_table_name(self.species_tuple),
-            #                       data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
+            if self.save or self.export:
+                data = [{"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)]
+                log.debug(f"Writing {self.analysis_name} to database!")
+                self._update_properties_file({
+                    "Property": self.system_property,
+                    "Analysis": self.analysis_name,
+                    "subjects": self.species_tuple.split("_"),
+                    "data_range": self.data_range,
+                    "data": data
+                })
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
