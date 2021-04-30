@@ -146,10 +146,10 @@ class EinsteinHelfandThermalKinaci(Calculator):
         result = self._fit_einstein_curve([self.time, self.msd_array])
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": "System",
+                      "Subject": ["System"],
                       "data_range": self.data_range,
-                      'data': result[0],
-                      'uncertainty': result[1]}
+                      'data': [{'x': result[0], 'uncertainty': result[1]}]
+                      }
         self._update_properties_file(properties)
 
         # Update the plot if required
@@ -158,8 +158,15 @@ class EinsteinHelfandThermalKinaci(Calculator):
             self._plot_data()
 
         if self.save:
-            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                    self.msd_array))
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": ["System"],
+                          "data_range": self.data_range,
+                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
+                          'information': "MSD Array"
+                          }
+            self._update_properties_file(properties)
+
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
                                                                                                       self.msd_array))
