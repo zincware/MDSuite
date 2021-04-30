@@ -96,7 +96,9 @@ class PropertiesDatabase:
 
             query = ses.query(SystemProperty).filter_by(
                 data_range=parameters['data_range'],
-                analysis=parameters['Analysis'])
+                analysis=parameters['Analysis'],
+                information=parameters.get("information")
+            )
 
             # assume subjects are only two values
             if parameters['subjects'][0] == parameters['subjects'][1]:
@@ -165,7 +167,9 @@ class PropertiesDatabase:
                 analysis=parameters['Analysis'],
                 data_range=parameters['data_range'],
                 subjects=subjects,
-                data=data)
+                data=data,
+                information=parameters.get("information")
+            )
 
             log.debug(f"Created: {system_property}")
 

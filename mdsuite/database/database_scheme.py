@@ -11,6 +11,7 @@ class SystemProperty(Base):
     property = Column(String)
     analysis = Column(String)
     data_range = Column(Integer)
+    information = Column(String, nullable=True)
 
     data = relationship("Data", cascade="all, delete", back_populates="system_property")
     subjects = relationship("Subject", cascade="all, delete", back_populates="system_property")
@@ -18,15 +19,18 @@ class SystemProperty(Base):
     # TODO check that cascade is working properly!
 
     def __repr__(self):
-        return f"{self.analysis} on {self.subjects}"
+        representation = f"{self.analysis} on {self.subjects}"
+        if self.information is not None:
+            representation += f" \t {self.information}"
+        return representation
 
-    def __init__(self, property, analysis, subjects, data_range, data):
+    def __init__(self, property, analysis, subjects, data_range, data, information=None):
         self.property = property
         self.analysis = analysis
         self.subjects = subjects
         self.data_range = data_range
         self.data = data
-
+        self.information = information
 
 class Data(Base):
     __tablename__ = "data"
