@@ -60,8 +60,7 @@ class CoordinationNumbers(Calculator):
                         A list of indices which correspond to to correct coordination numbers.
     """
 
-    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
-                 savgol_order: int = 2, savgol_window_length: int = 17):
+    def __init__(self, experiment):
         """
         Python constructor
 
@@ -79,7 +78,7 @@ class CoordinationNumbers(Calculator):
                             analysis as the full rdf will be calculated.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -87,8 +86,8 @@ class CoordinationNumbers(Calculator):
         self.integral_data = None
         self.species_tuple = None
         self.indices = None
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
+        self.savgol_order = None
+        self.savgol_window_length = None
 
         self.post_generation = True
 
@@ -100,6 +99,21 @@ class CoordinationNumbers(Calculator):
         # Calculate the rdf if it has not been done already
         if self.experiment.radial_distribution_function_state is False:
             self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)
+
+    def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
+                 savgol_order: int = 2, savgol_window_length: int = 17):
+
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _get_rdf_data(self):
         """
