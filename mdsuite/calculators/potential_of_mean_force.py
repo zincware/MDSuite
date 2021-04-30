@@ -189,10 +189,10 @@ class PotentialOfMeanForce(Calculator):
         # Update the experiment class
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": self.species_tuple,
+                      "Subject": self.species_tuple.split('_'),
                       "data_range": self.data_range,
-                      'data': pomf_value,
-                      'uncertainty': pomf_error}
+                      'data': [{'x': pomf_value, 'uncertainty': pomf_error}]
+                      }
         self._update_properties_file(properties)
 
         return pomf_value, pomf_error
@@ -219,9 +219,22 @@ class PotentialOfMeanForce(Calculator):
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
             data = self._get_pomf_value()              # Determine the min values of the function and update experiment
 
+            # Update the experiment class
+
             if self.save:
-                self._save_data(name=self._build_table_name(self.species_tuple),
-                                data=self._build_pandas_dataframe(self.radii, self.pomf))
+                properties = {"Property": self.database_group,
+                              "Analysis": self.analysis_name,
+                              "Subject": self.species_tuple.split('_'),
+                              "data_range": self.data_range,
+                              'data': [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)],
+                              'information': 'full data'
+                              }
+                self._update_properties_file(properties)
+
+
+            # if self.save:
+            #     self._save_data(name=self._build_table_name(self.species_tuple),
+            #                     data=self._build_pandas_dataframe(self.radii, self.pomf))
             if self.export:
                 self._export_data(name=self._build_table_name(self.species_tuple),
                                   data=self._build_pandas_dataframe(self.radii, self.pomf))
