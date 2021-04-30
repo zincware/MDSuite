@@ -95,6 +95,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
+        # self.system_property = "RDF"
         self.experimental = True
 
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
@@ -510,7 +511,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 log.debug("Writing RDF to database!")
                 self._update_properties_file({
                     "Property": "RDF",
-                    "Analysis": "RadialDistributionFunction",
+                    "Analysis": self.analysis_name,
                     "subjects": names.split("_"),
                     "data_range": self.data_range,
                     "data": data
