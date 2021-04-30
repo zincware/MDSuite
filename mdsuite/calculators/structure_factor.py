@@ -6,6 +6,7 @@ import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.facecolor'] = 'white'
 from typing import Union
 from mdsuite.database.analysis_database import AnalysisDatabase
@@ -57,7 +58,7 @@ class StructureFactor(Calculator):
                         radii tensor_values corresponding to the rdf.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
+    def __init__(self, experiment):
         """
         Python constructor for the class
 
@@ -81,7 +82,7 @@ class StructureFactor(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -99,6 +100,16 @@ class StructureFactor(Calculator):
                                                       self.experiment.box_array[1] * self.experiment.box_array[2])
         with open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
+
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _get_rdf_data(self):
         """
@@ -160,7 +171,8 @@ class StructureFactor(Calculator):
         dictionary
         """
         for el in self.experiment.species:
-            self.experiment.species[el]['molar_fraction'] = len(self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
+            self.experiment.species[el]['molar_fraction'] = len(
+                self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
 
     def species_densities(self):
         """
@@ -168,9 +180,10 @@ class StructureFactor(Calculator):
         dictionary
         """
         for el in self.experiment.species:
-            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (self.experiment.box_array[0] *
-                                                                                                             self.experiment.box_array[1] *
-                                                                                                             self.experiment.box_array[2])
+            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (
+                        self.experiment.box_array[0] *
+                        self.experiment.box_array[1] *
+                        self.experiment.box_array[2])
 
     def average_atomic_form_factor(self, scattering_scalar):
         """
