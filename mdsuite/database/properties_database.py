@@ -9,7 +9,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
-from .database_scheme import Base, SystemProperty, Data
+from .database_scheme import Base, SystemProperty, Data, Subject
+
+log = logging.getLogger(__file__)
 
 
 class PropertiesDatabase:
@@ -27,7 +29,6 @@ class PropertiesDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.log = logging.getLogger(__file__)
         self.engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=True)
 
         # self.engine = sa.create_engine(f"sqlite:///:memory:", echo=True)
@@ -39,11 +40,11 @@ class PropertiesDatabase:
         self.build_database()
 
     def get_session(self):
-        self.log.debug('Creating sessionmaker')
+        log.debug('Creating sessionmaker')
         self.Session = sessionmaker(bind=self.engine, future=True)
 
     def build_database(self):
-        self.log.debug('Creating Database if not existing')
+        log.debug('Creating Database if not existing')
         self.Base.metadata.create_all(self.engine)
 
     def _check_row_existence(self, parameters: dict):
@@ -60,15 +61,16 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
-        self.log.debug(f'Check if row for {parameters} exists')
+        log.debug(f'Check if row for {parameters} exists')
         with self.Session() as ses:
             ses: Session
 
             # TODO use **parameters instead
+            # TODO does not work!
             query = ses.query(SystemProperty).filter_by(
                 subject=parameters['Subject'], data_range=parameters['data_range']).all()
 
-        self.log.debug(f'Check yielded {query}')
+        log.debug(f'Check yielded {query}')
         return len(query) > 0
 
     def _delete_duplicate_rows(self, parameters: dict):
@@ -87,16 +89,23 @@ class PropertiesDatabase:
         """
         # return None
 
+        log.debug(f"Parameters: {parameters.get('subjects')}")
+
         with self.Session() as ses:
             ses: Session
 
-            # TODO use **parameters instead
-            system_properties = ses.query(SystemProperty).filter_by(
-                subject=parameters['Subject'],
+            query = ses.query(SystemProperty).filter_by(
                 data_range=parameters['data_range'],
-                analysis=parameters['Analysis']).all()
+                analysis=parameters['Analysis'])
 
-            self.log.debug(f'Removing {system_properties} from database')
+            # TODO try with multi species system!
+            # Note - this does not work with Li Cl - because Li - Li will also be removed, right?!
+            for subject in parameters['subjects']:
+                query = query.filter(SystemProperty.subjects.any(subject=subject))
+
+            system_properties = query.all()
+
+            log.debug(f'Removing {system_properties} from database')
             for system_property in system_properties:
                 ses.delete(system_property)
 
@@ -123,29 +132,33 @@ class PropertiesDatabase:
             if self._check_row_existence(parameters):
                 print("Note, an entry with these parameters already exists in the database.")
 
-        self.log.debug(f'Adding {parameters.get("Property")} to database!')
+        log.debug(f'Adding {parameters.get("Property")} to database!')
 
         with self.Session() as ses:
             ses: Session
 
             # Create a Data instance to store the value
             # TODO use **parameters instead with parameters.pop
-            try:
-                # self.log.debug(f"Constructing data objects from {len(parameters['data'])} passed values")
-                data = []
-                for data_point in parameters['data']:
-                    data.append(Data(**data_point))
-            except TypeError:
-                # self.log.debug(f"Constructing data objects from {parameters['data']}")
-                data.append(Data(x=parameters['data'], uncertainty=parameters.get('uncertainty')))
+
+            data = [Data(**param) for param in parameters['data']]  # param is a dict
+            subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
+            log.debug(f"Subjects are: {subjects}")
+            # try:
+            #     # self.log.debug(f"Constructing data objects from {len(parameters['data'])} passed values")
+            #     data = []
+            #     for data_point in parameters['data']:
+            #         data.append(Data(**data_point))
+            # except TypeError:
+            #     # self.log.debug(f"Constructing data objects from {parameters['data']}")
+            #     data.append(Data(x=parameters['data'], uncertainty=parameters.get('uncertainty')))
 
             # Create s SystemProperty instance to store the values
-            # TODO use **parameters instead
+
             system_property = SystemProperty(
                 property=parameters['Property'],
                 analysis=parameters['Analysis'],
-                subject=parameters['Subject'],
                 data_range=parameters['data_range'],
+                subjects=subjects,
                 data=data)
 
             # add to the session
@@ -154,9 +167,9 @@ class PropertiesDatabase:
             # commit to the database
             ses.commit()
 
-        self.log.debug("Values successfully written to database. Closed database session.")
+        log.debug("Values successfully written to database. Closed database session.")
 
-    def load_data(self, parameters: dict):
+    def load_data(self, parameters: dict) -> list:
         """
         Load some data from the database.
         Parameters
@@ -173,7 +186,7 @@ class PropertiesDatabase:
                 All rows matching the parameters represented as a dictionary.
         """
 
-        self.log.debug(f'querying {parameters} from database')
+        log.debug(f'querying {parameters} from database')
 
         with self.Session() as ses:
             ses: Session
@@ -184,5 +197,6 @@ class PropertiesDatabase:
             # Note: If you keep the session open, this would not be necessary
             for system_property in system_properties:
                 _ = system_property.data
+                _ = system_property.subjects
 
         return system_properties

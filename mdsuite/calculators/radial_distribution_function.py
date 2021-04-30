@@ -30,6 +30,8 @@ from mdsuite.utils.meta_functions import split_array
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
+log = logging.getLogger(__file__)
+
 
 class RadialDistributionFunction(Calculator, ABC):
     """
@@ -505,12 +507,12 @@ class RadialDistributionFunction(Calculator, ABC):
             if self.export:
                 data = [{"x": x, "y": y} for x, y in
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
-
+                log.debug("Writing RDF to database!")
                 self._update_properties_file({
                     "Property": "RDF",
                     "Analysis": "RadialDistributionFunction",
-                    "Subject": names,
-                    "data_range": 0,
+                    "subjects": names.split("_"),
+                    "data_range": self.data_range,
                     "data": data
                 })
 
