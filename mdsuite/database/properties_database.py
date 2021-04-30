@@ -115,7 +115,7 @@ class PropertiesDatabase:
                 True or False depending on existence.
         """
 
-        log.debug(f"Parameters: {parameters.get('subjects')}")
+        log.debug(f"Parameters: {parameters.keys()}")
 
         with self.Session() as ses:
             ses: Session
@@ -153,6 +153,13 @@ class PropertiesDatabase:
         -------
         Updates the sql database
         """
+        # allow subjects and Subject
+        if parameters.get("subjects") is None:
+            try:
+                parameters['subjects'] = parameters['Subject']
+            except KeyError:
+                raise KeyError('Please add the key "subjects" to your calculator')
+
         if delete_duplicate:
             self._delete_duplicate_rows(parameters)
         else:
@@ -167,8 +174,19 @@ class PropertiesDatabase:
             # Create a Data instance to store the value
             # TODO use **parameters instead with parameters.pop
 
-            data = [Data(**param) for param in parameters['data']]  # param is a dict
-            subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
+            try:  # check if it is a list
+                data = [Data(**param) for param in parameters['data']]  # param is a dict
+            except TypeError:
+                try:  # check if it is a dictionary with keys [x, y, z, uncertainty]
+                    data = [Data(parameters['data'])]
+                except TypeError:
+                    data = [Data(x=parameters['data'])]
+
+            try:
+                subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
+            except TypeError:
+                subjects = [Subject(subject=parameters['subjects'])]  # param is a string
+
             log.debug(f"Subjects are: {subjects}")
 
             # Create s SystemProperty instance to store the values
