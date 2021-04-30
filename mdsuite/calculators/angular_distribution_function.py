@@ -12,6 +12,10 @@ from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, 
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
 
+from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
+
 
 class AngularDistributionFunction(Calculator, ABC):
     """
@@ -64,8 +68,8 @@ class AngularDistributionFunction(Calculator, ABC):
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
         """
+        super().__init__(experiment)
         self.experiment = experiment
-        # super().__init__(experiment, data_range=1, export=export, gpu=gpu, plot=plot)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
 
         self.use_tf_function = None
@@ -89,21 +93,15 @@ class AngularDistributionFunction(Calculator, ABC):
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
 
-        self.log = logging.getLogger(__name__)
-
     def __call__(self, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
                  r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
                  export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
-        super().__init__(self.experiment, data_range=1, export=export, gpu=gpu, plot=plot)
-
-        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
 
         self.use_tf_function = use_tf_function
-        self.loaded_property = 'Positions'
         self.r_cut = r_cut
         self.start = start
         self.molecules = molecules
-        self.experimental = True
         if stop is None:
             self.stop = self.experiment.number_of_configurations - 1
         else:
@@ -115,13 +113,6 @@ class AngularDistributionFunction(Calculator, ABC):
         self._batch_size = batch_size  # memory management for all batches
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
-
-        self.analysis_name = "Angular_Distribution_Function"
-        self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'Angle ($\theta$)'
-        self.y_label = 'ADF /a.u.'
-
-        self.log = logging.getLogger(__name__)
 
         out = self.run_analysis()
 
@@ -195,7 +186,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
 
-        self.log.debug(f'batch_size: {self._batch_size}')
+        log.debug(f'batch_size: {self._batch_size}')
 
         for positions in tqdm(dataset, total=self.n_confs):
             timesteps, atoms, _ = tf.shape(positions)

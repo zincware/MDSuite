@@ -31,6 +31,7 @@ from timeit import default_timer as timer
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
+log = logging.getLogger(__name__)
 
 
 class RadialDistributionFunction(Calculator, ABC):
@@ -86,9 +87,8 @@ class RadialDistributionFunction(Calculator, ABC):
         minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
         """
+        super().__init__(experiment)
         self.experiment = experiment
-
-        self.log = logging.getLogger(__name__)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
@@ -160,22 +160,7 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
 
         """
-        # Do the super call here, instead of in the __init__ so you can pass user arguments
-        super().__init__(self.experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
-
-        # Given arguments  # TODO I need to set them here, because they get overwritten in the super call!
-        self.log = logging.getLogger(__name__)
-
-        self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
-
-        self.loaded_property = 'Positions'  # Which database_path property to load
-
-        self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
-        self.x_label = r'r ($\AA$)'
-        self.y_label = 'g(r)'
-        self.analysis_name = 'Radial_Distribution_Function'
-        self.experimental = True
-
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export, gpu=gpu)
         # User Arguments
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
         self.cutoff = cutoff  # Cutoff for the RDF
@@ -215,6 +200,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
         out = self.run_analysis()
+
+        # TODO auto number_of_configurations  / bin_range
 
         self.experiment.save_class()
         # need to move save_class() to here, because it can't be done in the experiment any more!
@@ -510,7 +497,7 @@ class RadialDistributionFunction(Calculator, ABC):
         update the class state
         """
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-            self.log.debug('Loading Data')
+            log.debug('Loading Data')
             if self.molecules:
                 if len(self.experiment.molecules) == 1:
                     positions = [self._load_positions(i)]  # Load the batch of positions
@@ -521,7 +508,7 @@ class RadialDistributionFunction(Calculator, ABC):
                     positions = [self._load_positions(i)]  # Load the batch of positions
                 else:
                     positions = self._load_positions(i)  # Load the batch of positions
-            self.log.debug('Finished data loading.')
+            log.debug('Finished data loading.')
 
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
             positions_tensor = tf.transpose(positions_tensor, (1, 0, 2))  # Change to (time steps, n_atoms, coords)
@@ -534,7 +521,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range,
                                                            nbins=self.number_of_bins), dtype=float)
 
-            self.log.debug('Finished RDF computation')
+            log.debug('Finished RDF computation')
 
     def _calculate_prefactor(self, species: str) -> float:
         """
@@ -602,7 +589,7 @@ class RadialDistributionFunction(Calculator, ABC):
         """
         Perform the rdf analysis
         """
-        self.log.info('Starting RDF Calculation')
+        log.info('Starting RDF Calculation')
 
         if self.batch_size > self.number_of_configurations:
             self.batch_size = self.number_of_configurations
@@ -750,25 +737,25 @@ class RadialDistributionFunction(Calculator, ABC):
         execution_time = 0
 
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-            self.log.debug('Loading Data')
+            log.debug('Loading Data')
             if len(self.experiment.species) == 1:
                 positions = [self._load_positions(i)]  # Load the batch of positions
             else:
                 positions = self._load_positions(i)  # Load the batch of positions
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
-            self.log.debug('Data loaded - creating dataset')
+            log.debug('Data loaded - creating dataset')
             per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
             # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
 
             n_atoms = tf.shape(positions_tensor)[0]
-            self.log.debug('Starting calculation')
+            log.debug('Starting calculation')
             start = timer()
             self.rdf = run_minibatch_loop()
             execution_time += timer() - start
-            self.log.debug('Calculation done')
+            log.debug('Calculation done')
 
         self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
-        self.log.debug(f"RDF execution time: {execution_time} s")
+        log.debug(f"RDF execution time: {execution_time} s")
 
     def _apply_operation(self, data, index):
         """

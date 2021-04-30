@@ -107,6 +107,18 @@ class Calculator(metaclass=abc.ABCMeta):
             import matplotlib
             matplotlib.use('Agg')
 
+    def update_user_args(self, plot: bool = True, save: bool = True, data_range: int = 500,
+                         correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True,
+                         gpu: bool = False):
+        """Update the user args that are given by the __call__ method of the calculator"""
+        self.data_range = data_range  # Data range over which to evaluate
+        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
+        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+        self.export = export  # Whether or not to export the data
+        self.gpu = gpu
+        self.correlation_time = correlation_time  # correlation time of the property
+        self.atom_selection = atom_selection
+
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
