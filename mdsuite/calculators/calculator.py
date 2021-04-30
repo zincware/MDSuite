@@ -99,8 +99,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.database_group = None  # Which database_path group to save the tensor_values in
         self.analysis_name = None
-        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
-                                self.data_range)
+        self.time = None
 
         # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:
@@ -118,6 +117,10 @@ class Calculator(metaclass=abc.ABCMeta):
         self.gpu = gpu
         self.correlation_time = correlation_time  # correlation time of the property
         self.atom_selection = atom_selection
+
+        # attributes based on user args
+        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                self.data_range)
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
