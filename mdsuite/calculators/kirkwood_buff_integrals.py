@@ -49,7 +49,7 @@ class KirkwoodBuffIntegral(Calculator):
                         List of tensor_values of the potential of mean-force for the current analysis.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
+    def __init__(self, experiment):
         """
         Python constructor for the class
 
@@ -73,7 +73,7 @@ class KirkwoodBuffIntegral(Calculator):
                             Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -86,6 +86,16 @@ class KirkwoodBuffIntegral(Calculator):
         self.analysis_name = 'Kirkwood-Buff_Integral'
 
         self.post_generation = True
+
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _autocorrelation_time(self):
         """
