@@ -1,6 +1,7 @@
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 Base = declarative_base()
 
@@ -19,7 +20,11 @@ class SystemProperty(Base):
     # TODO check that cascade is working properly!
 
     def __repr__(self):
-        representation = f"{self.analysis} on {self.subjects}"
+        try:
+            representation = f"{self.analysis} on {self.subjects}"
+        except DetachedInstanceError:
+            representation = f"{self.analysis}"
+
         if self.information is not None:
             representation += f" \t {self.information}"
         return representation

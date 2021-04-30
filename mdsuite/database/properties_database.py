@@ -47,6 +47,25 @@ class PropertiesDatabase:
         log.debug('Creating Database if not existing')
         self.Base.metadata.create_all(self.engine)
 
+    def _build_subject_query(self, subjects, query):
+        if len(subjects) > 2:
+            raise NotImplementedError("Please query 2 or less subjects!")
+        if len(subjects) == 2:
+            if subjects[0] == subjects[1]:
+                subject = subjects[0]
+                query = query.filter(SystemProperty.subjects.any(subject=subject))
+                # filter by subject in
+                query = query.filter(~SystemProperty.subjects.any(Subject.subject != subject))
+                # filter by not in (not subject)
+            else:
+                for subject in subjects:
+                    query = query.filter(SystemProperty.subjects.any(subject=subject))
+        else:
+            for subject in subjects:
+                query = query.filter(SystemProperty.subjects.any(subject=subject))
+
+        return query
+
     def _check_row_existence(self, parameters: dict):
         """
         Check if a row exists.
@@ -65,10 +84,18 @@ class PropertiesDatabase:
         with self.Session() as ses:
             ses: Session
 
-            # TODO use **parameters instead
-            # TODO does not work!
-            query = ses.query(SystemProperty).filter_by(
-                subject=parameters['Subject'], data_range=parameters['data_range']).all()
+            query = ses.query(SystemProperty)
+
+            if parameters.get("data_range") is not None:
+                query = query.filter_by(data_range=parameters['data_range'])
+            if parameters.get("Analysis") is not None:
+                query = query.filter_by(data_range=parameters['Analysis'])
+            if parameters.get("information") is not None:
+                query = query.filter_by(data_range=parameters['information'])
+
+            if parameters.get('subjects') is not None:
+                query = self._build_subject_query(parameters['subjects'], query)
+            query = query.all()
 
         log.debug(f'Check yielded {query}')
         return len(query) > 0
@@ -87,7 +114,6 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
-        # return None
 
         log.debug(f"Parameters: {parameters.get('subjects')}")
 
@@ -97,19 +123,12 @@ class PropertiesDatabase:
             query = ses.query(SystemProperty).filter_by(
                 data_range=parameters['data_range'],
                 analysis=parameters['Analysis'],
-                information=parameters.get("information")
             )
+            if parameters.get("information") is not None:
+                query = query.filter_by(information=parameters.get("information"))
 
-            # assume subjects are only two values
-            if parameters['subjects'][0] == parameters['subjects'][1]:
-                subject = parameters['subjects'][0]
-                query = query.filter(SystemProperty.subjects.any(subject=subject))
-                # filter by subject in
-                query = query.filter(~SystemProperty.subjects.any(Subject.subject != subject))
-                # filter by not in (not subject)
-            else:
-                for subject in parameters['subjects']:
-                    query = query.filter(SystemProperty.subjects.any(subject=subject))
+            if parameters.get('subjects') is not None:
+                query = self._build_subject_query(parameters['subjects'], query)
 
             system_properties = query.all()
 
@@ -151,17 +170,8 @@ class PropertiesDatabase:
             data = [Data(**param) for param in parameters['data']]  # param is a dict
             subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
             log.debug(f"Subjects are: {subjects}")
-            # try:
-            #     # self.log.debug(f"Constructing data objects from {len(parameters['data'])} passed values")
-            #     data = []
-            #     for data_point in parameters['data']:
-            #         data.append(Data(**data_point))
-            # except TypeError:
-            #     # self.log.debug(f"Constructing data objects from {parameters['data']}")
-            #     data.append(Data(x=parameters['data'], uncertainty=parameters.get('uncertainty')))
 
             # Create s SystemProperty instance to store the values
-
             system_property = SystemProperty(
                 property=parameters['Property'],
                 analysis=parameters['Analysis'],
@@ -203,7 +213,13 @@ class PropertiesDatabase:
         with self.Session() as ses:
             ses: Session
 
-            system_properties = ses.query(SystemProperty).filter_by(**parameters).all()
+            subjects = parameters.pop('subjects', None)
+            query = ses.query(SystemProperty).filter_by(**parameters)
+
+            if subjects is not None:
+                query = self._build_subject_query(subjects, query)
+
+            system_properties = query.all()
 
             # Iterate over data so that the information gets pulled from the database
             # Note: If you keep the session open, this would not be necessary
