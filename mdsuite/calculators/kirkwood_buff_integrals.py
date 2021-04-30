@@ -6,7 +6,8 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.analysis_database import AnalysisDatabase
+from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.database_scheme import SystemProperty
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -93,21 +94,31 @@ class KirkwoodBuffIntegral(Calculator):
         """
         raise NotApplicableToAnalysis
 
-    def _get_rdf_data(self):
+    def _get_rdf_data(self) -> list:
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        self.data_files = database.get_tables("Radial_Distribution_Function")
+        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
 
-    def _load_rdf_from_file(self):
+        return database.load_data({"property": "RDF"})
+
+    def _load_rdf_from_file(self, system_property: SystemProperty):
         """
         Load the raw rdf tensor_values from a directory
+
+        Parameters
+        ----------
+        system_property: SystemProperty
         """
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        data = database.load_pandas(self.file_to_study).to_numpy()
-        self.radii = data[1:, 1]
-        self.rdf = data[1:, 2]
+
+        radii = []
+        rdf = []
+        for _bin in system_property.data:
+            radii.append(_bin.x)
+            rdf.append(_bin.y)
+
+        self.radii = np.array(radii)
+        self.rdf = np.array(rdf)
 
     def _calculate_kb_integral(self):
         """
@@ -124,26 +135,26 @@ class KirkwoodBuffIntegral(Calculator):
         Calculate the potential of mean-force and perform error analysis
         """
 
-        self._get_rdf_data()  # fill the tensor_values array with tensor_values
+        for data in self._get_rdf_data():  # Loop over all existing RDFs
+            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.data_range = data.data_range
 
-        for data in self.data_files:
-            self.file_to_study = data        # Set the file to study
-            self.species_tuple = "_".join([data.split("_")[-1], data.split("_")[-2]])
-            self.data_range = int(data.split("_")[-3])
-            self._load_rdf_from_file()       # Load the rdf tensor_values for the set file
+            self._load_rdf_from_file(data)  # load the tensor_values from it
+
             self._calculate_kb_integral()    # Integrate the rdf and calculate the KB integral
 
-            # Plot if necessary
+            # Plot if required
             if self.plot:
                 plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
 
-            if self.save:
-                self._save_data(name=self._build_table_name(self.species_tuple),
-                                data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
-            if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
-                                  data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
+            # TODO what to save!
+            # if self.save:
+            #     self._save_data(name=self._build_table_name(self.species_tuple),
+            #                     data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
+            # if self.export:
+            #     self._export_data(name=self._build_table_name(self.species_tuple),
+            #                       data=self._build_pandas_dataframe(self.radii[1:], self.kb_integral))
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
