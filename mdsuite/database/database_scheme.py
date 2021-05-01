@@ -1,3 +1,5 @@
+"""Definition of the Database objects
+"""
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
@@ -7,6 +9,24 @@ Base = declarative_base()
 
 
 class SystemProperty(Base):
+    """Main class for System properties
+
+    Parameters
+    ----------
+    id: int, PK
+    property: str
+        Name of the Property
+    analysis: str
+        Name of the analysis
+    data_range: int
+        Data range
+    information: str
+        Additional information for the system property
+    data: Data
+        list of data associated with the system property (can be [x, y, z, uncertainty])
+    subjects: Subject
+        list of the subjects/species/molecules that are associated with the system property
+    """
     __tablename__ = 'system_properties'
     id = Column(Integer, primary_key=True)
     property = Column(String)
@@ -20,6 +40,7 @@ class SystemProperty(Base):
     # TODO check that cascade is working properly!
 
     def __repr__(self):
+        """System Property representation"""
         try:
             representation = f"{self.analysis} on {self.subjects}"
         except DetachedInstanceError:
@@ -30,6 +51,7 @@ class SystemProperty(Base):
         return representation
 
     def __init__(self, property, analysis, subjects, data_range, data, information=None):
+        """System Property constructor"""
         self.property = property
         self.analysis = analysis
         self.subjects = subjects
@@ -37,7 +59,22 @@ class SystemProperty(Base):
         self.data = data
         self.information = information
 
+
 class Data(Base):
+    """Class for the data associated with SystemProperty
+
+    Parameters
+    ----------
+    id: int, PK
+    x: float, required
+        x-value of the data
+    y: float
+        y-value of the data
+    z: float
+        z-value of the data
+    uncertainty: float
+        uncertainty value of the data
+    """
     __tablename__ = "data"
 
     id = Column(Integer, primary_key=True)
@@ -52,10 +89,19 @@ class Data(Base):
     system_property = relationship("SystemProperty", back_populates="data")
 
     def __repr__(self):
+        """Representation of the data"""
         return f"x:{self.x}"
 
 
 class Subject(Base):
+    """Class for the subjects associated with SystemProperty
+
+    Parameters
+    ----------
+    id: int, PK
+    subject: str
+        Name of the subject
+    """
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True)
     subject = Column(String)
@@ -65,4 +111,5 @@ class Subject(Base):
     system_property = relationship("SystemProperty", back_populates="subjects")
 
     def __repr__(self):
+        """Representation of the subject"""
         return f"{self.subject}"
