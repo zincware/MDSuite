@@ -47,22 +47,18 @@ class PropertiesDatabase:
         log.debug('Creating Database if not existing')
         self.Base.metadata.create_all(self.engine)
 
-    def _build_subject_query(self, subjects, query):
-        if len(subjects) > 2:
-            raise NotImplementedError("Please query 2 or less subjects!")
-        if len(subjects) == 2:
-            if subjects[0] == subjects[1]:
-                subject = subjects[0]
-                query = query.filter(SystemProperty.subjects.any(subject=subject))
-                # filter by subject in
-                query = query.filter(~SystemProperty.subjects.any(Subject.subject != subject))
-                # filter by not in (not subject)
-            else:
-                for subject in subjects:
-                    query = query.filter(SystemProperty.subjects.any(subject=subject))
-        else:
-            for subject in subjects:
-                query = query.filter(SystemProperty.subjects.any(subject=subject))
+    def _build_subject_query(self, subjects, query, ses):
+
+        for subject in subjects:
+            query = query.filter(SystemProperty.subjects.any(subject=subject))
+        # select the samples where the subject conditions are full filled and connect them with "and" (multiple filters)
+
+        subject_objs = ses.query(Subject.id).filter(Subject.subject.in_(subjects)).distinct()
+        # get all subjects where the subject is in the given list
+
+        query = query.filter(~SystemProperty.subjects.any(
+            Subject.id.notin_(subject_objs)  # remove all, that have additional subjects in their query
+        ))
 
         return query
 
@@ -80,7 +76,7 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
-        log.debug(f'Check if row for {parameters} exists')
+        log.debug(f'Check if row for {parameters.keys()} exists')
         with self.Session() as ses:
             ses: Session
 
@@ -89,12 +85,14 @@ class PropertiesDatabase:
             if parameters.get("data_range") is not None:
                 query = query.filter_by(data_range=parameters['data_range'])
             if parameters.get("Analysis") is not None:
-                query = query.filter_by(data_range=parameters['Analysis'])
+                query = query.filter_by(analysis=parameters['Analysis'])
             if parameters.get("information") is not None:
-                query = query.filter_by(data_range=parameters['information'])
+                query = query.filter_by(information=parameters['information'])
+
+            log.debug(f"check, without subjects: {query.all()}")
 
             if parameters.get('subjects') is not None:
-                query = self._build_subject_query(parameters['subjects'], query)
+                query = self._build_subject_query(parameters['subjects'], query, ses)
             query = query.all()
 
         log.debug(f'Check yielded {query}')
@@ -128,7 +126,7 @@ class PropertiesDatabase:
                 query = query.filter_by(information=parameters.get("information"))
 
             if parameters.get('subjects') is not None:
-                query = self._build_subject_query(parameters['subjects'], query)
+                query = self._build_subject_query(parameters['subjects'], query, ses)
 
             system_properties = query.all()
 
@@ -164,7 +162,7 @@ class PropertiesDatabase:
             self._delete_duplicate_rows(parameters)
         else:
             if self._check_row_existence(parameters):
-                print("Note, an entry with these parameters already exists in the database.")
+                log.info("Note, an entry with these parameters already exists in the database.")
 
         log.debug(f'Adding {parameters.get("Property")} to database!')
 
@@ -235,7 +233,7 @@ class PropertiesDatabase:
             query = ses.query(SystemProperty).filter_by(**parameters)
 
             if subjects is not None:
-                query = self._build_subject_query(subjects, query)
+                query = self._build_subject_query(subjects, query, ses)
 
             system_properties = query.all()
 
