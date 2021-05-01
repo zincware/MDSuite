@@ -40,14 +40,27 @@ class PropertiesDatabase:
         self.build_database()
 
     def get_session(self):
+        """Create a session"""
         log.debug('Creating sessionmaker')
         self.Session = sessionmaker(bind=self.engine, future=True)
 
     def build_database(self):
+        """Create the database scheme"""
         log.debug('Creating Database if not existing')
         self.Base.metadata.create_all(self.engine)
 
     def _build_subject_query(self, subjects, query, ses):
+        """Query the one->many subjects relationship
+
+        Parameters
+        ----------
+        subjects: list
+            List of the subjects to query
+        query:
+            The query objects
+        ses:
+            session object
+        """
 
         for subject in subjects:
             query = query.filter(SystemProperty.subjects.any(subject=subject))
