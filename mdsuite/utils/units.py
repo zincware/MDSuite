@@ -1,3 +1,13 @@
+"""
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
 # we will define each unit experiment as a function and then have a to_si_units which is a dispatch dict.
 # to add a new unit experiment, simply add it as a function here, and then in the dictionary in units_to_si.
 
