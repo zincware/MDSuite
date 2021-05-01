@@ -172,10 +172,10 @@ class NernstEinsteinIonicConductivity(Calculator):
             data = self._nernst_einstein(input_data)
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": f"System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          'data': data[0],
-                          'uncertainty': data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if ne_table[1]:
@@ -183,12 +183,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Einstein_Self_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._nernst_einstein(input_data)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Einstein_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": "System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          "data": data[0],
-                          "uncertainty": data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if not any(ne_table):
@@ -214,12 +215,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Green_Kubo_Distinct_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Corrected_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": f"System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          'data': data[0],
-                          'uncertainty': data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if cne_table[1]:
@@ -230,12 +232,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Einstein_Distinct_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Einstein_Corrected_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": "System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          "data": data[0],
-                          "uncertainty": data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
     def run_post_generation_analysis(self):

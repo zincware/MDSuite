@@ -226,17 +226,11 @@ class AngularDistributionFunction(Calculator, ABC):
                               "Subject": [_species[0] for _species in species],
                               "data_range": self.data_range,
                               'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
-                              'information': "MSD Array"}
-                self._update_properties_file(properties, delete_duplicate=True)
-                # TODO write a method that can handle three or more species!
+                              }
+                self._update_properties_file(properties, delete_duplicate=False)
+                log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
+                # TODO allow for delete_duplicates with more then 2 species!
 
-
-            # if self.save:
-            #     self._save_data(name=self._build_table_name(name),
-            #                     data=self._build_pandas_dataframe(bin_range_to_angles, hist))
-            # if self.export:
-            #     self._export_data(name=self._build_table_name(name),
-            #                       data=self._build_pandas_dataframe(bin_range_to_angles, hist))
             if self.plot:
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=name)
