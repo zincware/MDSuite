@@ -97,7 +97,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             else:
                 self.species = list(self.experiment.species)
 
-         log.info('starting Einstein Diffusion Computation')
+        log.info('starting Einstein Diffusion Computation')
 
     def _update_output_signatures(self):
         """
