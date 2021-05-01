@@ -17,10 +17,12 @@ hear from our users.
 
    installation
    theory_introduction
+   user_guide
    modules_and_classes
    _architecture/data_structures
    tools
    bibliography
+   developer
 
 Why MDSuite?
 ------------

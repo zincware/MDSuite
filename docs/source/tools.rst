@@ -45,9 +45,6 @@ print the coordinates of the unwrapped positions by:
 
 This call would save an xyz file in the working directory under the name NaCl_Unwrapped_Positions.xyz.
 
-
-THIS NEEDS TO BE REFACTORED
-
 Transformation Classes
 ----------------------
 

@@ -26,6 +26,8 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
 
+from timeit import default_timer as timer
+
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -107,6 +109,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.molecules = molecules
         self.minibatch = minibatch
         self.use_tf_function = kwargs.pop("use_tf_function", False)
+
+        self.override_n_batches = kwargs.get('batches')
 
         # Perform checks
         if stop is None:
@@ -531,6 +535,9 @@ class RadialDistributionFunction(Calculator, ABC):
         else:
             self.n_batches = int(self.number_of_configurations / self.batch_size)
 
+        if self.override_n_batches is not None:
+            self.n_batches = self.override_n_batches
+
         if self.minibatch is None:
             if self.use_tf_function:
                 raise NotImplementedError('tf.function is only supported with minibatching')
@@ -665,6 +672,8 @@ class RadialDistributionFunction(Calculator, ABC):
                 start = stop
             return rdf
 
+        execution_time = 0
+
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
             self.log.debug('Loading Data')
             if len(self.experiment.species) == 1:
@@ -678,10 +687,13 @@ class RadialDistributionFunction(Calculator, ABC):
 
             n_atoms = tf.shape(positions_tensor)[0]
             self.log.debug('Starting calculation')
+            start = timer()
             self.rdf = run_minibatch_loop()
+            execution_time += timer() - start
             self.log.debug('Calculation done')
 
         self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
+        self.log.debug(f"RDF execution time: {execution_time} s")
 
     def _apply_operation(self, data, index):
         """

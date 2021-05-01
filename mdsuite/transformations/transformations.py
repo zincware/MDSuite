@@ -1,7 +1,7 @@
 """
 Parent class for MDSuite transformations
 """
-
+import time
 from typing import Union
 import os
 import numpy as np
@@ -180,6 +180,17 @@ class Transformations:
 
         return dictionary
 
+    def _remainder_to_binary(self):
+        """
+        If a remainder is > 0, return 1, else, return 0
+        Returns
+        -------
+        binary_map : int
+                If remainder > 0, return 1, else,  return 0
+        """
+        
+        return int(self.remainder > 0)
+
     def _save_coordinates(self, data: Union[tf.Tensor, np.array], index: int, batch_size: int, data_structure: dict,
                           system_tensor: bool = True, tensor: bool = False):
         """
@@ -189,12 +200,23 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
-        self.database.add_data(data=data,
-                               structure=data_structure,
-                               start_index=index,
-                               batch_size=batch_size,
-                               system_tensor=system_tensor,
-                               tensor=tensor)
+        try:
+            self.database.add_data(data=data,
+                                   structure=data_structure,
+                                   start_index=index,
+                                   batch_size=batch_size,
+                                   system_tensor=system_tensor,
+                                   tensor=tensor)
+        except OSError:
+            # This is used because in Windows and in WSL we got the error that the file
+            # was still open while it should already be closed. So, we wait, and we add again.
+            time.sleep(0.5)
+            self.database.add_data(data=data,
+                                   structure=data_structure,
+                                   start_index=index,
+                                   batch_size=batch_size,
+                                   system_tensor=system_tensor,
+                                   tensor=tensor)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """

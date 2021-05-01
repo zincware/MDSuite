@@ -112,8 +112,11 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             batch_size = self.experiment.batch_size
 
         for item in self.experiment.species:
-            positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
-                                  self.header_lines for i in range(batch_size)]).flatten()
+            if self.sort:
+                positions = np.array(self.experiment.species[item]['indices'])
+            else:
+                positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
+                                      self.header_lines for i in range(batch_size)]).flatten()
             length = len(self.experiment.species[item]['indices'])
             for observable in self.experiment.property_groups:
                 path = join_path(item, observable)
@@ -121,7 +124,45 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
                 structure[path] = {'indices': positions, 'columns': columns, 'length': length}
 
-        # if sort:
-        #     np.linspace(0, self.project.number_of_atoms, dtype - int)
-
         return structure
+
+    @staticmethod
+    def _build_architecture(species_summary: dict, property_groups: dict, number_of_configurations: int):
+        """
+        Build the database_path architecture for use by the database_path class
+
+        Parameters
+        ----------
+        species_summary : dict
+                Species summary passed to the experiment class
+        property_groups : dict
+                Property information passed to the experiment class
+        number_of_configurations : int
+                Number of configurations in the file
+
+        """
+        architecture = {}  # instantiate the database_path architecture dictionary
+        for species in species_summary:
+            architecture[species] = {}
+            for observable in property_groups:
+                architecture[species][observable] = (len(species_summary[species]['indices']),
+                                                     number_of_configurations,
+                                                     len(property_groups[observable]))
+
+        return architecture
+
+    @abc.abstractmethod
+    def _get_species_information(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_time_information(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_number_of_configurations(self):
+        pass
+
+    @abc.abstractmethod
+    def _get_number_of_atoms(self):
+        pass

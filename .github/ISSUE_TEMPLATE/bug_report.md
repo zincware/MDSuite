@@ -28,5 +28,14 @@ If applicable, add screenshots to help explain your problem.
  - Browser [e.g. chrome, safari]
  - Version [e.g. 22]
 
+**System parameters**
+Please run the following in your python kernel and copy the output below.
+
+```python
+import mdsuite as mds
+mds.Report()
+```
+ **Output here**
+
 **Additional context**
 Add any other context about the problem here.

@@ -10,7 +10,7 @@ propagate on into space.
 """
 
 import numpy as np
-import os
+from tqdm import tqdm
 import tensorflow as tf
 
 from mdsuite.transformations.transformations import Transformations
@@ -32,71 +32,48 @@ class CoordinateUnwrapper(Transformations):
     center_box : bool
             Decision whether or not to center the positions in the box before performing the unwrapping. The default
             value is set to True as this is most common in simulations.
-
-    storage_path : str
-            Path to the tensor_values in the database_path, taken directly from the system attribute.
-
-    analysis_name : str
-            Name of the analysis, taken directly from the system attribute.
-
-    box_array : list
-            Box array of the simulation.
-
-    data : tf.tensor
-            Data being unwrapped.
-
-    mask : tf.tensor
-            Mask to select and transform crossed tensor_values.
     """
 
     def __init__(self, experiment: object, species: list = None, center_box: bool = True):
         """
-        Standard constructor
+        Constructor for the Ionic current calculator.
 
         Parameters
         ----------
         experiment : object
-                Experiment object to use and update.
+                Experiment this transformation is attached to.
         species : list
-                List of species to perform unwrapping on
+                Atomic species on which to perform this operation
         center_box : bool
-                If true, the box coordinates will be centered before the unwrapping occurs
+                If true, the origin of the coordinates will be centered.
         """
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {'linear': {'scale_factor': 3}}
+        self.center_box = center_box
 
-        self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
-        self.analysis_name = self.experiment.analysis_name  # get the analysis name
-
-        self.box_array = self.experiment.box_array  # re-assign the box array for cleaner code
-        self.species = species  # re-assign species
         if species is None:
             self.species = list(self.experiment.species)
-        self.center_box = center_box  # Check if the box needs to be centered
+        else:
+            self.species = self.species
 
-        self.data = None  # tensor_values to be unwrapped
-        self.mask = None  # image number mask
-
-    def _center_box(self):
+    def _prepare_database_entry(self, species: str):
         """
-        Center the atoms in the box
+        Call some housekeeping methods and prepare for the transformations.
+        Returns
+        -------
 
-        Shift all of the positions by half a box length to move the origin of the box to the center.
         """
+        # collect machine properties and determine batch size
+        path = join_path(species, 'Unwrapped_Positions')  # name of the new database_path
+        dataset_structure = {path: (len(self.experiment.species[species]['indices']),
+                                    self.experiment.number_of_configurations,
+                                    3)}
+        self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
+        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
-        # modify the positions in place
-        self.data[:, :, 0] -= (self.box_array[0] / 2)
-        self.data[:, :, 1] -= (self.box_array[1] / 2)
-        self.data[:, :, 2] -= (self.box_array[2] / 2)
+        return data_structure
 
-    def _load_data(self, species):
-        """
-        Load the tensor_values to be unwrapped
-        """
-        path = join_path(species, "Positions")
-        self.data = np.array(self.experiment.load_matrix(path=[path], select_slice=np.s_[:]))
-
-    def _calculate_difference_tensor(self):
+    def _calculate_difference_tensor(self, data: tf.Tensor):
         """
         Calculate the amount particles move in each time step
 
@@ -106,71 +83,110 @@ class CoordinateUnwrapper(Transformations):
                 Returns the tensor of distances in time.
         """
 
-        return self.data[:, 1:, :] - self.data[:, :-1, :]
+        return tf.experimental.numpy.diff(data, axis=1)
 
-    def _build_image_mask(self):
+    def _construct_image_mask(self, data: tf.Tensor, current_state: tf.Tensor = None):
         """
-        Construct a mask of image numbers
+        Build an image mask on a set of data.
+
+        Returns
+        -------
+        Cumulative image mask.
         """
-
-        distance_tensor = self._calculate_difference_tensor()  # get the distance tensor
-
+        distance_tensor = self._calculate_difference_tensor(data)  # get the distance tensor
         # Find all distance greater than half a box length and set them to integers.
-        self.mask = tf.cast(tf.cast(tf.greater_equal(abs(distance_tensor),
-                                                     np.array(self.box_array) / 2),
-                                    dtype=tf.int16), dtype=tf.float64)
+        mask = tf.cast(tf.cast(tf.greater_equal(abs(distance_tensor), np.array(self.experiment.box_array) / 2),
+                               dtype=tf.int16), dtype=tf.float64)
 
-        self.mask = tf.multiply(tf.sign(distance_tensor), self.mask)  # get the correct image sign
+        mask = tf.multiply(tf.sign(distance_tensor), mask)  # get the correct image sign
 
-        # Sum over consecutive box jumps to gather the correct number of times the particles jumped.
-        self.mask = tf.map_fn(lambda x: tf.concat(([[0, 0, 0]], x), axis=0), tf.math.cumsum(self.mask, axis=1))
+        mask = tf.map_fn(lambda x: tf.concat(([[0, 0, 0]], x), axis=0), tf.math.cumsum(mask, axis=1), dtype=tf.float64)
+        correction = tf.cast(tf.repeat(tf.expand_dims(current_state, 1), mask.shape[1], 1), dtype=tf.float64)
+        corrected_mask = tf.add(mask, correction)
 
-    def _apply_mask(self):
+        return corrected_mask
+
+    def _apply_mask(self, data: tf.Tensor, mask: tf.Tensor):
         """
-        Apply the image mask to the trajectory for the unwrapping
+        Apply the unwrapping mask to the data.
+
+        Returns
+        -------
+        Unwrapped coordinate positions.
+        """
+        scaled_mask = mask * tf.convert_to_tensor(self.experiment.box_array, dtype=tf.float64)  # get the scaled mask
+
+        return data - scaled_mask  # apply the scaling
+
+    def _transformation(self, data: np.array, state: tf.Tensor, last_conf: tf.Tensor = None):
         """
 
-        scaled_mask = self.mask * tf.convert_to_tensor(self.box_array, dtype=tf.float64)  # get the scaled mask
 
-        self.data = self.data - scaled_mask  # apply the scaling
+        Returns
+        -------
 
-    def unwrap_particles(self):
         """
-        Collect the methods in the class and unwrap the coordinates
+        if self.center_box:
+            data[:, :, 0] -= (self.experiment.box_array[0] / 2)
+            data[:, :, 1] -= (self.experiment.box_array[1] / 2)
+            data[:, :, 2] -= (self.experiment.box_array[2] / 2)
+
+        data = tf.convert_to_tensor(data)
+        if last_conf is not None:
+            data = tf.concat((tf.expand_dims(last_conf, 1), data), axis=1)
+        mask = self._construct_image_mask(data, current_state=state)
+        return self._apply_mask(data, mask), mask[:, -1], data[:, -1]
+
+    def _unwrap_coordinates(self, species: str):
+        """
+        Loop over the batches, run calculations and update the database_path.
+        Returns
+        -------
+        Updates the database_path.
         """
 
-        for species in self.species:
-            exists = self.database.check_existence(os.path.join(species, "Unwrapped_Positions"))
-            # Check if the tensor_values has already been unwrapped
-            if exists:
-                print(f"Unwrapped positions exists for {species}, using the saved coordinates")
+        type_spec = {}
+        data_structure = self._prepare_database_entry(species)
+        positions_path = [join_path(species, 'Positions')]
+        self._prepare_monitors(positions_path)
+        type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int32)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
+        data_set = tf.data.Dataset.from_generator(batch_generator,
+                                                  args=batch_generator_args,
+                                                  output_signature=type_spec)
+        data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
+        state = tf.zeros(shape=(len(self.experiment.species[species]['indices']), 3))
+        last_conf = tf.zeros(shape=(len(self.experiment.species[species]['indices']), 3))
+        loop_correction = self._remainder_to_binary()
+        for index, x in tqdm(enumerate(data_set), ncols=70, desc=f"{species} unwrapping",
+                             total=self.n_batches+loop_correction):
+            if index == 0:
+                data, state, last_conf = self._transformation(np.array(x[str.encode(join_path(species, 'Positions'))]),
+                                                              state)
+                self._save_coordinates(data,
+                                       index * self.batch_size,
+                                       x[str.encode('data_size')],
+                                       data_structure,
+                                       system_tensor=False,
+                                       tensor=True)
             else:
-                self._load_data(species)  # load the tensor_values to be unwrapped
-
-                # Center the tensor_values if required
-                if self.center_box:
-                    self._center_box()
-
-                self.data = tf.convert_to_tensor(self.data)
-
-                self._build_image_mask()  # build the image mask
-                self._apply_mask()  # Apply the mask and unwrap the coordinates
-                path = join_path(species, 'Unwrapped_Positions')
-                dataset_structure = {species: {'Unwrapped_Positions': tuple(np.shape(self.data))}}
-                self.database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
-                data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
-                self._save_coordinates(data=self.data,
-                                       data_structure=data_structure,
-                                       index=0,
-                                       batch_size=np.shape(self.data)[1],
+                data, state, last_conf = self._transformation(np.array(x[str.encode(join_path(species, 'Positions'))]),
+                                                              state, last_conf)
+                self._save_coordinates(data[:, 1:],
+                                       index*self.batch_size,
+                                       x[str.encode('data_size')],
+                                       data_structure,
                                        system_tensor=False,
                                        tensor=True)
 
-        self.experiment.memory_requirements = self.database.get_memory_information()
-        self.experiment.save_class()  # update the class state
-
     def run_transformation(self):
         """
-        Perform the transformation.
+        Run the ionic current transformation
+        Returns
+        -------
+
         """
-        self.unwrap_particles()  # run the transformation
+        for item in self.species:
+            self._unwrap_coordinates(item)  # run the transformation.
+            self.experiment.memory_requirements = self.database.get_memory_information()

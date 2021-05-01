@@ -43,30 +43,6 @@ class LAMMPSFluxFile(FluxFile):
         super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
         self.experiment.flux = True
 
-
-    @staticmethod
-    def _build_architecture(property_groups: dict, number_of_atoms: int,
-                            number_of_configurations: int):
-        """
-        Build the database_path architecture for use by the database_path class
-
-        Parameters
-        ----------
-        species_summary : dict
-                Species summary passed to the experiment class
-        property_groups : dict
-                Property information passed to the experiment class
-        number_of_atoms : int
-                Number of atoms in each configurations
-        number_of_configurations : int
-                Number of configurations in the file
-
-        """
-        architecture = {}  # instantiate the database_path architecture dictionary
-        for observable in property_groups:
-            architecture[f"{observable}/{observable}"] = (number_of_configurations, len(property_groups[observable]))
-        return architecture
-
     def _get_line_length(self):
         """
         Get the length of a line of tensor_values in the file.

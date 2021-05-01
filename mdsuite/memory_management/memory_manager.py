@@ -7,6 +7,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.utils.scale_functions import *
 import numpy as np
 import sys
+from typing import Tuple
 import tensorflow as tf
 
 
@@ -48,6 +49,10 @@ class MemoryManager:
         self.batch_size = None
         self.n_batches = None
         self.remainder = None
+        self.atom_batch_size = None
+        self.n_atom_batches = None
+        self.atom_remainder = None
+        self.minibatch = False
 
         self.scale_function, self.scale_function_parameters = self._select_scale_function(scale_function)
 
@@ -107,6 +112,8 @@ class MemoryManager:
         -------
         batch_size : int
                 number of elements that should be loaded at one time
+        number_of_batches : int
+                number of batches which can be loaded.
         remainder : int
                 number of elements that will be left unloaded after a loop over all batches. This amount can then be
                 loaded to collect unused tensor_values.
@@ -114,6 +121,7 @@ class MemoryManager:
         if self.data_path is []:
             print("No tensor_values have been requested.")
             sys.exit(1)
+            
         per_configuration_memory: float = 0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
@@ -124,7 +132,6 @@ class MemoryManager:
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
         number_of_batches = int(n_columns / batch_size)
         remainder = int(n_columns % batch_size)
-
         self.batch_size = batch_size
         self.n_batches = number_of_batches
         self.remainder = remainder
@@ -165,7 +172,64 @@ class MemoryManager:
 
         return naive_size
 
-    def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> int:
+    def _compute_atomwise_minibatch(self, data_range: int):
+        """
+        Compute the number of atoms which can be loaded in at one time.
+        Returns
+        -------
+
+        """
+        per_atom_memory = 0  # memory usage per atom within ONE configuration
+        per_configuration_memory = 0  # per configuration memory usage
+        total_rows = 0
+        for item in self.data_path:
+            n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=False)
+            per_configuration_memory += n_bytes / n_columns
+            per_atom_memory += per_configuration_memory / n_rows
+            total_rows += n_rows
+
+        per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
+        per_atom_memory = self.scale_function(per_atom_memory, **self.scale_function_parameters)
+        condition = False
+        fractions = [0.5, 0.25, 0.12, 0.05, 0.01, 0.005, 0]
+        counter = 0
+        while not condition:
+
+            if fractions[counter] == 0:
+                atom_batch_memory = per_atom_memory
+                batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
+                                         1, n_columns)
+                                 )
+                number_of_batches = int(n_columns / batch_size)
+                remainder = int(n_columns % batch_size)
+                self.batch_size = batch_size
+                self.n_batches = number_of_batches
+                self.remainder = remainder
+                self.atom_batch_size = 1
+                self.n_atom_batches = int(n_rows / self.atom_batch_size)
+                self.atom_remainder = int(n_rows % self.atom_batch_size)
+                break
+
+            # Set to one atom at a time in the worst case.
+            atom_batch_memory = fractions[counter] * per_atom_memory
+            batch_size = int(np.clip((self.memory_fraction * self.machine_properties['memory']) / atom_batch_memory,
+                                     1, n_columns)
+                             )
+            final_window = batch_size - data_range
+            if final_window > 0:
+                number_of_batches = int(n_columns / batch_size)
+                remainder = int(n_columns % batch_size)
+                self.batch_size = batch_size
+                self.n_batches = number_of_batches
+                self.remainder = remainder
+                self.atom_batch_size = n_rows * fractions[counter]
+                self.n_atom_batches = int(n_rows / self.atom_batch_size)
+                self.atom_remainder = int(n_rows % self.atom_batch_size)
+                break
+
+            counter += 1
+
+    def get_ensemble_loop(self, data_range: int, correlation_time: int = 1) -> Tuple[int, bool]:
         """
         Get the tensor_values range partition quantity.
 
@@ -186,7 +250,10 @@ class MemoryManager:
         """
         final_window = self.batch_size - data_range
         if final_window < 0:
-            print("Sub-batching is required for this experiment, or a smaller data_range can be used")
-            sys.exit(1)
+            self._compute_atomwise_minibatch(data_range)
+            final_window = self.batch_size - data_range
+            self.minibatch = True
+            return int(np.clip(final_window / correlation_time, 1, None)), True
+
         else:
-            return int(np.clip(final_window / correlation_time, 1, None))
+            return int(np.clip(final_window / correlation_time, 1, None)), False

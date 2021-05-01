@@ -6,14 +6,14 @@ Notes
 This is an experimental module. It is envisaged that in the future, this visualization will include the 2d and 3d
 plotting, as well as approaches for visualizing vector fields.
 """
-import vpython as vp
+import pyvista as pv
 import os
 import numpy as np
 import random
 import importlib.resources
 import json
 import colorutils as cu
-
+import time
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
@@ -40,7 +40,7 @@ class TrajectoryVisualizer:
         self.species = species
         self.database = Database(name=os.path.join(self.experiment.database_path, 'database.hdf5'))
         self.data_dictionary = {}
-        self.canvas: vp.canvas
+        self.canvas = pv.Plotter(notebook=True)
 
         if unwrapped:
             self.loaded_property = 'Unwrapped_Positions'
@@ -88,7 +88,7 @@ class TrajectoryVisualizer:
                 mass = round(random.uniform(1.0, 2.0), 3)
 
             self.data_dictionary[species] = {'radius': mass,
-                                             'colour': vp.vector(colour[0], colour[1], colour[2]),
+                                             'colour': colour,
                                              'spheres': []}
 
     def _load_trajectory(self):
@@ -111,66 +111,6 @@ class TrajectoryVisualizer:
             self.data_dictionary[species]['positions'] = self.database.load_data(path_list=[path_list],
                                                                                  select_slice=np.s_[:])
 
-    def _slider(self):
-        """
-        Build the slider object.
-
-        Returns
-        -------
-        updates the visualizer
-        """
-        def S(s):
-            """
-            Operate the slider
-            Parameters
-            ----------
-            s : int
-            Returns
-            -------
-
-            """
-            self._update_positions(s.value)
-        vp.slider(min=0, max=int(self.experiment.number_of_configurations - 1), step=1, bind=S)
-
-    def _run_radio(self):
-        """
-        Build the run button.
-        Returns
-        -------
-        Updates the visualiser
-        """
-        def R(r):
-            """
-            Operate the run button
-            Parameters
-            ----------
-            r : object
-            Returns
-            -------
-            updates the button
-            """
-            if r.checked:
-                self._run_full_trajectory()
-            if not r.checked:
-                self._update_positions(0)
-
-        vp.radio(bind=R, text='Run')
-
-    def _set_scene(self):
-        """
-        set box properties for atom loading.
-
-        Returns
-        -------
-
-        """
-        self.canvas = vp.canvas(background=vp.color.hsv_to_rgb(vp.vector(197, 0.03, 0.88)), visible=False)
-        self.canvas.append_to_caption('\n\n')
-        self._run_radio()
-        self.canvas.append_to_caption('\n\n')
-        self._slider()
-        self.canvas.append_to_caption('\n\n')
-
     def _draw_spheres(self):
         """
         Draw the spheres in the configuration for the first time step.
@@ -181,13 +121,10 @@ class TrajectoryVisualizer:
         """
         for species in self.data_dictionary:
             for atom in self.data_dictionary[species]['positions']:
-                self.data_dictionary[species]['spheres'].append(vp.sphere(pos=vp.vector(atom[0][0],
-                                                                                        atom[0][1],
-                                                                                        atom[0][2]),
-                                                                          radius=self.data_dictionary[species][
-                                                                              'radius'],
-                                                                          color=vp.color.hsv_to_rgb(
-                                                                              self.data_dictionary[species]['colour'])))
+                sphere = pv.Sphere(center=(atom[0][0], atom[0][1], atom[0][2]),
+                                     radius=self.data_dictionary[species]['radius'])
+                self.canvas.add_mesh(sphere, color=self.data_dictionary[species]['colour'])
+                self.data_dictionary[species]['spheres'].append(sphere)
 
     def _update_positions(self, counter: int):
         """
@@ -203,9 +140,9 @@ class TrajectoryVisualizer:
         """
         for species in self.data_dictionary:
             for i, atom in enumerate(self.data_dictionary[species]['positions']):
-                self.data_dictionary[species]['spheres'][i].pos = vp.vector(atom[counter][0],
-                                                                            atom[counter][1],
-                                                                            atom[counter][2])
+                self.data_dictionary[species]['spheres'][i].translate = [atom[counter][0].numpy(),
+                                                                         atom[counter][1].numpy(),
+                                                                         atom[counter][2].numpy()]
 
     def _run_full_trajectory(self):
         """
@@ -213,7 +150,7 @@ class TrajectoryVisualizer:
         """
         for time_step in range(1, int(self.experiment.number_of_configurations)):
             self._update_positions(counter=time_step)
-            vp.rate(100)
+            self.canvas.show()
 
     def run_visualization(self):
         """
@@ -221,9 +158,9 @@ class TrajectoryVisualizer:
 
         Returns
         -------
-
         """
         self._load_trajectory()
-        self._set_scene()
         self._draw_spheres()
-        self.canvas.visible = True
+        self.canvas.show()
+        self._run_full_trajectory()
+        #self.canvas.show(interactive=1)

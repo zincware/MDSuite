@@ -1,4 +1,4 @@
-#tensorflow
+tensorflow
 h5py
 pysmiles
 matplotlib
@@ -18,4 +18,4 @@ sphinx-copybutton
 vpython
 colorutils
 scooby
-sqlalchemy
+sqlalchemy>=1.4

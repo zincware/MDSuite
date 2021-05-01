@@ -5,13 +5,13 @@ Summary
 -------
 """
 
+import sys
+
 from mdsuite.file_io.trajectory_files import TrajectoryFile
 from mdsuite.utils.exceptions import *
+from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
-from mdsuite.utils.meta_functions import get_dimensionality
-
-import sys
 
 var_names = {
     "Positions": ['x', 'y', 'z'],
@@ -167,31 +167,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 species_summary[line[element_index]]['indices'].append(i + self.header_lines)
 
         return species_summary, box, property_groups, line_length
-
-    @staticmethod
-    def _build_architecture(species_summary: dict, property_groups: dict, number_of_configurations: int):
-        """
-        Build the database_path architecture for use by the database_path class
-
-        Parameters
-        ----------
-        species_summary : dict
-                Species summary passed to the experiment class
-        property_groups : dict
-                Property information passed to the experiment class
-        number_of_configurations : int
-                Number of configurations in the file
-
-        """
-        architecture = {}  # instantiate the database_path architecture dictionary
-        for species in species_summary:
-            architecture[species] = {}
-            for observable in property_groups:
-                architecture[species][observable] = (len(species_summary[species]['indices']),
-                                                     number_of_configurations,
-                                                     len(property_groups[observable]))
-
-        return architecture
 
     def process_trajectory_file(self, update_class: bool = True, rename_cols: dict = None):
         """
