@@ -180,7 +180,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                       }
         self._update_properties_file(properties)
 
-        if self.save or self.export:
+        if self.save:
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
                           "Subject": [species],
@@ -188,6 +188,10 @@ class EinsteinDiffusionCoefficients(Calculator):
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
                           'information': "MSD Array"}
             self._update_properties_file(properties)
+
+        if self.export:
+            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))
 
         if self.plot:
             plt.xlabel(rf'{self.x_label}')  # set the x label
