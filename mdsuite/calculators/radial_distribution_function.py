@@ -506,10 +506,6 @@ class RadialDistributionFunction(Calculator, ABC):
 
             self.data_range = self.number_of_configurations
             if self.save:
-                self._save_data(name=self._build_table_name(names),
-                                data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                  self.rdf.get(names)))
-            if self.export:
                 data = [{"x": x, "y": y} for x, y in
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
@@ -520,6 +516,10 @@ class RadialDistributionFunction(Calculator, ABC):
                     "data_range": self.data_range,
                     "data": data
                 })
+            if self.export:
+                self._export_data(name=self._build_table_name(names),
+                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
+                                                                    self.rdf.get(names)))
 
         self.experiment.radial_distribution_function_state = True  # update the state
 
