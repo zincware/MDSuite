@@ -93,11 +93,20 @@ class ScaleCoordinates(Transformations):
         tensor_values structure for use in saving the tensor_values to the database_path.
         """
         path = join_path(species, 'Positions')
-        species_length = len(self.experiment.species[species]['indices'])
-        number_of_configurations = self.experiment.number_of_configurations
-        dataset_structure = {path: (species_length, number_of_configurations, 3)}
-        self.database.add_dataset(dataset_structure)
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+        existing = self._run_dataset_check(path)
+        if existing:
+            old_shape = self.database.get_data_size(path)
+            species_length = len(self.experiment.species[species]['indices'])
+            resize_structure = {path: (species_length, self.experiment.number_of_configurations - old_shape[0], 3)}
+            self.offset = old_shape[0]
+            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
+            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+        else:
+            species_length = len(self.experiment.species[species]['indices'])
+            number_of_configurations = self.experiment.number_of_configurations
+            dataset_structure = {path: (species_length, number_of_configurations, 3)}
+            self.database.add_dataset(dataset_structure)
+            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
 
         return data_structure
 

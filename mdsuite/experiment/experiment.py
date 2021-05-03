@@ -450,7 +450,6 @@ class Experiment:
                                   database,
                                   rename_cols,
                                   sort=sort)
-
         else:
             self._build_new_database(trajectory_reader,
                                      trajectory_file,
@@ -516,7 +515,8 @@ class Experiment:
         Updates the current database.
         """
         counter = self.number_of_configurations
-        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
+        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols,
+                                                                              update_class=False)
         number_of_new_configurations = self.number_of_configurations - counter
         database.resize_dataset(architecture)  # initialize the database_path
         batch_range = int(number_of_new_configurations / self.batch_size)  # calculate the batch range
@@ -613,6 +613,7 @@ class Experiment:
                 New charge/s of the element
         """
         self.species[element]['charge'] = charge  # update entry
+        self.save_class()
 
     def set_mass(self, element, mass):
         """

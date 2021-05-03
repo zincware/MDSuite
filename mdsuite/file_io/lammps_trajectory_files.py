@@ -224,6 +224,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         else:
             self.experiment.batch_size = batch_size
-
+            self.experiment.number_of_configurations += number_of_configurations
 
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

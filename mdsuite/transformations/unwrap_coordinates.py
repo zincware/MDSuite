@@ -130,7 +130,7 @@ class CoordinateUnwrapper(Transformations):
 
     def _transformation(self, data: np.array, state: tf.Tensor, last_conf: tf.Tensor = None):
         """
-
+        Perform the unwrapping transformation on the data.
 
         Returns
         -------

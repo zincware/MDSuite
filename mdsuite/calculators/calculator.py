@@ -117,7 +117,6 @@ class Calculator(metaclass=abc.ABCMeta):
 
         self.database_group = None  # Which database_path group to save the tensor_values in
         self.analysis_name = None
-        self.time = None
 
         # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:

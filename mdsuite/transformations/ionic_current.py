@@ -63,15 +63,24 @@ class IonicCurrent(Transformations):
     def _prepare_database_entry(self):
         """
         Call some housekeeping methods and prepare for the transformations.
+
         Returns
         -------
 
         """
         # collect machine properties and determine batch size
         path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database_path
-        dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
-        self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+        existing = self._run_dataset_check(path)
+        if existing:
+            old_shape = self.database.get_data_size(path)
+            resize_structure = {path: (self.experiment.number_of_configurations - old_shape[0], 3)}
+            self.offset = old_shape[0]
+            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
+            data_structure = {path: {'indices': np.s_[:, ], 'columns': [0, 1, 2]}}
+        else:
+            dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
+            self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
+            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
         return data_structure
 
