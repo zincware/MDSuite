@@ -1,4 +1,15 @@
+"""
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
 """ Class for the calculation of the total structure factor for X-rays using the Faber-Ziman formalism"""
+import logging
 
 import numpy as np
 import os
@@ -9,7 +20,8 @@ import matplotlib.pyplot as plt
 
 plt.rcParams['figure.facecolor'] = 'white'
 from typing import Union
-from mdsuite.database.analysis_database import AnalysisDatabase
+
+from tqdm import tqdm
 
 # MDSuite imports
 from mdsuite.utils.exceptions import *
@@ -18,6 +30,10 @@ from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
 
+from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.database_scheme import SystemProperty
+
+log = logging.getLogger(__file__)
 
 class StructureFactor(Calculator):
     """ Class for the calculation of the total structure factor for X-ray scattering
@@ -115,17 +131,22 @@ class StructureFactor(Calculator):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        self.data_files = database.get_tables("Radial_Distribution_Function")
+        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
 
-    def _load_rdf_from_file(self):
+        return database.load_data({"property": "RDF"})
+
+    def _load_rdf_from_file(self, system_property: SystemProperty):
         """
         Load the raw rdf tensor_values from a directory
         """
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        data = database.load_pandas(self.file_to_study).to_numpy()
-        self.radii = data[1:, 1]
-        self.rdf = data[1:, 2]
+        radii = []
+        rdf = []
+        for _bin in system_property.data:
+            radii.append(_bin.x)
+            rdf.append(_bin.y)
+
+        self.radii = np.array(radii)[1:]
+        self.rdf = np.array(rdf)[1:]
 
     def _autocorrelation_time(self):
         """
@@ -216,11 +237,10 @@ class StructureFactor(Calculator):
         s_12 = 1 + 4 * np.pi * particle_density * integral
         return s_12, running_integral, integral
 
-    def weight_factor(self, scattering_scalar):
+    def weight_factor(self, scattering_scalar, species_lst):
         """
         Calculates the weight factor
         """
-        species_lst = [self.file_to_study.split("_")[-1], self.file_to_study.split("_")[-2]]
         c_a = self.experiment.species[species_lst[0]]['molar_fraction']
         c_b = self.experiment.species[species_lst[1]]['molar_fraction']
         form_factors = self.atomic_form_factors(scattering_scalar)
@@ -236,16 +256,18 @@ class StructureFactor(Calculator):
         """
         self.atomic_form_factors(scattering_scalar)
         total_struc_fac = 0
-        for filename in self.data_files:
-            self.file_to_study = filename
-            self._load_rdf_from_file()
-            elements = [filename.split("_")[-1], filename.split("_")[-2]]
+        for data in self._get_rdf_data():
+            log.debug(f"Loaded data: {data}")
+            self._load_rdf_from_file(data)
+            log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
+            elements = [subject.subject for subject in data.subjects]
+            log.debug(f'Elements are: {elements}')
             s_12, _, _ = self.partial_structure_factor(scattering_scalar, elements)
-            s_in = self.weight_factor(scattering_scalar) * s_12
+            s_in = self.weight_factor(scattering_scalar, elements) * s_12
             if elements[0] != elements[1]:  # S_ab and S_ba need to be considered
                 elements2 = [elements[1], elements[0]]
                 s_21, _, _ = self.partial_structure_factor(scattering_scalar, elements2)
-                s_in2 = self.weight_factor(scattering_scalar) * s_21
+                s_in2 = self.weight_factor(scattering_scalar, elements) * s_21
                 s_in += s_in2
             total_struc_fac += s_in
         return total_struc_fac
@@ -263,7 +285,8 @@ class StructureFactor(Calculator):
             self.molar_fractions()
             self.species_densities()
             total_structure_factor_li = []
-            for counter, scattering_scalar in enumerate(self.Q_arr):
+            for counter, scattering_scalar in tqdm(enumerate(self.Q_arr), total=len(self.Q_arr),
+                                                   desc="Structure factor calculation"):
                 total_structure_factor_li.append(self.total_structure_factor(scattering_scalar))
 
             total_structure_factor_li = np.array(total_structure_factor_li)
@@ -296,7 +319,7 @@ class StructureFactor(Calculator):
         print('Q: 10', 'average atomic form factor: ', avg_atom_f_factor)
 
         scattering_scalar = 0.5
-        self.file_to_study = self.data_files[2]
+        self.file_to_study = self._get_rdf_data()[2]
         print(self.file_to_study)
         self._load_rdf_from_file()
         s_12, running_integral, integral = self.partial_structure_factor(scattering_scalar)

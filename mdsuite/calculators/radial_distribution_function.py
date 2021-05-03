@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the radial distribution function.
 
 Author: Samuel Tovey, Fabian Zills
@@ -32,6 +42,8 @@ from timeit import default_timer as timer
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
+
+log = logging.getLogger(__file__)
 
 
 class RadialDistributionFunction(Calculator, ABC):
@@ -98,6 +110,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
+        # self.system_property = "RDF"
         self.experimental = True
 
         # Arguments set by the user in __call__
@@ -575,9 +588,16 @@ class RadialDistributionFunction(Calculator, ABC):
 
             self.data_range = self.number_of_configurations
             if self.save:
-                self._save_data(name=self._build_table_name(names),
-                                data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                  self.rdf.get(names)))
+                data = [{"x": x, "y": y} for x, y in
+                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
+                log.debug("Writing RDF to database!")
+                self._update_properties_file({
+                    "Property": "RDF",
+                    "Analysis": self.analysis_name,
+                    "subjects": names.split("_"),
+                    "data_range": self.data_range,
+                    "data": data
+                })
             if self.export:
                 self._export_data(name=self._build_table_name(names),
                                   data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),

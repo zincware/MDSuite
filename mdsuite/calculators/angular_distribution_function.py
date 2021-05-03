@@ -1,3 +1,13 @@
+"""
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
 from abc import ABC
 
 import logging
@@ -243,12 +253,18 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bins)
 
             self.data_range = self.n_confs
-            if self.save:
-                self._save_data(name=self._build_table_name(name),
-                                data=self._build_pandas_dataframe(bin_range_to_angles, hist))
-            if self.export:
-                self._export_data(name=self._build_table_name(name),
-                                  data=self._build_pandas_dataframe(bin_range_to_angles, hist))
+            log.debug(f"species are {species}")
+            if self.save or self.export:
+                properties = {"Property": self.database_group,
+                              "Analysis": self.analysis_name,
+                              "Subject": [_species[0] for _species in species],
+                              "data_range": self.data_range,
+                              'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
+                              }
+                self._update_properties_file(properties, delete_duplicate=False)
+                log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
+                # TODO allow for delete_duplicates with more then 2 species!
+
             if self.plot:
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=name)

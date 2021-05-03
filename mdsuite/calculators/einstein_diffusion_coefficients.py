@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the einstein diffusion coefficients.
 
 Summary
@@ -21,6 +31,8 @@ log = logging.getLogger(__name__)
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
+
+log = logging.getLogger(__file__)
 
 
 class EinsteinDiffusionCoefficients(Calculator):
@@ -187,25 +199,33 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
+        log.debug(f"Saving {species}")
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": species,
+                      "Subject": [species],
                       "data_range": self.data_range,
-                      'data': result[0],
-                      'uncertainty': result[1]}
+                      'data': [{'x': result[0], 'uncertainty': result[1]}]
+                      }
         self._update_properties_file(properties)
+
+        if self.save:
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": [species],
+                          "data_range": self.data_range,
+                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
+                          'information': "MSD Array"}
+            self._update_properties_file(properties)
+
+        if self.export:
+            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))
+
         if self.plot:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
-
-        if self.save:
-            self._save_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                    self.msd_array))
-        if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
 
     def _optimized_calculation(self):
         """

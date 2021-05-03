@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
@@ -169,8 +179,8 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                       "Analysis": self.analysis_name,
                       "Subject": species,
                       "data_range": self.data_range,
-                      'data': np.mean(result),
-                      'uncertainty': np.std(result) / (np.sqrt(len(result)))}
+                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
+                      }
         self._update_properties_file(properties)
 
         # Update the plot if required
@@ -181,8 +191,15 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                      label=fr"{species}: {np.mean(result): .3E} $\pm$ {np.std(result) / (np.sqrt(len(result))): .3E}")
 
         if self.save:
-            self._save_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                    self.vacf))
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": species,
+                          "data_range": self.data_range,
+                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.vacf)],
+                          'information': "VACF Array"
+                          }
+            self._update_properties_file(properties)
+
         if self.export:
             self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
                                                                                                       self.vacf))

@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Parent class for different analysis
 
 Summary
@@ -61,37 +71,45 @@ class Calculator(metaclass=abc.ABCMeta):
         save
         data_range
         """
-        self.scale_function = None
-        self.experiment = experiment  # Experiment object to get properties from
-        self.data_range = data_range  # Data range over which to evaluate
-        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
-        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
-        self.export = export  # Whether or not to export the data
-
+        # Set upon instantiation of parent class
+        self.experiment = experiment
+        self.data_range = data_range
+        self.plot = plot
+        self.save = save
+        self.export = export
         self.atom_selection = atom_selection
-
-        self.loaded_property = None  # Which dataset to load
-        self.dependency = None
-
-        self.batch_size: int  # Size of the batch to use during the analysis
-        self.n_batches: int  # Number of batches to be calculated over
-        self.remainder: int  # remainder after batching
-        self.prefactor: float
+        self.correlation_time = correlation_time
+        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
         self.gpu = gpu
+        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                self.data_range)
 
-        self.system_property = False  # is the calculation on a system property?
-        self.multi_species = False  # does the calculation require loading of multiple species?
-        self.post_generation = False  # Things like coordination number or structure factor.
-        self.experimental = False  # experimental calculator.
-        self.species = None
+        # Set to default by class, over-written in child classes or during operations
+        self.system_property = False
+        self.multi_species = False
+        self.post_generation = False
+        self.experimental = False
         self.optimize = False
+        self.loaded_property = None
+        self.dependency = None
+        self.scale_function = None
         self.batch_output_signature = None
         self.ensemble_output_signature = None
-        self.correlation_time = correlation_time  # correlation time of the property
+        self.species = None
+        self.database_group = None
+        self.analysis_name = None
 
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
+        # Set during operation or by child class
+        self.batch_size: int
+        self.n_batches: int
+        self.remainder: int
+        self.prefactor: float
         self.memory_manager: MemoryManager
         self.data_manager: DataManager
+        self.x_label: str
+        self.y_label: str
+        self.analysis_name: str
+        self.minibatch: bool
 
         self.x_label: str  # x label of the figure
         self.y_label: str  # y label of the figure
@@ -236,7 +254,8 @@ class Calculator(metaclass=abc.ABCMeta):
 
         return [np.mean(fits), np.std(fits)]
 
-    def _update_species_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+    @staticmethod
+    def _update_species_type_dict(dictionary: dict, path_list: list, dimension: int):
         """
         Update a type spec dictionary for a species input.
 
@@ -254,61 +273,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            species = item.split('/')[0]
-            n_atoms = len(self.experiment.species[species]['indices'])
             dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None, dimension), dtype=tf.float64)
 
         return dictionary
-
-    def _prepare_managers(self, data_path: list):
-        """
-        Prepare the memory and tensor_values monitors for calculation.
-
-        Parameters
-        ----------
-        data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
-
-        Returns
-        -------
-        Updates the calculator class
-        """
-        self.memory_manager = MemoryManager(data_path=data_path,
-                                            database=self.database,
-                                            memory_fraction=0.5,
-                                            scale_function=self.scale_function,
-                                            gpu=self.gpu)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
-            system=self.system_property)
-
-        self.ensemble_loop = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
-        self.data_manager = DataManager(data_path=data_path,
-                                        database=self.database,
-                                        data_range=self.data_range,
-                                        batch_size=self.batch_size,
-                                        n_batches=self.n_batches,
-                                        ensemble_loop=self.ensemble_loop,
-                                        correlation_time=self.correlation_time,
-                                        remainder=self.remainder,
-                                        atom_selection=self.atom_selection
-                                        )
-        self._update_output_signatures()
-
-    def _build_table_name(self, species: str = "System"):
-        """
-        Build the sql table name for the data storage.
-
-        Parameters
-        ----------
-        species : str
-                In the case of a species specific analysis, make sure a species is put here. Otherwise, it is set to
-                System.
-        Returns
-        -------
-        name : str
-                A correctly formatted name for the SQL database.
-        """
-        return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
 
     @staticmethod
     def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
@@ -330,6 +297,83 @@ class Calculator(metaclass=abc.ABCMeta):
 
         return pd.DataFrame({'x': x, 'y': y})
 
+    @staticmethod
+    def _export_data(name: str, data: pd.DataFrame):
+        """
+        Export data from the analysis database.
+
+        Parameters
+        ----------
+        name : str
+                name of the tensor_values to save. Usually this is just the analysis name. In the case of species
+                specific analysis, this will be further appended to include the name of the species.
+        data : pd.DataFrame
+                Data to be saved.
+        Returns
+        -------
+        Saves a csv file to disc.
+        """
+        data.to_csv(name)
+
+    def _prepare_managers(self, data_path: list):
+        """
+        Prepare the memory and tensor_values monitors for calculation.
+
+        Parameters
+        ----------
+        data_path : list
+                List of tensor_values paths to load from the hdf5 database_path.
+
+        Returns
+        -------
+        Updates the calculator class
+        """
+        self.memory_manager = MemoryManager(data_path=data_path,
+                                            database=self.database,
+                                            memory_fraction=0.8,
+                                            scale_function=self.scale_function,
+                                            gpu=self.gpu)
+        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
+            system=self.system_property)
+
+        self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
+        if minibatch:
+            self.batch_size = self.memory_manager.batch_size
+            self.n_batches = self.memory_manager.n_batches
+            self.remainder = self.memory_manager.remainder
+
+        self.data_manager = DataManager(data_path=data_path,
+                                        database=self.database,
+                                        data_range=self.data_range,
+                                        batch_size=self.batch_size,
+                                        n_batches=self.n_batches,
+                                        ensemble_loop=self.ensemble_loop,
+                                        correlation_time=self.correlation_time,
+                                        remainder=self.remainder,
+                                        atom_selection=self.atom_selection,
+                                        minibatch=minibatch,
+                                        atom_batch_size=self.memory_manager.atom_batch_size,
+                                        n_atom_batches=self.memory_manager.n_atom_batches,
+                                        atom_remainder=self.memory_manager.atom_remainder
+                                        )
+        self._update_output_signatures()
+
+    def _build_table_name(self, species: str = "System"):
+        """
+        Build the sql table name for the data storage.
+
+        Parameters
+        ----------
+        species : str
+                In the case of a species specific analysis, make sure a species is put here. Otherwise, it is set to
+                System.
+        Returns
+        -------
+        name : str
+                A correctly formatted name for the SQL database.
+        """
+        return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
+
     def _save_data(self, name: str, data: pd.DataFrame):
         """
         Save tensor_values to the save tensor_values directory
@@ -337,8 +381,8 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         name : str
-                name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
-                analysis, this will be further appended to include the name of the species.
+                name of the tensor_values to save. Usually this is just the analysis name. In the case of species
+                specific analysis, this will be further appended to include the name of the species.
         data : pd.DataFrame
                 Data to be saved.
         """
@@ -470,12 +514,12 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict):
+    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
         database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-        database.add_data(parameters)
+        database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
         pass
@@ -556,10 +600,6 @@ class Calculator(metaclass=abc.ABCMeta):
     def perform_computation(self):
         """
         Perform the computation.
-        Parameters
-        ----------
-        data_path : list
-                if multi-species is present, the data_path is required to load the correct data.
         Returns
         -------
         Performs the analysis.
@@ -606,7 +646,8 @@ class Calculator(metaclass=abc.ABCMeta):
                                                                 args=batch_generator_args,
                                                                 output_signature=self.batch_output_signature)
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in tqdm(enumerate(batch_data_set), ncols=70, desc=species, total=self.n_batches):
+                for batch_index, batch in tqdm(enumerate(batch_data_set), ncols=70, desc=species, total=self.n_batches,
+                                               disable=self.memory_manager.minibatch):
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
                                                                        args=ensemble_generators_args + (batch,),
@@ -621,18 +662,6 @@ class Calculator(metaclass=abc.ABCMeta):
             if self.plot:
                 plt.legend()
                 plt.show()
-
-    def run_analysis(self):
-        """
-        Run the appropriate analysis
-        """
-        self._check_input()
-        self._run_dependency_check()
-
-        if self.optimize:
-            pass
-        else:
-            return self.perform_computation()
 
     def run_experimental_analysis(self):
         """
@@ -649,19 +678,14 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def _export_data(self, name: str, data: pd.DataFrame):
+    def run_analysis(self):
         """
-        Export data from the analysis database.
+        Run the appropriate analysis
+        """
+        self._check_input()
+        self._run_dependency_check()
 
-        Parameters
-        ----------
-        name : str
-                name of the tensor_values to save. Usually this is just the analysis name. In the case of species specific
-                analysis, this will be further appended to include the name of the species.
-        data : pd.DataFrame
-                Data to be saved.
-        Returns
-        -------
-        Saves a csv file to disc.
-        """
-        data.to_csv(name)
+        if self.optimize:
+            pass
+        else:
+            return self.perform_computation()

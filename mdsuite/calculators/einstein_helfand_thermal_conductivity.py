@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the conductivity.
 
 Summary
@@ -146,10 +156,10 @@ class EinsteinHelfandThermalConductivity(Calculator):
         result = self._fit_einstein_curve([self.time, self.msd_array])
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": "System",
+                      "Subject": ["System"],
                       "data_range": self.data_range,
-                      'data': result[0],
-                      'uncertainty': result[1]}
+                      'data': [{'x': result[0], 'uncertainty': result[1]}]
+                      }
         self._update_properties_file(properties)
 
         # Update the plot if required
@@ -158,8 +168,15 @@ class EinsteinHelfandThermalConductivity(Calculator):
             self._plot_data()
 
         if self.save:
-            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                    self.msd_array))
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": ["System"],
+                          "data_range": self.data_range,
+                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
+                          'information': "MSD Array"
+                          }
+            self._update_properties_file(properties)
+
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
                                                                                                       self.msd_array))

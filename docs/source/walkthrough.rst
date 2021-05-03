@@ -1,3 +1,0 @@
-MDSuite Walkthroughs
-====================
-
