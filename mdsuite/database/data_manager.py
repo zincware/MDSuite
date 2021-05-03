@@ -33,7 +33,7 @@ class DataManager:
                  n_batches: int = None, batch_size: int = None, ensemble_loop: int = None,
                  correlation_time: int = 1, remainder: int = None, atom_selection=np.s_[:],
                  minibatch: bool = False, atom_batch_size : int = None, n_atom_batches: int = None,
-                 atom_remainder: int = None):
+                 atom_remainder: int = None, offset: int = 0):
         """
         Constructor for the DataManager class
 
@@ -48,6 +48,7 @@ class DataManager:
         self.atom_batch_size = atom_batch_size
         self.n_atom_batches = n_atom_batches
         self.atom_remainder = atom_remainder
+        self.offset = offset
 
         self.data_range = data_range
         self.n_batches = n_batches
@@ -96,7 +97,7 @@ class DataManager:
             if self.remainder == 0:
                 _remainder = 0
             for batch in range(batch_number + _remainder):
-                start = int(batch*batch_size)
+                start = int(batch*batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
                 if batch == batch_number:
@@ -140,7 +141,7 @@ class DataManager:
                 _remainder = 0
 
             for batch in range(batch_number + _remainder):  # +1 for the remainder
-                start = int(batch*batch_size)
+                start = int(batch*batch_size) + self.offset
                 stop = int(start + batch_size)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
@@ -178,7 +179,7 @@ class DataManager:
                 if self.remainder == 0:
                     _remainder = 0
                 for batch in range(batch_number + _remainder):
-                    start = int(batch*batch_size)
+                    start = int(batch*batch_size) + self.offset
                     stop = int(start + batch_size)
                     data_size = tf.cast(batch_size, dtype=tf.int32)
                     if batch == batch_number:
