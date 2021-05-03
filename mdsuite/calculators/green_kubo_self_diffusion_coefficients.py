@@ -194,7 +194,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
 
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": species,
+                      "Subject": [species],
                       "data_range": self.data_range,
                       'data': [{'x': np.mean(result), 'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
                       }
@@ -210,7 +210,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         if self.save:
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
-                          "Subject": species,
+                          "Subject": [species],
                           "data_range": self.data_range,
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.vacf)],
                           'information': "VACF Array"
