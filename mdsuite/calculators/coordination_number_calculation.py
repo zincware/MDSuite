@@ -43,10 +43,6 @@ class CoordinationNumbers(Calculator):
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
@@ -59,10 +55,6 @@ class CoordinationNumbers(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
-    data_files : list
-                        list of files to be analyzed.
     rdf = None : list
                         rdf tensor_values being studied.
     radii = None : list
@@ -73,10 +65,17 @@ class CoordinationNumbers(Calculator):
                         A list of species combinations being studied.
     indices : list
                         A list of indices which correspond to to correct coordination numbers.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.CoordinationNumbers(savgol_order = 2, savgol_window_length = 17)
     """
 
-    def __init__(self, experiment, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
-                 savgol_order: int = 2, savgol_window_length: int = 17):
+    def __init__(self, experiment):
         """
         Python constructor
 
@@ -84,25 +83,17 @@ class CoordinationNumbers(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
-        data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment)
         self.file_to_study = None
         self.rdf = None
         self.radii = None
         self.integral_data = None
         self.species_tuple = None
         self.indices = None
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
+        self.savgol_order = None
+        self.savgol_window_length = None
 
         self.post_generation = True
 
@@ -115,7 +106,22 @@ class CoordinationNumbers(Calculator):
         if self.experiment.radial_distribution_function_state is False:
             self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)
 
-    def _get_rdf_data(self) -> list:
+    def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
+                 savgol_order: int = 2, savgol_window_length: int = 17):
+
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
+
+    def _get_rdf_data(self):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """

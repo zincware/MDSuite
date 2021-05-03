@@ -14,7 +14,7 @@ Atomic transformation to unwrap the simulation coordinates.
 Summary
 -------
 When performing analysis on the dynamics of a experiment, it often becomes necessary to reverse the effects of periodic
-boundary conditions and track atoms across the box edges. This method uses the box-jump algorithm, whereing particle
+boundary conditions and track atoms across the box edges. This method uses the box-jump algorithm, wherein particle
 positions jumps of more than a half of the box are counted as a crossing of the boundary, to allow the particles to
 propagate on into space.
 """

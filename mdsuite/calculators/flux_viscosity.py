@@ -47,11 +47,17 @@ class GreenKuboViscosityFlux(Calculator):
     ----------
     experiment :  object
             Experiment class to call from
-    plot : bool
-            if true, plot the tensor_values
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.GreenKuboViscosityFlux(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False):
+    def __init__(self, experiment):
         """
         Python constructor for the experiment class.
 
@@ -59,12 +65,8 @@ class GreenKuboViscosityFlux(Calculator):
         ----------
         experiment : object
                 Experiment class to read and write to
-        plot : bool
-                If true, a plot of the analysis is saved.
-        data_range : int
-                Number of configurations to include in each ensemble
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
+        super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
@@ -80,6 +82,33 @@ class GreenKuboViscosityFlux(Calculator):
         self.sigma = []
 
         apply_style()
+
+    def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
+                 gpu: bool = False):
+        """
+        Python constructor for the experiment class.
+
+        Parameters
+        ----------
+        plot : bool
+                If true, a plot of the analysis is saved.
+        data_range : int
+                Number of configurations to include in each ensemble
+        """
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              export=export, gpu=gpu)
+
+        self.jacf = np.zeros(self.data_range)
+        self.sigma = []
+
+        apply_style()
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _update_output_signatures(self):
         """
