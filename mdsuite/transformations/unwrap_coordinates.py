@@ -42,6 +42,8 @@ class CoordinateUnwrapper(Transformations):
     center_box : bool
             Decision whether or not to center the positions in the box before performing the unwrapping. The default
             value is set to True as this is most common in simulations.
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object, species: list = None, center_box: bool = True):

@@ -28,6 +28,8 @@ class IonicCurrent(Transformations):
     ----------
     experiment : object
             Experiment this transformation is attached to.
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object):
@@ -42,13 +44,14 @@ class IonicCurrent(Transformations):
         super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 2}}
 
-    def _check_for_charges(self):
+    def _check_for_charges(self) -> bool:
         """
         Check the database_path for indices
 
         Returns
         -------
-
+        charge_truth:
+                Whether or not charges were recorded during the simulation.
         """
         truth_table = []
         for item in self.experiment.species:
@@ -60,13 +63,14 @@ class IonicCurrent(Transformations):
         else:
             return True
 
-    def _prepare_database_entry(self):
+    def _prepare_database_entry(self) -> dict:
         """
         Call some housekeeping methods and prepare for the transformations.
 
         Returns
         -------
-
+        data_structure : dict
+                The data structure used in the storing of new values.
         """
         # collect machine properties and determine batch size
         path = join_path('Ionic_Current', 'Ionic_Current')  # name of the new database_path
@@ -84,13 +88,14 @@ class IonicCurrent(Transformations):
 
         return data_structure
 
-    def _transformation(self, data: tf.Tensor):
+    def _transformation(self, data: tf.Tensor) -> tf.Tensor:
         """
         Calculate the translational dipole moment of the system.
 
         Returns
         -------
-
+        system_current : tf.Tensor
+                The system current.
         """
         positions_keys = []
         charge_keys = []
@@ -124,7 +129,7 @@ class IonicCurrent(Transformations):
         Loop over the batches, run calculations and update the database_path.
         Returns
         -------
-        Updates the database_path.
+        Updates the database
         """
 
         type_spec = {}
@@ -159,7 +164,7 @@ class IonicCurrent(Transformations):
         Run the ionic current transformation
         Returns
         -------
-
+        Nothing.
         """
         self._compute_ionic_current()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()

@@ -69,6 +69,8 @@ class CoordinateWrapper(Transformations):
                 List of species to perform unwrapping on
         center_box : bool
                 If true, the box coordinates will be centered before the unwrapping occurs
+        scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
         """
         super().__init__(experiment)
 

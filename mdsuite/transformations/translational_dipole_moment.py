@@ -28,6 +28,8 @@ class TranslationalDipoleMoment(Transformations):
     ----------
     experiment : object
             Experiment this transformation is attached to.
+    scale_function : dict
+    A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object):

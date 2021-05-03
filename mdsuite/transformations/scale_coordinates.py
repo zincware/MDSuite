@@ -14,10 +14,6 @@ terms of a fraction of the box size and you need them to be extended. For unwrap
 unwrap_via_indices transformation.
 """
 
-"""
-Unwrap a set of coordinates based on dumped indices.
-"""
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 import sys
@@ -26,7 +22,20 @@ import numpy as np
 
 
 class ScaleCoordinates(Transformations):
-    """ Class to scale coordinates based on dumped index values """
+    """
+    Class to scale coordinates based on dumped index values
+
+    Attributes
+    ----------
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
+    experiment : object
+            Experiment this transformation is attached to.
+    species : list
+            Species on which this transformation should be applied.
+    box : list
+            Box vectors to multiply the indices by
+    """
 
     def __init__(self, experiment: object, species: list = None):
         """

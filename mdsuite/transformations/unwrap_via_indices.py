@@ -24,7 +24,20 @@ import numpy as np
 
 
 class UnwrapViaIndices(Transformations):
-    """ Class to unwrap coordinates based on dumped index values """
+    """
+    Class to unwrap coordinates based on dumped index values
+
+    Attributes
+    ----------
+    experiment : object
+            Experiment this transformation is attached to.
+    species : list
+            Species on which this transformation should be applied.
+    box : list
+            Box vectors to multiply the indices by
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
+    """
 
     def __init__(self, experiment: object, species: list = None):
         """

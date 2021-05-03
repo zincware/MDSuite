@@ -28,6 +28,8 @@ class IntegratedHeatCurrent(Transformations):
     ----------
     experiment : object
             Experiment this transformation is attached to.
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object):
@@ -42,14 +44,14 @@ class IntegratedHeatCurrent(Transformations):
         super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 3}}
 
-
-    def _transformation(self, data: dict):
+    def _transformation(self, data: dict) -> tf.Tensor:
         """
         Calculate the integrated thermal current of the system.
 
         Returns
         -------
-        Integrated heat current
+        Integrated heat current : tf.Tensor
+                Tensor values of the integrated heat current.
         """
         system_current = np.zeros((self.batch_size, 3))
         for species in self.experiment.species:
@@ -60,13 +62,14 @@ class IntegratedHeatCurrent(Transformations):
 
         return tf.convert_to_tensor(system_current)
 
-    def _prepare_database_entry(self):
+    def _prepare_database_entry(self) -> dict:
         """
         Add the relevant tensor_values sets and groups in the database_path
 
         Returns
         -------
-        tensor_values structure for use in saving the tensor_values to the database_path.
+        data_structure : dict
+                tensor_values structure for use in saving the tensor_values to the database_path.
         """
 
         number_of_configurations = self.experiment.number_of_configurations
@@ -82,7 +85,7 @@ class IntegratedHeatCurrent(Transformations):
         Loop over batches and compute the dipole moment
         Returns
         -------
-
+        Performs the analysis and updates the database.
         """
         data_structure = self._prepare_database_entry()
         type_spec = {}
@@ -102,7 +105,6 @@ class IntegratedHeatCurrent(Transformations):
         data_set = tf.data.Dataset.from_generator(batch_generator,
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
-
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
         for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Integrated Heat Current", total=self.n_batches):
@@ -115,7 +117,7 @@ class IntegratedHeatCurrent(Transformations):
         Run the ionic current transformation
         Returns
         -------
-
+        Nothing.
         """
         self._compute_thermal_conductivity()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()
