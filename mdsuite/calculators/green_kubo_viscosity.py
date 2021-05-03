@@ -155,12 +155,13 @@ class GreenKuboViscosity(Calculator):
 
         """
         result = self.prefactor * np.array(self.sigma)
+
         properties = {"Property": self.database_group,
                       "Analysis": self.analysis_name,
-                      "Subject": "System",
+                      "Subject": ['System'],
                       "data_range": self.data_range,
-                      'data': np.mean(result),
-                      'uncertainty': np.std(result) / (np.sqrt(len(result)))}
+                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
+                      }
         self._update_properties_file(properties)
         # Update the plot if required
         if self.plot:
@@ -168,8 +169,14 @@ class GreenKuboViscosity(Calculator):
             self._plot_data()
 
         if self.save:
-            self._save_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                     self.jacf))
+            properties = {"Property": self.database_group,
+                          "Analysis": self.analysis_name,
+                          "Subject": ['System'],
+                          "data_range": self.data_range,
+                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.jacf)],
+                          'information': "JACF Array"
+                          }
+            self._update_properties_file(properties)
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
                                                                                                        self.jacf))

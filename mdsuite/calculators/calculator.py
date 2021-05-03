@@ -490,12 +490,12 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict):
+    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
         database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-        database.add_data(parameters)
+        database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
         pass

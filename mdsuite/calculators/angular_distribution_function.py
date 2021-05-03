@@ -22,6 +22,8 @@ from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, 
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
 
+log = logging.getLogger(__file__)
+
 
 class AngularDistributionFunction(Calculator, ABC):
     """
@@ -227,12 +229,18 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bins)
 
             self.data_range = self.n_confs
-            if self.save:
-                self._save_data(name=self._build_table_name(name),
-                                data=self._build_pandas_dataframe(bin_range_to_angles, hist))
-            if self.export:
-                self._export_data(name=self._build_table_name(name),
-                                  data=self._build_pandas_dataframe(bin_range_to_angles, hist))
+            log.debug(f"species are {species}")
+            if self.save or self.export:
+                properties = {"Property": self.database_group,
+                              "Analysis": self.analysis_name,
+                              "Subject": [_species[0] for _species in species],
+                              "data_range": self.data_range,
+                              'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
+                              }
+                self._update_properties_file(properties, delete_duplicate=False)
+                log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
+                # TODO allow for delete_duplicates with more then 2 species!
+
             if self.plot:
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=name)
