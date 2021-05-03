@@ -40,25 +40,23 @@ class GreenKuboThermalConductivity(Calculator):
     ----------
     experiment :  object
             Experiment class to call from
-    plot : bool
-            if true, plot the tensor_values
-    data_range :
-            Number of configurations to use in each ensemble
-    save :
-            If true, tensor_values will be saved after the analysis
     x_label : str
             X label of the tensor_values when plotted
     y_label : str
             Y label of the tensor_values when plotted
     analysis_name : str
             Name of the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.GreenKuboThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment, plot=False, data_range=500, save=True, correlation_time: int = 1,
-                 export: bool = False):
+    def __init__(self, experiment):
         """
         Class for the Green-Kubo Thermal conductivity implementation
 
@@ -66,15 +64,8 @@ class GreenKuboThermalConductivity(Calculator):
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        correlation_time: int
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export)
+        super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Thermal_Flux'  # property to be loaded for the analysis
@@ -85,9 +76,34 @@ class GreenKuboThermalConductivity(Calculator):
         self.y_label = r'JACF ($C^{2}\cdot m^{2}/s^{2}$)'
         self.analysis_name = 'Green_Kubo_Thermal_Conductivity'
 
+    def __call__(self, plot=False, data_range=500, save=True, correlation_time: int = 1,
+                 export: bool = False, gpu: bool = False):
+        """
+        Class for the Green-Kubo Thermal conductivity implementation
+
+        Attributes
+        ----------
+        plot : bool
+                if true, plot the tensor_values
+        data_range :
+                Number of configurations to use in each ensemble
+        save :
+                If true, tensor_values will be saved after the analysis
+        correlation_time: int
+        """
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              export=export, gpu=gpu)
+
         self.jacf = np.zeros(self.data_range)
         self.prefactor: float
         self.sigma = []
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _update_output_signatures(self):
         """

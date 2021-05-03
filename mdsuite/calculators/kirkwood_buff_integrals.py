@@ -36,11 +36,6 @@ class KirkwoodBuffIntegral(Calculator):
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
-
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
                         analysis as the full rdf will be calculated.
@@ -60,8 +55,14 @@ class KirkwoodBuffIntegral(Calculator):
                         radii tensor_values corresponding to the rdf.
     species_tuple : list
                         A list of species combinations being studied.
-    pomf : list
-                        List of tensor_values of the potential of mean-force for the current analysis.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.KirkwoodBuffIntegral()
     """
 
     def __init__(self, experiment):
@@ -72,20 +73,6 @@ class KirkwoodBuffIntegral(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
-        data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
-        x_label : str
-                            How to label the x axis of the saved plot.
-        y_label : str
-                            How to label the y axis of the saved plot.
-        analysis_name : str
-                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
         super().__init__(experiment)
@@ -103,6 +90,23 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+        """
+        Doc string for this one.
+        Parameters
+        ----------
+        plot : bool
+                If true, the output will be displayed in a figure. This figure will also be saved.
+        save : bool
+                If true, the data from the analysis will be saved in the sql database
+        data_range : int
+                Default to 1 for this analysis
+        export : bool
+                If tue, csv files will be dumped after the analysis.
+
+        Returns
+        -------
+
+        """
         self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
 
         out = self.run_analysis()

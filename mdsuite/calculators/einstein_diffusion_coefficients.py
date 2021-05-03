@@ -48,14 +48,8 @@ class EinsteinDiffusionCoefficients(Calculator):
     ----------
     experiment :  object
             Experiment class to call from
-    plot : bool
-            if true, plot the tensor_values
     species : list
             Which species to perform the analysis on
-    data_range :
-            Number of configurations to use in each ensemble
-    save :
-            If true, tensor_values will be saved after the analysis
     x_label : str
             X label of the tensor_values when plotted
     y_label : str
@@ -64,9 +58,14 @@ class EinsteinDiffusionCoefficients(Calculator):
             Name of the analysis
     loaded_property : str
             Property loaded from the database_path for the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
     def __init__(self, experiment):
@@ -76,16 +75,6 @@ class EinsteinDiffusionCoefficients(Calculator):
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        optimize : bool
-                If true, the tensor_values range will be optimized
         """
 
         super().__init__(experiment)

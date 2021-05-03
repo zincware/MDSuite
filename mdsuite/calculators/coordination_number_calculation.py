@@ -43,10 +43,6 @@ class CoordinationNumbers(Calculator):
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
@@ -59,10 +55,6 @@ class CoordinationNumbers(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
-    data_files : list
-                        list of files to be analyzed.
     rdf = None : list
                         rdf tensor_values being studied.
     radii = None : list
@@ -73,6 +65,14 @@ class CoordinationNumbers(Calculator):
                         A list of species combinations being studied.
     indices : list
                         A list of indices which correspond to to correct coordination numbers.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.CoordinationNumbers(savgol_order = 2, savgol_window_length = 17)
     """
 
     def __init__(self, experiment):
@@ -83,14 +83,6 @@ class CoordinationNumbers(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
-        data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
         """
 
         super().__init__(experiment)

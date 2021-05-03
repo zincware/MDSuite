@@ -51,6 +51,16 @@ class AngularDistributionFunction(Calculator, ABC):
         activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
         may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
         so this might only be useful for a larger number of batches.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.AngularDistributionFunction(n_confs = 100, r_cut = 3.2, batch_size = 10,
+                                                           n_minibatches = 50, start = 0, stop = 200,
+                                                           bins = 100, use_tf_function = False)
     """
 
     def __init__(self, experiment):
@@ -59,24 +69,8 @@ class AngularDistributionFunction(Calculator, ABC):
 
         Parameters
         ----------
-        batch_size : int
-            Number of batches, to split the configurations into.
-        n_minibatches: int
-            Number of minibatches for computing the angles to split each batch into
-        n_confs: int
-            Number of configurations to analyse
-        r_cut: float
-            cutoff radius for the ADF
-        start: int
-            Index of the first configuration
-        stop: int
-            Index of the last configuration
-        bins: int
-            bins for the ADF
-        use_tf_function: bool, default False
-            activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
-            may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
-            so this might only be useful for a larger number of batches.
+        experiment : object
+                Experiment object from which to take attributes.
         """
         super().__init__(experiment)
         self.experiment = experiment
@@ -106,6 +100,31 @@ class AngularDistributionFunction(Calculator, ABC):
     def __call__(self, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
                  r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
                  export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
+        """
+        Parameters
+        ----------
+        batch_size : int
+            Number of batches, to split the configurations into.
+        n_minibatches: int
+            Number of minibatches for computing the angles to split each batch into
+        n_confs: int
+            Number of configurations to analyse
+        r_cut: float
+            cutoff radius for the ADF
+        start: int
+            Index of the first configuration
+        stop: int
+            Index of the last configuration
+        bins: int
+            bins for the ADF
+        use_tf_function: bool, default False
+            activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
+            may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
+            so this might only be useful for a larger number of batches.
+        Returns
+        -------
+
+        """
         self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
 
         self.use_tf_function = use_tf_function

@@ -68,11 +68,17 @@ class RadialDistributionFunction(Calculator, ABC):
             Name of the analysis
     loaded_property : str
             Property loaded from the database_path for the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.AngularDistributionFunction(number_of_configurations = 500, minibatch = 0, start = 0,
+                                                           stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
     def __init__(self, experiment):
@@ -84,20 +90,6 @@ class RadialDistributionFunction(Calculator, ABC):
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        x_label : str
-                X label of the tensor_values when plotted
-        y_label : str
-                Y label of the tensor_values when plotted
-        analysis_name : str
-                Name of the analysis
-        minibatch: int, default None
-            Size of a individual minibatch, if set. By default minibatching is not applied
         """
         super().__init__(experiment)
         self.experiment = experiment

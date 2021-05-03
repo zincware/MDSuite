@@ -35,6 +35,7 @@ from mdsuite.database.database_scheme import SystemProperty
 
 log = logging.getLogger(__file__)
 
+
 class StructureFactor(Calculator):
     """ Class for the calculation of the total structure factor for X-ray scattering
         using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
@@ -48,14 +49,6 @@ class StructureFactor(Calculator):
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
-
-    data_range : int (default=500)
-                        Range over which the property should be evaluated. This is not applicable to the current
-                        analysis as the full rdf will be calculated.
     x_label : str
                         How to label the x axis of the saved plot.
     y_label : str
@@ -64,14 +57,25 @@ class StructureFactor(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
                         rdf tensor_values being studied.
     radii = None : list
                         radii tensor_values corresponding to the rdf.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.StructureFactor()
+
+    Notes
+    -----
+    In order to use the structure factor calculator both the masses and the charges of each species must be present.
+    If they are not correct, the structure factor will not work.
     """
 
     def __init__(self, experiment):
@@ -82,20 +86,6 @@ class StructureFactor(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
-        data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
-        x_label : str
-                            How to label the x axis of the saved plot.
-        y_label : str
-                            How to label the y axis of the saved plot.
-        analysis_name : str
-                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
         super().__init__(experiment)
@@ -110,7 +100,7 @@ class StructureFactor(Calculator):
         self.database_group = 'structure_factor'
         self.x_label = r'Q ($\AA ^{-1}$)'
         self.y_label = r'S(Q)'
-        self.analysis_name = 'total_structure_dactor'
+        self.analysis_name = 'total_structure_factor'
 
         self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
                                                       self.experiment.box_array[1] * self.experiment.box_array[2])
@@ -123,7 +113,6 @@ class StructureFactor(Calculator):
         out = self.run_analysis()
 
         self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
 
         return out
 
