@@ -114,8 +114,6 @@ class IonicCurrent(Transformations):
                 species = species_string.split('/')[0]
                 # Build the charge tensor for assignment
                 charge = self.experiment.species[species]['charge'][0]
-                print(species)
-                print(f"Charge: {charge}")
                 charge_tensor = tf.ones(shape=(data[str.encode('data_size')], 3), dtype=tf.float64) * charge
                 system_current += tf.reduce_sum(data[item] * charge_tensor, axis=0)
 
