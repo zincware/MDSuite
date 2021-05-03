@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
@@ -31,14 +41,8 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     ----------
     experiment :  object
             Experiment class to call from
-    plot : bool
-            if true, plot the tensor_values
     species : list
             Which species to perform the analysis on
-    data_range :
-            Number of configurations to use in each ensemble
-    save :
-            If true, tensor_values will be saved after the analysis
     x_label : str
             X label of the tensor_values when plotted
     y_label : str
@@ -47,13 +51,17 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             Name of the analysis
     loaded_property : str
             Property loaded from the database_path for the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.EinsteinDistinctDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, export: bool = False,  atom_selection: dict = np.s_[:], gpu: bool = False):
+    def __init__(self, experiment):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -61,21 +69,11 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
         """
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time, export=export,
-                         atom_selection=atom_selection, gpu=gpu)
+        super().__init__(experiment)
 
         self.scale_function = {'linear': {'scale_factor': 10}}
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
-        self.species = species  # Which species to calculate for
 
         self.database_group = 'Diffusion_Coefficients'
         self.x_label = 'Time $(s)$'
@@ -89,6 +87,38 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             self.species = list(self.experiment.species)
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+
+    def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
+                 correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
+        """
+        Constructor for the Green Kubo diffusion coefficients class.
+
+        Attributes
+        ----------
+        plot : bool
+                if true, plot the tensor_values
+        species : list
+                Which species to perform the analysis on
+        data_range :
+                Number of configurations to use in each ensemble
+        save :
+                If true, tensor_values will be saved after the analysis
+        """
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              atom_selection=atom_selection, export=export, gpu=gpu)
+
+        self.species = species  # Which species to calculate for
+        self.msd_array = np.zeros(self.data_range)  # define empty msd array
+        self.species = species  # Which species to calculate for
+        if self.species is None:
+            self.species = list(self.experiment.species)
+
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+
+        out = self.run_analysis()
+        self.experiment.save_class()
+
+        return out
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """

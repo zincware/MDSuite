@@ -18,6 +18,7 @@ hear from our users.
    installation
    theory_introduction
    user_guide
+   quickstart
    modules_and_classes
    _architecture/data_structures
    tools

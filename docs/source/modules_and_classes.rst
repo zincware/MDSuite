@@ -13,6 +13,7 @@ Software architecture
    _architecture/project
    _architecture/analysis
    _architecture/experiment
+   _architecture/memory_management
 
 Calculators
 ----------------
@@ -32,7 +33,6 @@ Calculators
    _calculators/potential_of_mean_force
    _calculators/radial_distribution_function
    _calculators/structure_factor
-   _calculators/flux_analyses
 
 Transformations
 ---------------

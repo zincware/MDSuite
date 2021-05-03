@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for the calculation of the radial distribution function.
 
 Author: Samuel Tovey, Fabian Zills
@@ -32,6 +42,8 @@ from timeit import default_timer as timer
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
+log = logging.getLogger(__file__)
+
 
 class RadialDistributionFunction(Calculator, ABC):
     """
@@ -55,38 +67,32 @@ class RadialDistributionFunction(Calculator, ABC):
             Name of the analysis
     loaded_property : str
             Property loaded from the database_path for the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
     minibatch: int, default None
             Size of a individual minibatch, if set. By default minibatching is not applied
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.AngularDistributionFunction(number_of_configurations = 500, minibatch = 0, start = 0,
+                                                           stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
-                 images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
+    def __init__(self, experiment):
+        # TODO move all arguments from the __init__ to __call__ except for those, that are independent of user input,
+        #  e.g. experiment
         """
 
         Attributes
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        x_label : str
-                X label of the tensor_values when plotted
-        y_label : str
-                Y label of the tensor_values when plotted
-        analysis_name : str
-                Name of the analysis
-        minibatch: int, default None
-            Size of a individual minibatch, if set. By default minibatching is not applied
         """
-        super().__init__(experiment, plot, save, data_range=data_range, export=export, gpu=gpu)
+        super().__init__(experiment)
+        self.experiment = experiment
+
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
 
         self.loaded_property = 'Positions'  # Which database_path property to load
@@ -95,8 +101,71 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
+        # self.system_property = "RDF"
         self.experimental = True
 
+        # Arguments set by the user in __call__
+        self.number_of_bins = None  # Number of number_of_bins to use in the histogram
+        self.cutoff = None  # Cutoff for the RDF
+        self.images = None  # number of images to include
+        self.start = None  # Which configuration to start at
+        self.stop = None  # Which configuration to stop at
+        self.number_of_configurations = None  # Number of configurations to use
+        self.molecules = None
+        self.minibatch = None
+        self.use_tf_function = None
+
+        self.override_n_batches = None
+
+        # variables generated from user input in __call__
+        self.index_list = None
+        self.bin_range = [0, self.cutoff]  # set the bin range
+        self.sample_configurations = None
+        self.key_list = None  # Select combinations
+        self.rdf = None  # instantiate the rdf tuples
+
+    def __call__(self, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
+                 images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
+                 minibatch: int = 5000, molecules: bool = False, gpu: bool = False, **kwargs):
+        """Compute the RDF with the given user parameters
+
+        Parameters
+        ----------
+        plot: bool
+            Plot the RDF after the computation
+        number_of_bins: int
+            The number of bins for the RDF histogram
+        cutoff: float
+            The cutoff value for the RDF. Default is half the box size
+        save: bool
+            save the data
+        data_range: int
+            TODO
+        images # TODO
+        start: int
+            Starting position in the database. All values before start will be ignored.
+        stop: int
+            Stopping position in the database. All values after stop will be ignored.
+        number_of_configurations: int
+            The number of uniformly sampled configuration between start and stop to be used for the RDF.
+        export: bool
+            TODO
+        minibatch: int
+            Size of a minibatch over atoms in the batch over configurations. Decrease this value if you run into memory
+            issues. Increase this value for better performance.
+        molecules: bool
+            TODO
+        gpu: bool
+            Calculate batch size based on GPU memory instead of CPU memory
+        kwargs:
+            override_n_batches: int - override the automatic batch size calculation
+
+        Returns
+        -------
+
+        """
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export, gpu=gpu)
+        # User Arguments
         self.number_of_bins = number_of_bins  # Number of number_of_bins to use in the histogram
         self.cutoff = cutoff  # Cutoff for the RDF
         self.images = images  # number of images to include
@@ -111,7 +180,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Perform checks
         if stop is None:
-            self.stop = experiment.number_of_configurations - 1
+            self.stop = self.experiment.number_of_configurations - 1
 
         if self.cutoff is None:
             self.cutoff = self.experiment.box_array[0] / 2  # set cutoff to half box size if none set
@@ -134,7 +203,14 @@ class RadialDistributionFunction(Calculator, ABC):
                          list(itertools.combinations_with_replacement(self.index_list, r=2))]  # Select combinations
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
-        self.log = logging.getLogger(__name__)
+        out = self.run_analysis()
+
+        # TODO auto number_of_configurations  / bin_range
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _get_ideal_gas_probability(self) -> float:
         """
@@ -425,7 +501,7 @@ class RadialDistributionFunction(Calculator, ABC):
         update the class state
         """
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-            self.log.debug('Loading Data')
+            log.debug('Loading Data')
             if self.molecules:
                 if len(self.experiment.molecules) == 1:
                     positions = [self._load_positions(i)]  # Load the batch of positions
@@ -436,7 +512,7 @@ class RadialDistributionFunction(Calculator, ABC):
                     positions = [self._load_positions(i)]  # Load the batch of positions
                 else:
                     positions = self._load_positions(i)  # Load the batch of positions
-            self.log.debug('Finished data loading.')
+            log.debug('Finished data loading.')
 
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
             positions_tensor = tf.transpose(positions_tensor, (1, 0, 2))  # Change to (time steps, n_atoms, coords)
@@ -449,7 +525,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 self.rdf[names] += np.array(self._bin_data(distance_tensor, bin_range=self.bin_range,
                                                            nbins=self.number_of_bins), dtype=float)
 
-            self.log.debug('Finished RDF computation')
+            log.debug('Finished RDF computation')
 
     def _calculate_prefactor(self, species: str) -> float:
         """
@@ -503,13 +579,20 @@ class RadialDistributionFunction(Calculator, ABC):
 
             self.data_range = self.number_of_configurations
             if self.save:
-                self._save_data(name=self._build_table_name(names),
-                                data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                  self.rdf.get(names)))
+                data = [{"x": x, "y": y} for x, y in
+                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
+                log.debug("Writing RDF to database!")
+                self._update_properties_file({
+                    "Property": "RDF",
+                    "Analysis": self.analysis_name,
+                    "subjects": names.split("_"),
+                    "data_range": self.data_range,
+                    "data": data
+                })
             if self.export:
                 self._export_data(name=self._build_table_name(names),
                                   data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                  self.rdf.get(names)))
+                                                                    self.rdf.get(names)))
 
         self.experiment.radial_distribution_function_state = True  # update the state
 
@@ -517,7 +600,7 @@ class RadialDistributionFunction(Calculator, ABC):
         """
         Perform the rdf analysis
         """
-        self.log.info('Starting RDF Calculation')
+        log.info('Starting RDF Calculation')
 
         if self.batch_size > self.number_of_configurations:
             self.batch_size = self.number_of_configurations
@@ -665,25 +748,25 @@ class RadialDistributionFunction(Calculator, ABC):
         execution_time = 0
 
         for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-            self.log.debug('Loading Data')
+            log.debug('Loading Data')
             if len(self.experiment.species) == 1:
                 positions = [self._load_positions(i)]  # Load the batch of positions
             else:
                 positions = self._load_positions(i)  # Load the batch of positions
             positions_tensor = tf.concat(positions, axis=0)  # Combine all elements in one tensor
-            self.log.debug('Data loaded - creating dataset')
+            log.debug('Data loaded - creating dataset')
             per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
             # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
 
             n_atoms = tf.shape(positions_tensor)[0]
-            self.log.debug('Starting calculation')
+            log.debug('Starting calculation')
             start = timer()
             self.rdf = run_minibatch_loop()
             execution_time += timer() - start
-            self.log.debug('Calculation done')
+            log.debug('Calculation done')
 
         self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
-        self.log.debug(f"RDF execution time: {execution_time} s")
+        log.debug(f"RDF execution time: {execution_time} s")
 
     def _apply_operation(self, data, index):
         """

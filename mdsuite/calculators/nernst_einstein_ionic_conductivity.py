@@ -1,4 +1,14 @@
-""" Calculate the Nernst-Einstein Conductivity of a experiment """
+"""
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+""" Calculate the Nernst-Einstein Conductivity of a system """
 
 import numpy as np
 import os
@@ -13,10 +23,18 @@ from mdsuite.utils.units import boltzmann_constant, elementary_charge
 class NernstEinsteinIonicConductivity(Calculator):
     """
     Class for the calculation of the Nernst-Einstein ionic conductivity
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.NernstEinsteinIonicConductivity()
+
     """
 
-    def __init__(self, experiment, corrected: bool = False, plot: bool = False, data_range: int = 1,
-                 export: bool = False, species: list = None):
+    def __init__(self, experiment):
         """
         Standard constructor
 
@@ -24,20 +42,38 @@ class NernstEinsteinIonicConductivity(Calculator):
         ----------
         experiment : Experiment
                 Experiment class from which to read
+        """
+        super().__init__(experiment)
+        self.post_generation = True
+
+        self.database_group = "Ionic_Conductivity"
+
+    def __call__(self, corrected: bool = False, plot: bool = False, data_range: int = 1,
+                 export: bool = False, species: list = None, save: bool = True):
+        """
+        Standard constructor
+
+        Parameters
+        ----------
         corrected : bool
                 If true, the corrected Nernst Einstein will also be calculated
         """
-        super().__init__(experiment, plot=plot, save=False, data_range=data_range, export=export)
+        self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
-        self.post_generation = True
         self.data = self._load_data()  # tensor_values to be read in
         self.truth_table = self._build_truth_table()  # build truth table for analysis
 
-        self.database_group = "Ionic_Conductivity"
         if species is None:
             self.species = list(self.experiment.species)
         else:
             self.species = species
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _load_data(self):
         """
@@ -172,10 +208,10 @@ class NernstEinsteinIonicConductivity(Calculator):
             data = self._nernst_einstein(input_data)
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": f"System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          'data': data[0],
-                          'uncertainty': data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if ne_table[1]:
@@ -183,12 +219,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Einstein_Self_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._nernst_einstein(input_data)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Einstein_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": "System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          "data": data[0],
-                          "uncertainty": data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if not any(ne_table):
@@ -214,12 +251,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Green_Kubo_Distinct_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Corrected_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": f"System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          'data': data[0],
-                          'uncertainty': data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
         if cne_table[1]:
@@ -230,12 +268,13 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "Analysis": "Einstein_Distinct_Diffusion_Coefficients",
                                                                 "Subject": species})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
+
             properties = {"Property": self.database_group,
                           "Analysis": "Einstein_Corrected_Nernst_Einstein_Ionic_Conductivity",
-                          "Subject": "System",
+                          "Subject": ['System'],
                           "data_range": data[2],
-                          "data": data[0],
-                          "uncertainty": data[1]}
+                          'data': [{'x': data[0], "uncertainty": data[1]}]
+                          }
             self._update_properties_file(properties)
 
     def run_post_generation_analysis(self):

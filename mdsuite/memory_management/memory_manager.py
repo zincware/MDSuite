@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for memory management in MDSuite operations.
 """
 
@@ -20,12 +30,31 @@ class MemoryManager:
     be instantiated during any operation so it can update the operation on what the current memory capabilities are.
 
     The class can work with several tensor_values-sets in the case an analysis requires this much tensor_values.
+
+    Attributes
+    ----------
+    data_path : list
+    database : Database
+    parallel : bool
+    memory_fraction : float
+    scale_function : dict
+    gpu : bool
     """
 
     def __init__(self, data_path: list = None, database: Database = None, parallel: bool = False,
-                 memory_fraction: float = 0.2, scale_function: dict = None, gpu: bool = False):
+                 memory_fraction: float = 0.2, scale_function: dict = None, gpu: bool = False, offset: int = 0):
         """
-        Constructor for the memory management class
+        Constructor for the memory manager.
+
+        Parameters
+        ----------
+        data_path : list
+        database : Database
+        parallel : bool
+        memory_fraction : float
+        scale_function : dict
+        gpu : bool
+        offset : int
         """
         if scale_function is None:
             scale_function = {'linear': {'scale_factor': 10}}
@@ -33,6 +62,7 @@ class MemoryManager:
         self.parallel = parallel
         self.database = database
         self.memory_fraction = memory_fraction
+        self.offset = offset
 
         self.machine_properties = get_machine_properties()
         if gpu:
@@ -53,7 +83,6 @@ class MemoryManager:
         self.n_atom_batches = None
         self.atom_remainder = None
         self.minibatch = False
-
         self.scale_function, self.scale_function_parameters = self._select_scale_function(scale_function)
 
     @staticmethod
@@ -128,9 +157,9 @@ class MemoryManager:
             per_configuration_memory += (n_bytes / n_columns)
         per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
         maximum_loaded_configurations = int(np.clip((self.memory_fraction * self.machine_properties['memory']) /
-                                                    per_configuration_memory, 1, n_columns))
+                                                    per_configuration_memory, 1, n_columns - self.offset))
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        number_of_batches = int(n_columns / batch_size)
+        number_of_batches = int((n_columns - self.offset) / batch_size)
         remainder = int(n_columns % batch_size)
         self.batch_size = batch_size
         self.n_batches = number_of_batches

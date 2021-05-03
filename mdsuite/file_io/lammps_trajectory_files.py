@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Module for reading lammps trajectory files
 
 Summary
@@ -214,6 +224,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
 
         else:
             self.experiment.batch_size = batch_size
-
+            self.experiment.number_of_configurations += number_of_configurations
 
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

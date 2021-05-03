@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Python module to calculate the Kinaci integrated heat current in a experiment.
 """
 import time
@@ -6,7 +16,7 @@ import time
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
+from typing import Tuple
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -19,6 +29,8 @@ class KinaciIntegratedHeatCurrent(Transformations):
     ----------
     experiment : object
             Experiment this transformation is attached to.
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object):
@@ -33,13 +45,14 @@ class KinaciIntegratedHeatCurrent(Transformations):
         super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
-    def _transformation(self, data: tf.Tensor, cumul_integral, batch_size):
+    def _transformation(self, data: tf.Tensor, cumul_integral, batch_size) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Calculate the integrated thermal current of the system.
 
         Returns
         -------
-        Integrated heat current
+        Integrated heat current : tf.Tensor
+                The values for the integrated heat current.
         """
         integral = tf.tile(cumul_integral, (1, batch_size))
         system_current = tf.zeros((batch_size, 3), dtype=tf.float64)
@@ -62,13 +75,14 @@ class KinaciIntegratedHeatCurrent(Transformations):
         cumul_integral = tf.expand_dims(integral[:, -1], axis=1)
         return system_current, cumul_integral
 
-    def _prepare_database_entry(self):
+    def _prepare_database_entry(self) -> dict:
         """
         Add the relevant tensor_values sets and groups in the database_path
 
         Returns
         -------
-        tensor_values structure for use in saving the tensor_values to the database_path.
+        data_structure:
+                tensor_values structure for use in saving the tensor_values to the database_path.
         """
 
         number_of_configurations = self.experiment.number_of_configurations
@@ -84,7 +98,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
         Loop over batches and compute the dipole moment
         Returns
         -------
-
+        Updates the simulation database
         """
         data_structure = self._prepare_database_entry()
         type_spec = {}
@@ -123,7 +137,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
         Run the ionic current transformation
         Returns
         -------
-
+        Nothing.
         """
         self._compute_thermal_flux()  # run the transformation.
         self.experiment.memory_requirements = self.database.get_memory_information()
