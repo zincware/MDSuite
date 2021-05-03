@@ -111,10 +111,34 @@ class Calculator(metaclass=abc.ABCMeta):
         self.analysis_name: str
         self.minibatch: bool
 
-        # Prevent $DISPLAY variable warnings on clusters.
+        self.x_label: str  # x label of the figure
+        self.y_label: str  # y label of the figure
+        self.analysis_name: str  # what to save the figure as
+
+        self.database_group = None  # Which database_path group to save the tensor_values in
+        self.analysis_name = None
+        self.time = None
+
+        # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:
             import matplotlib
             matplotlib.use('Agg')
+
+    def update_user_args(self, plot: bool = True, save: bool = True, data_range: int = 500,
+                         correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True,
+                         gpu: bool = False):
+        """Update the user args that are given by the __call__ method of the calculator"""
+        self.data_range = data_range  # Data range over which to evaluate
+        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
+        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+        self.export = export  # Whether or not to export the data
+        self.gpu = gpu
+        self.correlation_time = correlation_time  # correlation time of the property
+        self.atom_selection = atom_selection
+
+        # attributes based on user args
+        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                self.data_range)
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):

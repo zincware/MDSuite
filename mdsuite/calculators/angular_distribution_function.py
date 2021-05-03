@@ -22,7 +22,9 @@ from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, 
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
 
-log = logging.getLogger(__file__)
+from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class AngularDistributionFunction(Calculator, ABC):
@@ -49,14 +51,56 @@ class AngularDistributionFunction(Calculator, ABC):
         activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
         may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
         so this might only be useful for a larger number of batches.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.AngularDistributionFunction(n_confs = 100, r_cut = 3.2, batch_size = 10,
+                                                           n_minibatches = 50, start = 0, stop = 200,
+                                                           bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
-                 r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
-                 export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
+    def __init__(self, experiment):
         """
         Compute the Angular Distribution Function for all species combinations
 
+        Parameters
+        ----------
+        experiment : object
+                Experiment object from which to take attributes.
+        """
+        super().__init__(experiment)
+        self.experiment = experiment
+        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+
+        self.use_tf_function = None
+        self.loaded_property = 'Positions'
+        self.r_cut = None
+        self.start = None
+        self.molecules = None
+        self.experimental = True
+        self.stop = None
+
+        self.n_confs = None
+        self.bins = None
+        self.bin_range = [0.0, 3.15]  # from 0 to pi -. ??? 3.1415 -> 3.15 = failed rounding. I rounding up here, to
+        # get a nice plot. If I would go down it would cut off some values.
+        self._batch_size = None  # memory management for all batches
+        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
+        self.n_minibatches = None  # memory management for triples generation per batch.
+
+        self.analysis_name = "Angular_Distribution_Function"
+        self.database_group = "Angular_Distribution_Function"
+        self.x_label = r'Angle ($\theta$)'
+        self.y_label = 'ADF /a.u.'
+
+    def __call__(self, batch_size: int = 1, n_minibatches: int = 50, n_confs: int = 5,
+                 r_cut: int = 6.0, start: int = 1, stop: int = None, bins: int = 500, use_tf_function: bool = False,
+                 export: bool = False, molecules: bool = False, gpu: bool = False, plot: bool = True):
+        """
         Parameters
         ----------
         batch_size : int
@@ -77,18 +121,18 @@ class AngularDistributionFunction(Calculator, ABC):
             activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
             may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
             so this might only be useful for a larger number of batches.
+        Returns
+        -------
+
         """
-        super().__init__(experiment, data_range=1, export=export, gpu=gpu, plot=plot)
-        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
+        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
 
         self.use_tf_function = use_tf_function
-        self.loaded_property = 'Positions'
         self.r_cut = r_cut
         self.start = start
         self.molecules = molecules
-        self.experimental = True
         if stop is None:
-            self.stop = experiment.number_of_configurations - 1
+            self.stop = self.experiment.number_of_configurations - 1
         else:
             self.stop = stop
         self.n_confs = n_confs
@@ -99,12 +143,11 @@ class AngularDistributionFunction(Calculator, ABC):
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
 
-        self.analysis_name = "Angular_Distribution_Function"
-        self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'Angle ($\theta$)'
-        self.y_label = 'ADF /a.u.'
+        out = self.run_analysis()
 
-        self.log = logging.getLogger(__name__)
+        self.experiment.save_class()
+
+        return out
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
@@ -172,7 +215,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
 
-        self.log.debug(f'batch_size: {self._batch_size}')
+        log.debug(f'batch_size: {self._batch_size}')
 
         for positions in tqdm(dataset, total=self.n_confs):
             timesteps, atoms, _ = tf.shape(positions)

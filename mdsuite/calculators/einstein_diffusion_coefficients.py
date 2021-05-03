@@ -27,6 +27,8 @@ from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
 
+log = logging.getLogger(__name__)
+
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -46,14 +48,8 @@ class EinsteinDiffusionCoefficients(Calculator):
     ----------
     experiment :  object
             Experiment class to call from
-    plot : bool
-            if true, plot the tensor_values
     species : list
             Which species to perform the analysis on
-    data_range :
-            Number of configurations to use in each ensemble
-    save :
-            If true, tensor_values will be saved after the analysis
     x_label : str
             X label of the tensor_values when plotted
     y_label : str
@@ -62,52 +58,63 @@ class EinsteinDiffusionCoefficients(Calculator):
             Name of the analysis
     loaded_property : str
             Property loaded from the database_path for the analysis
-    correlation_time : int
-            Correlation time of the property being studied. This is used to ensure ensemble sampling is only performed
-            on uncorrelated samples. If this is true, the error extracted form the calculation will be correct.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
-                 molecules: bool = False, gpu: bool = False):
+    def __init__(self, experiment):
         """
 
         Parameters
         ----------
         experiment :  object
                 Experiment class to call from
-        plot : bool
-                if true, plot the tensor_values
-        species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        optimize : bool
-                If true, the tensor_values range will be optimized
         """
 
-        super().__init__(experiment, plot, save, data_range, correlation_time=correlation_time,
-                         atom_selection=atom_selection, export=export, gpu=gpu)
+        super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 50}}
         self.loaded_property = 'Unwrapped_Positions'
-        self.species = species
-        self.molecules = molecules
+        self.species = None
+        self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
         self.x_label = 'Time (s)'
         self.y_label = 'MSD (m$^2$/s)'
         self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
         self.loop_condition = False
+        self.optimize = None
+        self.msd_array = None  # define empty msd array
+        self.species = list()
+        log.info('starting Einstein Diffusion Computation')
+
+    def __call__(self, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
+                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
+                 molecules: bool = False, gpu: bool = False):
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              atom_selection=atom_selection, export=export, gpu=gpu)
+        self.species = species
+        self.molecules = molecules
         self.optimize = optimize
+        # attributes based on user args
         self.msd_array = np.zeros(self.data_range)  # define empty msd array
+
         if species is None:
             if molecules:
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
 
-        log.info('starting Einstein Diffusion Computation')
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _update_output_signatures(self):
         """

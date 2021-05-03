@@ -8,7 +8,7 @@ SPDX-License-Identifier: EPL-2.0
 Copyright Contributors to the MDSuite Project.
 """
 
-""" Calculate the Nernst-Einstein Conductivity of a experiment """
+""" Calculate the Nernst-Einstein Conductivity of a system """
 
 import numpy as np
 import os
@@ -23,10 +23,18 @@ from mdsuite.utils.units import boltzmann_constant, elementary_charge
 class NernstEinsteinIonicConductivity(Calculator):
     """
     Class for the calculation of the Nernst-Einstein ionic conductivity
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.NernstEinsteinIonicConductivity()
+
     """
 
-    def __init__(self, experiment, corrected: bool = False, plot: bool = False, data_range: int = 1,
-                 export: bool = False, species: list = None):
+    def __init__(self, experiment):
         """
         Standard constructor
 
@@ -34,20 +42,38 @@ class NernstEinsteinIonicConductivity(Calculator):
         ----------
         experiment : Experiment
                 Experiment class from which to read
+        """
+        super().__init__(experiment)
+        self.post_generation = True
+
+        self.database_group = "Ionic_Conductivity"
+
+    def __call__(self, corrected: bool = False, plot: bool = False, data_range: int = 1,
+                 export: bool = False, species: list = None, save: bool = True):
+        """
+        Standard constructor
+
+        Parameters
+        ----------
         corrected : bool
                 If true, the corrected Nernst Einstein will also be calculated
         """
-        super().__init__(experiment, plot=plot, save=False, data_range=data_range, export=export)
+        self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
-        self.post_generation = True
         self.data = self._load_data()  # tensor_values to be read in
         self.truth_table = self._build_truth_table()  # build truth table for analysis
 
-        self.database_group = "Ionic_Conductivity"
         if species is None:
             self.species = list(self.experiment.species)
         else:
             self.species = species
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _load_data(self):
         """

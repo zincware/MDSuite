@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
+
 plt.rcParams['figure.facecolor'] = 'white'
 from typing import Union
 
@@ -34,6 +35,7 @@ from mdsuite.database.database_scheme import SystemProperty
 
 log = logging.getLogger(__file__)
 
+
 class StructureFactor(Calculator):
     """ Class for the calculation of the total structure factor for X-ray scattering
         using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
@@ -47,14 +49,6 @@ class StructureFactor(Calculator):
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
-
-    data_range : int (default=500)
-                        Range over which the property should be evaluated. This is not applicable to the current
-                        analysis as the full rdf will be calculated.
     x_label : str
                         How to label the x axis of the saved plot.
     y_label : str
@@ -63,17 +57,28 @@ class StructureFactor(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
                         rdf tensor_values being studied.
     radii = None : list
                         radii tensor_values corresponding to the rdf.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.StructureFactor()
+
+    Notes
+    -----
+    In order to use the structure factor calculator both the masses and the charges of each species must be present.
+    If they are not correct, the structure factor will not work.
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False):
+    def __init__(self, experiment):
         """
         Python constructor for the class
 
@@ -81,23 +86,9 @@ class StructureFactor(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
-        data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
-        x_label : str
-                            How to label the x axis of the saved plot.
-        y_label : str
-                            How to label the y axis of the saved plot.
-        analysis_name : str
-                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
+        super().__init__(experiment)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -109,12 +100,21 @@ class StructureFactor(Calculator):
         self.database_group = 'structure_factor'
         self.x_label = r'Q ($\AA ^{-1}$)'
         self.y_label = r'S(Q)'
-        self.analysis_name = 'total_structure_dactor'
+        self.analysis_name = 'total_structure_factor'
 
         self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
                                                       self.experiment.box_array[1] * self.experiment.box_array[2])
         with open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
+
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+
+        return out
 
     def _get_rdf_data(self):
         """
@@ -181,7 +181,8 @@ class StructureFactor(Calculator):
         dictionary
         """
         for el in self.experiment.species:
-            self.experiment.species[el]['molar_fraction'] = len(self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
+            self.experiment.species[el]['molar_fraction'] = len(
+                self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
 
     def species_densities(self):
         """
@@ -189,9 +190,10 @@ class StructureFactor(Calculator):
         dictionary
         """
         for el in self.experiment.species:
-            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (self.experiment.box_array[0] *
-                                                                                                             self.experiment.box_array[1] *
-                                                                                                             self.experiment.box_array[2])
+            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (
+                        self.experiment.box_array[0] *
+                        self.experiment.box_array[1] *
+                        self.experiment.box_array[2])
 
     def average_atomic_form_factor(self, scattering_scalar):
         """

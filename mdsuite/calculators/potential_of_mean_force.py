@@ -43,18 +43,12 @@ class PotentialOfMeanForce(Calculator):
     """
     Class for the calculation of the potential of mean-force
 
-    The potential of mean-force is a measure of the binding strength between atomic species in a experiment. Mathematically
-    one may write
+    The potential of mean-force is a measure of the binding strength between atomic species in a experiment.
 
     Attributes
     ----------
     experiment : class object
                         Class object of the experiment.
-    plot : bool (default=True)
-                        Decision to plot the analysis.
-    save : bool (default=True)
-                        Decision to save the generated tensor_values arrays.
-
     data_range : int (default=500)
                         Range over which the property should be evaluated. This is not applicable to the current
                         analysis as the full rdf will be calculated.
@@ -66,8 +60,6 @@ class PotentialOfMeanForce(Calculator):
                         Name of the analysis. used in saving of the tensor_values and figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
-    data_directory : str
-                        The directory in which to find this tensor_values.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
@@ -76,12 +68,17 @@ class PotentialOfMeanForce(Calculator):
                         radii tensor_values corresponding to the rdf.
     species_tuple : list
                         A list of species combinations being studied.
-    pomf : list
-                        List of tensor_values of the potential of mean-force for the current analysis.
+
+    See Also
+    --------
+    mdsuite.calculators.calculator.Calculator class
+
+    Examples
+    --------
+    experiment.run_computation.PotentialOfMeanForce(savgol_order = 2, savgol_window_length = 17)
     """
 
-    def __init__(self, experiment, plot=True, save=True, data_range=1, export: bool = False,
-                 savgol_order: int = 2, savgol_window_length: int = 17):
+    def __init__(self, experiment):
         """
         Python constructor for the class
 
@@ -89,6 +86,28 @@ class PotentialOfMeanForce(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
+        """
+
+        super().__init__(experiment)
+        self.file_to_study = None
+        self.rdf = None
+        self.radii = None
+        self.species_tuple = None
+        self.pomf = None
+        self.indices = None
+        self.database_group = 'Potential_Of_Mean_Force'
+        self.x_label = r'r ($\AA$)'
+        self.y_label = r'$w^{(2)}(r)$'
+        self.analysis_name = 'Potential_of_Mean_Force'
+        self.post_generation = True
+
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False,
+                 savgol_order: int = 2, savgol_window_length: int = 17):
+        """
+        Python constructor for the class
+
+        Parameters
+        ----------
         plot : bool (default=True)
                             Decision to plot the analysis.
         save : bool (default=True)
@@ -97,29 +116,19 @@ class PotentialOfMeanForce(Calculator):
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
-        x_label : str
-                            How to label the x axis of the saved plot.
-        y_label : str
-                            How to label the y axis of the saved plot.
-        analysis_name : str
-                            Name of the analysis. used in saving of the tensor_values and figure.
         """
 
-        super().__init__(experiment, plot, save, data_range, export=export)
-        self.file_to_study = None                                             # RDF file being studied
-        self.data_files = []                                                  # array of the files in tensor_values directory
-        self.rdf = None                                                       # rdf being studied
-        self.radii = None                                                     # radii of the rdf
-        self.species_tuple = None                                             # Which species are being studied
-        self.pomf = None                                                      # potential of mean force array
-        self.indices = None                                                   # Indices of the pomf range
-        self.database_group = 'Potential_Of_Mean_Force'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = r'$w^{(2)}(r)$'
-        self.analysis_name = 'Potential_of_Mean_Force'
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        self.data_files = []
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
-        self.post_generation = True
+
+        out = self.run_analysis()
+
+        self.experiment.save_class()
+        # need to move save_class() to here, because it can't be done in the experiment any more!
+
+        return out
 
     def _get_rdf_data(self):
         """
