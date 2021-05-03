@@ -80,7 +80,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.experimental = True
 
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:]):
+                 correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
