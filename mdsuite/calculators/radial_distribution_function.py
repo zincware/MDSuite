@@ -41,7 +41,6 @@ from timeit import default_timer as timer
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
-log = logging.getLogger(__name__)
 
 log = logging.getLogger(__file__)
 
