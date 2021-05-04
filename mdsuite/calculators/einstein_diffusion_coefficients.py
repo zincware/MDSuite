@@ -78,7 +78,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 50}}
+        self.scale_function = {'linear': {'scale_factor': 150}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = None
         self.molecules = None

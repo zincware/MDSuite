@@ -8,4 +8,4 @@ about the code please see the :doc:`modules and classes <modules_and_classes>` d
     :maxdepth: 1
     :caption: Contents:
 
-    notebooks/bmim_bf4_example
+    _user_guide/bmim_bf4_example
