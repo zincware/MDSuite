@@ -5,6 +5,8 @@ from sqlalchemy import Column, Integer, String, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
+import numpy as np
+
 Base = declarative_base()
 
 
@@ -58,6 +60,20 @@ class SystemProperty(Base):
         self.data_range = data_range
         self.data = data
         self.information = information
+
+    def data_array(self) -> np.array:
+        """Convert the one-to-many relationship data into a numpy array
+
+        Returns
+        -------
+        np.array: all data converted to a numpy array with the shape (length, property) where a property contains the
+        4 dimensions (x, y, z, uncertainty)
+
+        """
+        data = []
+        for obj in self.data:
+            data.append([obj.x, obj.y, obj.z, obj.uncertainty])
+        return np.array(data)
 
 
 class Data(Base):
