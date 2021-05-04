@@ -191,7 +191,7 @@ class GreenKuboThermalConductivity(Calculator):
                           "Subject": ["System"],
                           "data_range": self.data_range,
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.jacf)],
-                          'information': "JACF Array"
+                          'information': "series"
                           }
             self._update_properties_file(properties)
         if self.export:

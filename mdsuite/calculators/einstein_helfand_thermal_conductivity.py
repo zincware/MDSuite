@@ -190,7 +190,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
                           "Subject": ["System"],
                           "data_range": self.data_range,
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "MSD Array"
+                          'information': "series"
                           }
             self._update_properties_file(properties)
 

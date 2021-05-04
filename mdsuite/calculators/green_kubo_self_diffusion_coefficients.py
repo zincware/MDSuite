@@ -213,7 +213,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                           "Subject": [species],
                           "data_range": self.data_range,
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.vacf)],
-                          'information': "VACF Array"
+                          'information': "series"
                           }
             self._update_properties_file(properties)
 

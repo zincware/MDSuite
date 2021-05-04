@@ -258,7 +258,7 @@ class PotentialOfMeanForce(Calculator):
                               "Subject": self.species_tuple.split('_'),
                               "data_range": self.data_range,
                               'data': [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)],
-                              'information': 'full data'
+                              'information': 'series'
                               }
                 self._update_properties_file(properties)
 

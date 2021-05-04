@@ -244,8 +244,7 @@ class CoordinationNumbers(Calculator):
             "subjects": self.species_tuple.split("_"),
             "data_range": self.data_range,
             "data": [{"x": idx, "y": shell, "uncertainty": uncertainty} for idx, shell, uncertainty in
-                     [[1, first_shell, first_shell_error], [2, second_shell, second_shell_error]]],
-            "information": "Mean Values"
+                     [[1, first_shell, first_shell_error], [2, second_shell, second_shell_error]]]
         })
 
         # actual data
@@ -256,7 +255,7 @@ class CoordinationNumbers(Calculator):
             "subjects": self.species_tuple.split("_"),
             "data_range": self.data_range,
             "data": data,
-            "information": "Full data"
+            "information": "series"
         })
 
         return first_shell, first_shell_error
