@@ -283,7 +283,7 @@ class Project:
 
         properties_dict = {}
         for item in experiments:
-            properties_dict[item] = self.experiments[item].export_property_data(parameters)
+            properties_dict[item] = self.experiments[item].export_property_data(parameters.copy())
 
         return properties_dict
 
