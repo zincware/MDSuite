@@ -10,14 +10,15 @@ Copyright Contributors to the MDSuite Project.
 
 """ Calculate the Nernst-Einstein Conductivity of a system """
 
-import numpy as np
-import os
-import yaml
+import logging
+
 import sys
 import operator
 from typing import Union
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
+
+log = logging.getLogger(__file__)
 
 
 class NernstEinsteinIonicConductivity(Calculator):
@@ -85,7 +86,7 @@ class NernstEinsteinIonicConductivity(Calculator):
                 A dictionary of tensor_values stored in the yaml file
         """
 
-        test = self.experiment.export_property_data({'Property': 'Diffusion_Coefficients'})
+        test = self.experiment.export_property_data({'property': 'Diffusion_Coefficients'})
         return test
 
     def _build_truth_table(self):
@@ -97,15 +98,15 @@ class NernstEinsteinIonicConductivity(Calculator):
         truth_table : list
                 A truth table communication which tensor_values is available for the analysis.
         """
-
-        case_1 = self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                       "Analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
-        case_2 = self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                       "Analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
-        case_3 = self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                       "Analysis": "Einstein_Self_Diffusion_Coefficients"})
-        case_4 = self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                       "Analysis": "Einstein_Distinct_Diffusion_Coefficients"})
+        log.warning('No support for different data ranges! This method always picks the first entry in the database!')
+        case_1 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                       "analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
+        case_2 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                       "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
+        case_3 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                       "analysis": "Einstein_Self_Diffusion_Coefficients"})
+        case_4 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                       "analysis": "Einstein_Distinct_Diffusion_Coefficients"})
         truth_table = [list(map(operator.not_, [not case_1, not case_2])),
                        list(map(operator.not_, [not case_3, not case_4]))]
         return truth_table
@@ -133,14 +134,15 @@ class NernstEinsteinIonicConductivity(Calculator):
         conductivity = 0.0
         uncertainty = 0.0
         for item in diffusion_information:
-            diffusion_coefficient = item['data']
-            diffusion_uncertainty = item['uncertainty']
-            species = item['Subject']
+            log.debug(f"Analysing: {item}")
+            diffusion_coefficient = item.data[0].x
+            diffusion_uncertainty = item.data[0].uncertainty
+            species = item.subjects[0].subject
             charge_term = self.experiment.species[species]['charge'][0] ** 2
             mass_fraction_term = len(self.experiment.species[species]['indices']) / self.experiment.number_of_atoms
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
             uncertainty += diffusion_uncertainty * charge_term * mass_fraction_term
-            data_range = item['data_range']
+            data_range = item.data_range
 
         return [prefactor * conductivity, prefactor * uncertainty, data_range]
 
@@ -202,9 +204,9 @@ class NernstEinsteinIonicConductivity(Calculator):
         """
         ne_table = [self.truth_table[0][0], self.truth_table[1][0]]
         if ne_table[0]:
-            input_data = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Green_Kubo_Self_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
+            input_data = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Green_Kubo_Self_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
             data = self._nernst_einstein(input_data)
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Nernst_Einstein_Ionic_Conductivity",
@@ -215,9 +217,9 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
         if ne_table[1]:
-            input_data = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Einstein_Self_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
+            input_data = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Einstein_Self_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
             data = self._nernst_einstein(input_data)
 
             properties = {"Property": self.database_group,
@@ -244,12 +246,12 @@ class NernstEinsteinIonicConductivity(Calculator):
         cne_table = [self.truth_table[0][1], self.truth_table[1][1]]
 
         if cne_table[0]:
-            input_self = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Green_Kubo_Self_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
-            input_distinct = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Green_Kubo_Distinct_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
+            input_self = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Green_Kubo_Self_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
+            input_distinct = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
 
             properties = {"Property": self.database_group,
@@ -261,12 +263,12 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
         if cne_table[1]:
-            input_self = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Einstein_Self_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
-            input_distinct = [self.experiment.export_property_data({'Property': 'Diffusion_Coefficients',
-                                                                "Analysis": "Einstein_Distinct_Diffusion_Coefficients",
-                                                                "Subject": species})[0] for species in self.species]
+            input_self = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Einstein_Self_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
+            input_distinct = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                                "analysis": "Einstein_Distinct_Diffusion_Coefficients",
+                                                                "subjects": [species]})[0] for species in self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
 
             properties = {"Property": self.database_group,

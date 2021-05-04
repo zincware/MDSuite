@@ -126,7 +126,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __call__(self, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
                  images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = 5000, molecules: bool = False, gpu: bool = False, **kwargs):
+                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
         """Compute the RDF with the given user parameters
 
         Parameters
@@ -173,7 +173,10 @@ class RadialDistributionFunction(Calculator, ABC):
         self.stop = stop  # Which configuration to stop at
         self.number_of_configurations = number_of_configurations  # Number of configurations to use
         self.molecules = molecules
-        self.minibatch = minibatch
+        if minibatch == -1:
+            self.minibatch = number_of_bins
+        else:
+            self.minibatch = minibatch
         self.use_tf_function = kwargs.pop("use_tf_function", False)
 
         self.override_n_batches = kwargs.get('batches')

@@ -14,6 +14,7 @@ Parent class for different analysis
 Summary
 -------
 """
+import logging
 
 import abc
 import random
@@ -35,6 +36,8 @@ from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
 
 from typing import Union
+
+log = logging.getLogger(__file__)
 
 
 class Calculator(metaclass=abc.ABCMeta):
@@ -684,10 +687,10 @@ class Calculator(metaclass=abc.ABCMeta):
         self._check_input()
         self._run_dependency_check()
         if self.experimental:
-            print("######")
-            print("This is an experimental calculator. It is provided as it can still be used, however, it may not be"
-                  "memory safe or completely accurate. Please see the documentation for more information.")
-            print("######")
+            log.warning("\n ########## \n "
+                     "This is an experimental calculator. It is provided as it can still be used, however, it may not be"
+                     " memory safe or completely accurate. \n Please see the documentation for more information. \n "
+                     "#########")
         if self.optimize:
             pass
         else:
