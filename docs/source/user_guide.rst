@@ -8,4 +8,5 @@ about the code please see the :doc:`modules and classes <modules_and_classes>` d
     :maxdepth: 1
     :caption: Contents:
 
+    _calculators/experimental_calculators
     _user_guide/bmim_bf4_example
