@@ -2,12 +2,12 @@
 MDSuite is a software designed specifically for the molecular dynamics community to enable fast, reliable, and simple 
 calculations from simulation data. 
 
-**NOTE:** This README is designed for the release. Anything PyPy related is not yet functioning as the code is in
+**NOTE:** This README is designed for the release. Anything PyPi related is not yet functioning as the code is in
 development.
 
 ## Installation
 There are several way to install MDSuite depending on what you would like from it. One can simply installing using 
-PyPy as **Not Currently available**
+PyPi as **Not Currently available**
 ```bash
 $ pip install mdsuite
 ```
@@ -37,6 +37,8 @@ features. Therefore, it is currently necessary to run ``pip install h5py --upgra
 installation. See https://github.com/tensorflow/tensorflow/issues/47303
 
 NOTE: to install tensorflow with GPU support, use CUDA 10.1 and cuDNN 7.6.5. 
+
+This has been written into the setup.py and so should NOT require any additional work 
 
 ## Documentation
 There is a live version of the documentation hosted [here](https://mdsuite.readthedocs.io/en/latest/).

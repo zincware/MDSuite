@@ -22,6 +22,7 @@ class PostInstallCommand(install):
         install.run(self)
         subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
 
+
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'requirements.txt')) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.
