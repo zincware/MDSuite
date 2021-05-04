@@ -11,6 +11,7 @@ Copyright Contributors to the MDSuite Project.
 """
 Python module for the tensor_values fetch class
 """
+import logging
 
 import sys
 import numpy as np
@@ -18,6 +19,8 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
+
+log = logging.getLogger(__file__)
 
 
 class DataManager:
@@ -93,11 +96,8 @@ class DataManager:
             """
             database = Database(name=database)
 
-            _remainder = [1 if remainder else 0][0]
-            if self.remainder == 0:
-                _remainder = 0
-            for batch in range(batch_number + _remainder):
-                start = int(batch*batch_size) + self.offset
+            for batch in range(batch_number + int(remainder)):
+                start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
                 if batch == batch_number:
@@ -136,12 +136,8 @@ class DataManager:
             """
             database = Database(name=database)
 
-            _remainder = [1 if remainder else 0][0]
-            if self.remainder == 0:
-                _remainder = 0
-
-            for batch in range(batch_number + _remainder):  # +1 for the remainder
-                start = int(batch*batch_size) + self.offset
+            for batch in range(batch_number + int(remainder)):  # +1 for the remainder
+                start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
@@ -171,22 +167,19 @@ class DataManager:
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             for atom_batch in tqdm(range(self.n_atom_batches + _atom_remainder),
                                    total=self.n_atom_batches + _atom_remainder):
-                atom_start = atom_batch*self.atom_batch_size
+                atom_start = atom_batch * self.atom_batch_size
                 atom_stop = atom_start + self.atom_batch_size
                 if atom_batch == self.n_atom_batches:
                     atom_stop = start + self.atom_remainder
-                _remainder = [1 if remainder else 0][0]
-                if self.remainder == 0:
-                    _remainder = 0
-                for batch in range(batch_number + _remainder):
-                    start = int(batch*batch_size) + self.offset
+                for batch in range(batch_number + int(remainder)):
+                    start = int(batch * batch_size) + self.offset
                     stop = int(start + batch_size)
                     data_size = tf.cast(batch_size, dtype=tf.int32)
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
                     if type(self.atom_selection) is dict:
-                        print("Atom selection is not available for mini-batched calculations")
+                        log.warning("Atom selection is not available for mini-batched calculations")
                         sys.exit(1)
                     else:
                         select_slice = np.s_[atom_start:atom_stop, start:stop]
@@ -194,6 +187,9 @@ class DataManager:
                                              select_slice=select_slice,
                                              dictionary=dictionary,
                                              d_size=data_size)
+
+        if self.remainder == 0:
+            remainder = False
 
         if system:
             return system_generator, args
@@ -239,7 +235,7 @@ class DataManager:
             None
             """
             for ensemble in range(ensemble_loop):
-                start = ensemble*correlation_time
+                start = ensemble * correlation_time
                 stop = start + data_range
                 yield data[:, start:stop]
 
@@ -262,7 +258,7 @@ class DataManager:
             None
             """
             for ensemble in range(ensemble_loop):
-                start = ensemble*correlation_time
+                start = ensemble * correlation_time
                 stop = start + data_range
                 yield data[start:stop]
 

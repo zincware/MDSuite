@@ -147,20 +147,6 @@ class Experiment:
         # there is a good chance, that the root logger is already defined so we have to make some changes to it!
         root = logging.getLogger()
 
-        try:
-            if not hasattr(root.handlers[0], 'baseFilename'):
-                # we remove all existing handlers, to avoid messages being written multiple times,
-                # but we only do this when it is not a file handler, because we define the file handler first, so we
-                # know that there already exist one and this might be a second experiment that has been loaded!
-                while root.hasHandlers():
-                    root.removeHandler(root.handlers[0])
-        except IndexError:
-            # No handlers available, so we have a new root handler
-            pass
-
-        root.setLevel(logging.DEBUG)  # <- seems to be the lowest possible loglevel so we set it to debug here!
-        # if we set it to info, we can not set the file oder stream to debug
-
         # Logging to the logfile
         file_handler = logging.FileHandler(filename=logfile)
         file_handler.setLevel(logging.INFO)  # <- file log loglevel
@@ -169,23 +155,6 @@ class Experiment:
         file_handler.setFormatter(formatter)
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
-
-        sys_handler = False
-        for handler in root.handlers:
-            if not hasattr(handler, 'baseFilename'):  # assume that  every handler is filehandler except for sys handler
-                sys_handler = True
-
-        if not sys_handler:
-            # Logging to the stdout (Terminal, Jupyter, ...)
-            stream_handler = logging.StreamHandler(sys.stdout)
-            stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
-
-            #formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
-            formatter = logging.Formatter('%(asctime)s - %(message)s')
-            stream_handler.setFormatter(formatter)
-            # attaching the stdout handler to the configured logging
-            root.addHandler(stream_handler)
-
         # get the file specific logger to get information where the log was written!
         self.log = logging.getLogger(__name__)
         self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
