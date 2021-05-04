@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Parent class for different analysis
 
 Summary
@@ -101,10 +111,33 @@ class Calculator(metaclass=abc.ABCMeta):
         self.analysis_name: str
         self.minibatch: bool
 
-        # Prevent $DISPLAY variable warnings on clusters.
+        self.x_label: str  # x label of the figure
+        self.y_label: str  # y label of the figure
+        self.analysis_name: str  # what to save the figure as
+
+        self.database_group = None  # Which database_path group to save the tensor_values in
+        self.analysis_name = None
+
+        # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:
             import matplotlib
             matplotlib.use('Agg')
+
+    def update_user_args(self, plot: bool = True, save: bool = True, data_range: int = 500,
+                         correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True,
+                         gpu: bool = False):
+        """Update the user args that are given by the __call__ method of the calculator"""
+        self.data_range = data_range  # Data range over which to evaluate
+        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
+        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
+        self.export = export  # Whether or not to export the data
+        self.gpu = gpu
+        self.correlation_time = correlation_time  # correlation time of the property
+        self.atom_selection = atom_selection
+
+        # attributes based on user args
+        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                                self.data_range)
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
@@ -296,7 +329,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
-                                            memory_fraction=0.5,
+                                            memory_fraction=0.8,
                                             scale_function=self.scale_function,
                                             gpu=self.gpu)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
@@ -480,12 +513,12 @@ class Calculator(metaclass=abc.ABCMeta):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict):
+    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
         database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-        database.add_data(parameters)
+        database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
         pass
@@ -650,7 +683,11 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         self._check_input()
         self._run_dependency_check()
-
+        if self.experimental:
+            print("######")
+            print("This is an experimental calculator. It is provided as it can still be used, however, it may not be"
+                  "memory safe or completely accurate. Please see the documentation for more information.")
+            print("######")
         if self.optimize:
             pass
         else:

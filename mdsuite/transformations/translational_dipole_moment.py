@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Python module to calculate the translational dipole in a experiment.
 """
 
@@ -18,6 +28,8 @@ class TranslationalDipoleMoment(Transformations):
     ----------
     experiment : object
             Experiment this transformation is attached to.
+    scale_function : dict
+    A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object):
@@ -96,9 +108,17 @@ class TranslationalDipoleMoment(Transformations):
         """
 
         path = join_path('Translational_Dipole_Moment', 'Translational_Dipole_Moment')  # name of the new database_path
-        dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
-        self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+        existing = self._run_dataset_check(path)
+        if existing:
+            old_shape = self.database.get_data_size(path)
+            resize_structure = {path: (self.experiment.number_of_configurations - old_shape[0], 3)}
+            self.offset = old_shape[0]
+            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
+            data_structure = {path: {'indices': np.s_[:, ], 'columns': [0, 1, 2]}}
+        else:
+            dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
+            self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
+            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
         return data_structure
 

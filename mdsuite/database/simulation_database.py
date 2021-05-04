@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Class for database_path objects and all of their operations
 """
 
@@ -51,23 +61,6 @@ class Database:
         self.architecture = architecture  # architecture of database_path
         self.name = name  # name of the database_path
 
-    def open(self, mode: str = 'a') -> hf.File:
-        """
-        Open the database_path
-
-        Parameters
-        ----------
-        mode : str
-                Mode in which to open the database_path
-
-        Returns
-        -------
-        database_path : hf.File
-                returns a database_path object
-        """
-
-        return hf.File(self.name, mode)
-
     @staticmethod
     def close(database: hf.File):
         """
@@ -85,77 +78,6 @@ class Database:
 
         database.close()
 
-    def add_data(self, data: np.array, structure: dict, start_index: int, batch_size: int, tensor: bool = False,
-                 system_tensor: bool = False, flux: bool = False, sort: bool = False, n_atoms: int = None):
-        """
-        Add a set of tensor_values to the database_path.
-
-        Parameters
-        ----------
-        flux : bool
-                If true, the atom dimension is not included in the slicing.
-        system_tensor : bool
-                If true, no atom information is looked for when saving
-        tensor : bool
-                If true, this will skip the type enforcement
-        batch_size : int
-                Number of configurations in each batch
-        start_index : int
-                Point in database_path from which to start filling.
-
-        structure : dict
-                Structure of the tensor_values to be loaded into the database_path e.g.
-                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
-        data : np.array
-                Data to be loaded in.
-        sort : bool
-                If true, tensor_values is sorted before being dumped into the database_path.
-        n_atoms : int
-                Necessary if the sort function is called. Total number of atoms in the experiment.
-        Returns
-        -------
-        Adds tensor_values to the database_path
-        """
-
-        # database = self.open()
-        # Loop over items
-
-        # time.sleep(0.5)
-        with hf.File(self.name, 'r+') as database:
-            stop_index = start_index + batch_size  # get the stop index
-            for item in structure:
-                if tensor:
-                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
-                elif system_tensor:
-                    database[item][start_index:stop_index, :] = data[:, 0:3]
-                elif flux:
-                    database[item][start_index:stop_index, :] = data[structure[item]['indices']][
-                        np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
-                else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
-                                                                                  n_atoms=n_atoms)
-        # database.close()
-
-    def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
-                  n_atoms: int = None):
-        """
-        Fetch tensor_values with some format from a large array.
-
-        Returns
-        -------
-
-        """
-        if sort:
-            indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
-            return data[indices][
-                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
-                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
-        else:
-            indices = structure[item]['indices']
-            return data[indices][
-                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
-                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
-
     @staticmethod
     def _update_indices(data: np.array, reference: np.array, batch_size: int, n_atoms: int):
         """
@@ -170,71 +92,7 @@ class Database:
         ref_ids = np.argsort(ids, axis=1)
         n_batches = ids.shape[0]
 
-        return (ref_ids[:, reference-1] + (np.arange(n_batches) * n_atoms)[None].T).flatten()
-
-    def resize_dataset(self, structure: dict):
-        """
-        Resize a dataset so more tensor_values can be added
-
-        Parameters
-        ----------
-        structure : dict
-                path to the dataset that needs to be resized. e.g. {'Na': {'velocities' 100}} will resize all 'x', 'y',
-                and 'z' datasets by 100 entries.
-
-        Returns
-        -------
-
-        """
-        # ensure the database_path already exists
-        try:
-            database = hf.File(self.name, 'r+')
-        except DatabaseDoesNotExist:
-            raise DatabaseDoesNotExist
-
-        # construct the architecture dict
-        architecture = self._build_path_input(structure=structure)
-        # Check for a type error in the dataset information
-
-        for identifier in architecture:
-            dataset_information = architecture[identifier]
-            try:
-                if type(dataset_information) is not tuple:
-                    print("Invalid input for dataset generation")
-                    raise TypeError
-            except TypeError:
-                raise TypeError
-
-            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
-            if len(dataset_information[:-1]) == 1:
-                axis = 0
-                expansion = dataset_information[0] + database[identifier].shape[0]
-            else:
-                axis = 1
-                expansion = dataset_information[1] + database[identifier].shape[1]
-            database[identifier].resize(expansion, axis)
-
-    def initialize_database(self, structure: dict):
-        """
-        Build a database_path with a general structure.
-
-        Note, this method WILL overwrite a pre-existing database_path. This is because it is only to be called on the
-        initial construction of an experiment class and the first addition of tensor_values to it.
-
-
-        Parameters
-        ----------
-        structure : dict
-                General structure of the dictionary with relevant dataset sizes.
-                e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
-                In this case, the last value in the tuple corresponds to the number of components that wil be parsed
-                to the database_path.
-        Returns
-        -------
-
-        """
-
-        self.add_dataset(structure)  # add a dataset to the groups
+        return (ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T).flatten()
 
     @staticmethod
     def _build_path_input(structure: dict) -> dict:
@@ -276,6 +134,153 @@ class Database:
 
         return architecture
 
+    def open(self, mode: str = 'a') -> hf.File:
+        """
+        Open the database_path
+
+        Parameters
+        ----------
+        mode : str
+                Mode in which to open the database_path
+
+        Returns
+        -------
+        database_path : hf.File
+                returns a database_path object
+        """
+
+        return hf.File(self.name, mode)
+
+    def add_data(self, data: np.array, structure: dict, start_index: int, batch_size: int, tensor: bool = False,
+                 system_tensor: bool = False, flux: bool = False, sort: bool = False, n_atoms: int = None):
+        """
+        Add a set of tensor_values to the database_path.
+
+        Parameters
+        ----------
+        flux : bool
+                If true, the atom dimension is not included in the slicing.
+        system_tensor : bool
+                If true, no atom information is looked for when saving
+        tensor : bool
+                If true, this will skip the type enforcement
+        batch_size : int
+                Number of configurations in each batch
+        start_index : int
+                Point in database_path from which to start filling.
+
+        structure : dict
+                Structure of the tensor_values to be loaded into the database_path e.g.
+                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5], 'length': 500}}
+        data : np.array
+                Data to be loaded in.
+        sort : bool
+                If true, tensor_values is sorted before being dumped into the database_path.
+        n_atoms : int
+                Necessary if the sort function is called. Total number of atoms in the experiment.
+        Returns
+        -------
+        Adds tensor_values to the database_path
+        """
+
+        with hf.File(self.name, 'r+') as database:
+            stop_index = start_index + batch_size  # get the stop index
+            for item in structure:
+                if tensor:
+                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
+                elif system_tensor:
+                    database[item][start_index:stop_index, :] = data[:, 0:3]
+                elif flux:
+                    database[item][start_index:stop_index, :] = data[structure[item]['indices']][
+                        np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
+                else:
+                    database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
+                                                                                  n_atoms=n_atoms)
+
+    def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
+                  n_atoms: int = None):
+        """
+        Fetch tensor_values with some format from a large array.
+
+        Returns
+        -------
+
+        """
+        if sort:
+            indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
+            return data[indices][
+                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+        else:
+            indices = structure[item]['indices']
+            return data[indices][
+                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
+                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+
+    def resize_dataset(self, structure: dict):
+        """
+        Resize a dataset so more tensor_values can be added
+
+        Parameters
+        ----------
+        structure : dict
+                path to the dataset that needs to be resized. e.g. {'Na': {'velocities': (32, 100, 3)}}
+                will resize all 'x', 'y', and 'z' datasets by 100 entries.
+
+        Returns
+        -------
+
+        """
+        # ensure the database_path already exists
+        try:
+            database = hf.File(self.name, 'r+')
+        except DatabaseDoesNotExist:
+            raise DatabaseDoesNotExist
+
+        # construct the architecture dict
+        architecture = self._build_path_input(structure=structure)
+
+        # Check for a type error in the dataset information
+        for identifier in architecture:
+            dataset_information = architecture[identifier]
+            try:
+                if type(dataset_information) is not tuple:
+                    print("Invalid input for dataset generation")
+                    raise TypeError
+            except TypeError:
+                raise TypeError
+
+            # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
+            if len(dataset_information[:-1]) == 1:
+                axis = 0
+                expansion = dataset_information[0] + database[identifier].shape[0]
+            else:
+                axis = 1
+                expansion = dataset_information[1] + database[identifier].shape[1]
+            database[identifier].resize(expansion, axis)
+
+    def initialize_database(self, structure: dict):
+        """
+        Build a database_path with a general structure.
+
+        Note, this method WILL overwrite a pre-existing database_path. This is because it is only to be called on the
+        initial construction of an experiment class and the first addition of tensor_values to it.
+
+
+        Parameters
+        ----------
+        structure : dict
+                General structure of the dictionary with relevant dataset sizes.
+                e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6), 'Temperature': (5000, 1)}
+                In this case, the last value in the tuple corresponds to the number of components that wil be parsed
+                to the database_path.
+        Returns
+        -------
+
+        """
+
+        self.add_dataset(structure)  # add a dataset to the groups
+
     def add_dataset(self, structure: dict):
         """
         Add a dataset of the necessary size to the database_path
@@ -311,7 +316,6 @@ class Database:
                 except TypeError:
                     raise TypeError
 
-                # get the correct maximum shape for the dataset -- changes if a experiment property or an atomic property
                 if len(dataset_information[:-1]) == 1:
                     vector_length = dataset_information[-1]
                     max_shape = (None, vector_length)
@@ -320,7 +324,8 @@ class Database:
                     max_shape[1] = None
                     max_shape = tuple(max_shape)
 
-                database.create_dataset(dataset_path, dataset_information, maxshape=max_shape, scaleoffset=5, chunks=True)
+                database.create_dataset(dataset_path, dataset_information,
+                                        maxshape=max_shape, scaleoffset=5, chunks=True)
 
     def _add_group_structure(self, structure: dict):
         """
@@ -359,7 +364,6 @@ class Database:
                 A dictionary of the memory information of the groups in the database_path
         """
         with hf.File(self.name, 'r') as database:
-        # database = hf.File(self.name)
             memory_database = {}
             for item in database:
                 for ds in database[item]:
@@ -411,7 +415,6 @@ class Database:
             for item in groups:
                 if item in mapping:
                     db.move(item, mapping[item])
-
 
     def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
                   scaling: list = None, d_size: int = None):
@@ -576,7 +579,6 @@ class Database:
                         data = data.reshape((len(data[0]), 2))
                         df = pd.DataFrame(data=data, columns=["column1", "column2"])
                         df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
-
 
     def get_database_summary(self):
         """

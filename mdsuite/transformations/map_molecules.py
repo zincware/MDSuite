@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Module for mapping atoms to molecules
 """
 
@@ -15,6 +25,17 @@ from mdsuite.utils.meta_functions import join_path
 class MolecularMap(Transformations):
     """
     Class for mapping atoms in a database to molecules.
+
+    Attributes
+    ----------
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
+    experiment : object
+            Experiment object to work within.
+    molecules : dict
+            Molecule dictionary to use as reference. e.g. {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
+                                                            'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+            would be the input for the emim-PF6 ionic liquid.
     """
 
     def __init__(self, experiment: object, molecules: dict):
@@ -37,12 +58,13 @@ class MolecularMap(Transformations):
         self.dependency = 'Unwrapped_Positions'
         self.scale_function = {'quadratic': {'outer_scale_factor': 5}}
 
-    def _prepare_database_entry(self, species, number_of_molecules: int):
+    def _prepare_database_entry(self, species, number_of_molecules: int) -> dict:
         """
         Call some housekeeping methods and prepare for the transformations.
         Returns
         -------
-
+        data_structure : dict
+                A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
         path = join_path(species, 'Unwrapped_Positions')  # name of the new database_path
@@ -57,6 +79,7 @@ class MolecularMap(Transformations):
         Build the reference graphs from the SMILES strings.
         Returns
         -------
+        Nothing.
         """
         for item in self.molecules:
             self.reference_molecules[item] = {}
@@ -67,7 +90,7 @@ class MolecularMap(Transformations):
             self.reference_molecules[item]['graph'] = mol
             self.reference_molecules[item]['mass'] = self._get_molecular_mass(species)
 
-    def _get_molecular_mass(self, species_dict: dict):
+    def _get_molecular_mass(self, species_dict: dict) -> float:
         """
         Get the mass of a SMILES molecule based on experiment data.
 
@@ -86,16 +109,13 @@ class MolecularMap(Transformations):
 
         return mass
 
-    def _build_configuration_graphs(self, cutoff: float = 1.9):
+    def _build_configuration_graphs(self):
         """
         Build the adjacency graphs for the configurations
-        Parameters
-        ----------
-        cutoff : float
-                Custom cutoff parameter for bond length.
+
         Returns
         -------
-
+        Nothing.
         """
         for item in self.reference_molecules:
             self.adjacency_graphs[item] = {}
@@ -110,7 +130,7 @@ class MolecularMap(Transformations):
 
         Returns
         -------
-
+        Nothing.
         """
         for item in self.adjacency_graphs:
             mol = MolecularGraph(self.experiment,
@@ -118,7 +138,7 @@ class MolecularMap(Transformations):
                                  species=self.reference_molecules[item]['species'])
             self.adjacency_graphs[item]['molecules'] = mol.reduce_graphs(self.adjacency_graphs[item]['graph'])
 
-    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int) -> dict:
         """
         Update a type spec dictionary.
 
@@ -140,7 +160,7 @@ class MolecularMap(Transformations):
 
         return dictionary
 
-    def _load_batch(self, path_list: list, slice: np.s_, factor: list):
+    def _load_batch(self, path_list: list, slice: np.s_, factor: list) -> tf.Tensor:
         """
         Load a batch of data and stack the configurations.
         Returns
@@ -151,7 +171,7 @@ class MolecularMap(Transformations):
         data = self.database.load_data(path_list=path_list, select_slice=slice, scaling=factor)
         return tf.concat(data, axis=0)
 
-    def _prepare_mass_array(self, species: list):
+    def _prepare_mass_array(self, species: list) -> list:
         """
         Prepare an array of atom masses for the scaling.
 
@@ -161,6 +181,8 @@ class MolecularMap(Transformations):
                 List of species to be loaded.
         Returns
         -------
+        mass_array : list
+                A list of masses.
         """
         mass_array = []
         for item in species:
@@ -174,7 +196,7 @@ class MolecularMap(Transformations):
 
         Returns
         -------
-
+        Updates the database.
         """
         for item in self.molecules:
             species = self.reference_molecules[item]['species']
@@ -203,7 +225,7 @@ class MolecularMap(Transformations):
                                        system_tensor=False,
                                        tensor=True)
 
-    def _build_indices_dict(self, indices: List[int], species: List[str]):
+    def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
         """
         Build an indices dict to store the groups of atoms in each molecule.
 

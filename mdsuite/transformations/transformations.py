@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Parent class for MDSuite transformations
 """
 import time
@@ -58,10 +68,28 @@ class Transformations:
         self.batch_size: int
         self.n_batches: int
         self.remainder: int
+
         self.dependency = None
+        self.offset = 0
 
         self.data_manager: DataManager
         self.memory_manager: MemoryManager
+
+    def _run_dataset_check(self, path: str):
+        """
+        Check to see if the database dataset already exists. If it does, the transformation should extend the dataset
+        and add data to the end of it rather than try to add data.
+
+        Parameters
+        ----------
+        path : str
+                dataset path to check.
+        Returns
+        -------
+        outcome : bool
+                If True, the dataset already exists and should be extended. If False, a new dataset should be built.
+        """
+        return self.database.check_existence(path)
 
     def _run_dependency_check(self):
         """
@@ -203,7 +231,7 @@ class Transformations:
         try:
             self.database.add_data(data=data,
                                    structure=data_structure,
-                                   start_index=index,
+                                   start_index=index + self.offset,
                                    batch_size=batch_size,
                                    system_tensor=system_tensor,
                                    tensor=tensor)
@@ -213,7 +241,7 @@ class Transformations:
             time.sleep(0.5)
             self.database.add_data(data=data,
                                    structure=data_structure,
-                                   start_index=index,
+                                   start_index=index + self.offset,
                                    batch_size=batch_size,
                                    system_tensor=system_tensor,
                                    tensor=tensor)
@@ -234,13 +262,15 @@ class Transformations:
         self.memory_manager = MemoryManager(data_path=data_path,
                                             database=self.database,
                                             memory_fraction=0.5,
-                                            scale_function=self.scale_function)
+                                            scale_function=self.scale_function,
+                                            offset=self.offset)
         self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
         self.data_manager = DataManager(data_path=data_path,
                                         database=self.database,
                                         batch_size=self.batch_size,
                                         n_batches=self.n_batches,
-                                        remainder=self.remainder)
+                                        remainder=self.remainder,
+                                        offset=self.offset)
 
     def run_transformation(self):
         """

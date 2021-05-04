@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 The central experiment class fundamental to all analysis.
 
 Summary
@@ -145,7 +155,6 @@ class Experiment:
         file_handler.setFormatter(formatter)
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
-
         # get the file specific logger to get information where the log was written!
         self.log = logging.getLogger(__name__)
         self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
@@ -186,7 +195,7 @@ class Experiment:
         storage_path = self.storage_path  # store the new storage path
 
         with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
-            self.__dict__ = pickle.loads(f.read())
+            self.__dict__.update(pickle.loads(f.read()))
 
         self.storage_path = storage_path  # set the one form the database to the new one
         self._create_internal_file_paths()  # force rebuild every time
@@ -269,26 +278,22 @@ class Experiment:
         self.save_class()  # update the class state
 
     class RunComputation:
-        """ Run a computation
+        """Run a calculator from the experiment class
 
-        The type of computation will be stored in a dictionary.
-
-        This class represents the "run_computation" in "run_computation.calculator"
-
-        Parameters
-        ----------
-        parent : object
-                Experiment class in which this class is contained.
-
-        Returns
-        -------
-        sigma : float
-                The ionic conductivity in units of S/cm
-
+        Notes
+        -----
+        This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
+        attributes of the `experiment.run_computation` helper class.
         """
 
         def __init__(self, parent):
-            self.parent = parent
+            """Initialize the attributes
+            Parameters
+            ----------
+            parent: Experiment
+                the experiment to be passed to the calculator afterwards
+            """
+            self.parent: Experiment = parent
             for key in dict_classes_computations:
                 self.__setattr__(key, dict_classes_computations[key])
 
@@ -296,89 +301,16 @@ class Experiment:
             """Call via function
             You can call the computation via a function and autocompletion
             >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
+
+            Returns
+                Instantiated calculator class with added experiment that can be called.
             """
             try:
                 class_compute = dict_classes_computations[item]
             except KeyError:
                 return super().__getattribute__(item)
 
-            class Func:
-                """Return the documentation if the function is not called.
-
-                This class represents the "calculator" in "run_computation.calculator"
-
-                """
-
-                def __init__(self, parent, class_func_compute):
-                    self.parent = parent
-                    self.class_compute = class_func_compute
-
-                def get_documentation(self):
-                    """
-                    Get the documentation for the calculator
-                    You can print the documentation via
-                    self.run_computation.EinsteinDiffusionCoefficients.get_documentation()
-                    """
-                    print(inspect.getdoc(self.class_compute))
-
-                def __repr__(self):
-                    """
-                    Get the documentation for the calculator
-                    You can print the documentation if you don't call the class
-                    self.run_computation.EinsteinDiffusionCoefficients
-                    """
-                    self.get_documentation()
-                    return f"Please use Experiment.run_computation.calculator(*args, **kwargs) to run the calculation"
-
-                def __call__(self, **kwargs):
-                    """
-                    Introduce call method.
-                    """
-                    output = self.parent.compute(self.class_compute, **kwargs)
-                    return output
-
-            return Func(self, class_compute)
-
-        def __call__(self, computation_name, **kwargs):
-            """Call directly
-            You can call the computation directly via
-            >>> self.run_computation("EinsteinDiffusionCoefficients", plot=True)
-            """
-            try:
-                class_compute = dict_classes_computations[computation_name]
-            except KeyError:
-                print(f'{computation_name} not found')
-                print(f'Available computations are:')
-                [print(key) for key in dict_classes_computations.keys()]
-                return
-
-            return self.compute(class_compute, **kwargs)
-
-        def __repr__(self):
-            """Print available computations if no computation method is called
-            """
-            return_string = 'Available computations are: \n \n'
-            for key in dict_classes_computations:
-                return_string += key
-                return_string += "\n"
-            return return_string
-
-        def compute(self, class_compute, **kwargs):
-            """
-            A doc string that should have been added by the person who wrote the method.
-            Parameters
-            ----------
-            class_compute
-            kwargs
-
-            Returns
-            -------
-
-            """
-            object_compute = class_compute(self.parent, **kwargs)
-            dat = object_compute.run_analysis()
-            self.parent.save_class()
-            return dat
+            return class_compute(experiment=self.parent)
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
@@ -488,7 +420,6 @@ class Experiment:
                                   database,
                                   rename_cols,
                                   sort=sort)
-
         else:
             self._build_new_database(trajectory_reader,
                                      trajectory_file,
@@ -554,7 +485,8 @@ class Experiment:
         Updates the current database.
         """
         counter = self.number_of_configurations
-        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
+        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols,
+                                                                              update_class=False)
         number_of_new_configurations = self.number_of_configurations - counter
         database.resize_dataset(architecture)  # initialize the database_path
         batch_range = int(number_of_new_configurations / self.batch_size)  # calculate the batch range
@@ -651,6 +583,7 @@ class Experiment:
                 New charge/s of the element
         """
         self.species[element]['charge'] = charge  # update entry
+        self.save_class()
 
     def set_mass(self, element, mass):
         """

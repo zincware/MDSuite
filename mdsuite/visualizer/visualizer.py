@@ -1,4 +1,14 @@
 """
+This program and the accompanying materials are made available under the terms of the
+Eclipse Public License v2.0 which accompanies this distribution, and is available at
+https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the MDSuite Project.
+"""
+
+"""
 Python module to visualize tensor_values in the mds database structure.
 
 Notes
@@ -13,7 +23,6 @@ import random
 import importlib.resources
 import json
 import colorutils as cu
-import time
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
