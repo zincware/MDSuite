@@ -707,6 +707,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         @tf_function
         def combine_dictionaries(dict_a, dict_b):
+            """Combine two dictionaries in a tf.function call"""
             out = dict()
             for key in dict_a:
                 out[key] = dict_a[key] + dict_b[key]
@@ -714,6 +715,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         @tf_function
         def run_minibatch_loop():
+            """Run a minibatch loop"""
             start = 0
             stop = 0
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
