@@ -2,6 +2,8 @@
 MDSuite is a software designed specifically for the molecular dynamics community to enable fast, reliable, and simple 
 calculations from simulation data. 
 
+If you want to start learning about the code, you can check out the docs [here](https://mdsuite.readthedocs.io/en/latest/).
+
 **NOTE:** This README is designed for the release. Anything PyPi related is not yet functioning as the code is in
 development.
 
