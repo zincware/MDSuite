@@ -71,7 +71,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         super().__init__(experiment)
 
         self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
-        self.scale_function = {'linear': {'scale_factor': 50}}
+        self.scale_function = {'linear': {'scale_factor': 150}}
 
         self.database_group = 'Diffusion_Coefficients'  # Which database_path group to save the tensor_values in
         self.x_label = 'Time $(s)$'

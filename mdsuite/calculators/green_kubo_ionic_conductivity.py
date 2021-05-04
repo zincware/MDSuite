@@ -81,7 +81,8 @@ class GreenKuboIonicConductivity(Calculator):
 
         self.prefactor: float
 
-    def __call__(self, plot=False, data_range=500, save=True, correlation_time=1, export: bool = False):
+    def __call__(self, plot=False, data_range=500, save=True, correlation_time=1, export: bool = False,
+                 gpu: bool = False):
         """
 
         Attributes

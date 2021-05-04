@@ -180,7 +180,8 @@ class Experiment:
             stream_handler = logging.StreamHandler(sys.stdout)
             stream_handler.setLevel(logging.INFO)  # <- stdout loglevel
 
-            formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+            #formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+            formatter = logging.Formatter('%(asctime)s - %(message)s')
             stream_handler.setFormatter(formatter)
             # attaching the stdout handler to the configured logging
             root.addHandler(stream_handler)
