@@ -25,18 +25,24 @@ The potential of mean-force is a measure of the binding strength between atomic 
 
         w^{(2)}(r) = -k_{B}Tln(g(r))
 """
+import logging
 
 import numpy as np
 import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.analysis_database import AnalysisDatabase
+
+from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.database_scheme import SystemProperty
+
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
+
+log = logging.getLogger(__file__)
 
 
 class PotentialOfMeanForce(Calculator):
@@ -135,18 +141,23 @@ class PotentialOfMeanForce(Calculator):
         Fill the data_files list with filenames of the rdf tensor_values
         """
 
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        self.data_files = database.get_tables("Radial_Distribution_Function")
+        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
 
-    def _load_rdf_from_file(self):
+        return database.load_data({"property": "RDF"})
+
+    def _load_rdf_from_file(self, system_property: SystemProperty):
         """
         Load the raw rdf tensor_values from a directory
         """
 
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        data = database.load_pandas(self.file_to_study).to_numpy()
-        self.radii = data[1:, 1]
-        self.rdf = data[1:, 2]
+        radii = []
+        rdf = []
+        for _bin in system_property.data:
+            radii.append(_bin.x)
+            rdf.append(_bin.y)
+
+        self.radii = np.array(radii)[1:].astype(float)
+        self.rdf = np.array(rdf)[1:].astype(float)
 
     def _autocorrelation_time(self):
         """
@@ -167,7 +178,7 @@ class PotentialOfMeanForce(Calculator):
         """
         filtered_data = apply_savgol_filter(self.pomf, order=self.savgol_order, window_length=self.savgol_window_length)
 
-        peaks = find_peaks(filtered_data)[0]               # Find the maximums in the filtered dataset
+        peaks = find_peaks(filtered_data)[0]  # Find the maximums in the filtered dataset
 
         return [peaks[0], peaks[1]]
 
@@ -203,7 +214,7 @@ class PotentialOfMeanForce(Calculator):
 
         # Calculate the value and error of the potential of mean-force
         pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
-        pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])/np.sqrt(2)
+        pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]]) / np.sqrt(2)
 
         # Update the experiment class
         properties = {"Property": self.database_group,
@@ -228,15 +239,16 @@ class PotentialOfMeanForce(Calculator):
         Calculate the potential of mean-force and perform error analysis
         """
 
-        self._get_rdf_data()  # fill the tensor_values array with tensor_values
+        # fill the tensor_values array with tensor_values
 
-        for data in self.data_files:
-            self.file_to_study = data                  # Set the correct tensor_values file in the class
-            self.species_tuple = "_".join([data.split("_")[-1], data.split("_")[-2]])
-            self.data_range = int(data.split("_")[-3])
-            self._load_rdf_from_file()                 # load up the tensor_values
+        for data in self._get_rdf_data():
+            self.file_to_study = data  # Set the correct tensor_values file in the class
+            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.data_range = data.data_range
+            self._load_rdf_from_file(data)  # load up the tensor_values
+            log.debug(f'rdf: {self.rdf} \t radii: {self.radii}')
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
-            data = self._get_pomf_value()              # Determine the min values of the function and update experiment
+            _data = self._get_pomf_value()  # Determine the min values of the function and update experiment
 
             # Update the experiment class
 
@@ -250,16 +262,12 @@ class PotentialOfMeanForce(Calculator):
                               }
                 self._update_properties_file(properties)
 
-
-            # if self.save:
-            #     self._save_data(name=self._build_table_name(self.species_tuple),
-            #                     data=self._build_pandas_dataframe(self.radii, self.pomf))
             if self.export:
                 self._export_data(name=self._build_table_name(self.species_tuple),
                                   data=self._build_pandas_dataframe(self.radii, self.pomf))
 
             if self.plot:
-                self._plot_fits(data)
+                self._plot_fits(_data)
 
         if self.plot:
             plt.legend()
