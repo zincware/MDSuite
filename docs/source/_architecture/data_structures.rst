@@ -58,34 +58,21 @@ simulation. This includes but is not limited to:
 - Forces
 - Ionic Current
 
-and so on. Essentially, anything that can be measured through time in a simulation, can be stored in the simulation data
+and so on. Essentially, anything that can be measured through time in a simulation, can be stored in the simulation
 database. What is not stored here, is global scalar values which are set once and never change. This includes a set
-temperature, density, or calculated properties such as diffusion coefficients and so on. These values are stored in the
-Calculation results YAML file.
+temperature, density, or calculated properties such as diffusion coefficients and so on.
 **Now we need a picture**
 
-Calculation Data
+Properties Data
 ^^^^^^^^^^^^^^^^
 During the calculation of properties often a new function is constructed from which properties can be determined. This
-can include autocorrelation functions, MSD functions, or radial distribution functions. These functions are also stored
-in a separate database so that the functions can be returned easily.
-
-Calculation Result
-^^^^^^^^^^^^^^^^^^
-Beyond simply storing the function results of calculations, MDSuite also stores the properties that are being
-calculated. These values, being scalars, are stored in a separate text based file such that users can read the data
-directly without loading anything. The data format chosen is a YAML configurations file. These files store data from a
-python dictionaries as nested dot points making them very readable. As an example, for diffusion coefficients it will
-look like:
-
-* Diffusion Coefficients
-    - Einstein Diffusion Coefficients
-        + Na
-            + 1.604
-            + 0.002
-
-where the first item under Na is the diffusion coefficient calculated using the Einstein method and the second item is
-the uncertainty. All values are given in SI units, in this case, m^2/s.
+could be a correlation function, and distribution function, or simply some series data over coordination numbers. From
+this data we will often extract some single value as a result such as the diffusion coefficients or a single shell
+coordination number. These values will depend not only on the system being studied, but also several parameters that
+were used during the calculation. It is important to store and record this data as it allows for accurate, persistent
+records which are essential in a publication. To this end, MDSuite stores all data from a calculation into an SQL
+database which we have named the Properties database. This data is accompanied by the parameters of a calculation such
+as data range, number of configurations, and even correlation time.
 
 Class State Information
 ^^^^^^^^^^^^^^^^^^^^^^^
