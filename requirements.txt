@@ -15,7 +15,7 @@ nbsphinx
 sphinx_rtd_theme
 numpydoc
 sphinx-copybutton
-vpython
 colorutils
 scooby
 sqlalchemy>=1.4
+pandas

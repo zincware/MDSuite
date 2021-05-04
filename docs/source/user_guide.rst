@@ -10,3 +10,4 @@ about the code please see the :doc:`modules and classes <modules_and_classes>` d
 
     _calculators/experimental_calculators
     _user_guide/bmim_bf4_example
+    _user_guide/molten_salt_example

@@ -22,9 +22,7 @@ import os
 import pickle
 import sys
 from pathlib import Path
-import inspect
 
-import h5py as hf
 import numpy as np
 import pubchempy as pcp
 import yaml
@@ -41,7 +39,6 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import *
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
-from mdsuite.visualizer.visualizer import TrajectoryVisualizer
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 
@@ -597,24 +594,6 @@ class Experiment:
                 New mass/es of the element
         """
         self.species[element]['mass'] = mass  # update the mass
-
-    def run_visualization(self, species: list = None, unwrapped: bool = False):
-        """
-        Run a visualization on the database.
-
-        Parameters
-        ----------
-        species : list
-                List of species you wish to visualize.
-        unwrapped : bool
-                If true, unwrapped coordinates will be used.
-        Returns
-        -------
-        """
-        if species is None:
-            species = list(self.species)
-        visualizer = TrajectoryVisualizer(experiment=self, species=species, unwrapped=unwrapped)
-        visualizer.run_visualization()
 
     def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: list = None):
         """
