@@ -18,6 +18,8 @@ mdsuite program. Within the project class include all of the method required to 
 compare the results of the analysis on that experiment.
 """
 
+import logging
+
 import os
 import pickle
 from datetime import datetime
@@ -27,6 +29,8 @@ from typing import Union
 import shutil
 from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
+
+log = logging.getLogger(__file__)
 
 
 class Project:
@@ -220,12 +224,29 @@ class Project:
         Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
         different experiments at the same time.
 
+        Parameters
+        ----------
+        data_sets: dict
+            Dictionary containing the name of the experiment as key and the data path as value
+        file_format: dict or str
+            Dictionary containing the name of the experiment as key and the file_format as value.
+            Alternativly only a string of the file_format if all files have the same format.
+
         Returns
         -------
         Updates the experiment classes.
         """
-        for item in data_sets:
-            self.experiments[item].add_data(data_sets[item], file_format=file_format)
+        if isinstance(file_format, dict):
+            try:
+                assert file_format.keys() == data_sets.keys()
+            except AssertionError:
+                log.error("Keys of the data_sets do not match keys of the file_format")
+
+            for item in data_sets:
+                self.experiments[item].add_data(data_sets[item], file_format=file_format[item])
+        else:
+            for item in data_sets:
+                self.experiments[item].add_data(data_sets[item], file_format=file_format)
 
     def get_results(self, key_to_find):
         """
