@@ -15,6 +15,7 @@ jobs:
           python-version: '3.7'
       - name: Install dependencies
         run: |
+          sudo apt install pandoc
           pip3 install -r requirements.txt
           pip3 install h5py --upgrade --no-dependencies
           pip3 install cached-property
