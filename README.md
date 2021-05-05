@@ -46,6 +46,6 @@ $ firefox index.html
 ## HINT
 
 Check out the mdsuite code through a jupyter notebook for a more user friendly experience. You can take full advantage 
-of the autocomplete features we have worked hard to include in the calculator classes.
+of the autocomplete features that are available for the calculators.
 
 ![Alt Text](docs/source/images/test_einstein_record_3.gif)
