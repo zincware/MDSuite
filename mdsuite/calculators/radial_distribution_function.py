@@ -629,8 +629,8 @@ class RadialDistributionFunction(Calculator, ABC):
             self.mini_calculate_histograms()
 
         self._calculate_radial_distribution_functions()
-
-        return self.rdf
+        # Can not return a value, because self.experimental = True!
+        # return self.rdf
 
     def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
         """Calculate the indices of a slice of the triu values
