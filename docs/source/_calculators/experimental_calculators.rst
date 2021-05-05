@@ -18,7 +18,7 @@ Angular Distribution Functions
 In the case of the Angular distribution functions the same comments as for the RDF apply but with some additional
 points.
 
-    * Use `tf_function=True` can result in memory overload and we do not have a means to prevent this.
+    * Use of `tf_function=True` can result in memory overload and we do not have a means to prevent this.
     * The normalization factor is not yet added. This mean bonds at any distance up to the cutoff are treated equally.
 
 Distinct Diffusion Coefficients
