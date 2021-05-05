@@ -188,6 +188,9 @@ class RadialDistributionFunction(Calculator, ABC):
         if self.cutoff is None:
             self.cutoff = self.experiment.box_array[0] / 2  # set cutoff to half box size if none set
 
+        if number_of_configurations == -1:
+            self.number_of_configurations = self.experiment.number_of_configurations - 1
+
         if self.number_of_bins is None:
             self.number_of_bins = int(self.cutoff / 0.01)  # default is 1/100th of an angstrom
 
