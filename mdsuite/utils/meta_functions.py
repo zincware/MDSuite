@@ -107,7 +107,7 @@ def get_machine_properties() -> dict:
             machine_properties['gpu'][gpu.id]= {}
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
             machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
-    except NoGPUInSystem:
+    except (NoGPUInSystem, ValueError):
         raise NoGPUInSystem
 
     return machine_properties
