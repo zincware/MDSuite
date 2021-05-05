@@ -215,7 +215,7 @@ class Project:
 
         self._save_class()  # Save the class state
 
-    def add_data(self, data_sets: dict):
+    def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
         Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
         different experiments at the same time.
@@ -225,7 +225,7 @@ class Project:
         Updates the experiment classes.
         """
         for item in data_sets:
-            self.experiments[item].add_data(data_sets[item])
+            self.experiments[item].add_data(data_sets[item], file_format=file_format)
 
     def get_results(self, key_to_find):
         """
