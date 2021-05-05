@@ -17,6 +17,8 @@ This file contains arbitrary functions used in several different processes. They
 smaller purposes in order to clean up code in more important parts of the program.
 """
 
+import logging
+
 import os
 from functools import wraps
 from time import time
@@ -29,6 +31,8 @@ from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
+
+log = logging.getLogger(__file__)
 
 
 def join_path(a, b):
@@ -108,7 +112,7 @@ def get_machine_properties() -> dict:
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
             machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
     except (NoGPUInSystem, ValueError):
-        raise NoGPUInSystem
+        log.warning("No GPUs detected, continuing without GPU support")
 
     return machine_properties
 
