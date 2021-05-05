@@ -33,15 +33,6 @@ $ conda activate MDSuite
 $ pip install . 
 ```
 
-### Important installation notes
-NOTE: Tensorflow currently requires h5py < 3.0 but MDSuite requires h5py 3.0 or later because of new memory management 
-features. Therefore, it is currently necessary to run ``pip install h5py --upgrade --no-dependencies`` after the 
-installation. See https://github.com/tensorflow/tensorflow/issues/47303
-
-NOTE: to install tensorflow with GPU support, use CUDA 10.1 and cuDNN 7.6.5. 
-
-This has been written into the setup.py and so should NOT require any additional work 
-
 ## Documentation
 There is a live version of the documentation hosted [here](https://mdsuite.readthedocs.io/en/latest/).
 If you would prefer to have a local copy, it can be built using sphinx by following the instructions below.
@@ -51,3 +42,10 @@ $ make html
 $ cd build/html
 $ firefox index.html
 ```
+
+## HINT
+
+Check out the mdsuite code through a jupyter notebook for a more user friendly experience. You can take full advantage 
+of the autocomplete features that are available for the calculators.
+
+![Alt Text](docs/source/images/test_einstein_record_3.gif)

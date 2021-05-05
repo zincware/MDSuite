@@ -126,7 +126,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __call__(self, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
                  images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
+                 minibatch: int = -1, molecules: bool = False, gpu: bool = False, **kwargs):
         """Compute the RDF with the given user parameters
 
         Parameters
@@ -173,10 +173,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.stop = stop  # Which configuration to stop at
         self.number_of_configurations = number_of_configurations  # Number of configurations to use
         self.molecules = molecules
-        if minibatch == -1:
-            self.minibatch = number_of_bins
-        else:
-            self.minibatch = minibatch
         self.use_tf_function = kwargs.pop("use_tf_function", False)
 
         self.override_n_batches = kwargs.get('batches')
@@ -187,6 +183,14 @@ class RadialDistributionFunction(Calculator, ABC):
 
         if self.cutoff is None:
             self.cutoff = self.experiment.box_array[0] / 2  # set cutoff to half box size if none set
+
+        if number_of_configurations == -1:
+            self.number_of_configurations = self.experiment.number_of_configurations - 1
+
+        if minibatch == -1:
+            self.minibatch = self.number_of_configurations
+        else:
+            self.minibatch = minibatch
 
         if self.number_of_bins is None:
             self.number_of_bins = int(self.cutoff / 0.01)  # default is 1/100th of an angstrom
@@ -615,14 +619,18 @@ class RadialDistributionFunction(Calculator, ABC):
             self.n_batches = self.override_n_batches
 
         if self.minibatch is None:
+            log.debug(f"Doing full batch RDF computations")
             if self.use_tf_function:
                 raise NotImplementedError('tf.function is only supported with minibatching')
             else:
                 self._calculate_histograms()  # Calculate the RDFs
         else:
+            log.debug(f"Using minibatching with batch size: {self.minibatch}")
             self.mini_calculate_histograms()
 
         self._calculate_radial_distribution_functions()
+
+        return self.rdf
 
     def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
         """Calculate the indices of a slice of the triu values
@@ -766,7 +774,11 @@ class RadialDistributionFunction(Calculator, ABC):
             n_atoms = tf.shape(positions_tensor)[0]
             log.debug('Starting calculation')
             start = timer()
-            self.rdf = run_minibatch_loop()
+            _rdf = run_minibatch_loop()
+
+            for key in self.rdf:
+                self.rdf[key] += _rdf[key]
+
             execution_time += timer() - start
             log.debug('Calculation done')
 
