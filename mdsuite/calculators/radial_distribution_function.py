@@ -126,7 +126,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     def __call__(self, plot=True, number_of_bins=None, cutoff=None, save=True, data_range=1,
                  images=1, start=0, stop=None, number_of_configurations=500, export: bool = False,
-                 minibatch: int = None, molecules: bool = False, gpu: bool = False, **kwargs):
+                 minibatch: int = -1, molecules: bool = False, gpu: bool = False, **kwargs):
         """Compute the RDF with the given user parameters
 
         Parameters
@@ -625,7 +625,7 @@ class RadialDistributionFunction(Calculator, ABC):
             else:
                 self._calculate_histograms()  # Calculate the RDFs
         else:
-            log.debug(f"Using minibatching with batch size :{self.minibatch}")
+            log.debug(f"Using minibatching with batch size: {self.minibatch}")
             self.mini_calculate_histograms()
 
         self._calculate_radial_distribution_functions()
