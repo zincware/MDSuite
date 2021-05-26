@@ -161,6 +161,7 @@ class DataManager:
             """
             database = Database(name=database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
+            start = 0
             for atom_batch in tqdm(range(self.n_atom_batches + _atom_remainder),
                                    total=self.n_atom_batches + _atom_remainder):
                 atom_start = atom_batch * self.atom_batch_size
