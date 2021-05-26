@@ -169,10 +169,9 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = (ensemble - (
-            tf.repeat(tf.expand_dims(ensemble[:, 0], 1), self.data_range, axis=1))) ** 2
+        msd = self._msd_operation(ensemble)
 
-        # Sum over trajectory and then coordinates and apply averaging and prefactors
+        # Sum over trajectory and then coordinates and apply averaging and pre-factors
         msd = self.prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 

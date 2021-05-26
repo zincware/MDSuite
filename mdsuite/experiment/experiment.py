@@ -568,7 +568,7 @@ class Experiment:
             self.species[new_name] = self.species[old_name]  # update dict
             del self.species[old_name]  # remove old entry
 
-    def set_charge(self, element, charge):
+    def set_charge(self, element: str, charge: float):
         """
         Set the charge/s of an element
 
@@ -579,10 +579,10 @@ class Experiment:
         charge : list
                 New charge/s of the element
         """
-        self.species[element]['charge'] = charge  # update entry
+        self.species[element]['charge'] = [charge]  # update entry
         self.save_class()
 
-    def set_mass(self, element, mass):
+    def set_mass(self, element: str, mass: float):
         """
         Set the mass/es of an element
 
@@ -663,7 +663,7 @@ class Experiment:
         return self._results
 
     @results.setter
-    def results(self, result_dict):
+    def results(self, result_dict: dict):
         """
         Setter to dump the results to the YAML file
 
