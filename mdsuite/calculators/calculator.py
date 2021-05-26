@@ -66,13 +66,26 @@ class Calculator(metaclass=abc.ABCMeta):
     def __init__(self, experiment: object, plot: bool = True, save: bool = True, data_range: int = 500,
                  correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False):
         """
-        Constructor for the calculator class
+        Constructor for the calculator class.
+
         Parameters
         ----------
-        experiment
-        plot
-        save
-        data_range
+        experiment : object
+                Experiment object to update.
+        plot : bool
+                If true, analysis is plotted.
+        save : bool
+                If true, the analysis is saved.
+        data_range : int
+                Data range over which to compute.
+        correlation_time : int
+                Correlation time to use in the analysis.
+        atom_selection : np.s_
+                Atoms to peform the analysis on.
+        export : bool
+                If true, analysis results are exported to a csv file.
+        gpu : bool
+                If true, reduce memory usage to what is allowed on the system GPU.
         """
         # Set upon instantiation of parent class
         self.experiment = experiment
@@ -114,11 +127,11 @@ class Calculator(metaclass=abc.ABCMeta):
         self.analysis_name: str
         self.minibatch: bool
 
-        self.x_label: str  # x label of the figure
-        self.y_label: str  # y label of the figure
-        self.analysis_name: str  # what to save the figure as
+        self.x_label: str
+        self.y_label: str
+        self.analysis_name: str
 
-        self.database_group = None  # Which database_path group to save the tensor_values in
+        self.database_group = None
         self.analysis_name = None
 
         # Prevent $DISPLAY warnings on clusters.
@@ -129,11 +142,30 @@ class Calculator(metaclass=abc.ABCMeta):
     def update_user_args(self, plot: bool = True, save: bool = True, data_range: int = 500,
                          correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True,
                          gpu: bool = False):
-        """Update the user args that are given by the __call__ method of the calculator"""
-        self.data_range = data_range  # Data range over which to evaluate
-        self.plot = plot  # Whether or not to plot the tensor_values and save a figure
-        self.save = save  # Whether or not to save the calculated tensor_values (Default is true)
-        self.export = export  # Whether or not to export the data
+        """
+        Update the user args that are given by the __call__ method of the calculator
+
+        Parameters
+        ----------
+        plot : bool
+                If true, analysis is plotted.
+        save : bool
+                If true, the analysis is saved.
+        data_range : int
+                Data range over which to compute.
+        correlation_time : int
+                Correlation time to use in the analysis.
+        atom_selection : np.s_
+                Atoms to peform the analysis on.
+        export : bool
+                If true, analysis results are exported to a csv file.
+        gpu : bool
+                If true, reduce memory usage to what is allowed on the system GPU.
+        """
+        self.data_range = data_range
+        self.plot = plot
+        self.save = save
+        self.export = export
         self.gpu = gpu
         self.correlation_time = correlation_time  # correlation time of the property
         self.atom_selection = atom_selection
@@ -316,6 +348,27 @@ class Calculator(metaclass=abc.ABCMeta):
         Saves a csv file to disc.
         """
         data.to_csv(name)
+
+    @staticmethod
+    def _msd_operation(ensemble: tf.Tensor, square: bool = True):
+        """
+        Perform a simple msd operation.
+
+        Parameters
+        ----------
+        ensemble : tf.Tensor
+            Trajectory over which to compute the msd.
+        square : bool
+            If true, square the result, else just return the difference.
+        Returns
+        -------
+        msd : tf.Tensor
+                Mean square displacement.
+        """
+        if square:
+            return tf.math.squared_difference(ensemble, ensemble[:, None, 0])
+        else:
+            return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
     def _prepare_managers(self, data_path: list):
         """

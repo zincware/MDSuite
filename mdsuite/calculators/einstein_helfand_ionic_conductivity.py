@@ -87,14 +87,18 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
         plot : bool
                 if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
+        correlation_time : int
+                Correlation time to use in the analysis.
+        export : bool
+                If true, export the results to a csv.
+        gpu : bool
+                If true, reduce memory usage to the maximum GPU capability.
         """
 
         # parse to the experiment class
@@ -105,7 +109,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
         out = self.run_analysis()
 
         self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
 
         return out
 
@@ -161,8 +164,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = (ensemble - (
-            tf.repeat(tf.expand_dims(ensemble[0], 0), self.data_range, axis=0))) ** 2
+        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
         msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
