@@ -1,7 +1,7 @@
 """
 Compute thermal conductivity.
 """
-import mdsuite as mds # Cool name for professionalism purposes
+import mdsuite as mds
 
 argon = mds.Experiment(analysis_name="Argon", time_step=1, temperature=70.0, units='real')
 argon.add_data(trajectory_file='../gk_data.lmp_traj')

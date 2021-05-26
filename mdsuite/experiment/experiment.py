@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 The central experiment class fundamental to all analysis.
 
 Summary
@@ -16,21 +14,17 @@ Summary
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
 import logging
-
 import json
 import os
 import pickle
 import sys
 from pathlib import Path
-
 import numpy as np
 import pubchempy as pcp
 import yaml
 from tqdm import tqdm
 import importlib.resources
-
 from datetime import datetime
-
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
@@ -212,10 +206,11 @@ class Experiment:
         with open(filename, 'wb') as save_file:
             save_file.write(pickle.dumps(self.__dict__))  # write to file
 
-    def units_to_si(self, units_system):
+    @staticmethod
+    def units_to_si(units_system):
         """
         Returns a dictionary with equivalences from the unit experiment given by a string to SI.
-        Along with some constants in the unit experiment provided (boltzman, or other conversions).
+        Along with some constants in the unit experiment provided (boltzmann, or other conversions).
         Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit experiment.
 
 
@@ -227,15 +222,6 @@ class Experiment:
         Returns
         -------
         conv_factor (float) -- conversion factor to pass to SI
-
-        Examples
-        --------
-        Pass from metal units of time (ps) to SI
-
-        >>> self.units_to_si('metal')
-        {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19}
-        >>> self.units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
-        'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
         """
 
         if isinstance(units_system, dict):
@@ -340,9 +326,9 @@ class Experiment:
         """
         Build the 'experiment' for the analysis
 
-        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop the
-        database_path skeleton, get configurations, and process and store the configurations. The method is accompanied
-        by a loading bar which should be customized to make it more interesting.
+        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop
+        the database_path skeleton, get configurations, and process and store the configurations. The method is
+        accompanied by a loading bar which should be customized to make it more interesting.
         """
 
         # Create new analysis directory and change into it
@@ -677,8 +663,7 @@ class Experiment:
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
             yaml.dump(result_dict, pfw)
 
-    def write_xyz(self, dump_property: str = "Positions", species: list = None, atom_select: np.s_ = np.s_[:],
-                  time_slice: np.s_ = np.s_[:], name: str = 'dump.xyz'):
+    def write_xyz(self, dump_property: str = "Positions", species: list = None, name: str = 'dump.xyz'):
         """
         Write an xyz file from a database dataset
         """
