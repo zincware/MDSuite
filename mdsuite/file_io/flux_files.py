@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for reading lammps trajectory files
 
 Summary
@@ -16,15 +14,11 @@ Summary
 """
 import abc
 import os
-
 import h5py as hf
 import numpy as np
 from tqdm import tqdm
-
 from mdsuite.file_io.file_read import FileProcessor
-
-
-# from .file_io_dict import lammps_flux
+from typing import TextIO
 
 
 class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
@@ -60,7 +54,8 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
         #                    libver='latest')
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz', 'yx', 'zx', 'zy')
 
-        with hf.File(os.path.join(self.experiment.database_path, 'database_path.hdf5'), 'w', libver='latest') as database:
+        with hf.File(os.path.join(self.experiment.database_path, 'database_path.hdf5'), 'w', libver='latest') as \
+                database:
             # Build the database_path structure
             database.create_group('1')
             for property_in, columns in self.experiment.property_groups.items():
@@ -102,7 +97,7 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
                     skip_header = 1  # turn off the header skip
                     counter += len(batch_data)  # Update counter
 
-    def read_configurations(self, number_of_configurations, file_object, skip=False):
+    def read_configurations(self, number_of_configurations: int, file_object: TextIO, skip: bool = False):
         """
         Read in a number of configurations from a file file
 
@@ -112,6 +107,8 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
                 Number of configurations to be read in.
         file_object : experiment
                 File object to be read from.
+        skip : bool
+                If true, skip the header lines before reading.
 
         Returns
         -------
@@ -131,7 +128,7 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
 
         return np.array(configurations_data)
 
-    def process_configurations(self, data, database, counter):
+    def process_configurations(self, data: np.array, database: object, counter: int):
         """
         Process the available tensor_values
 
@@ -172,8 +169,6 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        species_summary : dict
-                Species summary passed to the experiment class
         property_groups : dict
                 Property information passed to the experiment class
         number_of_atoms : int

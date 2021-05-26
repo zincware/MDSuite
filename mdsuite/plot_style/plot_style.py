@@ -11,7 +11,14 @@ Copyright Contributors to the MDSuite Project.
 import matplotlib.pyplot as plt
 from matplotlib import checkdep_usetex
 
+
 def style():
+    """
+    Define the plot style.
+    Returns
+    -------
+    Sets a style.
+    """
     font_size = 36
     params = {
         'font.family': 'STIXGeneral',

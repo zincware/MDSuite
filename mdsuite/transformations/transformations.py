@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Parent class for MDSuite transformations
 """
 import time
@@ -70,6 +68,7 @@ class Transformations:
         self.remainder: int
 
         self.dependency = None
+        self.scale_function = None
         self.offset = 0
 
         self.data_manager: DataManager
@@ -94,10 +93,7 @@ class Transformations:
     def _run_dependency_check(self):
         """
         Check that dependencies are fulfilled.
-        Parameters
-        ----------
-        path_list : list
-                A list of paths on which to check dependencies.
+
         Returns
         -------
         Calls a resolve method if dependencies are not met.

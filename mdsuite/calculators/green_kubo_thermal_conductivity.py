@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo thermal conductivity.
 
 Summary
@@ -19,8 +17,6 @@ The methods in class can then be called by the Experiment.green_kubo_thermal_con
 calculations performed.
 """
 import warnings
-
-# Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf

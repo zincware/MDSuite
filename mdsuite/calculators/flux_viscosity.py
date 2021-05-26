@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of viscosity.
 
 Summary
@@ -19,8 +17,6 @@ The methods in class can then be called by the ... method and all necessary
 calculations performed.
 """
 import warnings
-
-# Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm

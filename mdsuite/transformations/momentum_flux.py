@@ -6,16 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module to calculate the momentum flux in an experiment.
 """
-
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -120,8 +116,7 @@ class MomentumFlux(Transformations):
             data = self._transformation(x)
             self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
 
-
-def run_transformation(self):
+    def run_transformation(self):
         """
         Run the ionic current transformation
         Returns

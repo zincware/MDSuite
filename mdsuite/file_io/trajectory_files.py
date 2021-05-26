@@ -6,15 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Parent class for file processing
 
 Summary
 -------
 """
-
 import abc
 from typing import TextIO
 import numpy as np
@@ -125,7 +122,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
             if self.sort:
                 positions = np.array(self.experiment.species[item]['indices'])
             else:
-                positions = np.array([np.array(self.experiment.species[item]['indices']) + i * self.experiment.number_of_atoms -
+                positions = np.array([np.array(self.experiment.species[item]['indices']) + i *
+                                      self.experiment.number_of_atoms -
                                       self.header_lines for i in range(batch_size)]).flatten()
             length = len(self.experiment.species[item]['indices'])
             for observable in self.experiment.property_groups:

@@ -6,21 +6,18 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python __init__ file
 """
 import logging
 import os
 import sys
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-from .project import *  # Load the project class
+from .project import Project
 from .experiment.experiment import Experiment
 from .graph_modules import adjacency_matrix
 from .utils.report_computer_characteristics import Report
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 # there is a good chance, that the root logger is already defined so we have to make some changes to it!
 root = logging.getLogger()

@@ -6,18 +6,14 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module for the tensor_values fetch class
 """
 import logging
-
 import sys
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
 from mdsuite.database.simulation_database import Database
 
 log = logging.getLogger(__file__)
@@ -27,15 +23,15 @@ class DataManager:
     """
     Class for the MDS tensor_values fetcher
 
-    Due to the amount of tensor_values that needs to be collected and the possibility to optimize repeated loading, a separate
-    tensor_values fetching class is required. This class manages how tensor_values is loaded from the MDS database_path and optimizes
-    processes such as pre-loading and parallel reading.
+    Due to the amount of tensor_values that needs to be collected and the possibility to optimize repeated loading,
+    a separate tensor_values fetching class is required. This class manages how tensor_values is loaded from the MDS
+    database_path and optimizes processes such as pre-loading and parallel reading.
     """
 
     def __init__(self, database: Database = None, data_path: list = None, data_range: int = None,
                  n_batches: int = None, batch_size: int = None, ensemble_loop: int = None,
                  correlation_time: int = 1, remainder: int = None, atom_selection=np.s_[:],
-                 minibatch: bool = False, atom_batch_size : int = None, n_atom_batches: int = None,
+                 minibatch: bool = False, atom_batch_size: int = None, n_atom_batches: int = None,
                  atom_remainder: int = None, offset: int = 0):
         """
         Constructor for the DataManager class
@@ -206,6 +202,8 @@ class DataManager:
         ----------
         system : bool
                 If true, the system generator is returned.
+        dictionary : bool
+                If true, data is expected as a dictionary and returned as one.
 
         Returns
         -------

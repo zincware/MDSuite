@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the einstein diffusion coefficients.
 
 Summary
@@ -18,7 +16,6 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
 calculations performed.
 """
-
 import logging
 import matplotlib.pyplot as plt
 import numpy as np

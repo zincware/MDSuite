@@ -6,24 +6,19 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo viscosity.
 
 Summary
 This module contains the code for the Green-Kubo viscsity class. This class is called by the
 """
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from scipy import signal
-
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.utils.meta_functions import join_path
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0

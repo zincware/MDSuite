@@ -1,4 +1,5 @@
-"""Definition of the Database objects
+"""
+Definition of the Database objects
 """
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
@@ -110,13 +111,8 @@ class Data(Base):
 
 
 class Subject(Base):
-    """Class for the subjects associated with SystemProperty
-
-    Parameters
-    ----------
-    id: int, PK
-    subject: str
-        Name of the subject
+    """
+    Class for the subjects associated with SystemProperty
     """
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True)

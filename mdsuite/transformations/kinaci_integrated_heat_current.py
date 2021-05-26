@@ -6,13 +6,9 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module to calculate the Kinaci integrated heat current in a experiment.
 """
-import time
-
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm

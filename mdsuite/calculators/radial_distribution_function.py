@@ -6,12 +6,8 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the radial distribution function.
-
-Author: Samuel Tovey, Fabian Zills
 
 Summary
 -------
@@ -22,20 +18,15 @@ calculations performed.
 """
 import logging
 from abc import ABC
-
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-
-# Import user packages
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
-
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
-
 from timeit import default_timer as timer
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.

@@ -6,9 +6,8 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-""" Class for the calculation of the coordinated numbers
+Class for the calculation of the coordinated numbers
 
 Summary
 -------
@@ -26,16 +25,13 @@ The potential of mean-force is a measure of the binding strength between atomic 
         w^{(2)}(r) = -k_{B}Tln(g(r))
 """
 import logging
-
 import numpy as np
 import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
-
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import golden_section_search

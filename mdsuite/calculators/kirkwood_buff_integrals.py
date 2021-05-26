@@ -6,22 +6,16 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the coordinated numbers
 """
-
 import logging
-
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 from typing import Union
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
-
-# MDSuite imports
 from mdsuite.utils.exceptions import *
 from mdsuite.calculators.calculator import Calculator
 

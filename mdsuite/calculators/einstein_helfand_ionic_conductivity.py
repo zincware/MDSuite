@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Einstein-Helfand ionic conductivity.
 
 Summary
@@ -17,7 +15,6 @@ This class is called by the Experiment class and instantiated when the user call
 Experiment.einstein_helfand_ionic_conductivity method. The methods in class can then be called by the
 Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
-
 import warnings
 import matplotlib.pyplot as plt
 import numpy as np
@@ -137,7 +134,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
         denominator = 6 * self.experiment.units['time'] * (
                 self.experiment.volume * self.experiment.units['length'] ** 3) * \
                       self.experiment.temperature * boltzmann_constant
-
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

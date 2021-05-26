@@ -6,14 +6,10 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for memory management in MDSuite operations.
 """
-
 import logging
-
 from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.scale_functions import *

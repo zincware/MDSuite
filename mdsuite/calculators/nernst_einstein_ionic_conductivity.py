@@ -6,12 +6,10 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
+
+Calculate the Nernst-Einstein Conductivity of a system
 """
-
-""" Calculate the Nernst-Einstein Conductivity of a system """
-
 import logging
-
 import sys
 import operator
 from typing import Union
