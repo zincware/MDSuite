@@ -1,5 +1,7 @@
+"""
+Compute thermal conductivity.
+"""
 import shutil
-
 from mdsuite.experiment.experiment import Experiment
 
 if __name__ == '__main__':
@@ -17,8 +19,6 @@ if __name__ == '__main__':
                        temperature=70.0,
                        time_step=1,
                        units='real')
-
-    # the rename cols is only used to show here how it works, but in this case, the lammps file has the same column names...
     if new_case:
         argon.add_data(trajectory_file='../flux_1.lmp_flux', file_format='lammps_flux',
                        rename_cols={'Thermal_Flux': ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]']})
