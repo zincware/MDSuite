@@ -230,7 +230,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
-                          "Subject": [species[0], species[1]],
+                          "Subject": list(species),
                           "data_range": self.data_range,
                           'data': [{'x': -1*result[0], 'uncertainty': result[1]}]
                           }
@@ -239,7 +239,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             result = self._fit_einstein_curve([self.time, self.msd_array])
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
-                          "Subject": [species[0], species[1]],
+                          "Subject": list(species),
                           "data_range": self.data_range,
                           'data': [{'x': result[0], 'uncertainty': result[1]}]
                           }
