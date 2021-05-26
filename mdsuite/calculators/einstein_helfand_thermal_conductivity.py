@@ -158,8 +158,8 @@ class EinsteinHelfandThermalConductivity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = (ensemble - (
-            tf.repeat(tf.expand_dims(ensemble[0], 0), self.data_range, axis=0))) ** 2
+        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
+
         msd = self.prefactor*tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
