@@ -137,10 +137,9 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             start = ensemble * self.correlation_time
             stop = start + self.data_range
-            msd_a = (data[str.encode(data_path[0])][:, start:stop] - (
-                tf.repeat(tf.expand_dims(data[str.encode(data_path[0])][:, 0], 1), self.data_range, axis=1)))
-            msd_b = (data[str.encode(data_path[0])][:, start:stop] - (
-                tf.repeat(tf.expand_dims(data[str.encode(data_path[0])][:, 0], 1), self.data_range, axis=1)))
+            msd_a = self._msd_operation(data[str.encode(data_path[0])][:, start:stop], square=False)
+            msd_b = self._msd_operation(data[str.encode(data_path[0])][:, start:stop], square=False)
+
             for i in range(len(data[str.encode(data_path[0])])):
                 for j in range(i+1, len(data[str.encode(data_path[1])])):
                     if i == j:
