@@ -230,19 +230,19 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
-                          "Subject": "_".join(species),
+                          "Subject": [species[0], species[1]],
                           "data_range": self.data_range,
-                          'data': -1*result[0],
-                          'uncertainty': result[1]}
+                          'data': [{'x': -1*result[0], 'uncertainty': result[1]}]
+                          }
             self._update_properties_file(properties)
         else:
             result = self._fit_einstein_curve([self.time, self.msd_array])
             properties = {"Property": self.database_group,
                           "Analysis": self.analysis_name,
-                          "Subject": species,
+                          "Subject": [species[0], species[1]],
                           "data_range": self.data_range,
-                          'data': result[0],
-                          'uncertainty': result[1]}
+                          'data': [{'x': result[0], 'uncertainty': result[1]}]
+                          }
             self._update_properties_file(properties)
 
         # Update the plot if required
@@ -250,9 +250,6 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=species)
             plt.show()
 
-        if self.save:
-            self._save_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                    self.msd_array))
         if self.export:
             self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
                                                                                                       self.msd_array))
