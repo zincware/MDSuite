@@ -74,11 +74,10 @@ def get_dimensionality(box: list) -> int:
 
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
-        dimensions = 2
-
-    # Check if only one of the entries is non-zero, i.e. 1 dimension.
-    elif box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
-        dimensions = 1
+        if box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
+            dimensions = 1
+        else:
+            dimensions = 2
 
     # Other option is 3 dimensions.
     else:
@@ -108,7 +107,7 @@ def get_machine_properties() -> dict:
     try:
         total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
         for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id]= {}
+            machine_properties['gpu'][gpu.id] = {}
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
             machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
     except (NoGPUInSystem, ValueError):
