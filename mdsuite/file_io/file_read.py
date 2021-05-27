@@ -105,7 +105,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
                 A dictionary of the keyword labelled properties in the trajectory. The  values of the dictionary keys
                 correspond to the array location of the specific piece of tensor_values in the set.
         """
-
         # for each property label (position, velocity,etc) in the lammps definition
         for property_label, property_names in database_correspondence_dict.items():
             # for each coordinate for a given property label (position: x, y, z), get idx and the name
@@ -114,7 +113,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
                     # we change the lammps_properties_dict replacing the string of the property name by the column name
                     database_correspondence_dict[property_label][idx] = column_dict_properties[property_name]
 
-        # trajectory_properties only needs the labels with the integer columns, then we one copy those
+        # trajectory_properties only need the labels with the integer columns, then we only copy those
         trajectory_properties = {}
         for property_label, properties_columns in database_correspondence_dict.items():
             if all([isinstance(property_column, int) for property_column in properties_columns]):

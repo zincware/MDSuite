@@ -423,33 +423,33 @@ class Experiment:
         # get properties of the trajectory file
         architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
         database.initialize_database(architecture)  # initialize the database_path
+        print(architecture)
 
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
         remainder = self.number_of_configurations - batch_range * self.batch_size
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
-        f_object = open(trajectory_file, 'r')  # open the trajectory file
-        for _ in tqdm(range(batch_range), ncols=70):
-            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=self.batch_size,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-            counter += self.batch_size
+        with open(trajectory_file, 'r') as f_object:
+            for _ in tqdm(range(batch_range), ncols=70):
+                database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=self.batch_size,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
+                counter += self.batch_size
 
-        if remainder > 0:
-            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
-            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=remainder,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-        f_object.close()
+            if remainder > 0:
+                structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
+                database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=remainder,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
 
         analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
         analysis_database.build_database()

@@ -678,6 +678,9 @@ class Calculator(metaclass=abc.ABCMeta):
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+            if self.plot:
+                plt.legend()
+                plt.show()
 
         elif self.experimental:
             data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]

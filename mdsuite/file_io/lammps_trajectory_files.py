@@ -18,6 +18,7 @@ from mdsuite.utils.exceptions import NoElementInDump
 from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
+import copy
 
 var_names = {
     "Positions": ['x', 'y', 'z'],
@@ -149,8 +150,9 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             sys.exit(1)
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
-
-        property_groups = self._extract_properties(var_names, column_dict_properties)
+        print(column_dict_properties)
+        property_groups = self._extract_properties(copy.deepcopy(var_names), column_dict_properties)
+        print(property_groups)
 
         box = [(float(header[5][1]) - float(header[5][0])),
                (float(header[6][1]) - float(header[6][0])),
@@ -204,7 +206,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)  # get the batch size
         species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
-
         if update_class:
             self.experiment.batch_size = batch_size
             self.experiment.dimensions = get_dimensionality(box)
@@ -220,4 +221,5 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             self.experiment.batch_size = batch_size
             self.experiment.number_of_configurations += number_of_configurations
 
+        self.f_object.close()
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length
