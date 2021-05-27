@@ -50,7 +50,7 @@ class Project:
             A short description of the project
 
     storage_path : str
-            Where to store the tensor_values and databases. This may not simply be the current direcotry if the databases are
+            Where to store the tensor_values and databases. This may not simply be the current directory if the databases are
             expected to be quite large.
 
     experiments : dict
