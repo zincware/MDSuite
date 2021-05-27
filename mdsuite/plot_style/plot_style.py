@@ -74,11 +74,23 @@ def style():
 
 
 def apply_style():
+    """
+    Apply the style to the kernel.
+    Returns
+    -------
+    Sets plotting styles for the kernel.
+    """
     params = style()
     plt.style.use(params)
 
 
 def get_markers():
+    """
+    Prepare a list of markers for use in the styling.
+    Returns
+    -------
+    Returns a list of markers.
+    """
     # list of markers
     return [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "P", "*", "h", "H", "+", "x", "X", "D",
             "d", "|", "_", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
