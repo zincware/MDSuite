@@ -29,9 +29,11 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Pytest
+    - name: Install package
       run: |
         pip install .
+    - name: Pytest
+      run: |
         pytest
       env:
         CUDA_VISIBLE_DEVICES: -1
