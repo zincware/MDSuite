@@ -134,10 +134,14 @@ def line_counter(filename: str) -> int:
             Number of lines in the file
     """
 
-    return sum(1 for _ in open(filename, 'rb'))
+    f = open(filename, 'rb')
+    num_lines = sum(1 for _ in f)
+    f.close()
+    return num_lines
 
 
-def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
+def optimize_batch_size(filepath: str, number_of_configurations: int,
+                        _file_size: int = None, _memory: int = None, test: bool = False) -> int:
     """
     Optimize the size of batches during initial processing
 
@@ -149,21 +153,29 @@ def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
     filepath : str
             Path to the file be read in. This is not opened during the process, it is simply needed to read the file
             size.
-
     number_of_configurations : int
             Number of configurations in the trajectory.
+    _file_size : int
+            Mock file size to use during tests.
+    _memory : int
+            Mock memory to use during tests.
+    test : bool
+            If true, mock variables are used.
 
     Returns
     -------
     batch size : int
             Number of configurations to load in each batch
     """
+    if test:
+        file_size = _file_size
+        database_memory = _memory
+    else:
+        computer_statistics = get_machine_properties()  # Get computer statistics
+        file_size = os.path.getsize(filepath)  # Get the size of the file
+        database_memory = 0.1 * computer_statistics['memory']  # We take 10% of the available memory
 
-    computer_statistics = get_machine_properties()  # Get computer statistics
-
-    file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.1 * computer_statistics['memory']  # We take 50% of the available memory
     initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
 
     # The database_path generation expands memory ~5x

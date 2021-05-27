@@ -7,6 +7,7 @@ Copyright Contributors to the MDSuite Project.
 """
 import unittest
 from mdsuite.utils.meta_functions import *
+import os
 
 
 class TestMetaFunction(unittest.TestCase):
@@ -54,9 +55,35 @@ class TestMetaFunction(unittest.TestCase):
 
         Returns
         -------
-
+        Check that the correct number of lines is return for a test file.
         """
-        pass
+        data = [["a\n"], ["b\n"], ["c\n"], ["d"]]
+        name = 'line_counter_test.txt'
+        with open(name, 'w') as f:
+            for item in data:
+                f.write(item[0])
+        self.assertEqual(line_counter(name), 4)
+        os.remove(name)
+
+    def test_optimize_batch_size(self):
+        """
+        Test the optimize_batch_size method.
+
+        Returns
+        -------
+        assert the correct batch size is returned for several inputs.
+        """
+        # Assert that the batch number is the full trajectory.
+        number_of_configurations = 10
+        _file_size = 100
+        _memory = 1000000
+        self.assertEqual(optimize_batch_size('None', number_of_configurations, _file_size, _memory, test=True), 10)
+
+        # Assert that the batch number is the half the trajectory.
+        number_of_configurations = 10
+        _file_size = 100
+        _memory = 250
+        self.assertEqual(optimize_batch_size('None', number_of_configurations, _file_size, _memory, test=True), 5)
 
 
 if __name__ == '__main__':
