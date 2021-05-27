@@ -230,8 +230,8 @@ class Experiment:
             try:
                 units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
             except KeyError:
-                print(f'The unit experiment provided is not implemented...')
-                print(f'The available systems are: ')
+                print('The unit experiment provided is not implemented...')
+                print('The available systems are: ')
                 [print(key) for key, _ in units_dict.items()]
                 sys.exit(-1)
         return units
@@ -315,7 +315,7 @@ class Experiment:
             transformation = transformations_dict[transformation_name]
         except KeyError:
             print(f'{transformation_name} not found')
-            print(f'Available transformations are:')
+            print('Available transformations are:')
             [print(key) for key in transformations_dict.keys()]
             sys.exit(1)
 
@@ -501,7 +501,7 @@ class Experiment:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
             print(f'{file_format} not found')
-            print(f'Available io formats are are:')
+            print('Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
         return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
