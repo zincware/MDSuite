@@ -15,13 +15,17 @@ import urllib.request
 import gzip
 import shutil
 import os
+import numpy as np
+import shutil
 
 
 class TestLiquidNaCl(unittest.TestCase):
     """
     Perform an integration test on liquid NaCl.
     """
-    def setUp(self):
+
+    @classmethod
+    def setUpClass(cls) -> None:
         """
         set up the project class and experiments.
 
@@ -29,27 +33,38 @@ class TestLiquidNaCl(unittest.TestCase):
         -------
         Updates class attributes.
         """
-        self.project = mds.Project(name='molten_nacl_test')
+        cls.project = mds.Project(name='molten_nacl_test')
         time_step = 0.002
         temperature = 1400.0
         base_url = 'https://github.com/zincware/ExampleData/raw/main/'
-        endpoints = ['NaCl_gk_i_q.lammpstraj',
-                     'NaCl_gk_ni_nq.lammpstraj',
-                     'NaCl_i_q.lammpstraj',
-                     'NaCl_ni_nq.lammpstraj']
-        for item in endpoints:
-            print(item)
+        cls.endpoints = ['NaCl_gk_i_q.lammpstraj',
+                         'NaCl_gk_ni_nq.lammpstraj',
+                         'NaCl_i_q.lammpstraj',
+                         'NaCl_ni_nq.lammpstraj']
+        for item in cls.endpoints:
             filename, headers = urllib.request.urlretrieve(f'{base_url}{item}.gz', filename=f'{item}.gz')
             with gzip.open(filename, 'rb') as f_in:
                 with open(item, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
-            self.project.add_experiment(experiment=item[:-11],
-                                        timestep=time_step,
-                                        temperature=temperature,
-                                        units='metal')
-            self.project.experiments[item[:-11]].add_data(item)
+            cls.project.add_experiment(experiment=item[:-11],
+                                       timestep=time_step,
+                                       temperature=temperature,
+                                       units='metal')
+            cls.project.experiments[item[:-11]].add_data(item)
+            cls.project.experiments[item[:-11]].set_charge("Na", 1)
+            cls.project.experiments[item[:-11]].set_charge("Cl", -1)
             os.remove(item)
             os.remove(f'{item}.gz')
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        """
+        Remove files generated.
+        Returns
+        -------
+        Removes the project directory.
+        """
+        shutil.rmtree('molten_nacl_test_MDSuite_Project', ignore_errors=True)
 
     def test_completion(self):
         """
@@ -58,8 +73,70 @@ class TestLiquidNaCl(unittest.TestCase):
         -------
         assert that all the experiments exist.
         """
-        print(self.project.experiments.keys())
+        reference = [item[:-11] for item in self.endpoints]
+        comparison = list(self.project.experiments.keys())
+        assert np.array_equal(reference, comparison)
+
+    def test_einstein_diffusion_coefficients(self):
+        """
+        Test that einstein diffusion coefficients work as expected. This will include assessing how the unwrapping
+        works for both indices and from the MDSuite box-hopping implementation.
+
+        Returns
+        -------
+        Asserts the following:
+        * Self-diffusion coefficients match to expected value.
+        * Box-indices and box-hopping unwrapping methods yield the same value.
+        * All unwrapping, einstein computations, and fitting methods work together.
+        """
+        Na_ref = 1.46e-8
+        Cl_ref = 1.41e-8
+        reference_experiments = ['NaCl_i_q', 'NaCl_ni_nq']
+        for item in reference_experiments:
+            self.project.experiments[item].run_computation.EinsteinDiffusionCoefficients(plot=False,
+                                                                                         data_range=300,
+                                                                                         correlation_time=1,
+                                                                                         save=True)
+        dat_Na = self.project.get_properties({'analysis': 'Einstein_Self_Diffusion_Coefficients',
+                                              'subjects': ["Na"]})
+        dat_Cl = self.project.get_properties({'analysis': 'Einstein_Self_Diffusion_Coefficients',
+                                              'subjects': ["Cl"]})
+
+        Na_diff = [[dat_Na[item][0].data[0].x] for item in reference_experiments]
+        Cl_diff = [[dat_Cl[item][0].data[0].x] for item in reference_experiments]
+        assert np.testing.assert_almost_equal(Na_diff[0][0], Na_ref, 8)
+        assert np.testing.assert_almost_equal(Na_diff[1][0], Na_ref, 8)
+        assert np.testing.assert_almost_equal(Na_diff[0][0], Na_diff[1][0], 8)
+        assert np.testing.assert_almost_equal(Cl_diff[0][0], Cl_ref, 8)
+        assert np.testing.assert_almost_equal(Cl_diff[1][0], Cl_ref, 8)
+        assert np.testing.assert_almost_equal(Cl_diff[0][0], Cl_diff[1][0], 8)
+
+    def test_einstein_ionic_conductivity(self):
+        """
+        Test that Einstein-Helfand ionic conductivity work as expected. This will include assessing how the unwrapping
+        works for both indices and from the MDSuite box-hopping implementation. It will also ensure that the different
+        approaches for charge inclusion result in the same values.
+
+        Returns
+        -------
+        Asserts the following:
+        * Ionic conductivity values match to expected value.
+        * Box-indices and box-hopping unwrapping methods yield the same value.
+        * All unwrapping, einstein computations, and fitting methods work together.
+        """
+        reference_experiments = ['NaCl_i_q', 'NaCl_ni_nq']
+        ic_ref = 365.0
+        for item in reference_experiments:
+            self.project.experiments[item].run_computation.EinsteinHelfandIonicConductivity(plot=False,
+                                                                                            data_range=50,
+                                                                                            correlation_time=1,
+                                                                                            save=True)
+        dat = self.project.get_properties({'analysis': 'Einstein_Helfand_Ionic_Conductivity'})
+
+        ic = [[dat[item][0].data[0].x] for item in reference_experiments]
+        assert np.testing.assert_almost_equal(ic[0][0], ic[1][0], -2)
 
 
 if __name__ == '__main__':
     unittest.main()
+    shutil.rmtree('molten_nacl_test_MDSuite_Project', ignore_errors=True)

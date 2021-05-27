@@ -423,7 +423,6 @@ class Experiment:
         # get properties of the trajectory file
         architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
         database.initialize_database(architecture)  # initialize the database_path
-        print(architecture)
 
         batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
         remainder = self.number_of_configurations - batch_range * self.batch_size

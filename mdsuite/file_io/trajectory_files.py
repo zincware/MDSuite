@@ -156,7 +156,6 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 architecture[species][observable] = (len(species_summary[species]['indices']),
                                                      number_of_configurations,
                                                      len(property_groups[observable]))
-        print(architecture)
 
         return architecture
 
