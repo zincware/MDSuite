@@ -12,7 +12,7 @@ Class for database_path objects and all of their operations
 import h5py as hf
 import numpy as np
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
 import time
 from typing import Union
@@ -395,8 +395,8 @@ class Database:
         """
         with hf.File(self.name, 'r') as database_object:
             keys = []
-            database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
-                                                                                          hf.Dataset else None)
+            database_object.visit(lambda item: keys.append(database_object[item].name) if type(
+                database_object[item]) is hf.Dataset else None)
             path = f'/{path}'  # add the / to avoid name overlapping
 
             response = any(list(item.endswith(path) for item in keys))

@@ -126,7 +126,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
+            (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
@@ -163,7 +163,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
+            (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
@@ -182,10 +182,10 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_uncertainty = item['uncertainty']
             constituents = item['Subject'].split("_")
             charge_term = self.experiment.species[constituents[0]]['charge'][0] * \
-                         self.experiment.species[constituents[1]]['charge'][0]
+                self.experiment.species[constituents[1]]['charge'][0]
             mass_fraction_term = (len(
                 self.experiment.species[constituents[0]]['indices']) / self.experiment.number_of_atoms) * \
-                                 (len(self.experiment.species[constituents[1]][
+                (len(self.experiment.species[constituents[1]][
                                           'indices']) / self.experiment.number_of_atoms)
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
             uncertainty += diffusion_uncertainty * charge_term * mass_fraction_term
@@ -248,8 +248,10 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "analysis": "Green_Kubo_Self_Diffusion_Coefficients",
                                                                 "subjects": [species]})[0] for species in self.species]
             input_distinct = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                                "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients",
-                                                                "subjects": [species]})[0] for species in self.species]
+                                                                    "analysis": "Green_Kubo_Distinct_Diffusion_"
+                                                                                "Coefficients",
+                                                                    "subjects": [species]})[0] for species in
+                              self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
 
             properties = {"Property": self.database_group,
@@ -265,8 +267,9 @@ class NernstEinsteinIonicConductivity(Calculator):
                                                                 "analysis": "Einstein_Self_Diffusion_Coefficients",
                                                                 "subjects": [species]})[0] for species in self.species]
             input_distinct = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                                "analysis": "Einstein_Distinct_Diffusion_Coefficients",
-                                                                "subjects": [species]})[0] for species in self.species]
+                                                                    "analysis": "Einstein_Distinct_Diffusion_Coefficients",
+                                                                    "subjects": [species]})[0] for species in
+                              self.species]
             data = self._corrected_nernst_einstein(input_self, input_distinct)
 
             properties = {"Property": self.database_group,

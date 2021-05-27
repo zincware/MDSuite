@@ -134,7 +134,7 @@ class GreenKuboViscosityFlux(Calculator):
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units['boltzman']
 
         prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-                          self.experiment.units['time'] / self.experiment.units['energy']
+            self.experiment.units['time'] / self.experiment.units['energy']
 
         self.prefactor = (numerator / denominator)*prefactor_units
 
@@ -205,4 +205,4 @@ class GreenKuboViscosityFlux(Calculator):
 
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.jacf))
+                                                                                                       self.jacf))

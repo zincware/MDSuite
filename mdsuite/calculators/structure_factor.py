@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from typing import Union
 from tqdm import tqdm
 
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text

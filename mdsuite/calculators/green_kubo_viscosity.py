@@ -125,7 +125,7 @@ class GreenKuboViscosity(Calculator):
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units[
             'boltzman'] * self.experiment.volume  # we use boltzman constant in the units provided.
         prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-                          self.experiment.units[
+            self.experiment.units[
                               'time'] / self.experiment.units['energy']
 
         self.prefactor = (numerator / denominator) * prefactor_units

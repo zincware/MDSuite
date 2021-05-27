@@ -128,7 +128,7 @@ class GreenKuboThermalConductivity(Calculator):
         # prepare the prefactor for the integral
         numerator = 1
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature ** 2 * self.experiment.units['boltzman'] \
-                      * self.experiment.volume  # we use Boltzmann constant in the units provided.
+            * self.experiment.volume  # we use Boltzmann constant in the units provided.
         prefactor_units = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
             'time']
 
@@ -192,4 +192,4 @@ class GreenKuboThermalConductivity(Calculator):
             self._update_properties_file(properties)
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.jacf))
+                                                                                                       self.jacf))

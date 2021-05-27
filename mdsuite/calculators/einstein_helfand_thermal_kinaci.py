@@ -193,4 +193,4 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
+                                                                                                       self.msd_array))

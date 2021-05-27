@@ -546,14 +546,14 @@ class RadialDistributionFunction(Calculator, ABC):
             ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
             numerator = species_scale_factor
             denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.molecules[species_split[0]]['indices'])
+                len(self.experiment.molecules[species_split[0]]['indices'])
         else:
             # Density of all atoms / total volume
             rho = len(self.experiment.species[species_split[1]]['indices']) / self.experiment.volume
             ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
             numerator = species_scale_factor
             denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.species[species_split[0]]['indices'])
+                len(self.experiment.species[species_split[0]]['indices'])
         prefactor = numerator / denominator
 
         return prefactor

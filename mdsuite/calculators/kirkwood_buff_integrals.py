@@ -16,8 +16,9 @@ import matplotlib.pyplot as plt
 from typing import Union
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
+from typing import Iterable
 
 log = logging.getLogger(__file__)
 
@@ -116,7 +117,7 @@ class KirkwoodBuffIntegral(Calculator):
         """
         raise NotApplicableToAnalysis
 
-    def _get_rdf_data(self) -> list:
+    def _get_rdf_data(self) -> Iterable:
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """

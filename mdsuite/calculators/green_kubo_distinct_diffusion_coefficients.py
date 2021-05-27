@@ -186,10 +186,10 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          (len(self.experiment.species[species[1]]['indices']) - 1)
         else:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          len(self.experiment.species[species[1]]['indices'])
         numerator = self.experiment.units['length'] ** 2
         denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * atom_scale

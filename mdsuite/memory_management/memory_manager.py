@@ -12,7 +12,8 @@ Class for memory management in MDSuite operations.
 import logging
 from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.database.simulation_database import Database
-from mdsuite.utils.scale_functions import *
+from mdsuite.utils.scale_functions import linear_scale_function, \
+    linearithmic_scale_function, polynomial_scale_function, quadratic_scale_function
 import numpy as np
 import sys
 from typing import Tuple
@@ -197,8 +198,7 @@ class MemoryManager:
         batch_size : int
                 An optimized batch size
         """
-        db_io_time = self.database.get_load_time()
-
+        # db_io_time = self.database.get_load_time()
         return naive_size
 
     def _compute_atomwise_minibatch(self, data_range: int):
@@ -220,7 +220,7 @@ class MemoryManager:
         # This does not seem to be used anywhere?
         # per_configuration_memory = self.scale_function(per_configuration_memory, **self.scale_function_parameters)
         per_atom_memory = self.scale_function(per_atom_memory, **self.scale_function_parameters)
-        fractions = [1/2, 1/4, 1/8, 1/20, 1/100, 1/200, 0]
+        fractions = [1 / 2, 1 / 4, 1 / 8, 1 / 20, 1 / 100, 1 / 200, 0]
 
         for fraction in fractions:  # iterate over possible mini batch fractions to fit memory
             if fraction == 0:

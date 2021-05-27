@@ -6,9 +6,10 @@ SPDX-License-Identifier: EPL-2.0
 Copyright Contributors to the MDSuite Project.
 """
 import unittest
-from mdsuite.utils.meta_functions import *
+from mdsuite.utils.meta_functions import join_path, get_dimensionality, get_machine_properties, \
+    line_counter, optimize_batch_size, linear_fitting_function, simple_file_read, round_down, split_array, find_item
 import os
-import matplotlib.pyplot as plt
+import numpy as np
 
 
 class TestMetaFunction(unittest.TestCase):

@@ -441,4 +441,3 @@ def find_item(obj, key):
             item = find_item(v, key)
             if item is not None:
                 return item
-

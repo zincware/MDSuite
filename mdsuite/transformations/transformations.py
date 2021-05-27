@@ -212,7 +212,6 @@ class Transformations:
         binary_map : int
                 If remainder > 0, return 1, else,  return 0
         """
-        
         return int(self.remainder > 0)
 
     def _save_coordinates(self, data: Union[tf.Tensor, np.array], index: int, batch_size: int, data_structure: dict,

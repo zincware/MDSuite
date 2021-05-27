@@ -30,7 +30,7 @@ from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase

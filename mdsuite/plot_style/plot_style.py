@@ -65,9 +65,9 @@ def style():
         'axes.spines.right': False
         # 'figure.constrained_layout.use': True
     }
-    
-    usetex = checkdep_usetex(True) # check if latex is available
-    if not usetex: # if not, just set it to False, and do not use latex to print figures.
+
+    usetex = checkdep_usetex(True)  # check if latex is available
+    if not usetex:  # if not, just set it to False, and do not use latex to print figures.
         params['text.usetex'] = False
 
     return params

@@ -9,4 +9,3 @@ Copyright Contributors to the MDSuite Project.
 
 Python module to read xtc files for mdsuite
 """
-

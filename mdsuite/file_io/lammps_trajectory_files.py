@@ -14,7 +14,7 @@ Summary
 """
 import sys
 from mdsuite.file_io.trajectory_files import TrajectoryFile
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NoElementInDump
 from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size

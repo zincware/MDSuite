@@ -131,7 +131,7 @@ class GreenKuboIonicConductivity(Calculator):
         # Calculate the prefactor
         numerator = (elementary_charge ** 2) * (self.experiment.units['length'] ** 2)
         denominator = 3 * boltzmann_constant * self.experiment.temperature * self.experiment.volume * \
-                      (self.experiment.units['length'] ** 3) * self.data_range * self.experiment.units['time']
+            (self.experiment.units['length'] ** 3) * self.data_range * self.experiment.units['time']
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
