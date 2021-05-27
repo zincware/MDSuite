@@ -610,7 +610,7 @@ class RadialDistributionFunction(Calculator, ABC):
             self.n_batches = self.override_n_batches
 
         if self.minibatch is None:
-            log.debug(f"Doing full batch RDF computations")
+            log.debug("Doing full batch RDF computations")
             if self.use_tf_function:
                 raise NotImplementedError('tf.function is only supported with minibatching')
             else:
