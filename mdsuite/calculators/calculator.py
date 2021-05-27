@@ -29,7 +29,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
-from mdsuite.calculators.computations_dict import switcher_transformations
+from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm

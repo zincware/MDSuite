@@ -6,14 +6,14 @@ SPDX-License-Identifier: EPL-2.0
 Copyright Contributors to the MDSuite Project.
 """
 import unittest
-from mdsuite.utils.meta_functions import *
+from mdsuite.utils.meta_functions import join_path
 
 
-class MetaFunctionTest(unittest.TestCase):
+class TestMetaFunction(unittest.TestCase):
     """
     A test class for the meta functions module.
     """
-    def join_path(self):
+    def test_join_path(self):
         """
         Test the join_path method.
 
