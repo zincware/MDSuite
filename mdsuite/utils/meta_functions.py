@@ -189,8 +189,8 @@ def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
     """
     Linear function for line fitting
 
-    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some tensor_values. This function
-    is called by the scipy curve_fit module as the model to fit to.
+    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some tensor_values.
+    This function is called by the scipy curve_fit module as the model to fit to.
 
     Parameters
     ----------
@@ -214,7 +214,8 @@ def simple_file_read(filename: str) -> list:
     Trivially read a file and load it into an array
 
     There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
-    and dump tensor_values into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+    and dump tensor_values into an array. This is NOT memory safe, and should not be used for processing large
+    trajectory files.
 
     Parameters
     ----------
@@ -247,6 +248,11 @@ def timeit(f: Callable) -> Callable:
     Returns
     -------
     wrap : Callable
+            Method wrapper for timing the method.
+
+    Notes
+    -----
+    There is currently no test for this wrapper as there is no simple way of checking timing on a remote server.
     """
 
     @wraps(f)
@@ -264,7 +270,7 @@ def timeit(f: Callable) -> Callable:
     return wrap
 
 
-def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> list:
+def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing
 
@@ -273,6 +279,8 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
 
     Parameters
     ----------
+    window_length : int
+            Window length to use in the filtering.
     data : list
             Array of tensor_values to be analysed.
     order : int
@@ -280,8 +288,13 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
 
     Returns
     -------
-    filtered tensor_values : list
+    filtered tensor_values : np.ndarray
             Returns the filtered tensor_values directly from the scipy SavGol filter.
+
+    Notes
+    -----
+    There are no tests for this method as a test would simply be testing the scipy implementation which they have
+    done.
     """
 
     return savgol_filter(data, window_length, order)
@@ -373,9 +386,10 @@ def round_down(a: int, b: int) -> int:
     """
 
     remainder = 1  # initialize a remainder
+    a += 1
     while remainder != 0:
-        remainder = b % a
         a -= 1
+        remainder = b % a
 
     return a
 
@@ -394,13 +408,6 @@ def split_array(data: np.array, condition: np.array) -> list:
     -------
     split_array : list
             A list of split up arrays.
-
-    Examples
-    --------
-    >>> a = np.array([1, 2, 3, 10, 20, 30])
-    >>> split_array(a, a < 10)
-    >>> [np.array([1, 2, 3]), np.array([10, 20, 30])]
-
     """
 
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
@@ -427,7 +434,8 @@ def find_item(obj, key):
     item: dict value.
         returns the value for the given key. Return type may change depending on the requested key
     """
-    if key in obj: return obj[key]
+    if key in obj:
+        return obj[key]
     for k, v in obj.items():
         if isinstance(v, dict):
             item = find_item(v, key)

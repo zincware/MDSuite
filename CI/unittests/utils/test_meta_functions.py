@@ -8,6 +8,7 @@ Copyright Contributors to the MDSuite Project.
 import unittest
 from mdsuite.utils.meta_functions import *
 import os
+import matplotlib.pyplot as plt
 
 
 class TestMetaFunction(unittest.TestCase):
@@ -57,11 +58,11 @@ class TestMetaFunction(unittest.TestCase):
         -------
         Check that the correct number of lines is return for a test file.
         """
-        data = [["a\n"], ["b\n"], ["c\n"], ["d"]]
+        data = [["ayy"], ["bee"], ["cee"], ["dee"]]
         name = 'line_counter_test.txt'
         with open(name, 'w') as f:
             for item in data:
-                f.write(item[0])
+                f.write(f"{item[0]}\n")
         self.assertEqual(line_counter(name), 4)
         os.remove(name)
 
@@ -84,6 +85,96 @@ class TestMetaFunction(unittest.TestCase):
         _file_size = 100
         _memory = 250
         self.assertEqual(optimize_batch_size('None', number_of_configurations, _file_size, _memory, test=True), 5)
+
+    def test_linear_fitting_function(self):
+        """
+        Test the linear_fitting_function method.
+
+        Returns
+        -------
+        Assert the correction function values come out.
+        """
+        a = 5
+        b = 3
+        x = np.array([1, 2, 3, 4, 5])
+        reference = a*x + b
+        assert np.array_equal(linear_fitting_function(x, a, b), reference)
+
+    def test_simple_file_read(self):
+        """
+        Test the simple_file_read method.
+
+        Returns
+        -------
+        Assert that the arrays read in are as expected.
+        """
+        data = [["ayy"], ["bee"], ["cee"], ["dee"]]
+        name = 'line_counter_test.txt'
+        with open(name, 'w') as f:
+            for item in data:
+                f.write(f"{item[0]}\n")
+        np.array_equal(simple_file_read(name), data)
+        os.remove(name)
+
+    def test_golden_section_search(self):
+        """
+        Test the golden_section_search method.
+
+        Returns
+        -------
+        Asserts that the correct minimum is found.
+        """
+        def func(x: np.ndarray):
+            """
+            test function.
+            Parameters
+            ----------
+            x : np.ndarray
+
+            Returns
+            -------
+            x**2
+            """
+            return x**2
+        self.assertEqual(True, True)
+
+    def test_round_down(self):
+        """
+        Test the round_down method.
+
+        Returns
+        -------
+        Assert the correct rounding occurs.
+        """
+        b = 10
+        a = 9
+
+        self.assertEqual(round_down(a, b), 5)
+
+    def test_split_arrays(self):
+        """
+        Test the split_arrays method.
+
+        Returns
+        -------
+        assert that array splitting has been performed correctly.
+        """
+        a = np.array([1, 2, 3, 10, 20, 30])
+        assert np.array_equal(split_array(a, a < 10), [np.array([1, 2, 3]), np.array([10, 20, 30])])
+
+    def test_find_item(self):
+        """
+        Test the find item method.
+
+        Returns
+        -------
+        assert that a deep item is retrieved from a dictionary.
+        """
+        test_1 = {'a': 4}  # test the first if statement
+        test_2 = {'a': {'ae': {'aee': 1}}, 'b': {'be': {'bee': 4}}}  # test the case when the if statement fails.
+
+        self.assertEqual(find_item(test_1, 'a'), 4)
+        self.assertEqual(find_item(test_2, 'aee'), 1)
 
 
 if __name__ == '__main__':
