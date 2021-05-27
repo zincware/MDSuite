@@ -150,6 +150,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             sys.exit(1)
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
+
         property_groups = self._extract_properties(copy.deepcopy(var_names), column_dict_properties)
 
         box = [(float(header[5][1]) - float(header[5][0])),
