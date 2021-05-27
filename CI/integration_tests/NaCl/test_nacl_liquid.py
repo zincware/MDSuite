@@ -104,12 +104,12 @@ class TestLiquidNaCl(unittest.TestCase):
 
         Na_diff = [[dat_Na[item][0].data[0].x] for item in reference_experiments]
         Cl_diff = [[dat_Cl[item][0].data[0].x] for item in reference_experiments]
-        assert np.testing.assert_almost_equal(Na_diff[0][0], Na_ref, 8)
-        assert np.testing.assert_almost_equal(Na_diff[1][0], Na_ref, 8)
-        assert np.testing.assert_almost_equal(Na_diff[0][0], Na_diff[1][0], 8)
-        assert np.testing.assert_almost_equal(Cl_diff[0][0], Cl_ref, 8)
-        assert np.testing.assert_almost_equal(Cl_diff[1][0], Cl_ref, 8)
-        assert np.testing.assert_almost_equal(Cl_diff[0][0], Cl_diff[1][0], 8)
+        np.testing.assert_almost_equal(Na_diff[0][0], Na_ref, 8)
+        np.testing.assert_almost_equal(Na_diff[1][0], Na_ref, 8)
+        np.testing.assert_almost_equal(Na_diff[0][0], Na_diff[1][0], 8)
+        np.testing.assert_almost_equal(Cl_diff[0][0], Cl_ref, 8)
+        np.testing.assert_almost_equal(Cl_diff[1][0], Cl_ref, 8)
+        np.testing.assert_almost_equal(Cl_diff[0][0], Cl_diff[1][0], 8)
 
     def test_einstein_ionic_conductivity(self):
         """
@@ -134,7 +134,7 @@ class TestLiquidNaCl(unittest.TestCase):
         dat = self.project.get_properties({'analysis': 'Einstein_Helfand_Ionic_Conductivity'})
 
         ic = [[dat[item][0].data[0].x] for item in reference_experiments]
-        assert np.testing.assert_almost_equal(ic[0][0], ic[1][0], -2)
+        np.testing.assert_almost_equal(ic[0][0], ic[1][0], -2)
 
 
 if __name__ == '__main__':
