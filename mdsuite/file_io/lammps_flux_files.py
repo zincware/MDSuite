@@ -20,6 +20,7 @@ import numpy as np
 from mdsuite.file_io.flux_files import FluxFile
 # from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size, join_path
+import copy
 
 var_names = {
     "Temperature": ["temp"],
@@ -109,7 +110,7 @@ class LAMMPSFluxFile(FluxFile):
 
         # Find properties available for analysis
         column_dict_properties = self._get_column_properties(header_line)
-        self.experiment.property_groups = self._extract_properties(var_names, column_dict_properties)
+        self.experiment.property_groups = self._extract_properties(copy.deepcopy(var_names), column_dict_properties)
 
 
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
