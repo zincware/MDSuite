@@ -204,7 +204,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         if ne_table[0]:
             input_data = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
                                                                 "analysis": "Green_Kubo_Self_Diffusion_Coefficients",
-                                                                "subjects": [species]})[0] for species in self.species]
+                                                                "subjects": [species[0] for species in self.species]})]
             data = self._nernst_einstein(input_data)
             properties = {"Property": self.database_group,
                           "Analysis": "Green_Kubo_Nernst_Einstein_Ionic_Conductivity",
@@ -217,7 +217,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         if ne_table[1]:
             input_data = [self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
                                                                 "analysis": "Einstein_Self_Diffusion_Coefficients",
-                                                                "subjects": [species]})[0] for species in self.species]
+                                                                "subjects": [species[0] for species in self.species]})]
             data = self._nernst_einstein(input_data)
 
             properties = {"Property": self.database_group,
