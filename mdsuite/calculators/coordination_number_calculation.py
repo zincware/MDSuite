@@ -6,24 +6,19 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the coordinated numbers
 
 Summary
 -------
 """
-
 import logging
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-
 from typing import Union
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
@@ -232,8 +227,8 @@ class CoordinationNumbers(Calculator):
         first_shell_error = np.std([self.integral_data[self.indices[0][0]],
                                     self.integral_data[self.indices[0][1]]]) / np.sqrt(2)
 
-        second_shell = np.mean([self.integral_data[self.indices[1][0]], self.integral_data[self.indices[1][1]]]) - \
-                       first_shell
+        second_shell = np.mean([self.integral_data[self.indices[1][0]],
+                                self.integral_data[self.indices[1][1]]]) - first_shell
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 

@@ -6,19 +6,14 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for reading lammps trajectory files
 
 Summary
 -------
 """
-
 import numpy as np
-
 from mdsuite.file_io.flux_files import FluxFile
-# from .file_io_dict import lammps_flux
 from mdsuite.utils.meta_functions import optimize_batch_size, join_path
 import copy
 
@@ -53,6 +48,7 @@ class LAMMPSFluxFile(FluxFile):
 
         super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
         self.experiment.flux = True
+        self.time = None
 
     def _get_line_length(self):
         """
@@ -82,10 +78,10 @@ class LAMMPSFluxFile(FluxFile):
                 Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
-                updated with new information. This is necessary on the first run of tensor_values addition to the database_path. After
-                this point, when new tensor_values is added, this is no longer required as other methods will take care of
-                updating the properties that change with new tensor_values. In fact, it will set the number of configurations to
-                only the new tensor_values, which will be wrong.
+                updated with new information. This is necessary on the first run of tensor_values addition to the
+                database_path. After this point, when new tensor_values is added, this is no longer required as
+                other methods will take care of updating the properties that change with new tensor_values. In fact,
+                it will set the number of configurations to only the new tensor_values, which will be wrong.
         """
 
         # user custom names for variables.
@@ -111,7 +107,6 @@ class LAMMPSFluxFile(FluxFile):
         # Find properties available for analysis
         column_dict_properties = self._get_column_properties(header_line)
         self.experiment.property_groups = self._extract_properties(copy.deepcopy(var_names), column_dict_properties)
-
 
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 

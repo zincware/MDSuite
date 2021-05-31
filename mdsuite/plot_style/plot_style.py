@@ -11,7 +11,14 @@ Copyright Contributors to the MDSuite Project.
 import matplotlib.pyplot as plt
 from matplotlib import checkdep_usetex
 
+
 def style():
+    """
+    Define the plot style.
+    Returns
+    -------
+    Sets a style.
+    """
     font_size = 36
     params = {
         'font.family': 'STIXGeneral',
@@ -58,20 +65,32 @@ def style():
         'axes.spines.right': False
         # 'figure.constrained_layout.use': True
     }
-    
-    usetex = checkdep_usetex(True) # check if latex is available
-    if not usetex: # if not, just set it to False, and do not use latex to print figures.
+
+    usetex = checkdep_usetex(True)  # check if latex is available
+    if not usetex:  # if not, just set it to False, and do not use latex to print figures.
         params['text.usetex'] = False
 
     return params
 
 
 def apply_style():
+    """
+    Apply the style to the kernel.
+    Returns
+    -------
+    Sets plotting styles for the kernel.
+    """
     params = style()
     plt.style.use(params)
 
 
 def get_markers():
+    """
+    Prepare a list of markers for use in the styling.
+    Returns
+    -------
+    Returns a list of markers.
+    """
     # list of markers
     return [".", "o", "v", "^", "<", ">", "1", "2", "3", "4", "8", "s", "p", "P", "*", "h", "H", "+", "x", "X", "D",
             "d", "|", "_", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]

@@ -7,19 +7,19 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
 """
-
 from os import path
 from pathlib import Path
-
 import GPUtil
 import scooby
 import re
+from mdsuite.utils.exceptions import NoGPUInSystem
 
 
 class Report(scooby.Report):
-    """A class for custom scooby.Report."""
+    """
+    A class for custom scooby.Report."""
 
-    def __init__(self, additional=None, ncol=3, text_width=80, sort=False,
+    def __init__(self, additional: list = None, ncol: int = 3, text_width: int = 80, sort: bool = False,
                  gpu=True):
         """Generate a :class:`scooby.Report` instance.
 
@@ -27,17 +27,13 @@ class Report(scooby.Report):
         ----------
         additional : list(ModuleType), list(str)
             List of packages or package names to add to output information.
-
         ncol : int, optional
             Number of package-columns in html table; only has effect if
             ``mode='HTML'`` or ``mode='html'``. Defaults to 3.
-
         text_width : int, optional
             The text width for non-HTML display modes
-
         sort : bool, optional
             Alphabetically sort the packages
-
         gpu : bool
             Gather information about the GPU. Defaults to ``True`` but if
             experiencing renderinng issues, pass ``False`` to safely generate
@@ -77,7 +73,7 @@ class Report(scooby.Report):
                 list_gpus.append(('GPU ID', gpu_id))
                 list_gpus.append(('GPU Name', gpu_name))
                 list_gpus.append(('GPU Total Memory', gpu_total_memory))
-        except:
+        except NoGPUInSystem:
             list_gpus = [('GPU NAME', 'No Info Available')]
 
         scooby.Report.__init__(self, additional=additional, core=requirements,

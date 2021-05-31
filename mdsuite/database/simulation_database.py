@@ -6,16 +6,13 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for database_path objects and all of their operations
 """
-
 import h5py as hf
 import numpy as np
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
 import time
 from typing import Union
@@ -82,6 +79,13 @@ class Database:
     def _update_indices(data: np.array, reference: np.array, batch_size: int, n_atoms: int):
         """
         Update the indices key of the structure dictionary if the tensor_values must be sorted.
+
+        Parameters
+        ----------
+        data : np.ndarray
+        reference : np.ndarray
+        batch_size : int
+        n_atoms : int
 
         Returns
         -------
@@ -194,7 +198,11 @@ class Database:
                     database[item][start_index:stop_index, :] = data[structure[item]['indices']][
                         np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
                 else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(data, structure, item, batch_size, sort,
+                    database[item][:, start_index:stop_index, :] = self._get_data(data,
+                                                                                  structure,
+                                                                                  item,
+                                                                                  batch_size,
+                                                                                  sort,
                                                                                   n_atoms=n_atoms)
 
     def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
@@ -387,8 +395,8 @@ class Database:
         """
         with hf.File(self.name, 'r') as database_object:
             keys = []
-            database_object.visit(lambda item: keys.append(database_object[item].name) if type(database_object[item]) is
-                                                                                          hf.Dataset else None)
+            database_object.visit(lambda item: keys.append(database_object[item].name) if type(
+                database_object[item]) is hf.Dataset else None)
             path = f'/{path}'  # add the / to avoid name overlapping
 
             response = any(list(item.endswith(path) for item in keys))

@@ -6,10 +6,9 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo diffusion coefficients.
+
 Summary
 -------
 This module contains the code for the Einstein diffusion coefficient class. This class is called by the
@@ -17,14 +16,12 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.green_kubo_diffusion_coefficients method and all necessary
 calculations performed.
 """
-
 from typing import Union
 import numpy as np
 import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
-from scipy import signal
 import matplotlib.pyplot as plt
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import join_path

@@ -6,17 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module for the Analysis database class.
 """
-
 import sqlalchemy as sql
 from sqlalchemy import select
 from sqlalchemy import column
-from sqlalchemy import table
-from sqlalchemy import delete
 from sqlalchemy import and_
 import pandas as pd
 
@@ -46,7 +41,7 @@ class AnalysisDatabase:
         -------
         Constructs a new database
         """
-        with self.engine.begin() as conn:
+        with self.engine.begin():  # as conn:
             print("Constructed new database")
 
     def _check_table_existence(self, parameters: dict):

@@ -12,12 +12,15 @@ import tensorflow as tf
 
 
 def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
+    """
+    Returns the unit vector of the vector.
+    """
     return vector / tf.expand_dims(tf.norm(vector, axis=-1), -1)
 
 
 def angle_between(v1, v2, acos=True):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """
+    Returns the angle in radians between vectors 'v1' and 'v2'::
     """
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
@@ -30,7 +33,8 @@ def angle_between(v1, v2, acos=True):
 
 
 def get_angles(r_ij_mat, indices, acos=True):
-    """Compute the cosine angle for the given triples
+    """
+    Compute the cosine angle for the given triples
 
     Using :math theta = acos(r_ij * r_ik / (|r_ij| * |r_ik|))
 

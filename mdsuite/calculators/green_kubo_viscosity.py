@@ -6,24 +6,19 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo viscosity.
 
 Summary
 This module contains the code for the Green-Kubo viscsity class. This class is called by the
 """
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from scipy import signal
-
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.utils.meta_functions import join_path
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -130,8 +125,7 @@ class GreenKuboViscosity(Calculator):
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units[
             'boltzman'] * self.experiment.volume  # we use boltzman constant in the units provided.
         prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-                          self.experiment.units[
-                              'time'] / self.experiment.units['energy']
+            self.experiment.units['time'] / self.experiment.units['energy']
 
         self.prefactor = (numerator / denominator) * prefactor_units
 

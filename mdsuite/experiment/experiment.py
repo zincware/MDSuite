@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 The central experiment class fundamental to all analysis.
 
 Summary
@@ -16,27 +14,23 @@ Summary
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
 import logging
-
 import json
 import os
 import pickle
 import sys
 from pathlib import Path
-
 import numpy as np
 import pubchempy as pcp
 import yaml
 from tqdm import tqdm
 import importlib.resources
-
 from datetime import datetime
-
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
@@ -212,10 +206,11 @@ class Experiment:
         with open(filename, 'wb') as save_file:
             save_file.write(pickle.dumps(self.__dict__))  # write to file
 
-    def units_to_si(self, units_system):
+    @staticmethod
+    def units_to_si(units_system):
         """
         Returns a dictionary with equivalences from the unit experiment given by a string to SI.
-        Along with some constants in the unit experiment provided (boltzman, or other conversions).
+        Along with some constants in the unit experiment provided (boltzmann, or other conversions).
         Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit experiment.
 
 
@@ -227,15 +222,6 @@ class Experiment:
         Returns
         -------
         conv_factor (float) -- conversion factor to pass to SI
-
-        Examples
-        --------
-        Pass from metal units of time (ps) to SI
-
-        >>> self.units_to_si('metal')
-        {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19}
-        >>> self.units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
-        'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
         """
 
         if isinstance(units_system, dict):
@@ -244,8 +230,8 @@ class Experiment:
             try:
                 units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
             except KeyError:
-                print(f'The unit experiment provided is not implemented...')
-                print(f'The available systems are: ')
+                print('The unit experiment provided is not implemented...')
+                print('The available systems are: ')
                 [print(key) for key, _ in units_dict.items()]
                 sys.exit(-1)
         return units
@@ -329,7 +315,7 @@ class Experiment:
             transformation = transformations_dict[transformation_name]
         except KeyError:
             print(f'{transformation_name} not found')
-            print(f'Available transformations are:')
+            print('Available transformations are:')
             [print(key) for key in transformations_dict.keys()]
             sys.exit(1)
 
@@ -340,9 +326,9 @@ class Experiment:
         """
         Build the 'experiment' for the analysis
 
-        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop the
-        database_path skeleton, get configurations, and process and store the configurations. The method is accompanied
-        by a loading bar which should be customized to make it more interesting.
+        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop
+        the database_path skeleton, get configurations, and process and store the configurations. The method is
+        accompanied by a loading bar which should be customized to make it more interesting.
         """
 
         # Create new analysis directory and change into it
@@ -443,27 +429,26 @@ class Experiment:
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
-        f_object = open(trajectory_file, 'r')  # open the trajectory file
-        for _ in tqdm(range(batch_range), ncols=70):
-            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=self.batch_size,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-            counter += self.batch_size
+        with open(trajectory_file, 'r') as f_object:
+            for _ in tqdm(range(batch_range), ncols=70):
+                database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=self.batch_size,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
+                counter += self.batch_size
 
-        if remainder > 0:
-            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
-            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=remainder,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-        f_object.close()
+            if remainder > 0:
+                structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
+                database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=remainder,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
 
         analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
         analysis_database.build_database()
@@ -515,7 +500,7 @@ class Experiment:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
             print(f'{file_format} not found')
-            print(f'Available io formats are are:')
+            print('Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
         return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
@@ -677,8 +662,7 @@ class Experiment:
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
             yaml.dump(result_dict, pfw)
 
-    def write_xyz(self, dump_property: str = "Positions", species: list = None, atom_select: np.s_ = np.s_[:],
-                  time_slice: np.s_ = np.s_[:], name: str = 'dump.xyz'):
+    def write_xyz(self, dump_property: str = "Positions", species: list = None, name: str = 'dump.xyz'):
         """
         Write an xyz file from a database dataset
         """

@@ -6,19 +6,15 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for reading lammps trajectory files
 
 Summary
 -------
 """
-
 import sys
-
 from mdsuite.file_io.trajectory_files import TrajectoryFile
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NoElementInDump
 from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
@@ -51,10 +47,8 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
     ----------
     obj : object
             Experiment class instance to add to
-
     header_lines : int
             Number of header lines in the file format (lammps = 9)
-
     file_path : str
             Path to the trajectory file.
     """
@@ -192,10 +186,10 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
                 Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
-                updated with new information. This is necessary on the first run of tensor_values addition to the database_path. After
-                this point, when new tensor_values is added, this is no longer required as other methods will take care of
-                updating the properties that change with new tensor_values. In fact, it will set the number of configurations to
-                only the new tensor_values, which will be wrong.
+                updated with new information. This is necessary on the first run of tensor_values addition to the
+                database_path. After this point, when new tensor_values is added, this is no longer required as other
+                methods will take care of updating the properties that change with new tensor_values. In fact,
+                it will set the number of configurations to only the new tensor_values, which will be wrong.
 
         Returns
         -------
@@ -211,7 +205,6 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)  # get the batch size
         species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
-
         if update_class:
             self.experiment.batch_size = batch_size
             self.experiment.dimensions = get_dimensionality(box)
@@ -227,4 +220,5 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             self.experiment.batch_size = batch_size
             self.experiment.number_of_configurations += number_of_configurations
 
+        self.f_object.close()
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

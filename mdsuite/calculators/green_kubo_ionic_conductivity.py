@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo ionic conductivity.
 
 Summary
@@ -17,7 +15,6 @@ Experiment class and instantiated when the user calls the Experiment.green_kubo_
 The methods in class can then be called by the Experiment.green_kubo_ionic_conductivity method and all necessary
 calculations performed.
 """
-
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
@@ -134,7 +131,7 @@ class GreenKuboIonicConductivity(Calculator):
         # Calculate the prefactor
         numerator = (elementary_charge ** 2) * (self.experiment.units['length'] ** 2)
         denominator = 3 * boltzmann_constant * self.experiment.temperature * self.experiment.volume * \
-                      (self.experiment.units['length'] ** 3) * self.data_range * self.experiment.units['time']
+            (self.experiment.units['length'] ** 3) * self.data_range * self.experiment.units['time']
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

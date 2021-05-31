@@ -6,12 +6,8 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the radial distribution function.
-
-Author: Samuel Tovey, Fabian Zills
 
 Summary
 -------
@@ -22,20 +18,15 @@ calculations performed.
 """
 import logging
 from abc import ABC
-
 import numpy as np
 import matplotlib.pyplot as plt
 import warnings
-
-# Import user packages
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
-
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
-
 from timeit import default_timer as timer
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -555,14 +546,14 @@ class RadialDistributionFunction(Calculator, ABC):
             ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
             numerator = species_scale_factor
             denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.molecules[species_split[0]]['indices'])
+                len(self.experiment.molecules[species_split[0]]['indices'])
         else:
             # Density of all atoms / total volume
             rho = len(self.experiment.species[species_split[1]]['indices']) / self.experiment.volume
             ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
             numerator = species_scale_factor
             denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.species[species_split[0]]['indices'])
+                len(self.experiment.species[species_split[0]]['indices'])
         prefactor = numerator / denominator
 
         return prefactor
@@ -619,7 +610,7 @@ class RadialDistributionFunction(Calculator, ABC):
             self.n_batches = self.override_n_batches
 
         if self.minibatch is None:
-            log.debug(f"Doing full batch RDF computations")
+            log.debug("Doing full batch RDF computations")
             if self.use_tf_function:
                 raise NotImplementedError('tf.function is only supported with minibatching')
             else:
