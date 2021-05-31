@@ -105,7 +105,7 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
         ----------
         number_of_configurations : int
                 Number of configurations to be read in.
-        file_object : experiment
+        file_object : TextIO
                 File object to be read from.
         skip : bool
                 If true, skip the header lines before reading.
