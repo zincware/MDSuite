@@ -113,6 +113,19 @@ class Data(Base):
 class Subject(Base):
     """
     Class for the subjects associated with SystemProperty
+
+    Parameters
+    ---------
+    id: int,
+        Primary key
+    subject: str,
+        name
+    system_property_id: int,
+        System property pk
+    system_property:
+        SQLAlchemy relation object
+
+
     """
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True)
