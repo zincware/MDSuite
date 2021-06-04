@@ -19,13 +19,13 @@ PyPi as **Not Currently available**
 
 .. code-block:: bash
 
-   $ pip install mdsuite
+   pip install mdsuite
 
 If you would like to install it from source then you can clone the repository by running
 
 .. code-block:: bash
 
-   $ git clone https://github.com/SamTov/MDSuite.git
+   git clone https://github.com/SamTov/MDSuite.git
 
 Once you have cloned the repository, depending on whether you prefer conda or straight pip, you should follow the 
 instructions below.
@@ -35,8 +35,8 @@ Installation with pip
 
 .. code-block:: bash
 
-    $ cd MDSuite
-    $ pip install .
+   cd MDSuite
+   pip install .
 
 
 Installation with conda
@@ -44,10 +44,10 @@ Installation with conda
 
 .. code-block:: bash
 
-    $ cd MDSuite
-    $ conda create -n MDSuite python=3.8
-    $ conda activate MDSuite
-    $ pip install .
+   cd MDSuite
+   conda create -n MDSuite python=3.8
+   conda activate MDSuite
+   pip install .
 
 Documentation
 =============
@@ -57,10 +57,10 @@ If you would prefer to have a local copy, it can be built using sphinx by follow
 
 .. code-block:: bash
 
-   $ cd MDSuite/docs
-   $ make html
-   $ cd build/html
-   $ firefox index.html
+   cd MDSuite/docs
+   make html
+   cd build/html
+   firefox index.html
 
 HINT
 ====
