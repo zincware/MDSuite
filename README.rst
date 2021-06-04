@@ -6,7 +6,7 @@ Introduction
 MDSuite is a software designed specifically for the molecular dynamics community to enable fast, reliable, and simple 
 calculations from simulation data. 
 
-If you want to start learning about the code, you can check out the docs `here <https://mdsuite.readthedocs.io/en/latest/>`.
+If you want to start learning about the code, you can check out the docs `here <https://mdsuite.readthedocs.io/en/latest/>`_.
 
 **NOTE:** This README is designed for the release. Anything PyPi related is not yet functioning as the code is in
 development.
@@ -52,7 +52,7 @@ Installation with conda
 Documentation
 =============
 
-There is a live version of the documentation hosted `here <https://mdsuite.readthedocs.io/en/latest/>`.
+There is a live version of the documentation hosted `here <https://mdsuite.readthedocs.io/en/latest/>`_.
 If you would prefer to have a local copy, it can be built using sphinx by following the instructions below.
 
 .. code-block:: bash
