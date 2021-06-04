@@ -75,7 +75,7 @@ of the autocomplete features that are available for the calculators.
 .. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg
     :alt: Made with Python
 
-.. |build| image:: https://github.com/zincware/mdsuite/workflows/python-project/badge.svg?branch=SamTov_readme
+.. |build| image:: https://github.com/zincware/MDSuite/workflows/python-project.yml/badge.svg
     :alt: Build tests passing
     :target: https://github.com/zincware/MDSuite/blob/readme_badges/
 
