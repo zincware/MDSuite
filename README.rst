@@ -72,17 +72,17 @@ of the autocomplete features that are available for the calculators.
 
 .. badges
 
-.. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg
+.. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg?style=plastic
     :alt: Made with Python
 
 .. |build| image:: https://github.com/zincware/MDSuite/actions/workflows/python-package.yml/badge.svg?style=plastic
     :alt: Build tests passing
     :target: https://github.com/zincware/MDSuite/blob/readme_badges/
 
-.. |docs| image:: https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat
+.. |docs| image:: https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=plastic
     :alt: Build tests passing
     :target: https://mdsuite.readthedocs.io/en/latest/
 
-.. |license| image:: https://img.shields.io/badge/License-EPL-purple.svg
+.. |license| image:: https://img.shields.io/badge/License-EPL-purple.svg?style=plastic
     :alt: Project license
     :target: https://www.gnu.org/licenses/quick-guide-gplv3.en.html
