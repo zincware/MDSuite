@@ -79,7 +79,7 @@ of the autocomplete features that are available for the calculators.
     :alt: Build tests passing
     :target: https://github.com/zincware/MDSuite/blob/readme_badges/
 
-.. |docs| image:: https://img.shields.io/badge/Docs-Passing-green.svg
+.. |docs| image:: https://readthedocs.org/projects/pip/badge/?version=latest&style=plastic
     :alt: Build tests passing
     :target: https://github.com/zincware/MDSuite/blob/readme_badges/.github/workflows/doc.yml
 
