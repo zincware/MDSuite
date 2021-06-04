@@ -1,4 +1,4 @@
-|madewithpython|
+|madewithpython| |build| |docs| |license|
 
 Introduction
 ------------
