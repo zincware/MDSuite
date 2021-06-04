@@ -75,14 +75,14 @@ of the autocomplete features that are available for the calculators.
 .. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg
     :alt: Made with Python
 
-.. |build| image:: https://img.shields.io/badge/Build-Passing-green.svg
+.. |build| image:: https://img.shields.io/github/workflow/status/zincware/MDSuite/python-package?style=plastic
     :alt: Build tests passing
-    :target: https://github.com/zincware/MDSuite/blob/readme_badges/.github/workflows/python-package.yaml
+    :target: https://github.com/zincware/MDSuite/blob/readme_badges/
 
-.. |docs| image:: https://img.shields.io/badge/Build-Passing-green.svg
+.. |docs| image:: https://img.shields.io/badge/Docs-Passing-green.svg
     :alt: Build tests passing
     :target: https://github.com/zincware/MDSuite/blob/readme_badges/.github/workflows/doc.yml
 
-.. |license| image:: https://img.shields.io/badge/License-EPL-green.svg
+.. |license| image:: https://img.shields.io/badge/License-EPL-purple.svg
     :alt: Project license
     :target: https://www.gnu.org/licenses/quick-guide-gplv3.en.html
