@@ -81,7 +81,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
         self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
+        self.y_label = 'MSD (m$^2$)'
         self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
         self.loop_condition = False
         self.optimize = None
@@ -209,7 +209,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         if self.plot:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
+            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array * self.experiment.units['time'],
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
 
     def _optimized_calculation(self):
