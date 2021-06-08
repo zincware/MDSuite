@@ -134,7 +134,7 @@ class Experiment:
         self._start_logging()
 
         self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / "simulation_data.yaml"
+        self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
 
     def _start_logging(self):
         logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
@@ -781,7 +781,7 @@ class Experiment:
                     self._simulation_data = yaml.safe_load(f)
             except FileNotFoundError:
                 log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
-        return self.simulation_data
+        return self._simulation_data
 
     @simulation_data.setter
     def simulation_data(self, value: dict):
@@ -808,3 +808,6 @@ class Experiment:
         simulation_data.update(value)
         log.debug("Updating yaml file")
         self._simulation_data = simulation_data
+
+        with open(self.simulation_data_file, "w") as f:
+            yaml.safe_dump(simulation_data, f)
