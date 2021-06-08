@@ -130,7 +130,6 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
-        self.log = None
         self._start_logging()
 
         self._simulation_data: dict = {}
@@ -152,8 +151,7 @@ class Experiment:
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
         # get the file specific logger to get information where the log was written!
-        self.log = logging.getLogger(__name__)
-        self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
+        log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
 
     def _create_internal_file_paths(self):
         """
@@ -251,8 +249,7 @@ class Experiment:
         """
 
         if mapping is None:
-            # self.log("Must provide a mapping")
-            self.log.info("Must provide a mapping")
+            log.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -363,7 +360,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            self.log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
+            log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 
