@@ -6,20 +6,13 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Unwrap a set of coordinates based on dumped indices.
 """
-
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.data_manager import DataManager
-from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.utils.meta_functions import join_path
-
 import sys
 import tensorflow as tf
-import time
 import numpy as np
 
 
@@ -33,8 +26,6 @@ class UnwrapViaIndices(Transformations):
             Experiment this transformation is attached to.
     species : list
             Species on which this transformation should be applied.
-    box : list
-            Box vectors to multiply the indices by
     scale_function : dict
             A dictionary referencing the memory/time scaling function of the transformation.
     """
@@ -49,8 +40,6 @@ class UnwrapViaIndices(Transformations):
                 Experiment this transformation is attached to.
         species : list
                 Species on which this transformation should be applied.
-        box : list
-                Box vectors to multiply the indices by
         """
         super().__init__(experiment)
         self.scale_function = {'linear': {'scale_factor': 2}}

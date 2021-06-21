@@ -6,22 +6,17 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Atomic transformation to wrap the simulation coordinates.
 
 Summary
 -------
 Sometimes, particularly in the study of molecules, it is necessary to wrap positions. This module will do that for you.
 """
-
 import numpy as np
 import os
 import tensorflow as tf
-
 from mdsuite.transformations.transformations import Transformations
-from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
 
@@ -55,6 +50,8 @@ class CoordinateWrapper(Transformations):
 
     mask : tf.tensor
             Mask to select and transform crossed tensor_values.
+    scale_function : dict
+            A dictionary referencing the memory/time scaling function of the transformation.
     """
 
     def __init__(self, experiment: object, species: list = None, center_box: bool = True):
@@ -69,8 +66,6 @@ class CoordinateWrapper(Transformations):
                 List of species to perform unwrapping on
         center_box : bool
                 If true, the box coordinates will be centered before the unwrapping occurs
-        scale_function : dict
-            A dictionary referencing the memory/time scaling function of the transformation.
         """
         super().__init__(experiment)
 

@@ -6,16 +6,15 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Parent class for different analysis
 
 Summary
 -------
 """
 import logging
-
+import numpy as np
+import os
 import abc
 import random
 import sys
@@ -25,16 +24,15 @@ from matplotlib.axes._subplots import Axes
 import tensorflow as tf
 import pandas as pd
 from scipy.optimize import curve_fit
-from mdsuite.utils.exceptions import *
-from mdsuite.utils.meta_functions import *
+from mdsuite.utils.exceptions import RangeExceeded
+from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
-from mdsuite.calculators.computations_dict import switcher_transformations
+from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
-
 from typing import Union
 
 log = logging.getLogger(__file__)
@@ -680,6 +678,9 @@ class Calculator(metaclass=abc.ABCMeta):
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+            if self.plot:
+                plt.legend()
+                plt.show()
 
         elif self.experimental:
             data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
@@ -741,9 +742,10 @@ class Calculator(metaclass=abc.ABCMeta):
         self._run_dependency_check()
         if self.experimental:
             log.warning("\n ########## \n "
-                     "This is an experimental calculator. It is provided as it can still be used, however, it may not be"
-                     " memory safe or completely accurate. \n Please see the documentation for more information. \n "
-                     "#########")
+                        "This is an experimental calculator. It is provided as it can still be used, however, "
+                        "it may not be"
+                        " memory safe or completely accurate. \n Please see the documentation for more information. \n "
+                        "#########")
         if self.optimize:
             pass
         else:

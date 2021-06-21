@@ -6,9 +6,6 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module to read xtc files for mdsuite
 """
-

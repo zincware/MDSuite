@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
@@ -17,7 +15,6 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.green_kubo_diffusion_coefficients method and all necessary
 calculations performed.
 """
-
 from typing import Union
 import numpy as np
 import warnings
@@ -189,10 +186,10 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          (len(self.experiment.species[species[1]]['indices']) - 1)
         else:
-            atom_scale = len(self.experiment.species[species[0]]['indices'])*\
+            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
                          len(self.experiment.species[species[1]]['indices'])
         numerator = self.experiment.units['length'] ** 2
         denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * atom_scale
