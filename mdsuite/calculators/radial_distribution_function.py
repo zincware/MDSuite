@@ -70,7 +70,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.AngularDistributionFunction(number_of_configurations = 500, minibatch = 0, start = 0,
+    experiment.run_computation.RadialDistributionFunction(number_of_configurations = 500, minibatch = 10, start = 0,
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
@@ -85,7 +85,6 @@ class RadialDistributionFunction(Calculator, ABC):
         """
         super().__init__(experiment)
 
-        self.experiment = experiment
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
         self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
@@ -355,7 +354,7 @@ class RadialDistributionFunction(Calculator, ABC):
         path_list = [join_path(species, "Positions") for species in self.species]
         data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
         if len(self.species) == 1:
-            return tf.concat([data], axis=0)
+            return data
         else:
             return tf.concat(data, axis=0)
 
