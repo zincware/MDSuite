@@ -163,7 +163,11 @@ class RadialDistributionFunction(Calculator, ABC):
                     If true, tf.function is used in the calculation.
         """
         # Calculator arguments
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export, gpu=gpu)
+        self.update_user_args(plot=plot,
+                              save=save,
+                              data_range=data_range,
+                              export=export,
+                              gpu=gpu)
 
         # RDF arguments
         self.number_of_bins = number_of_bins
@@ -208,6 +212,7 @@ class RadialDistributionFunction(Calculator, ABC):
         # Generate the tuples e.g ('Na', 'Cl'), ('Na', 'Na')
         self.key_list = [self._get_species_names(x) for x in
                          list(itertools.combinations_with_replacement(self.index_list, r=2))]
+
         self.rdf = {name: np.zeros(self.number_of_bins) for name in self.key_list}  # instantiate the rdf tuples
 
     def _check_input(self):
