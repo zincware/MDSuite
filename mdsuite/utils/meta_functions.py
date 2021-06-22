@@ -413,9 +413,9 @@ def split_array(data: np.array, condition: np.array) -> list:
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw tensor_values
-        return [data[condition]]
+        return list([data[condition]])
     else:  # else return the whole array
-        return initial_split
+        return list(initial_split)
 
 
 def find_item(obj, key):

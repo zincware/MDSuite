@@ -452,7 +452,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
         """
 
-    def _plot_fig(self, fig: matplotlib.figure.Figure, ax: Axes, title: str = None, dpi: int = 600,
+    def _plot_fig(self, fig: matplotlib.figure.Figure, ax: Axes,
+                  title: str = None,
+                  dpi: int = 600,
                   filetype: str = 'svg'):
         """Class based plotting using fig, ax = plt.subplots
 
@@ -741,11 +743,11 @@ class Calculator(metaclass=abc.ABCMeta):
         self._check_input()
         self._run_dependency_check()
         if self.experimental:
-            log.warning("\n ########## \n "
-                        "This is an experimental calculator. It is provided as it can still be used, however, "
-                        "it may not be"
-                        " memory safe or completely accurate. \n Please see the documentation for more information. \n "
-                        "#########")
+            log.warning("\n########################################################################################\n "
+                        "  This is an experimental calculator. It is provided as it can still be used, however,"
+                        "  it may not be"
+                        "  memory safe or completely accurate. Please see the documentation for more information.\n "
+                        "#########################################################################################")
         if self.optimize:
             pass
         else:
