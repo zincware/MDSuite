@@ -36,9 +36,10 @@ class EinsteinDiffusionCoefficients(Calculator):
     """
     Class for the Einstein diffusion coefficient implementation
 
-    Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
-    Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-    The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
+    Description: This module contains the code for the Einstein diffusion coefficient class.
+    This class is called by the Experiment class and instantiated when the user calls the
+    Experiment.einstein_diffusion_coefficients method. The methods in class can then be
+    called by the Experiment.einstein_diffusion_coefficients method and all necessary
     calculations performed.
 
     Attributes
@@ -62,7 +63,9 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500,
+                                                             plot=True,
+                                                             correlation_time=10)
     """
 
     def __init__(self, experiment):
