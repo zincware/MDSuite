@@ -88,6 +88,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self._batch_size = None  # memory management for all batches
         self.species = None
         self.number_of_atoms = None
+        self.norm_power = None
 
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = None  # memory management for triples generation per batch.
@@ -109,7 +110,9 @@ class AngularDistributionFunction(Calculator, ABC):
                  export: bool = False,
                  molecules: bool = False,
                  gpu: bool = False,
-                 plot: bool = True):
+                 plot: bool = True,
+                 norm_power: int = 4,
+                 **kwargs):
         """
         Parameters
         ----------
@@ -133,6 +136,9 @@ class AngularDistributionFunction(Calculator, ABC):
             so this might only be useful for a larger number of batches.
         species : list
             A list of species to use.
+        norm_power: int
+            The power of the normalization factor applied to the ADF histogram. If set to zero no distance normalization
+            will be applied.
 
         Notes
         -----
@@ -155,6 +161,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.species = species
         self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
+        self.norm_power = norm_power
 
         # Run the analysis and save it.
         out = self.run_analysis()
@@ -370,16 +377,15 @@ class AngularDistributionFunction(Calculator, ABC):
                 tmp = tf.gather_nd(r_ijk_indices, tf.where(condition))
 
                 # Get the indices required.
+                angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
+                pre_factor = 1 / pre_factor ** self.norm_power
+                histogram, _ = np.histogram(angle_vals, bins=self.bins, range=self.bin_range, weights=pre_factor,
+                                            density=True)
+                histogram = tf.cast(histogram, dtype=tf.float32)
                 if angles.get(name) is not None:
-                    angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
-                    pre_factor = 1
-                    histogram = tf.cast(tf.histogram_fixed_width(angle_vals, self.bin_range, self.bins), tf.float32)
-                    angles.update({name: angles.get(name) + pre_factor * histogram})
+                    angles.update({name: angles.get(name) + histogram})
                 else:
-                    angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
-                    pre_factor = 1
-                    histogram = tf.cast(tf.histogram_fixed_width(angle_vals, self.bin_range, self.bins), tf.float32)
-                    angles.update({name: pre_factor * histogram})
+                    angles.update({name: histogram})
 
         return angles
 
