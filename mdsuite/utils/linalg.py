@@ -56,4 +56,4 @@ def get_angles(r_ij_mat, indices, acos=True):
     r_ij = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1))
     r_ik = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1))
 
-    return angle_between(r_ij, r_ik, acos)
+    return angle_between(r_ij, r_ik, acos), 1 / (abs(r_ij) * abs(r_ik))
