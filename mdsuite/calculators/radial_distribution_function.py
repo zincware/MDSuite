@@ -281,7 +281,6 @@ class RadialDistributionFunction(Calculator, ABC):
 
             """
 
-            print("Correction 1")
             return 2 * np.pi * data * (3 - 4 * data)
 
         def _correction_2(data: np.array) -> np.array:
@@ -296,7 +295,6 @@ class RadialDistributionFunction(Calculator, ABC):
                     result of the operation
 
             """
-            print("Correction 2")
             arctan_1 = np.arctan(np.sqrt(4 * (data ** 2) - 2))
             arctan_2 = 8 * data * np.arctan(
                 (2 * data * (4 * (data ** 2) - 3)) / (np.sqrt(4 * (data ** 2) - 2) * (4 * (data ** 2) + 1)))
