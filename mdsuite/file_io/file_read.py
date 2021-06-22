@@ -6,15 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Parent class for file processing
 
 Summary
 -------
 """
-
 import abc
 from typing import TextIO
 
@@ -90,7 +87,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @staticmethod
-    def _extract_properties(database_correspondence_dict, column_dict_properties):
+    def _extract_properties(database_correspondence_dict: dict, column_dict_properties: dict):
         """
         Construct generalized property array
 
@@ -99,9 +96,8 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        properties_dict : dict
-                A dictionary of all the available properties in the trajectory. This dictionary is built only from the
-                 LAMMPS symbols and therefore must be again processed to extract the useful information.
+        database_correspondence_dict : dict
+        column_dict_properties : dict
 
         Returns
         -------
@@ -109,7 +105,6 @@ class FileProcessor(metaclass=abc.ABCMeta):
                 A dictionary of the keyword labelled properties in the trajectory. The  values of the dictionary keys
                 correspond to the array location of the specific piece of tensor_values in the set.
         """
-
         # for each property label (position, velocity,etc) in the lammps definition
         for property_label, property_names in database_correspondence_dict.items():
             # for each coordinate for a given property label (position: x, y, z), get idx and the name
@@ -118,7 +113,7 @@ class FileProcessor(metaclass=abc.ABCMeta):
                     # we change the lammps_properties_dict replacing the string of the property name by the column name
                     database_correspondence_dict[property_label][idx] = column_dict_properties[property_name]
 
-        # trajectory_properties only needs the labels with the integer columns, then we one copy those
+        # trajectory_properties only need the labels with the integer columns, then we only copy those
         trajectory_properties = {}
         for property_label, properties_columns in database_correspondence_dict.items():
             if all([isinstance(property_column, int) for property_column in properties_columns]):
@@ -127,18 +122,21 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return trajectory_properties
 
     @staticmethod
-    def _get_column_properties(header_line, skip_words=0) -> dict:
+    def _get_column_properties(header_line: str, skip_words: int = 0) -> dict:
         """
         Given a line of text with the header, split it, enumerate and put in a dictionary.
         This is used to create the column - variable correspondance (see self._extract_properties)
 
         Parameters
         ----------
-                header_line: str
-                        Header line to split
+        header_line: str
+                Header line to split
+        skip_words : int
+                Skip words before reading.
         Returns
         -------
-                properties_summary : dict
+        properties_summary : dict
+                properties summary as a dictionary.
         """
         header_line = header_line[skip_words:]
         properties_summary = {variable: idx for idx, variable in enumerate(header_line)}

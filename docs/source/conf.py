@@ -1,13 +1,12 @@
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+"""
+Conf file for the MDSuite docs.
+"""
 import os
 import sys
+import sphinx_rtd_theme
+
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../../'))
-html_theme = 'sphinx_rtd_theme'
-import sphinx_rtd_theme
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # -- Experiment information -----------------------------------------------------
@@ -79,7 +78,7 @@ autodoc_default_flags = ['members', 'private-members',
 html_theme = 'sphinx_rtd_theme'
 html_logo = 'images/MDSUITE.png'
 html_favicon = 'images/MDSUITE.png'
-html_theme_options={
+html_theme_options = {
         'logo_only': True,
         'display_version': False,
     }
@@ -148,9 +147,6 @@ texinfo_documents = [
      author, 'MDSuite', 'Package to analyse MD Simulations ',
      'Miscellaneous'),
 ]
-
-
-
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {

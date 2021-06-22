@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for the Project class
 
 Summary
@@ -17,16 +15,17 @@ Module containing all the code for the Project class. The project class is the g
 mdsuite program. Within the project class include all of the method required to add a new experiment and
 compare the results of the analysis on that experiment.
 """
-
+import logging
 import os
 import pickle
 from datetime import datetime
 from pathlib import Path
-
 from typing import Union
 import shutil
 from mdsuite.experiment.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
+
+log = logging.getLogger(__file__)
 
 
 class Project:
@@ -46,8 +45,8 @@ class Project:
             A short description of the project
 
     storage_path : str
-            Where to store the tensor_values and databases. This may not simply be the current direcotry if the databases are
-            expected to be quite large.
+            Where to store the tensor_values and databases. This may not simply be the current direcotry if the
+            databases are expected to be quite large.
 
     experiments : dict
             A dict of class objects. Class objects are instances of the experiment class for different
@@ -67,21 +66,20 @@ class Project:
         name : str
                 The name of the project.
         storage_path : str
-                Where to store the tensor_values and databases. This should be a place with sufficient storage space for the
-                full analysis.
+                Where to store the tensor_values and databases. This should be a place with sufficient storage space
+                for the full analysis.
         """
+        self.name = f"{name}_MDSuite_Project"
+        self.description = None
+        self.storage_path = storage_path
 
-        self.name = f"{name}_MDSuite_Project"  # the name of the project
-        self.description = None  # A short description of the project
-        self.storage_path = storage_path  # Tell me where to store this tensor_values
-
-        self.experiments = {}  # type: dict[str, Experiment]  #experiments added to this project
+        self.experiments = {}
 
         # Check for project directory, if none exist, create a new one
         test_dir = Path(f"{self.storage_path}/{self.name}")
         if test_dir.exists():
             print("Loading the class state")
-            self._load_class()  # load the class state
+            self._load_class()
 
             # load the class state for each experiment attached to the Project.
             for experiment in self.experiments.values():
@@ -90,8 +88,8 @@ class Project:
             # List the experiments available to the user
             self.__str__()
         else:
-            os.mkdir(f"{self.storage_path}/{self.name}")  # create a new directory for the project
-            self._save_class()  # Save the initial class state
+            os.mkdir(f"{self.storage_path}/{self.name}")
+            self._save_class()
 
     def __str__(self):
         return self.list_experiments()
@@ -163,7 +161,7 @@ class Project:
         ----------
         cluster_mode : bool
                 If true, cluster mode is parsed to the experiment class.
-        experiment_name : str
+        experiment : str
                 Name to use for the experiment class.
         timestep : float
                 Timestep used during the simulation.
@@ -220,12 +218,29 @@ class Project:
         Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
         different experiments at the same time.
 
+        Parameters
+        ----------
+        data_sets: dict
+            Dictionary containing the name of the experiment as key and the data path as value
+        file_format: dict or str
+            Dictionary containing the name of the experiment as key and the file_format as value.
+            Alternativly only a string of the file_format if all files have the same format.
+
         Returns
         -------
         Updates the experiment classes.
         """
-        for item in data_sets:
-            self.experiments[item].add_data(data_sets[item], file_format=file_format)
+        if isinstance(file_format, dict):
+            try:
+                assert file_format.keys() == data_sets.keys()
+            except AssertionError:
+                log.error("Keys of the data_sets do not match keys of the file_format")
+
+            for item in data_sets:
+                self.experiments[item].add_data(data_sets[item], file_format=file_format[item])
+        else:
+            for item in data_sets:
+                self.experiments[item].add_data(data_sets[item], file_format=file_format)
 
     def get_results(self, key_to_find):
         """
@@ -254,7 +269,7 @@ class Project:
                     result = float(result)
 
             if isinstance(result, list):
-                result = [float(res) for res in result] # convert results to floats
+                result = [float(res) for res in result]  # convert results to floats
             results[experiment_name] = result
 
         return results
@@ -305,7 +320,7 @@ class Project:
 
         results = {}
         for experiment_name, experiment_class in self.experiments.items():
-            value_attr = experiment_class.__getattribute__(attribute)  # this is a dict with the results from the yaml file
+            value_attr = experiment_class.__getattribute__(attribute)
             results[experiment_name] = value_attr
 
         return results

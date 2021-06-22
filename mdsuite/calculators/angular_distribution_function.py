@@ -7,23 +7,17 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
 """
-
 from abc import ABC
-
 import logging
-
 import tensorflow as tf
 import itertools
 import numpy as np
 from tqdm import tqdm
-
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
-
 from mdsuite.utils.meta_functions import join_path
-
 log = logging.getLogger(__name__)
 
 

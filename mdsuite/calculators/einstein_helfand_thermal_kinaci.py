@@ -6,17 +6,13 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the conductivity.
 
 Summary
 -------
 """
-
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -159,8 +155,8 @@ class EinsteinHelfandThermalKinaci(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = (ensemble - (
-            tf.repeat(tf.expand_dims(ensemble[0], 0), self.data_range, axis=0))) ** 2
+        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
+
         msd = self.prefactor*tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
@@ -197,4 +193,4 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
+                                                                                                       self.msd_array))

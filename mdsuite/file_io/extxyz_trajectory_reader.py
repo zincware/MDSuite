@@ -6,19 +6,14 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for reading extxyz trajectory files
 
 Summary
 -------
 """
-
 from typing import Union, List, Dict, Tuple
-
 import numpy as np
-
 from mdsuite.file_io.trajectory_files import TrajectoryFile
 from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
@@ -95,7 +90,8 @@ class EXTXYZFileReader(TrajectoryFile):
 
         return int(number_of_lines / (number_of_atoms + self.header_lines))
 
-    def _get_time_value(self, data: list):
+    @staticmethod
+    def _get_time_value(data: list):
         """
         Extract the time value from the header.
 
@@ -143,7 +139,8 @@ class EXTXYZFileReader(TrajectoryFile):
 
         return time
 
-    def _read_lattice(self, data: list) -> Union[list, None]:
+    @staticmethod
+    def _read_lattice(data: list) -> Union[list, None]:
         """
         Get the lattice information
         Parameters
@@ -169,14 +166,15 @@ class EXTXYZFileReader(TrajectoryFile):
                     break
 
         if stop is not None:
-            lattice = data[start:stop+1]
+            lattice = data[start:stop + 1]
             lattice[0] = lattice[0].split('=')[1].replace('"', '')
             lattice[-1] = lattice[-1].replace('"', '')
             lattice = np.array(lattice).astype(float)
 
         return [lattice[0], lattice[4], lattice[8]]
 
-    def _get_property_summary(self, data: list) -> Tuple[int, Dict[str, List[int]]]:
+    @staticmethod
+    def _get_property_summary(data: list) -> Tuple[int, Dict[str, List[int]]]:
         """
         Get the property summary from the header data.
 
@@ -271,10 +269,10 @@ class EXTXYZFileReader(TrajectoryFile):
                 Will map some observable to keys found in the dump file.
         update_class : bool
                 Boolean decision on whether or not to update the class. If yes, the full saved class instance will be
-                updated with new information. This is necessary on the first run of tensor_values addition to the database_path. After
-                this point, when new tensor_values is added, this is no longer required as other methods will take care of
-                updating the properties that change with new tensor_values. In fact, it will set the number of configurations to
-                only the new tensor_values, which will be wrong.
+                updated with new information. This is necessary on the first run of tensor_values addition to the
+                database_path. After this point, when new tensor_values is added, this is no longer required as other
+                methods will take care of updating the properties that change with new tensor_values. In fact, it will
+                set the number of configurations to only the new tensor_values, which will be wrong.
 
         Returns
         -------
@@ -304,6 +302,5 @@ class EXTXYZFileReader(TrajectoryFile):
 
         else:
             self.experiment.batch_size = batch_size
-
 
         return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length

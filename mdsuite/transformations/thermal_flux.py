@@ -6,16 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module to calculate the ionic current in a experiment.
 """
-
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -88,14 +84,14 @@ class ThermalFlux(Transformations):
             ke_path = str.encode(join_path(species, 'KE'))
             pe_path = str.encode(join_path(species, 'PE'))
             phi_x = np.multiply(data[stress_path][:, :, 0], data[velocity_path][:, :, 0]) + \
-                    np.multiply(data[stress_path][:, :, 3], data[velocity_path][:, :, 1]) + \
-                    np.multiply(data[stress_path][:, :, 4], data[velocity_path][:, :, 2])
+                np.multiply(data[stress_path][:, :, 3], data[velocity_path][:, :, 1]) + \
+                np.multiply(data[stress_path][:, :, 4], data[velocity_path][:, :, 2])
             phi_y = np.multiply(data[stress_path][:, :, 3], data[velocity_path][:, :, 0]) + \
-                    np.multiply(data[stress_path][:, :, 1], data[velocity_path][:, :, 1]) + \
-                    np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 2])
+                np.multiply(data[stress_path][:, :, 1], data[velocity_path][:, :, 1]) + \
+                np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 2])
             phi_z = np.multiply(data[stress_path][:, :, 4], data[velocity_path][:, :, 0]) + \
-                    np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 1]) + \
-                    np.multiply(data[stress_path][:, :, 2], data[velocity_path][:, :, 2])
+                np.multiply(data[stress_path][:, :, 5], data[velocity_path][:, :, 1]) + \
+                np.multiply(data[stress_path][:, :, 2], data[velocity_path][:, :, 2])
 
             phi = np.dstack([phi_x, phi_y, phi_z])
 
@@ -165,7 +161,7 @@ class ThermalFlux(Transformations):
         for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Thermal Flux", total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             data = self._transformation(x)
-            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
+            self._save_coordinates(data, idx * self.batch_size, current_batch_size, data_structure)
 
     def run_transformation(self):
         """

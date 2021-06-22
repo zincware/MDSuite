@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
@@ -17,7 +15,6 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.green_kubo_diffusion_coefficients method and all necessary
 calculations performed.
 """
-
 import matplotlib.pyplot as plt
 from scipy import signal
 import numpy as np
@@ -146,13 +143,13 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
             # Calculate the prefactor
             numerator = self.experiment.units['length'] ** 2
             denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
-                          len(self.experiment.molecules[species]['indices'])
+                len(self.experiment.molecules[species]['indices'])
             self.prefactor = numerator / denominator
         else:
             # Calculate the prefactor
             numerator = self.experiment.units['length'] ** 2
             denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
-                          len(self.experiment.species[species]['indices'])
+                len(self.experiment.species[species]['indices'])
             self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

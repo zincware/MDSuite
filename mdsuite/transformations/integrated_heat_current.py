@@ -6,16 +6,12 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module to calculate the integrated heat current in a experiment.
 """
-
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 

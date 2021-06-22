@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Atomic transformation to unwrap the simulation coordinates.
 
 Summary
@@ -18,11 +16,9 @@ boundary conditions and track atoms across the box edges. This method uses the b
 positions jumps of more than a half of the box are counted as a crossing of the boundary, to allow the particles to
 propagate on into space.
 """
-
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
-
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -85,7 +81,8 @@ class CoordinateUnwrapper(Transformations):
 
         return data_structure
 
-    def _calculate_difference_tensor(self, data: tf.Tensor):
+    @staticmethod
+    def _calculate_difference_tensor(data: tf.Tensor):
         """
         Calculate the amount particles move in each time step
 
