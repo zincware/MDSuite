@@ -395,6 +395,7 @@ class Calculator(metaclass=abc.ABCMeta):
             self.tau_values = np.linspace(0, self.data_range - 1, int(self.tau_values), dtype=int)
         if type(self.tau_values) is list:
             self.data_resolution = len(self.tau_values)
+            self.data_range = self.tau_values[-1] + 1
         if type(self.tau_values) is slice:
             self.data_resolution = len(np.linspace(0, self.data_range, self.data_range)[self.tau_values])
 
