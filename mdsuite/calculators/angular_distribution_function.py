@@ -267,7 +267,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         if self.use_tf_function:
-            @tf.function()
+            @tf.function
             def _get_triplets(x):
                 return get_triplets(x,
                                     r_cut=self.r_cut,
