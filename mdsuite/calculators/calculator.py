@@ -378,7 +378,8 @@ class Calculator(metaclass=abc.ABCMeta):
                 Mean square displacement.
         """
         if square:
-            return tf.math.squared_difference(np.array(ensemble)[:, self.tau_values], ensemble[:, None, 0])
+            return tf.math.squared_difference(tf.gather(ensemble, self.tau_values, axis=1),
+                                              ensemble[:, None, 0])
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
@@ -397,7 +398,8 @@ class Calculator(metaclass=abc.ABCMeta):
             self.data_resolution = len(self.tau_values)
             self.data_range = self.tau_values[-1] + 1
         if type(self.tau_values) is slice:
-            self.data_resolution = len(np.linspace(0, self.data_range, self.data_range)[self.tau_values])
+            self.tau_values = np.linspace(0, self.data_range - 1, self.data_range, dtype=int)[self.tau_values]
+            self.data_resolution = len(self.tau_values)
 
     def _prepare_managers(self, data_path: list):
         """
