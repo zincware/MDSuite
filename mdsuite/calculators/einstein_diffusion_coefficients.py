@@ -20,6 +20,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
@@ -89,19 +90,35 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.loop_condition = False
         self.optimize = None
         self.msd_array = None  # define empty msd array
+        self.tau_values = None
         self.species = list()
         log.info('starting Einstein Diffusion Computation')
 
-    def __call__(self, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
-                 molecules: bool = False, gpu: bool = False):
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
+    def __call__(self, plot: bool = True,
+                 species: list = None,
+                 data_range: int = 100,
+                 save: bool = True,
+                 optimize: bool = False,
+                 correlation_time: int = 1,
+                 atom_selection: np.s_ = np.s_[:],
+                 export: bool = False,
+                 molecules: bool = False,
+                 tau_values: Union[int, List, Any] = np.s_[:],
+                 gpu: bool = False):
+
+        self.update_user_args(plot=plot,
+                              data_range=data_range,
+                              save=save,
+                              correlation_time=correlation_time,
+                              atom_selection=atom_selection,
+                              tau_values=tau_values,
+                              export=export,
+                              gpu=gpu)
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
         # attributes based on user args
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
+        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
         if species is None:
             if molecules:
@@ -112,7 +129,6 @@ class EinsteinDiffusionCoefficients(Calculator):
         out = self.run_analysis()
 
         self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
 
         return out
 
@@ -124,8 +140,10 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         Update the class state.
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(None, self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(shape=(None, self.batch_size, 3),
+                                                    dtype=tf.float64)
+        self.ensemble_output_signature = tf.TensorSpec(shape=(None, self.data_range, 3),
+                                                       dtype=tf.float64)
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -181,6 +199,7 @@ class EinsteinDiffusionCoefficients(Calculator):
     def _post_operation_processes(self, species: str = None):
         """
         Apply post-op processes such as saving and plotting.
+
         Returns
         -------
 
@@ -212,7 +231,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         if self.plot:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array * self.experiment.units['time'],
+            plt.plot(np.array(self.time) * self.experiment.units['time'],
+                     self.msd_array * self.experiment.units['time'],
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
 
     def _optimized_calculation(self):
