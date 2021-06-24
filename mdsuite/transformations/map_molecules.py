@@ -30,7 +30,7 @@ class MolecularMap(Transformations):
             Experiment object to work within.
     molecules : dict
             Molecule dictionary to use as reference. e.g. {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
-                                                            'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+            'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
             would be the input for the emim-PF6 ionic liquid.
     """
 
@@ -43,8 +43,11 @@ class MolecularMap(Transformations):
         experiment : object
                 Experiment object to work within.
         molecules : dict
-                Molecule dictionary to use as reference. e.g. {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
-                                                                'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+                Molecule dictionary to use as reference. e.g.
+                .. code-block:: python
+
+                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20}, 'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+
                 would be the input for the emim-PF6 ionic liquid.
         """
         super().__init__(experiment)

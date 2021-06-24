@@ -166,8 +166,8 @@ class Calculator(metaclass=abc.ABCMeta):
                 Data range over which to compute.
         correlation_time : int
                 Correlation time to use in the analysis.
-        atom_selection : np.s_
-                Atoms to peform the analysis on.
+        atom_selection : object
+                Atoms to perform the analysis on.
         export : bool
                 If true, analysis results are exported to a csv file.
         gpu : bool

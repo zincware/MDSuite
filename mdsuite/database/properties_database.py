@@ -232,9 +232,9 @@ class PropertiesDatabase:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion",
-                 "Subject": "Na",
-                 "data_range": 500}
+                .. code-block::
+
+                   {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
 
         Returns
         -------

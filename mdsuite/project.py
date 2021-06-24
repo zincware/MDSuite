@@ -45,7 +45,7 @@ class Project:
             A short description of the project
 
     storage_path : str
-            Where to store the tensor_values and databases. This may not simply be the current direcotry if the
+            Where to store the tensor_values and databases. This may not simply be the current directory if the
             databases are expected to be quite large.
 
     experiments : dict
@@ -282,9 +282,10 @@ class Project:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion",
-                 "Subject": "Na",
-                 "data_range": 500}
+                .. code-block:: python
+
+                   {"Analysis": "Green_Kubo_Self_Diffusion",  "Subject": "Na", "data_range": 500}
+
         experiments : list
                 List of experiments to fetch information for. If None, all will be searched.
 
