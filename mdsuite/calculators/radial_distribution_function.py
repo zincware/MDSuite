@@ -221,7 +221,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
-        Updates classa attributes if required.
+        Updates class attributes if required.
         """
         if self.stop is None:
             self.stop = self.experiment.number_of_configurations - 1

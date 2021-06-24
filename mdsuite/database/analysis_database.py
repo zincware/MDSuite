@@ -115,13 +115,12 @@ class AnalysisDatabase:
     def load_data(self, parameters: dict):
         """
         Load some data from the database.
+
         Parameters
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion",
-                 "Subject": "Na",
-                 "data_range": 500}
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
 
         Returns
         -------
