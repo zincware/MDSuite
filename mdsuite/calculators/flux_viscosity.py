@@ -24,7 +24,6 @@ import tensorflow as tf
 from scipy import signal
 
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.plot_style.plot_style import apply_style
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -77,8 +76,6 @@ class GreenKuboViscosityFlux(Calculator):
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
-        apply_style()
-
     def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
                  gpu: bool = False):
         """
@@ -96,8 +93,6 @@ class GreenKuboViscosityFlux(Calculator):
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
-
-        apply_style()
 
         out = self.run_analysis()
 

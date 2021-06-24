@@ -25,7 +25,6 @@ from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
-plt.style.use('classic')
 
 log = logging.getLogger(__file__)
 
