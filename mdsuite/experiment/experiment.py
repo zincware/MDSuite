@@ -800,6 +800,8 @@ class Experiment:
             with open(self.simulation_data_file) as f:
                 log.debug("Load simulation data from yaml file")
                 simulation_data = yaml.safe_load(f)
+                if simulation_data is None:
+                    simulation_data = dict()
         except FileNotFoundError:
             simulation_data = {}
         simulation_data.update(value)
