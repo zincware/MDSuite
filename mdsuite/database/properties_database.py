@@ -231,7 +231,8 @@ class PropertiesDatabase:
         Parameters
         ----------
         parameters : dict
-                Parameters to be used in the addition, i.e.
+                Parameters to be used in the addition, e.g.
+
                 .. code-block::
 
                    {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}

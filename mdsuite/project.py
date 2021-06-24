@@ -282,6 +282,7 @@ class Project:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
+
                 .. code-block:: python
 
                    {"Analysis": "Green_Kubo_Self_Diffusion",  "Subject": "Na", "data_range": 500}
