@@ -64,9 +64,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500,
-                                                             plot=True,
-                                                             correlation_time=10)
+    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
     def __init__(self, experiment):
