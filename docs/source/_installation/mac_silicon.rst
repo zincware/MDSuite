@@ -39,7 +39,7 @@ In order to satisfy all of the dependencies we will need to use MiniForge to cre
     If this is not the case, you will need to look into adding these paths to your ~/.zshrc or ~/.bashrc or whichever
     rc file you rae using.
 
-2.) Download :download:`environment.yml <https://raw.githubusercontent.com/mwidjaja1/DSOnMacARM/main/environment.yml>`_
+2.) Download :download:`environment.yml <../_static/environment.yml>`
 
 3.) Go to your terminal and run the following commands from the directory in which you have the environment.yml file:
 
