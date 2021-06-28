@@ -33,7 +33,7 @@ from mdsuite.calculators.transformations_reference import switcher_transformatio
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
-from typing import Union
+from typing import Union, List, Any
 
 log = logging.getLogger(__file__)
 
@@ -61,8 +61,15 @@ class Calculator(metaclass=abc.ABCMeta):
             Number of barthes to use as a dictionary for both serial and parallel implementations
     """
 
-    def __init__(self, experiment: object, plot: bool = True, save: bool = True, data_range: int = 500,
-                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False):
+    def __init__(self,
+                 experiment: object,
+                 plot: bool = True,
+                 save: bool = True,
+                 data_range: int = 500,
+                 correlation_time: int = 1,
+                 atom_selection: object = np.s_[:],
+                 export: bool = True,
+                 gpu: bool = False):
         """
         Constructor for the calculator class.
 
@@ -95,8 +102,6 @@ class Calculator(metaclass=abc.ABCMeta):
         self.correlation_time = correlation_time
         self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
         self.gpu = gpu
-        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
-                                self.data_range)
 
         # Set to default by class, over-written in child classes or during operations
         self.system_property = False
@@ -112,6 +117,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.species = None
         self.database_group = None
         self.analysis_name = None
+        self.tau_values = None
+        self.data_resolution = None
 
         # Set during operation or by child class
         self.batch_size: int
@@ -137,8 +144,14 @@ class Calculator(metaclass=abc.ABCMeta):
             import matplotlib
             matplotlib.use('Agg')
 
-    def update_user_args(self, plot: bool = True, save: bool = True, data_range: int = 500,
-                         correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True,
+    def update_user_args(self,
+                         plot: bool = True,
+                         save: bool = True,
+                         data_range: int = 500,
+                         correlation_time: int = 1,
+                         atom_selection: object = np.s_[:],
+                         tau_values : Union[int, List, Any] = np.s_[:],
+                         export: bool = True,
                          gpu: bool = False):
         """
         Update the user args that are given by the __call__ method of the calculator
@@ -165,12 +178,14 @@ class Calculator(metaclass=abc.ABCMeta):
         self.save = save
         self.export = export
         self.gpu = gpu
+        self.tau_values = tau_values
         self.correlation_time = correlation_time  # correlation time of the property
         self.atom_selection = atom_selection
 
         # attributes based on user args
+        self._handle_tau_values()  # process selected tau values.
         self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
-                                self.data_range)
+                                self.data_resolution)
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
@@ -347,8 +362,7 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         data.to_csv(name)
 
-    @staticmethod
-    def _msd_operation(ensemble: tf.Tensor, square: bool = True):
+    def _msd_operation(self, ensemble: tf.Tensor, square: bool = True):
         """
         Perform a simple msd operation.
 
@@ -364,9 +378,28 @@ class Calculator(metaclass=abc.ABCMeta):
                 Mean square displacement.
         """
         if square:
-            return tf.math.squared_difference(ensemble, ensemble[:, None, 0])
+            return tf.math.squared_difference(tf.gather(ensemble, self.tau_values, axis=1),
+                                              ensemble[:, None, 0])
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
+
+    def _handle_tau_values(self):
+        """
+        Handle the parsing of custom tau values.
+
+        Returns
+        -------
+        Updates the class state.
+        """
+        if type(self.tau_values) is int:
+            self.data_resolution = self.tau_values
+            self.tau_values = np.linspace(0, self.data_range - 1, int(self.tau_values), dtype=int)
+        if type(self.tau_values) is list:
+            self.data_resolution = len(self.tau_values)
+            self.data_range = self.tau_values[-1] + 1
+        if type(self.tau_values) is slice:
+            self.tau_values = np.linspace(0, self.data_range - 1, self.data_range, dtype=int)[self.tau_values]
+            self.data_resolution = len(self.tau_values)
 
     def _prepare_managers(self, data_path: list):
         """
@@ -452,9 +485,14 @@ class Calculator(metaclass=abc.ABCMeta):
                 db[self.database_group].create_dataset(title, data=data, dtype=float)
         """
 
-    def _plot_fig(self, fig: matplotlib.figure.Figure, ax: Axes, title: str = None, dpi: int = 600,
+    def _plot_fig(self,
+                  fig: matplotlib.figure.Figure,
+                  ax: Axes,
+                  title: str = None,
+                  dpi: int = 600,
                   filetype: str = 'svg'):
-        """Class based plotting using fig, ax = plt.subplots
+        """
+        Class based plotting using fig, ax = plt.subplots
 
         Parameters
         ----------
@@ -741,11 +779,11 @@ class Calculator(metaclass=abc.ABCMeta):
         self._check_input()
         self._run_dependency_check()
         if self.experimental:
-            log.warning("\n ########## \n "
-                        "This is an experimental calculator. It is provided as it can still be used, however, "
-                        "it may not be"
-                        " memory safe or completely accurate. \n Please see the documentation for more information. \n "
-                        "#########")
+            log.warning("\n########################################################################################\n "
+                        "  This is an experimental calculator. It is provided as it can still be used, however,"
+                        "  it may not be"
+                        "  memory safe or completely accurate. Please see the documentation for more information.\n "
+                        "#########################################################################################")
         if self.optimize:
             pass
         else:

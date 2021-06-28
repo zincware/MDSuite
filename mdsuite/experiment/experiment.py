@@ -36,6 +36,8 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 
+log = logging.getLogger(__file__)
+
 
 class Experiment:
     """
@@ -128,8 +130,10 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
-        self.log = None
         self._start_logging()
+
+        self._simulation_data: dict = {}
+        self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
 
     def _start_logging(self):
         logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
@@ -147,8 +151,7 @@ class Experiment:
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
         # get the file specific logger to get information where the log was written!
-        self.log = logging.getLogger(__name__)
-        self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
+        log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
 
     def _create_internal_file_paths(self):
         """
@@ -246,8 +249,7 @@ class Experiment:
         """
 
         if mapping is None:
-            # self.log("Must provide a mapping")
-            self.log.info("Must provide a mapping")
+            log.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -358,7 +360,7 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            self.log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
+            log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 
@@ -736,7 +738,7 @@ class Experiment:
         print("Database Information\n")
         print("---------------\n")
         print(f"Database Path: {self.database_path}/database.hdf5\n")
-        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5'))*1e-9: 6.3f}GB\n")
+        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
         print(f"Data Groups: {database.get_database_summary()}\n")
         print("==================================================================================\n")
 
@@ -758,3 +760,51 @@ class Experiment:
         output = database.load_data(parameters)
 
         return output
+
+    @property
+    def simulation_data(self):
+        """
+        Load simulation data from internals.
+        If not available try to read them from file
+
+        Returns
+        -------
+        dict: A dictionary containing all simulation_data
+
+        """
+        if len(self._simulation_data) == 0:
+            try:
+                with open(self.simulation_data_file) as f:
+                    self._simulation_data = yaml.safe_load(f)
+            except FileNotFoundError:
+                log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
+        return self._simulation_data
+
+    @simulation_data.setter
+    def simulation_data(self, value: dict):
+        """Update simulation data
+
+        Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
+
+        Parameters
+        ----------
+        value: dict
+            A dictionary containing the (new) simulation data
+
+        Returns
+        -------
+        Updates the internal simulation_data
+
+        """
+        try:
+            with open(self.simulation_data_file) as f:
+                log.debug("Load simulation data from yaml file")
+                simulation_data = yaml.safe_load(f)
+        except FileNotFoundError:
+            simulation_data = {}
+        simulation_data.update(value)
+        log.debug("Updating yaml file")
+        self._simulation_data = simulation_data
+
+        with open(self.simulation_data_file, "w") as f:
+            yaml.safe_dump(simulation_data, f)
