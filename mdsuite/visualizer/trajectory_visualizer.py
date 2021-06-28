@@ -78,18 +78,20 @@ class TrajectoryVisualizer:
                                                                    select_slice=np.s_[:])
             self.data[item]['mesh'] = MeshData.sphere(20, 20, radius=self.data[item]['mass'])
             self.data[item]['spheres'] = []
+            colours = np.random.rand(self.data[item]['mesh'].faceCount(), 4)
+            colours[:, 0] = self.data[item]['colour'][0]
+            colours[:, 1] = self.data[item]['colour'][1]
+            colours[:, 2] = self.data[item]['colour'][2]
+            colours[:, 3] = 1
+            self.data[item]['mesh'].setFaceColors(colours)
+
             for _ in range(len(self.data[item]['positions'])):
                 object = gl.GLMeshItem(meshdata=self.data[item]['mesh'],
-                                                        smooth=False,
-                                                        shader='shaded',
-                                                        glOptions='opaque')
-                object.setColor(self.data[item]['colour'])
+                                       smooth=False,
+                                       shader='shaded',
+                                       glOptions='opaque')
+                object.setMeshData(meshdata=self.data[item]['mesh'])
                 self.data[item]['spheres'].append(object)
-            # self.data[item]['spheres'] = [gl.GLMeshItem(meshdata=self.data[item]['mesh'],
-            #                                             smooth=False,
-            #                                             shader='shaded',
-            #                                             glOptions='opaque')
-            #                               for _ in range(len(self.data[item]['positions']))]
 
     def _fill_species_properties(self):
         """
@@ -106,8 +108,8 @@ class TrajectoryVisualizer:
         for element in self.species:
             for entry in pse:
                 if pse[entry][1] == element:
-                    self.data[element]['colour'] = tuple(ImageColor.getcolor(f'#{pse[entry][4]}', 'RGBA'))
-                    self.data[element]['mass'] = float(pse[entry][3]) / 25
+                    self.data[element]['colour'] = list(ImageColor.getcolor(f'#{pse[entry][4]}', 'RGB'))
+                    self.data[element]['mass'] = float(pse[entry][3]) / 15
 
             # TODO Check for no data input.
 
