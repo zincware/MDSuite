@@ -237,7 +237,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         if self.number_of_bins is None:
             self.number_of_bins = int(self.cutoff / 0.01)  # default is 1/100th of an angstrom
-            
+
         if self.species is None:
             self.species = list(self.experiment.species)
 
@@ -270,7 +270,7 @@ class RadialDistributionFunction(Calculator, ABC):
             function_values : np.array
                     result of the operation
             """
-            return 4 * np.pi * (data**2)
+            return 4 * np.pi * (data ** 2)
 
         def _correction_1(data: np.array) -> np.array:
             """
@@ -605,25 +605,41 @@ class RadialDistributionFunction(Calculator, ABC):
 
                 atoms_per_batch = tf.shape(atoms)[0]
                 stop += atoms_per_batch
-
+                start_time = timer()
                 indices = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
+                log.debug(f'Calculating indices took {timer() - start_time} s')
 
                 # apply the mask to this, to only get the triu values and don't compute anything twice
+                start_time = timer()
                 _positions = tf.gather(positions_tensor, indices[1], axis=0)
+                log.debug(f'Gathering positions_tensor took {timer() - start_time} s')
 
                 # for atoms_per_batch > 1, flatten the array according to the positions
+                start_time = timer()
                 atoms_position = tf.gather(atoms, indices[0], axis=0)
+                log.debug(f'Gathering atoms took {timer() - start_time} s')
 
+                start_time = timer()
                 r_ij = _positions - atoms_position
+                log.debug(f'Computing r_ij took {timer() - start_time} s')
 
                 # apply minimum image convention
+                start_time = timer()
                 if self.experiment.box_array is not None:
                     r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
+                log.debug(f'Applying minimum image convention took {timer() - start_time} s')
 
+                start_time = timer()
                 d_ij = tf.linalg.norm(r_ij, axis=-1)
-                _rdf = compute_species_values(indices, atoms_per_batch, start, d_ij)
+                log.debug(f'Computing d_ij took {timer() - start_time} s')
 
+                start_time = timer()
+                _rdf = compute_species_values(indices, atoms_per_batch, start, d_ij)
+                log.debug(f'Computing species values took {timer() - start_time} s')
+
+                start_time = timer()
                 rdf = combine_dictionaries(rdf, _rdf)
+                log.debug(f'Updating dictionaries took {timer() - start_time} s')
 
                 start = stop
             return rdf
