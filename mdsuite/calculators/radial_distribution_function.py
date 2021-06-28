@@ -92,6 +92,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
+        self.default_to_tf_function = True  # apply tf function to small functions that compile quickly
 
         # Arguments set by the user in __call__
         self.number_of_bins = None
@@ -540,7 +541,7 @@ class RadialDistributionFunction(Calculator, ABC):
     def mini_calculate_histograms(self):
         """Do the minibatch calculation"""
 
-        def tf_function(func):
+        def tf_function_advanced(func):
             """Enable/Disbale tf.function based on self.use_tf_function"""
             if not self.use_tf_function:  # no use of decorator
                 return func
@@ -552,7 +553,19 @@ class RadialDistributionFunction(Calculator, ABC):
 
             return tf_func
 
-        @tf_function
+        def tf_function_default(func):
+            """Enable/Disbale tf.function based on self.use_tf_function"""
+            if not self.default_to_tf_function:  # no use of decorator
+                return func
+
+            @tf.function(experimental_relax_shapes=True)
+            def tf_func(*args, **kwargs):
+                """tf function."""
+                return func(*args, **kwargs)
+
+            return tf_func
+
+        @tf_function_advanced
         def compute_species_values(indices, atoms_per_batch, start, d_ij):
             """
             Compute species-wise histograms
@@ -586,7 +599,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             return rdf
 
-        @tf_function
+        @tf_function_advanced
         def combine_dictionaries(dict_a, dict_b):
             """Combine two dictionaries in a tf.function call"""
             out = dict()
@@ -594,7 +607,31 @@ class RadialDistributionFunction(Calculator, ABC):
                 out[key] = dict_a[key] + dict_b[key]
             return out
 
-        @tf_function
+        @tf_function_default
+        def minimum_image(box_array, r_ij):
+            """Compute the minimum image convention"""
+            r_ij -= tf.math.rint(r_ij / box_array) * box_array
+            return r_ij
+
+        @tf_function_default
+        def get_rij(positions_tensor, atoms, indices):
+            """Compute the r_ij matrix from the given indices and positions
+
+            Parameters
+            ----------
+            positions_tensor: full positions
+            atoms: positions from the minibatch loop
+            indices: indices for the minibatch calculation
+            """
+            # apply the mask to this, to only get the triu values and don't compute anything twice
+            _positions = tf.gather(positions_tensor, indices[1], axis=0)
+            # for atoms_per_batch > 1, flatten the array according to the positions
+            atoms_position = tf.gather(atoms, indices[0], axis=0)
+            r_ij = _positions - atoms_position
+
+            return r_ij
+
+        @tf_function_advanced
         def run_minibatch_loop():
             """Run a minibatch loop"""
             start = 0
@@ -602,31 +639,21 @@ class RadialDistributionFunction(Calculator, ABC):
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
             for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
-
+                log.debug("starting iteration")
                 atoms_per_batch = tf.shape(atoms)[0]
                 stop += atoms_per_batch
                 start_time = timer()
                 indices = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
                 log.debug(f'Calculating indices took {timer() - start_time} s')
 
-                # apply the mask to this, to only get the triu values and don't compute anything twice
                 start_time = timer()
-                _positions = tf.gather(positions_tensor, indices[1], axis=0)
-                log.debug(f'Gathering positions_tensor took {timer() - start_time} s')
-
-                # for atoms_per_batch > 1, flatten the array according to the positions
-                start_time = timer()
-                atoms_position = tf.gather(atoms, indices[0], axis=0)
-                log.debug(f'Gathering atoms took {timer() - start_time} s')
-
-                start_time = timer()
-                r_ij = _positions - atoms_position
+                r_ij = get_rij(positions_tensor, atoms, indices)
                 log.debug(f'Computing r_ij took {timer() - start_time} s')
 
                 # apply minimum image convention
                 start_time = timer()
                 if self.experiment.box_array is not None:
-                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
+                    r_ij = minimum_image(r_ij, self.experiment.box_array)
                 log.debug(f'Applying minimum image convention took {timer() - start_time} s')
 
                 start_time = timer()
@@ -642,6 +669,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 log.debug(f'Updating dictionaries took {timer() - start_time} s')
 
                 start = stop
+                log.debug("finished iteration")
             return rdf
 
         execution_time = 0
