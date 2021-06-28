@@ -4,6 +4,14 @@ Installation
 Installation of MDSuite is currently only possible from the git repository.
 Once all of the documentation is up, we will move this over to PyPi and conda.
 
+Install Methods.
+----------------
+
+.. toctree::
+   :maxdepth: 1
+
+   _installation/mac_silicon
+
 From Source
 ===========
 
