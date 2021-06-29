@@ -21,7 +21,7 @@ This should download the MDSuite code and change you into the main directly wher
 
 TensorFlow Install
 ^^^^^^^^^^^^^^^^^^
-**The following is taken from issue #153 frpm the apple/tensorflow_macos repository found**
+**The following is taken from issue #153 from the apple/tensorflow_macos repository found**
 `here <https://github.com/apple/tensorflow_macos/issues/153>`_
 
 In order to satisfy all of the dependencies we will need to use MiniForge to create a virtual environment.
@@ -37,7 +37,7 @@ In order to satisfy all of the dependencies we will need to use MiniForge to cre
        which pip  # should point to a miniforge directory.
 
     If this is not the case, you will need to look into adding these paths to your ~/.zshrc or ~/.bashrc or whichever
-    rc file you rae using.
+    rc file you are using.
 
 2.) Download :download:`environment.yml <../_static/environment.yml>`
 
@@ -91,7 +91,7 @@ Once this is done, run the following to complete the install:
 
 .. code-block:: bash
 
-   pip install -e .
+   pip install .
 
 This will install MDSuite to the directory path which makes it a little easier to update the code.
 
