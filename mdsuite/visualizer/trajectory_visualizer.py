@@ -159,6 +159,12 @@ class TrajectoryVisualizer:
                 posz = self.data[item]['positions'][i][0][2]
                 sphere.translate(posx, posy, posz)
                 self.view.addItem(sphere)
+                colours = np.random.rand(self.data[item]['mesh'].faceCount(), 4)
+                colours[:, 0] = self.data[item]['colour'][0]
+                colours[:, 1] = self.data[item]['colour'][1]
+                colours[:, 2] = self.data[item]['colour'][2]
+                colours[:, 3] = 1
+                self.data[item]['mesh'].setFaceColors(colours)
 
     def run(self):
         """
