@@ -521,22 +521,34 @@ class RadialDistributionFunction(Calculator, ABC):
         tf.Tensor, str
 
         """
+
+        startx = timer()
         indices = tf.transpose(indices)
-        background = tf.tensor_scatter_nd_update(tf.fill((atoms_per_batch, n_atoms), -1),
-                                                 indices,
-                                                 tf.range(tf.shape(indices)[0]))
+        log.debug(f"mini_get_pair_indices: indices: {timer() - startx} s")
 
-        output = []
+        startx = timer()
 
-        for tuples in itertools.combinations_with_replacement(index_list, 2):
-            row_slice = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[0] + 1]) - start)
-            col_slice = (sum(len_elements[:tuples[1]]), sum(len_elements[:tuples[1] + 1]))
-            names = self._get_species_names(tuples)
-            indices = background[slice(*row_slice), slice(*col_slice)]
+        @tf.function
+        def func():
+            """Use tf function"""
+            background = tf.sparse.SparseTensor(tf.cast(indices, dtype=tf.int64), tf.range(tf.shape(indices)[0]),
+                                                (atoms_per_batch, n_atoms))
 
-            output.append([indices[indices != -1], names])
+            output = []
+            for tuples in itertools.combinations_with_replacement(index_list, 2):
+                start_ = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[1]]))
+                size_ = (
+                    start_[0] + sum(len_elements[:tuples[0] + 1]) - start,
+                    start_[1] + sum(len_elements[:tuples[1] + 1]))
 
-        return output
+                names = self._get_species_names(tuples)
+
+                output.append([tf.sparse.slice(background, start_, size_).values, names])
+
+            return output
+        out = func()
+        log.debug(f"mini_get_pair_indices: loop: {timer() - startx} s")
+        return out
 
     def mini_calculate_histograms(self):
         """Do the minibatch calculation"""
@@ -595,7 +607,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 distance_between_species = tf.gather(d_ij, species_indices)
                 distance_between_species = self._apply_system_cutoff(distance_between_species, self.cutoff)
                 bin_data = tf.histogram_fixed_width(distance_between_species, self.bin_range, self.number_of_bins)
-                rdf[key] = bin_data
+                rdf[key.numpy().decode('utf-8')] = bin_data
 
             return rdf
 
