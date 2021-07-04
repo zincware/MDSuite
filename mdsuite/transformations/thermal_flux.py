@@ -47,7 +47,6 @@ class ThermalFlux(Transformations):
         -------
 
         """
-        # collect machine properties and determine batch size
         path = join_path('Thermal_Flux', 'Thermal_Flux')  # name of the new database_path
         existing = self._run_dataset_check(path)
         if existing:
@@ -57,9 +56,11 @@ class ThermalFlux(Transformations):
             self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
             data_structure = {path: {'indices': np.s_[:, ], 'columns': [0, 1, 2]}}
         else:
-            dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
+            dataset_structure = {path: (self.experiment.number_of_configurations,
+                                        3)}
             self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+            data_structure = {path: {'indices': np.s_[:],
+                                     'columns': [0, 1, 2]}}
 
         return data_structure
 
@@ -124,7 +125,10 @@ class ThermalFlux(Transformations):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, self.batch_size, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None,
+                                                                self.batch_size,
+                                                                dimension),
+                                                         dtype=tf.float64)
 
         return dictionary
 
@@ -161,7 +165,9 @@ class ThermalFlux(Transformations):
         for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Thermal Flux", total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             data = self._transformation(x)
-            self._save_coordinates(data, idx * self.batch_size, current_batch_size, data_structure)
+            self._save_coordinates(data, idx * self.batch_size,
+                                   current_batch_size,
+                                   data_structure)
 
     def run_transformation(self):
         """

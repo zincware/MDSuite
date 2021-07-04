@@ -366,7 +366,10 @@ class AngularDistributionFunction(Calculator, ABC):
 
         log.debug(f'batch_size: {self._batch_size}')
 
-        for positions in tqdm(dataset, total=self.n_confs):
+        for positions in tqdm(dataset,
+                              total=self.n_confs,
+                              ncols=70,
+                              desc="Building histograms"):
             timesteps, atoms, _ = tf.shape(positions)
             tmp = tf.concat(positions, axis=0)
             r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
@@ -379,7 +382,10 @@ class AngularDistributionFunction(Calculator, ABC):
                 # Get the indices required.
                 angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
                 pre_factor = 1 / pre_factor ** self.norm_power
-                histogram, _ = np.histogram(angle_vals, bins=self.bins, range=self.bin_range, weights=pre_factor,
+                histogram, _ = np.histogram(angle_vals,
+                                            bins=self.bins,
+                                            range=self.bin_range,
+                                            weights=pre_factor,
                                             density=True)
                 histogram = tf.cast(histogram, dtype=tf.float32)
                 if angles.get(name) is not None:
@@ -421,7 +427,8 @@ class AngularDistributionFunction(Calculator, ABC):
                               "data_range": self.data_range,
                               'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
                               }
-                self._update_properties_file(properties, delete_duplicate=False)
+                self._update_properties_file(properties,
+                                             delete_duplicate=False)
                 log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
 
             if self.plot:

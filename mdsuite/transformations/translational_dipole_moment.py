@@ -25,7 +25,8 @@ class TranslationalDipoleMoment(Transformations):
     experiment : object
             Experiment this transformation is attached to.
     scale_function : dict
-    A dictionary referencing the memory/time scaling function of the transformation.
+            A dictionary referencing the memory/time scaling function of the
+            transformation.
     """
 
     def __init__(self, experiment: object):
@@ -79,18 +80,23 @@ class TranslationalDipoleMoment(Transformations):
         else:
             charges = True
 
-        dipole_moment = tf.zeros(shape=(data[str.encode('data_size')], 3), dtype=tf.float64)
+        dipole_moment = tf.zeros(shape=(data[str.encode('data_size')], 3),
+                                 dtype=tf.float64)
         if charges:
             for position, charge in zip(positions_keys, charge_keys):
-                dipole_moment += tf.reduce_sum(data[position]*data[charge], axis=0)
+                dipole_moment += tf.reduce_sum(data[position]*data[charge],
+                                               axis=0)
         else:
             for item in positions_keys:
                 species_string = item.decode("utf-8")
                 species = species_string.split('/')[0]
                 # Build the charge tensor for assignment
                 charge = self.experiment.species[species]['charge'][0]
-                charge_tensor = tf.ones(shape=(data[str.encode('data_size')], 3), dtype=tf.float64) * charge
-                dipole_moment += tf.reduce_sum(data[item]*charge_tensor, axis=0)  # Calculate the final dipole moments
+                charge_tensor = tf.ones(shape=(data[str.encode('data_size')],
+                                               3),
+                                        dtype=tf.float64) * charge
+                dipole_moment += tf.reduce_sum(data[item]*charge_tensor,
+                                               axis=0)
 
         return dipole_moment
 
@@ -100,21 +106,25 @@ class TranslationalDipoleMoment(Transformations):
 
         Returns
         -------
-        tensor_values structure for use in saving the tensor_values to the database_path.
+        tensor_values structure for use in saving the tensor_values to the
+        database_path.
         """
 
-        path = join_path('Translational_Dipole_Moment', 'Translational_Dipole_Moment')  # name of the new database_path
+        path = join_path('Translational_Dipole_Moment',
+                         'Translational_Dipole_Moment')
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
             resize_structure = {path: (self.experiment.number_of_configurations - old_shape[0], 3)}
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
+            self.database.resize_dataset(resize_structure)
             data_structure = {path: {'indices': np.s_[:, ], 'columns': [0, 1, 2]}}
         else:
-            dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
-            self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+            dataset_structure = {path: (self.experiment.number_of_configurations,
+                                        3)}
+            self.database.add_dataset(dataset_structure)
+            data_structure = {path: {'indices': np.s_[:],
+                                     'columns': [0, 1, 2]}}
 
         return data_structure
 
@@ -127,18 +137,26 @@ class TranslationalDipoleMoment(Transformations):
         """
         type_spec = {}
         data_structure = self._prepare_database_entry()
-        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
+        positions_path = [join_path(species, 'Unwrapped_Positions') for species
+                          in self.experiment.species]
 
         if self._check_for_charges():
-            charge_path = [join_path(species, 'Charge') for species in self.experiment.species]
+            charge_path = [join_path(species, 'Charge') for species
+                           in self.experiment.species]
             data_path = np.concatenate((positions_path, charge_path))
             self._prepare_monitors(data_path)
-            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
-            type_spec = self._update_species_type_dict(type_spec, charge_path, 1)
+            type_spec = self._update_species_type_dict(type_spec,
+                                                       positions_path,
+                                                       3)
+            type_spec = self._update_species_type_dict(type_spec,
+                                                       charge_path,
+                                                       1)
         else:
             data_path = positions_path
             self._prepare_monitors(data_path)
-            type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
+            type_spec = self._update_species_type_dict(type_spec,
+                                                       positions_path,
+                                                       3)
 
         type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int32)
         batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
@@ -147,10 +165,16 @@ class TranslationalDipoleMoment(Transformations):
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Translational Dipole Moment", total=self.n_batches):
+        for idx, x in tqdm(enumerate(data_set),
+                           ncols=70,
+                           desc="Translational Dipole Moment",
+                           total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             data = self._transformation(x)
-            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
+            self._save_coordinates(data,
+                                   idx*self.batch_size,
+                                   current_batch_size,
+                                   data_structure)
 
     def run_transformation(self):
         """

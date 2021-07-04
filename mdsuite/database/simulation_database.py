@@ -18,25 +18,28 @@ import time
 from typing import Union
 import pandas as pd
 
-var_names = ["Temperature", "Time", "Thermal_Flux", "Stress_visc", "Positions", "Scaled_Positions",
-             "Unwrapped_Positions", "Scaled_Unwrapped_Positions", "Velocities", "Forces", "Box_Images",
-             "Dipole_Orientation_Magnitude", "Angular_Velocity_Spherical", "Angular_Velocity_Non_Spherical", "Torque",
-             "Charge", "KE", "PE", "Stress"]
+var_names = ["Temperature", "Time", "Thermal_Flux", "Stress_visc", "Positions",
+             "Scaled_Positions", "Unwrapped_Positions",
+             "Scaled_Unwrapped_Positions", "Velocities", "Forces",
+             "Box_Images", "Dipole_Orientation_Magnitude",
+             "Angular_Velocity_Spherical", "Angular_Velocity_Non_Spherical",
+             "Torque", "Charge", "KE", "PE", "Stress"]
 
 
 class Database:
     """
     Database class
 
-    Databases make up a large part of the functionality of MDSuite and are kept fairly consistent in structure.
-    Therefore, the database_path structure we are using has a separate class with commonly used methods which act as
+    Databases make up a large part of the functionality of MDSuite and are kept
+    fairly consistent in structure. Therefore, the database_path structure we
+    are using has a separate class with commonly used methods which act as
     wrappers for the hdf5 database_path.
 
     Attributes
     ----------
     architecture : str
-                The type of the database_path implemented, either a simulation database_path, or an
-                analysis database_path.
+                The type of the database_path implemented, either a simulation
+                database_path, or an analysis database_path.
 
     name : str
             The name of the database_path in question.

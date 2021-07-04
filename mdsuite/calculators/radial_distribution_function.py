@@ -1,7 +1,7 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
@@ -13,10 +13,11 @@ Author: Samuel Tovey, Fabian Zills
 
 Summary
 -------
-This module contains the code for the radial distribution function. This class is called by
-the Experiment class and instantiated when the user calls the Experiment.radial_distribution_function method.
-The methods in class can then be called by the Experiment.radial_distribution_function method and all necessary
-calculations performed.
+This module contains the code for the radial distribution function. This class
+is called by the Experiment class and instantiated when the user calls the
+Experiment.radial_distribution_function method. The methods in class can then
+be called by the Experiment.radial_distribution_function method and all
+necessary calculations performed.
 """
 import logging
 from abc import ABC
@@ -36,7 +37,6 @@ from mdsuite.utils.meta_functions import split_array
 
 from timeit import default_timer as timer
 
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -62,7 +62,8 @@ class RadialDistributionFunction(Calculator, ABC):
     loaded_property : str
             Property loaded from the database_path for the analysis
     minibatch: int, default None
-            Size of a individual minibatch, if set. By default mini-batching is not applied
+            Size of a individual minibatch, if set. By default mini-batching
+            is not applied
 
     See Also
     --------
@@ -70,8 +71,10 @@ class RadialDistributionFunction(Calculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.RadialDistributionFunction(number_of_configurations = 500, minibatch = 10, start = 0,
-                                                           stop = 1000, number_of_bins = 100, use_tf_function = False)
+    experiment.run_computation.RadialDistributionFunction(
+    number_of_configurations = 500,
+    minibatch = 10, start = 0, stop = 1000, number_of_bins = 100,
+    use_tf_function = False)
     """
 
     def __init__(self, experiment):
@@ -87,12 +90,14 @@ class RadialDistributionFunction(Calculator, ABC):
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
-        self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Radial_Distribution_Function'
         self.x_label = r'r ($\AA$)'
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
-        self.default_to_tf_function = True  # apply tf function to small functions that compile quickly
+
+        # apply tf function to small functions that compile quickly
+        self.default_to_tf_function = True
 
         # Arguments set by the user in __call__
         self.number_of_bins = None
@@ -143,15 +148,19 @@ class RadialDistributionFunction(Calculator, ABC):
         data_range: int
             None, must be here for the parent classes to work.
         start: int
-            Starting position in the database. All values before start will be ignored.
+            Starting position in the database. All values before start will be
+            ignored.
         stop: int
-            Stopping position in the database. All values after stop will be ignored.
+            Stopping position in the database. All values after stop will be
+            ignored.
         number_of_configurations: int
-            The number of uniformly sampled configuration between start and stop to be used for the RDF.
+            The number of uniformly sampled configuration between start and
+            stop to be used for the RDF.
         export: bool
             If true, the outcome is immediately exported to a csv file.
         minibatch: int
-            Size of a minibatch over atoms in the batch over configurations. Decrease this value if you run into memory
+            Size of a minibatch over atoms in the batch over configurations.
+            Decrease this value if you run into memory
             issues. Increase this value for better performance.
         molecules: bool
             If true, the molecules will be analyzed rather than the atoms.
@@ -674,7 +683,10 @@ class RadialDistributionFunction(Calculator, ABC):
 
         execution_time = 0
 
-        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
+        for i in tqdm(np.array_split(self.sample_configurations,
+                                     self.n_batches),
+                      ncols=70,
+                      desc="Batch loop."):
             log.debug('Loading Data')
 
             positions_tensor = self._load_positions(i)
@@ -693,7 +705,9 @@ class RadialDistributionFunction(Calculator, ABC):
             execution_time += timer() - start
             log.debug('Calculation done')
 
-        self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
+        self.rdf.update({key: np.array(val.numpy(),
+                                       dtype=np.float) for key, val in
+                         self.rdf.items()})
         log.debug(f"RDF execution time: {execution_time} s")
 
     def run_experimental_analysis(self):

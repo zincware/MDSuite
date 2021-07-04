@@ -212,7 +212,9 @@ class MolecularMap(Transformations):
             self.experiment.molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
             self.experiment.molecules[item]['mass'] = scaling_factor
             self.experiment.molecules[item]['groups'] = {}
-            for i in tqdm(range(self.n_batches), ncols=70, desc='Mapping molecules'):
+            for i in tqdm(range(self.n_batches),
+                          ncols=70,
+                          desc='Mapping molecules'):
                 start = i * self.batch_size
                 stop = start + self.batch_size
                 data = self._load_batch(path_list, np.s_[:, start:stop], factor=np.array(mass_factor) / scaling_factor)
