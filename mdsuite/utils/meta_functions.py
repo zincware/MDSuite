@@ -49,9 +49,10 @@ def join_path(a, b):
 
     Notes
     -----
-    h5py 3.1.0 on windows relies on forward slashes but os.path.join returns backward slashes.
-    Here we replace them to enable MDSuite for Windows users. To be used ONLY for navigation within a database_path. For
-    navigation through the file experiment in general one should use os.path.join.
+    h5py 3.1.0 on windows relies on forward slashes but os.path.join returns
+    backward slashes. Here we replace them to enable MDSuite for Windows users.
+    To be used ONLY for navigation within a database_path. For navigation
+    through the file experiment in general one should use os.path.join.
 
     """
     return os.path.join(a, b).replace("\\", "/")
@@ -69,12 +70,15 @@ def get_dimensionality(box: list) -> int:
     Returns
     -------
     dimensions : int
-            dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably don't make sense just yet)
+            dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably
+            don't make sense just yet)
     """
 
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
-        if box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
+        if box[0] == 0 and box[1] == 0 \
+                or box[0] == 0 and box[2] == 0 \
+                or box[1] == 0 and box[2] == 0:
             dimensions = 1
         else:
             dimensions = 2
@@ -105,7 +109,7 @@ def get_machine_properties() -> dict:
     machine_properties['gpu'] = {}
 
     try:
-        total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
+        total_gpu_devices = GPUtil.getGPUs()
         for gpu in total_gpu_devices:
             machine_properties['gpu'][gpu.id] = {}
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
@@ -120,8 +124,10 @@ def line_counter(filename: str) -> int:
     """
     Count the number of lines in a file
 
-    This function used a memory safe method to count the number of lines in the file. Using the other tensor_values collected
-    during the trajectory analysis, this is enough information to completely characterize the experiment.
+    This function used a memory safe method to count the number of lines in the
+    file. Using the other tensor_values collected during the trajectory
+    analysis, this is enough information to completely characterize the
+    experiment.
 
     Parameters
     ----------
@@ -140,19 +146,22 @@ def line_counter(filename: str) -> int:
     return num_lines
 
 
-def optimize_batch_size(filepath: str, number_of_configurations: int,
-                        _file_size: int = None, _memory: int = None, test: bool = False) -> int:
+def optimize_batch_size(filepath: str,
+                        number_of_configurations: int,
+                        _file_size: int = None,
+                        _memory: int = None,
+                        test: bool = False) -> int:
     """
     Optimize the size of batches during initial processing
 
-    During the database_path construction a batch size must be chosen in order to process the trajectories with the
-    least RAM but reasonable performance.
+    During the database_path construction a batch size must be chosen in order
+    to process the trajectories with the least RAM but reasonable performance.
 
     Parameters
     ----------
     filepath : str
-            Path to the file be read in. This is not opened during the process, it is simply needed to read the file
-            size.
+            Path to the file be read in. This is not opened during the process,
+             it is simply needed to read the file size.
     number_of_configurations : int
             Number of configurations in the trajectory.
     _file_size : int

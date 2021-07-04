@@ -58,7 +58,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
+        super().__init__(obj, header_lines, file_path, sort=sort)
 
         self.f_object = open(self.file_path)  # file object
 
