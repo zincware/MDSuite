@@ -364,8 +364,37 @@ class Experiment:
 
         return attributes
 
-    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None,
-                 sort: bool = False):
+    def _check_read_files(self, file_path):
+        """
+        Check if a file has been read before and add it to the hidden file.
+
+        Parameters
+        ----------
+        file_path : str
+                Path to the file.
+
+        Returns
+        -------
+
+        """
+        with open('.read_files.txt', 'a') as f:
+            data = []
+            for line in f:
+                data.append(f.readline())
+
+            result = file_path in data  # check if it exists.
+            if result:
+                return result
+            else:
+                f.write(f'{file_path}\n')
+                return result
+
+    def add_data(self,
+                 trajectory_file: str = None,
+                 file_format: str = 'lammps_traj',
+                 rename_cols: dict = None,
+                 sort: bool = False,
+                 force: bool = False):
         """
         Add tensor_values to the database_path
 
@@ -380,12 +409,25 @@ class Experiment:
                 the values.
         sort : bool
                 If true, the tensor_values will be sorted when being entered into the database_path.
+        force : bool
+                If true, a file will be read regardless of if it has already
+                been seen.
         """
 
         # Check if there is a trajectory file.
         if trajectory_file is None:
             print("No tensor_values has been given")
             sys.exit(1)
+
+        file_check = self._check_read_files(trajectory_file)
+        if file_check:
+            if force:
+                pass
+            else:
+                log.info('This file has already been read, skipping this now.'
+                         'If this is not desired, please add force=True'
+                         'to the command.')
+                return  # End the method.
 
         # Load the file reader and the database_path object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
