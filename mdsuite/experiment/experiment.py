@@ -364,7 +364,7 @@ class Experiment:
 
         return attributes
 
-    def _check_read_files(self, file_path):
+    def _check_read_files(self, file_path: str):
         """
         Check if a file has been read before and add it to the hidden file.
 
@@ -380,7 +380,7 @@ class Experiment:
         with open('.read_files.txt', 'a') as f:
             data = []
             for line in f:
-                data.append(f.readline())
+                data.append(line)
 
             result = file_path in data  # check if it exists.
             if result:
