@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 import pubchempy as pcp
 import yaml
+from io import UnsupportedOperation
 from tqdm import tqdm
 import importlib.resources
 from datetime import datetime
@@ -379,15 +380,17 @@ class Experiment:
         """
         with open('.read_files.txt', 'a') as f:
             data = []
-            for line in f:
-                data.append(line)
+            try:
+                for line in f:
+                    data.append(line)
+            except UnsupportedOperation:
+                pass
 
             result = file_path in data  # check if it exists.
-            if result:
-                return result
-            else:
+
+            if not result:
                 f.write(f'{file_path}\n')
-                return result
+            return result
 
     def add_data(self,
                  trajectory_file: str = None,
