@@ -11,12 +11,19 @@ Description: A base class for time series analysis
 from __future__ import annotations
 from mdsuite.database.simulation_database import Database
 import matplotlib.pyplot as plt
+import numpy as np
 
 import tensorflow as tf
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mdsuite import Experiment
+
+
+def running_mean(x, N):
+    """Perform a rolling window mean"""
+    cumsum = np.cumsum(np.insert(x, 0, 0))
+    return (cumsum[N:] - cumsum[:-N]) / float(N)
 
 
 class TimeSeries:
@@ -36,14 +43,17 @@ class TimeSeries:
             "y": None
         }
         self.species = experiment.species
+        self.rolling_window = 0
+        self.reduce_sum = True
 
         # Properties
         self._database = None
         self._data = None
 
-    def __call__(self, species: list = None):
+    def __call__(self, species: list = None, rolling_window: int = 0):
         if species is not None:
             self.species = species
+        self.rolling_window = rolling_window
         self.plot()
 
     @property
@@ -63,11 +73,22 @@ class TimeSeries:
             )
         return self._data
 
+    @property
+    def preprocess_data(self):
+        """Perform some data preprocessing before plotting it"""
+        data = self.data
+        if self.reduce_sum:
+            data = tf.einsum("atx -> t", data)
+            # perform a reduce sum over atoms "a" and property dimension "x" to yield time steps "t"
+        if self.rolling_window > 0:
+            data = running_mean(data, self.rolling_window)
+
+        return data
+
     def plot(self):
         """Plot the data over timesteps"""
         fig, ax = plt.subplots()
-        ax.plot(tf.einsum("atx -> t", self.data))
-        # perform a reduce sum over atoms "a" and property dimension "x" to yield time steps "t"
+        ax.plot(self.preprocess_data)
         ax.set_xlabel(self.fig_labels['x'])
         ax.set_ylabel(self.fig_labels['y'])
         fig.show()
