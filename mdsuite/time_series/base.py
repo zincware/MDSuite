@@ -35,12 +35,15 @@ class TimeSeries:
             "x": None,
             "y": None
         }
+        self.species = experiment.species
 
         # Properties
         self._database = None
         self._data = None
 
-    def __call__(self):
+    def __call__(self, species: list = None):
+        if species is not None:
+            self.species = species
         self.plot()
 
     @property
@@ -55,7 +58,7 @@ class TimeSeries:
         """Get the data for all species and timesteps for the loaded_property"""
         if self._data is None:
             self._data = tf.concat(
-                [self.database.load_data([f'{species}/{self.loaded_property}']) for species in self.experiment.species],
+                [self.database.load_data([f'{species}/{self.loaded_property}']) for species in self.species],
                 axis=0
             )
         return self._data
@@ -64,7 +67,7 @@ class TimeSeries:
         """Plot the data over timesteps"""
         fig, ax = plt.subplots()
         ax.plot(tf.einsum("atx -> t", self.data))
-        # performe a reduce sum over atoms "a" and property dimension "x" to yield time steps "t"
+        # perform a reduce sum over atoms "a" and property dimension "x" to yield time steps "t"
         ax.set_xlabel(self.fig_labels['x'])
         ax.set_ylabel(self.fig_labels['y'])
         fig.show()
