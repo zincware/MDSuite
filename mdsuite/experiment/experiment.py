@@ -27,6 +27,7 @@ from tqdm import tqdm
 import importlib.resources
 from datetime import datetime
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
+from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
@@ -38,6 +39,49 @@ from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 
 log = logging.getLogger(__file__)
+
+
+class RunModule:
+    """Run a calculator from the experiment class
+
+    Notes
+    -----
+    This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
+    attributes of the `experiment.run_computation` helper class.
+    """
+
+    def __init__(self, parent, module_dict):
+        """Initialize the attributes
+        Parameters
+        ----------
+        parent: Experiment
+            the experiment to be passed to the calculator afterwards
+        module_dict: dict
+            A dictionary containing all the modules / calculators / Time series operations with their names as keys
+        """
+        self.parent: Experiment = parent
+        self._module_dict = module_dict
+        for key in self._module_dict:
+            self.__setattr__(key, self._module_dict[key])
+
+    def __getattribute__(self, item):
+        """Call via function
+        You can call the computation via a function and autocompletion
+        >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
+
+        Returns
+            Instantiated calculator class with added experiment that can be called.
+        """
+        if item.startswith('_'):
+            # handle privat functions
+            return super().__getattribute__(item)
+
+        try:
+            class_compute = self._module_dict[item]
+        except KeyError:
+            return super().__getattribute__(item)
+
+        return class_compute(experiment=self.parent)
 
 
 class Experiment:
@@ -129,7 +173,8 @@ class Experiment:
         self._load_or_build()
 
         # Run Computations
-        self.run_computation = self.RunComputation(self)
+        self.run_computation = RunModule(self, dict_classes_computations)
+        self.analyse_time_series = RunModule(self, time_series_dict)
 
         self._start_logging()
 
@@ -190,12 +235,17 @@ class Experiment:
         storage_path = self.storage_path  # store the new storage path
 
         with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
-            self.__dict__.update(pickle.loads(f.read()))
+            update_dict: dict = pickle.loads(f.read())
+            try:
+                [update_dict.pop(x) for x in ['run_computation', 'analyse_time_series']]
+                # remove keys that should not be updated!
+            except KeyError:
+                pass
+            self.__dict__.update(update_dict)
 
         self.storage_path = storage_path  # set the one form the database to the new one
         self._create_internal_file_paths()  # force rebuild every time
 
-        self.run_computation = self.RunComputation(self)
         self._start_logging()
         # TODO Why is this necessary? What does it exactly?
 
@@ -262,41 +312,6 @@ class Experiment:
         db_object.change_key_names(mapping)
 
         self.save_class()  # update the class state
-
-    class RunComputation:
-        """Run a calculator from the experiment class
-
-        Notes
-        -----
-        This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
-        attributes of the `experiment.run_computation` helper class.
-        """
-
-        def __init__(self, parent):
-            """Initialize the attributes
-            Parameters
-            ----------
-            parent: Experiment
-                the experiment to be passed to the calculator afterwards
-            """
-            self.parent: Experiment = parent
-            for key in dict_classes_computations:
-                self.__setattr__(key, dict_classes_computations[key])
-
-        def __getattribute__(self, item):
-            """Call via function
-            You can call the computation via a function and autocompletion
-            >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
-
-            Returns
-                Instantiated calculator class with added experiment that can be called.
-            """
-            try:
-                class_compute = dict_classes_computations[item]
-            except KeyError:
-                return super().__getattribute__(item)
-
-            return class_compute(experiment=self.parent)
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
