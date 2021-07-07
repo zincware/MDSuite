@@ -441,7 +441,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             if self.plot:
                 fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
+                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins)[:-3], self.rdf.get(names)[:-3], label=names)
                 self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
 
             self.data_range = self.number_of_configurations
@@ -575,14 +575,29 @@ class RadialDistributionFunction(Calculator, ABC):
             else:
                 particles_list = [len(self.experiment.species[item]['indices']) for item in self.experiment.species]
 
-            for species_indices, key in self.mini_get_pair_indices(indices, n_atoms,
-                                                                   atoms_per_batch, start,
-                                                                   self.index_list, particles_list):
-                # iterate over the permutations between the species
-                distance_between_species = tf.gather(d_ij, species_indices)
-                distance_between_species = self._apply_system_cutoff(distance_between_species, self.cutoff)
-                bin_data = tf.histogram_fixed_width(distance_between_species, self.bin_range, self.number_of_bins)
-                rdf[key] = bin_data
+            indices = tf.transpose(indices)
+
+            # print(d_ij.shape)
+            # print(indices.shape)
+
+            background = tf.sparse.SparseTensor(tf.cast(indices, dtype=tf.int64), d_ij[:, 0],
+                                                (atoms_per_batch, n_atoms))
+
+            output = []
+            for tuples in itertools.combinations_with_replacement(self.index_list, 2):
+                start_ = (sum(particles_list[:tuples[0]]) - start, sum(particles_list[:tuples[1]]))
+                size_ = (
+                    start_[0] + sum(particles_list[:tuples[0] + 1]) - start,
+                    start_[1] + sum(particles_list[:tuples[1] + 1])
+                )
+
+                names = self._get_species_names(tuples)
+
+                output.append([tf.sparse.slice(background, start_, size_).values, names])
+
+                bin_data = tf.histogram_fixed_width(tf.sparse.slice(background, start_, size_).values, self.bin_range,
+                                                    self.number_of_bins)
+                rdf[names] = bin_data
 
             return rdf
 
