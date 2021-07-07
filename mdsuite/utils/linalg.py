@@ -57,3 +57,21 @@ def get_angles(r_ij_mat, indices, acos=True):
     r_ik = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1))
 
     return angle_between(r_ij, r_ik, acos), tf.linalg.norm(r_ij, axis=-1) * tf.linalg.norm(r_ik, axis=-1)
+
+
+@tf.function(jit_compile=True)
+def apply_minimum_image(r_ij, box_array):
+    """
+
+    Parameters
+    ----------
+    r_ij: tf.Tensor
+        an r_ij matrix of size (batches, atoms, 3)
+    box_array: tf.Tensor
+        a box array (3,)
+
+    Returns
+    -------
+
+    """
+    return r_ij - tf.math.rint(r_ij / box_array) * box_array

@@ -33,6 +33,7 @@ from mdsuite.utils.meta_functions import join_path
 
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
+from mdsuite.utils.linalg import apply_minimum_image
 
 from timeit import default_timer as timer
 
@@ -502,41 +503,6 @@ class RadialDistributionFunction(Calculator, ABC):
         indices = tf.transpose(indices)
         return indices
 
-    def mini_get_pair_indices(self, indices, n_atoms, atoms_per_batch, start, index_list, len_elements):
-        """Similar to the pair indices, compute the mini pair indices
-
-        Parameters
-        ----------
-        indices
-        n_atoms: int number of atoms
-        atoms_per_batch: int number of atoms in the batch
-        start: start value of the slice of the batch
-        index_list: list of the atoms, e.g. [0, 1, 2] for a three species system
-        len_elements: list, length of the elements in the list, e.g. [50, 50, 100]
-
-        Returns
-        -------
-
-        tf.Tensor, str
-
-        """
-        indices = tf.transpose(indices)
-        background = tf.tensor_scatter_nd_update(tf.fill((atoms_per_batch, n_atoms), -1),
-                                                 indices,
-                                                 tf.range(tf.shape(indices)[0]))
-
-        output = []
-
-        for tuples in itertools.combinations_with_replacement(index_list, 2):
-            row_slice = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[0] + 1]) - start)
-            col_slice = (sum(len_elements[:tuples[1]]), sum(len_elements[:tuples[1] + 1]))
-            names = self._get_species_names(tuples)
-            indices = background[slice(*row_slice), slice(*col_slice)]
-
-            output.append([indices[indices != -1], names])
-
-        return output
-
     def mini_calculate_histograms(self):
         """Do the minibatch calculation"""
 
@@ -553,14 +519,13 @@ class RadialDistributionFunction(Calculator, ABC):
             return tf_func
 
         @tf_function
-        def compute_species_values(indices, atoms_per_batch, start_batch, d_ij):
+        def compute_species_values(indices, start_batch, d_ij):
             """
             Compute species-wise histograms
 
             Parameters
             ----------
             indices: indices of the d_ij distances in the shape (x, 2)
-            atoms_per_batch: number of atoms in the batch
             start_batch: starts from 0 and increments by atoms_per_batch every batch
             d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu computation
 
@@ -586,6 +551,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
                 names = self._get_species_names(tuples)
 
+                # select the indices that are within the boundaries of the current species / molecule
                 mask_1 = tf.math.logical_and(indices[:, 0] > start_[0], indices[:, 0] < start_[0] + size_[0])
                 mask_2 = tf.math.logical_and(indices[:, 1] > start_[1], indices[:, 1] < start_[1] + size_[1])
 
@@ -613,7 +579,7 @@ class RadialDistributionFunction(Calculator, ABC):
             stop = 0
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
-            for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
+            for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE)):
 
                 atoms_per_batch = tf.shape(atoms)[0]
                 stop += atoms_per_batch
@@ -635,18 +601,22 @@ class RadialDistributionFunction(Calculator, ABC):
                 r_ij = _positions - atoms_position
                 log.debug(f'Computing r_ij took {timer() - start_time} s')
 
+                del atoms_position
+                del _positions
+
                 # apply minimum image convention
                 start_time = timer()
                 if self.experiment.box_array is not None:
-                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
+                    r_ij = apply_minimum_image(r_ij, self.experiment.box_array)
                 log.debug(f'Applying minimum image convention took {timer() - start_time} s')
 
                 start_time = timer()
                 d_ij = tf.linalg.norm(r_ij, axis=-1)
+                del r_ij
                 log.debug(f'Computing d_ij took {timer() - start_time} s')
 
                 start_time = timer()
-                _rdf = compute_species_values(indices, atoms_per_batch, start, d_ij)
+                _rdf = compute_species_values(indices, start, d_ij)
                 log.debug(f'Computing species values took {timer() - start_time} s')
 
                 start_time = timer()
