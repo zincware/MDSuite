@@ -384,14 +384,18 @@ class RadialDistributionFunction(Calculator, ABC):
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
             for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), leave=False, ncols=70):
-
                 atoms_per_batch = tf.shape(atoms)[0]
                 stop += atoms_per_batch
                 start_time = timer()
                 indices = get_partial_triu_indices(n_atoms, atoms_per_batch, start)
                 log.debug(f'Calculating indices took {timer() - start_time} s')
 
-                d_ij = self.get_dij(indices, positions_tensor, atoms, tf.constant(self.experiment.box_array))
+                start_time = timer()
+                d_ij = self.get_dij(indices, positions_tensor, atoms,
+                                    tf.cast(self.experiment.box_array, dtype=tf.float64))
+                exec_time = timer() - start_time
+                atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=tf.float32) / exec_time / 10 ** 6
+                log.debug(f'Computing d_ij took {exec_time} s ({atom_pairs_per_second:.1f} million atom pairs / s)')
 
                 start_time = timer()
                 _rdf = self.compute_species_values(indices, start, d_ij)
