@@ -59,7 +59,7 @@ def get_angles(r_ij_mat, indices, acos=True):
     return angle_between(r_ij, r_ik, acos), tf.linalg.norm(r_ij, axis=-1) * tf.linalg.norm(r_ik, axis=-1)
 
 
-@tf.function(jit_compile=True)
+@tf.function(experimental_relax_shapes=True)
 def apply_minimum_image(r_ij, box_array):
     """
 
@@ -75,3 +75,26 @@ def apply_minimum_image(r_ij, box_array):
 
     """
     return r_ij - tf.math.rint(r_ij / box_array) * box_array
+
+
+def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
+    """Calculate the indices of a slice of the triu values
+
+    Parameters
+    ----------
+    n_atoms: total number of atoms in the system
+    m_atoms: size of the slice (horizontal)
+    idx: start index of slize
+
+    Returns
+    -------
+    tf.Tensor
+
+    """
+    bool_mat = tf.ones((m_atoms, n_atoms), dtype=tf.bool)
+    bool_vector = ~tf.linalg.band_part(bool_mat, -1, idx)  # rename!
+
+    indices = tf.where(bool_vector)
+    indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
+    indices = tf.transpose(indices)
+    return indices
