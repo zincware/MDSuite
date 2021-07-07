@@ -14,6 +14,7 @@ Software architecture
    _architecture/analysis
    _architecture/experiment
    _architecture/memory_management
+   _architecture/run_module
 
 Database Information
 --------------------
@@ -45,6 +46,15 @@ Calculators
    _calculators/potential_of_mean_force
    _calculators/radial_distribution_function
    _calculators/structure_factor
+
+Time Series
+-----------
+
+.. toctree::
+    :maxdepth: 1
+
+    _time_series/base.rst
+    _time_series/energy.rst
 
 Transformations
 ---------------

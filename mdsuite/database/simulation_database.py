@@ -424,7 +424,7 @@ class Database:
                 if item in mapping:
                     db.move(item, mapping[item])
 
-    def load_data(self, path_list: list = None, select_slice: np.s_ = None, dictionary: bool = False,
+    def load_data(self, path_list: list = None, select_slice: np.s_ = np.s_[:], dictionary: bool = False,
                   scaling: list = None, d_size: int = None):
         """
         Load tensor_values from the database_path for some operation.
