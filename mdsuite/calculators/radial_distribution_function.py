@@ -553,16 +553,16 @@ class RadialDistributionFunction(Calculator, ABC):
             return tf_func
 
         @tf_function
-        def compute_species_values(indices, atoms_per_batch, start, d_ij):
+        def compute_species_values(indices, atoms_per_batch, start_batch, d_ij):
             """
             Compute species-wise histograms
 
             Parameters
             ----------
-            indices
-            atoms_per_batch
-            start
-            d_ij
+            indices: indices of the d_ij distances in the shape (x, 2)
+            atoms_per_batch: number of atoms in the batch
+            start_batch: starts from 0 and increments by atoms_per_batch every batch
+            d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu computation
 
             Returns
             -------
@@ -577,25 +577,22 @@ class RadialDistributionFunction(Calculator, ABC):
 
             indices = tf.transpose(indices)
 
-            # print(d_ij.shape)
-            # print(indices.shape)
-
-            background = tf.sparse.SparseTensor(tf.cast(indices, dtype=tf.int64), d_ij[:, 0],
-                                                (atoms_per_batch, n_atoms))
-
-            output = []
             for tuples in itertools.combinations_with_replacement(self.index_list, 2):
-                start_ = (sum(particles_list[:tuples[0]]) - start, sum(particles_list[:tuples[1]]))
+                start_ = (sum(particles_list[:tuples[0]]) - start_batch, sum(particles_list[:tuples[1]]))
                 size_ = (
-                    start_[0] + sum(particles_list[:tuples[0] + 1]) - start,
-                    start_[1] + sum(particles_list[:tuples[1] + 1])
+                    particles_list[tuples[0]],
+                    particles_list[tuples[1]]
                 )
 
                 names = self._get_species_names(tuples)
 
-                output.append([tf.sparse.slice(background, start_, size_).values, names])
+                mask_1 = tf.math.logical_and(indices[:, 0] > start_[0], indices[:, 0] < start_[0] + size_[0])
+                mask_2 = tf.math.logical_and(indices[:, 1] > start_[1], indices[:, 1] < start_[1] + size_[1])
 
-                bin_data = tf.histogram_fixed_width(tf.sparse.slice(background, start_, size_).values, self.bin_range,
+                mask = tf.math.logical_and(mask_1, mask_2)
+
+                bin_data = tf.histogram_fixed_width(tf.boolean_mask(d_ij, mask, axis=0),
+                                                    self.bin_range,
                                                     self.number_of_bins)
                 rdf[names] = bin_data
 
