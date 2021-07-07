@@ -384,7 +384,7 @@ class RadialDistributionFunction(Calculator, ABC):
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
             for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), leave=False, ncols=70):
-                atoms_per_batch = tf.shape(atoms)[0]
+                atoms_per_batch, batch_size, _ = tf.shape(atoms)
                 stop += atoms_per_batch
                 start_time = timer()
                 indices = get_partial_triu_indices(n_atoms, atoms_per_batch, start)
@@ -395,7 +395,9 @@ class RadialDistributionFunction(Calculator, ABC):
                                     tf.cast(self.experiment.box_array, dtype=tf.float64))
                 exec_time = timer() - start_time
                 atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=tf.float32) / exec_time / 10 ** 6
-                log.debug(f'Computing d_ij took {exec_time} s ({atom_pairs_per_second:.1f} million atom pairs / s)')
+                atom_pairs_per_second *= tf.cast(batch_size, dtype=tf.float32)
+                log.debug(f'Computing d_ij took {exec_time} s '
+                          f'({atom_pairs_per_second:.1f} million atom pairs / s)')
 
                 start_time = timer()
                 _rdf = self.compute_species_values(indices, start, d_ij)
@@ -481,12 +483,11 @@ class RadialDistributionFunction(Calculator, ABC):
         """Compute the minibatch histogram"""
 
         # select the indices that are within the boundaries of the current species / molecule
-        mask_1 = tf.math.logical_and(indices[:, 0] > start[0], indices[:, 0] < stop[0])
-        mask_2 = tf.math.logical_and(indices[:, 1] > start[1], indices[:, 1] < stop[1])
+        mask_1 = (indices[:, 0] > start[0]) & (indices[:, 0] < stop[0])
+        mask_2 = (indices[:, 1] > start[1]) & (indices[:, 1] < stop[1])
 
-        mask = tf.math.logical_and(mask_1, mask_2)
         bin_data = tf.histogram_fixed_width(
-            values=tf.boolean_mask(d_ij, mask, axis=0),
+            values=tf.boolean_mask(d_ij, mask_1 & mask_2, axis=0),
             value_range=bin_range,
             nbins=number_of_bins
         )
