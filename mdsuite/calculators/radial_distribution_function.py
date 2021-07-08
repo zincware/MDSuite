@@ -34,7 +34,7 @@ from mdsuite.utils.meta_functions import join_path
 
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import split_array
-from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices
+from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 
 from timeit import default_timer as timer
 
@@ -337,7 +337,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             if self.plot:
                 fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins)[:-3], self.rdf.get(names)[:-3], label=names)
+                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
                 self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
 
             self.data_range = self.number_of_configurations
@@ -487,20 +487,23 @@ class RadialDistributionFunction(Calculator, ABC):
             stop_ = start_ + tf.constant([particles_list[tuples[0]], particles_list[tuples[1]]])
             rdf[names] = self.bin_minibatch(start_, stop_, indices, d_ij,
                                             tf.constant(self.bin_range, dtype=tf.float64),
-                                            tf.constant(self.number_of_bins))
+                                            tf.constant(self.number_of_bins),
+                                            tf.constant(self.cutoff))
         return rdf
 
     @staticmethod
     @tf.function(experimental_relax_shapes=True)
-    def bin_minibatch(start, stop, indices, d_ij, bin_range, number_of_bins) -> tf.Tensor:
+    def bin_minibatch(start, stop, indices, d_ij, bin_range, number_of_bins, cutoff) -> tf.Tensor:
         """Compute the minibatch histogram"""
 
         # select the indices that are within the boundaries of the current species / molecule
         mask_1 = (indices[:, 0] > start[0]) & (indices[:, 0] < stop[0])
         mask_2 = (indices[:, 1] > start[1]) & (indices[:, 1] < stop[1])
 
+        values_species = tf.boolean_mask(d_ij, mask_1 & mask_2, axis=0)
+        values = apply_system_cutoff(values_species, cutoff)
         bin_data = tf.histogram_fixed_width(
-            values=tf.boolean_mask(d_ij, mask_1 & mask_2, axis=0),
+            values=values,
             value_range=bin_range,
             nbins=number_of_bins
         )
@@ -647,21 +650,6 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_edges = np.linspace(0.0, self.cutoff, self.number_of_bins)
 
         return _piecewise(np.array(bin_edges)) * bin_width
-
-    @staticmethod
-    def _apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
-        """
-        Enforce a cutoff on a tensor
-
-        Parameters
-        ----------
-        tensor : tf.Tensor
-        cutoff : flaot
-        """
-
-        cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
-
-        return tf.boolean_mask(tensor, cutoff_mask)
 
     # Calculator class methods required by the parent class -- All are empty.
     def _apply_operation(self, data, index):

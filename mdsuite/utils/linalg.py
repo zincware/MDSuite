@@ -98,3 +98,17 @@ def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
     indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
     indices = tf.transpose(indices)
     return indices
+
+def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
+    """
+    Enforce a cutoff on a tensor
+
+    Parameters
+    ----------
+    tensor : tf.Tensor
+    cutoff : flaot
+    """
+
+    cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
+
+    return tf.boolean_mask(tensor, cutoff_mask)
