@@ -39,6 +39,7 @@ from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices
 from timeit import default_timer as timer
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
@@ -188,6 +189,9 @@ class RadialDistributionFunction(Calculator, ABC):
         # kwarg parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
         self.override_n_batches = kwargs.get('batches')
+        self.tqdm_limit = kwargs.pop('tqdm', 10)
+        # if there are more batches than in that limit it will show the batch tqdm, otherwise
+        # it will show multiple minibatch tqdms
 
         # Initial checks and initialization.
         self._check_input()
@@ -268,7 +272,7 @@ class RadialDistributionFunction(Calculator, ABC):
         path_list = [join_path(species, "Positions") for species in self.species]
         data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
         if len(self.species) == 1:
-            return data
+            return tf.constant(data)
         else:
             return tf.concat(data, axis=0)
 
@@ -384,15 +388,16 @@ class RadialDistributionFunction(Calculator, ABC):
 
         def run_minibatch_loop():
             """Run a minibatch loop"""
-            start = tf.constant(0)
+            minibatch_start = tf.constant(0)
             stop = tf.constant(0)
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
-            for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), leave=False, ncols=70):
+            for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), ncols=70,
+                              disable=not batch_tqm, desc=f"Running mini batch loop {idx + 1} / {self.n_batches}"):
                 atoms_per_batch, batch_size, _ = tf.shape(atoms)
                 stop += atoms_per_batch
                 start_time = timer()
-                indices = get_partial_triu_indices(n_atoms, atoms_per_batch, start)
+                indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
                 log.debug(f'Calculating indices took {timer() - start_time} s')
 
                 start_time = timer()
@@ -405,22 +410,25 @@ class RadialDistributionFunction(Calculator, ABC):
                           f'({atom_pairs_per_second:.1f} million atom pairs / s)')
 
                 start_time = timer()
-                _rdf = self.compute_species_values(indices, start, d_ij)
+                minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
                 log.debug(f'Computing species values took {timer() - start_time} s')
 
                 start_time = timer()
-                rdf = combine_dictionaries(rdf, _rdf)
+                rdf = combine_dictionaries(rdf, minibatch_rdf)
                 log.debug(f'Updating dictionaries took {timer() - start_time} s')
 
-                start = stop
+                minibatch_start = stop
             return rdf
 
         execution_time = 0
 
-        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
+        batch_tqm = self.tqdm_limit > self.n_batches
+
+        for idx, sample_configuration in tqdm(enumerate(np.array_split(self.sample_configurations, self.n_batches)),
+                                              ncols=70, disable=batch_tqm):
             log.debug('Loading Data')
 
-            positions_tensor = self._load_positions(i)
+            positions_tensor = self._load_positions(sample_configuration)
             log.debug('Data loaded - creating dataset')
             per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
             # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
@@ -451,7 +459,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         self._calculate_radial_distribution_functions()
 
-    def compute_species_values(self, indices, start_batch, d_ij):
+    def compute_species_values(self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor):
         """
         Compute species-wise histograms
 
