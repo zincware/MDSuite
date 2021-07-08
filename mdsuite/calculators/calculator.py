@@ -12,6 +12,8 @@ Parent class for different analysis
 Summary
 -------
 """
+from __future__ import annotations
+
 import logging
 import numpy as np
 import os
@@ -35,6 +37,10 @@ from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite import Experiment
+
 log = logging.getLogger(__file__)
 
 
@@ -44,7 +50,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    experiment : class object
+    experiment : Experiment
             Class object of the experiment.
     plot : bool (default=True)
             Decision to plot the analysis.
@@ -62,7 +68,7 @@ class Calculator(metaclass=abc.ABCMeta):
     """
 
     def __init__(self,
-                 experiment: object,
+                 experiment: Experiment,
                  plot: bool = True,
                  save: bool = True,
                  data_range: int = 500,
@@ -75,7 +81,7 @@ class Calculator(metaclass=abc.ABCMeta):
 
         Parameters
         ----------
-        experiment : object
+        experiment : Experiment
                 Experiment object to update.
         plot : bool
                 If true, analysis is plotted.
@@ -93,7 +99,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 If true, reduce memory usage to what is allowed on the system GPU.
         """
         # Set upon instantiation of parent class
-        self.experiment = experiment
+        self.experiment: Experiment = experiment
         self.data_range = data_range
         self.plot = plot
         self.save = save

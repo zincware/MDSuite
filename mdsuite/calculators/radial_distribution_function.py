@@ -18,6 +18,7 @@ the Experiment class and instantiated when the user calls the Experiment.radial_
 The methods in class can then be called by the Experiment.radial_distribution_function method and all necessary
 calculations performed.
 """
+from __future__ import annotations
 import logging
 from abc import ABC
 from typing import Union
@@ -36,6 +37,10 @@ from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices
 
 from timeit import default_timer as timer
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite import Experiment
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -75,13 +80,13 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, experiment: Experiment):
         """
         Constructor for the RDF calculator.
 
         Attributes
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
         """
         super().__init__(experiment)
