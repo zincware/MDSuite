@@ -21,3 +21,4 @@ sqlalchemy>=1.4
 pandas
 IPython
 pandoc
+open3d
