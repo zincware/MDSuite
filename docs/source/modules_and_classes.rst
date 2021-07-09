@@ -5,7 +5,7 @@ The code developed for MDSuite is quite broad and extensive. In the sections out
 sphinx documentation for the classes and modules that have been developed for the analysis programs.
 
 Software architecture
------------------------
+---------------------
 
 .. toctree::
    :maxdepth: 1
@@ -15,8 +15,20 @@ Software architecture
    _architecture/experiment
    _architecture/memory_management
 
+Database Information
+--------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   _database/analysis_database
+   _database/data_manager
+   _database/database_scheme
+   _database/properties_database
+   _database/simulation_database
+
 Calculators
-----------------
+-----------
 
 .. toctree::
    :maxdepth: 1

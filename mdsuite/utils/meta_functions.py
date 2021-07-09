@@ -6,9 +6,9 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
+Meta Functions
+==============
 Module for the mdsuite meta functions
 
 Summary
@@ -74,11 +74,10 @@ def get_dimensionality(box: list) -> int:
 
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
-        dimensions = 2
-
-    # Check if only one of the entries is non-zero, i.e. 1 dimension.
-    elif box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
-        dimensions = 1
+        if box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
+            dimensions = 1
+        else:
+            dimensions = 2
 
     # Other option is 3 dimensions.
     else:
@@ -108,7 +107,7 @@ def get_machine_properties() -> dict:
     try:
         total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
         for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id]= {}
+            machine_properties['gpu'][gpu.id] = {}
             machine_properties['gpu'][gpu.id]['name'] = gpu.name
             machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
     except (NoGPUInSystem, ValueError):
@@ -135,10 +134,14 @@ def line_counter(filename: str) -> int:
             Number of lines in the file
     """
 
-    return sum(1 for _ in open(filename, 'rb'))
+    f = open(filename, 'rb')
+    num_lines = sum(1 for _ in f)
+    f.close()
+    return num_lines
 
 
-def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
+def optimize_batch_size(filepath: str, number_of_configurations: int,
+                        _file_size: int = None, _memory: int = None, test: bool = False) -> int:
     """
     Optimize the size of batches during initial processing
 
@@ -150,21 +153,29 @@ def optimize_batch_size(filepath: str, number_of_configurations: int) -> int:
     filepath : str
             Path to the file be read in. This is not opened during the process, it is simply needed to read the file
             size.
-
     number_of_configurations : int
             Number of configurations in the trajectory.
+    _file_size : int
+            Mock file size to use during tests.
+    _memory : int
+            Mock memory to use during tests.
+    test : bool
+            If true, mock variables are used.
 
     Returns
     -------
     batch size : int
             Number of configurations to load in each batch
     """
+    if test:
+        file_size = _file_size
+        database_memory = _memory
+    else:
+        computer_statistics = get_machine_properties()  # Get computer statistics
+        file_size = os.path.getsize(filepath)  # Get the size of the file
+        database_memory = 0.1 * computer_statistics['memory']  # We take 10% of the available memory
 
-    computer_statistics = get_machine_properties()  # Get computer statistics
-
-    file_size = os.path.getsize(filepath)  # Get the size of the file
     memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    database_memory = 0.1 * computer_statistics['memory']  # We take 50% of the available memory
     initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
 
     # The database_path generation expands memory ~5x
@@ -178,8 +189,8 @@ def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
     """
     Linear function for line fitting
 
-    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some tensor_values. This function
-    is called by the scipy curve_fit module as the model to fit to.
+    In many cases, namely those involving an Einstein relation, a linear curve must be fit to some tensor_values.
+    This function is called by the scipy curve_fit module as the model to fit to.
 
     Parameters
     ----------
@@ -203,7 +214,8 @@ def simple_file_read(filename: str) -> list:
     Trivially read a file and load it into an array
 
     There are many occasions when a file simply must be read and dumped into a file. In these cases, we call this method
-    and dump tensor_values into an array. This is NOT memory safe, and should not be used for processing large trajectory files.
+    and dump tensor_values into an array. This is NOT memory safe, and should not be used for processing large
+    trajectory files.
 
     Parameters
     ----------
@@ -236,6 +248,11 @@ def timeit(f: Callable) -> Callable:
     Returns
     -------
     wrap : Callable
+            Method wrapper for timing the method.
+
+    Notes
+    -----
+    There is currently no test for this wrapper as there is no simple way of checking timing on a remote server.
     """
 
     @wraps(f)
@@ -253,7 +270,7 @@ def timeit(f: Callable) -> Callable:
     return wrap
 
 
-def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> list:
+def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing
 
@@ -262,6 +279,8 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
 
     Parameters
     ----------
+    window_length : int
+            Window length to use in the filtering.
     data : list
             Array of tensor_values to be analysed.
     order : int
@@ -269,8 +288,13 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
 
     Returns
     -------
-    filtered tensor_values : list
+    filtered tensor_values : np.ndarray
             Returns the filtered tensor_values directly from the scipy SavGol filter.
+
+    Notes
+    -----
+    There are no tests for this method as a test would simply be testing the scipy implementation which they have
+    done.
     """
 
     return savgol_filter(data, window_length, order)
@@ -362,9 +386,10 @@ def round_down(a: int, b: int) -> int:
     """
 
     remainder = 1  # initialize a remainder
+    a += 1
     while remainder != 0:
-        remainder = b % a
         a -= 1
+        remainder = b % a
 
     return a
 
@@ -383,21 +408,14 @@ def split_array(data: np.array, condition: np.array) -> list:
     -------
     split_array : list
             A list of split up arrays.
-
-    Examples
-    --------
-    >>> a = np.array([1, 2, 3, 10, 20, 30])
-    >>> split_array(a, a < 10)
-    >>> [np.array([1, 2, 3]), np.array([10, 20, 30])]
-
     """
 
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw tensor_values
-        return [data[condition]]
+        return list([data[condition]])
     else:  # else return the whole array
-        return initial_split
+        return list(initial_split)
 
 
 def find_item(obj, key):
@@ -416,10 +434,10 @@ def find_item(obj, key):
     item: dict value.
         returns the value for the given key. Return type may change depending on the requested key
     """
-    if key in obj: return obj[key]
+    if key in obj:
+        return obj[key]
     for k, v in obj.items():
         if isinstance(v, dict):
             item = find_item(v, key)
             if item is not None:
                 return item
-

@@ -6,20 +6,17 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module for the molecular graph module.
 """
-
 import os
 import numpy as np
 from pysmiles import read_smiles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.database.simulation_database import Database
 from tqdm import tqdm
-
 import tensorflow as tf
+
 
 class MolecularGraph:
     """
@@ -182,6 +179,5 @@ class MolecularGraph:
 
         for item in del_list:
             molecules.pop(item)
-
 
         return molecules

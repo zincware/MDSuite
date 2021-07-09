@@ -52,9 +52,7 @@ class NoGPUInSystem(Exception):
     """
     Thrown during experiment analysis when GPUs are being searched for.
     """
-
-    def __init__(self):
-        Exception.__init__(self, "No GPUs detected, continuing without GPU support")
+    pass
 
 
 class DatasetExists(Exception):

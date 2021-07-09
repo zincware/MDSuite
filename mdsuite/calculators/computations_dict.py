@@ -6,41 +6,14 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Module to contain the structured dict for analysis.
 
 Summary
 -------
 """
-
-switcher_transformations = {
-    'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
-    'Ionic_Current': 'IonicCurrent',
-    'Integrated_Heat_Current': 'IntegratedHeatCurrent',
-    'Thermal_Flux': 'ThermalFlux',
-    'Momentum_Flux': 'MomentumFlux',
-    'Kinaci_Heat_Current': 'KinaciIntegratedHeatCurrent'
-}
-
-dict_classes_db = {
-    'self_diffusion_coefficients': {'Einstein_Self_Diffusion_Coefficients': {},
-                               'Green_Kubo_Self_Diffusion': {}},
-    'distinct_diffusion_coefficients': {'Einstein_Distinct_Diffusion_Coefficients': {},
-                                        'Green_Kubo_Distinct_Diffusion_Coefficients': {}},
-    'ionic_conductivity': {},
-    'thermal_conductivity': {},
-    'coordination_numbers': {'Coordination_Numbers': {}},
-    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
-    'radial_distribution_function': {},
-    'kirkwood_buff_integral': {},
-    'structure_factor': {},
-    'viscosity': {}
-}
-
-from mdsuite.calculators.angular_distribution_function import AngularDistributionFunction
 from mdsuite.calculators.coordination_number_calculation import CoordinationNumbers
+from mdsuite.calculators.angular_distribution_function import AngularDistributionFunction
 from mdsuite.calculators.einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
 from mdsuite.calculators.einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
@@ -57,6 +30,21 @@ from mdsuite.calculators.radial_distribution_function import RadialDistributionF
 from mdsuite.calculators.structure_factor import StructureFactor
 from mdsuite.calculators.green_kubo_distinct_diffusion_coefficients import GreenKuboDistinctDiffusionCoefficients
 from mdsuite.calculators.einstein_distinct_diffusion_coefficients import EinsteinDistinctDiffusionCoefficients
+
+dict_classes_db = {
+    'self_diffusion_coefficients': {'Einstein_Self_Diffusion_Coefficients': {},
+                                    'Green_Kubo_Self_Diffusion': {}},
+    'distinct_diffusion_coefficients': {'Einstein_Distinct_Diffusion_Coefficients': {},
+                                        'Green_Kubo_Distinct_Diffusion_Coefficients': {}},
+    'ionic_conductivity': {},
+    'thermal_conductivity': {},
+    'coordination_numbers': {'Coordination_Numbers': {}},
+    'potential_of_mean_force_values': {'Potential_of_Mean_Force': {}},
+    'radial_distribution_function': {},
+    'kirkwood_buff_integral': {},
+    'structure_factor': {},
+    'viscosity': {}
+}
 
 dict_classes_computations = {
     'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,

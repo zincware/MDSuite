@@ -6,17 +6,13 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of the conductivity.
 
 Summary
 -------
 """
-
 import warnings
-
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
@@ -197,4 +193,4 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
+                                                                                                       self.msd_array))

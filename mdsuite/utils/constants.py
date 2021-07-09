@@ -15,4 +15,3 @@ The file contains various physical constants used in the calculations. All tenso
 
 Collected by the author of the code.
 """
-

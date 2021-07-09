@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Class for the calculation of viscosity.
 
 Summary
@@ -19,8 +17,6 @@ The methods in class can then be called by the ... method and all necessary
 calculations performed.
 """
 import warnings
-
-# Python standard packages
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
@@ -28,7 +24,6 @@ import tensorflow as tf
 from scipy import signal
 
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.plot_style.plot_style import apply_style
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -81,8 +76,6 @@ class GreenKuboViscosityFlux(Calculator):
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
-        apply_style()
-
     def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
                  gpu: bool = False):
         """
@@ -100,8 +93,6 @@ class GreenKuboViscosityFlux(Calculator):
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
-
-        apply_style()
 
         out = self.run_analysis()
 
@@ -138,7 +129,7 @@ class GreenKuboViscosityFlux(Calculator):
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units['boltzman']
 
         prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-                          self.experiment.units['time'] / self.experiment.units['energy']
+            self.experiment.units['time'] / self.experiment.units['energy']
 
         self.prefactor = (numerator / denominator)*prefactor_units
 
@@ -209,4 +200,4 @@ class GreenKuboViscosityFlux(Calculator):
 
         if self.export:
             self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.jacf))
+                                                                                                       self.jacf))

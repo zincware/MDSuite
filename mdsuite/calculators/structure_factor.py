@@ -6,44 +6,39 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-""" Class for the calculation of the total structure factor for X-rays using the Faber-Ziman formalism"""
+Class for the calculation of the total structure factor for X-rays using the Faber-Ziman formalism
+ """
 import logging
-
 import numpy as np
 import os
 import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
-
-plt.rcParams['figure.facecolor'] = 'white'
 from typing import Union
-
 from tqdm import tqdm
 
-# MDSuite imports
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
-
 from mdsuite import data as static_data
 from importlib.resources import open_text
-
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
+plt.rcParams['figure.facecolor'] = 'white'
 
 log = logging.getLogger(__file__)
 
 
 class StructureFactor(Calculator):
-    """ Class for the calculation of the total structure factor for X-ray scattering
-        using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
-        scattering vector Q < 25 * 1/Angstrom
-        Explicitly equations 9, 10 and 11 of the paper
-        'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
-        Samuel Tovey, Anand Narayanan Krishnamoorthy, Ganesh Sivaraman, Jicheng Guo,
-        Chris Benmore,Andreas Heuer, and Christian Holm are implemented.
+    """
+    Class for the calculation of the total structure factor for X-ray scattering
+    using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
+    scattering vector Q < 25 * 1/Angstrom
+    Explicitly equations 9, 10 and 11 of the paper
+    'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
+    Samuel Tovey, Anand Narayanan Krishnamoorthy, Ganesh Sivaraman, Jicheng Guo,
+    Chris Benmore,Andreas Heuer, and Christian Holm are implemented.
 
     Attributes
     ----------

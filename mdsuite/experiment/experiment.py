@@ -6,9 +6,7 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 The central experiment class fundamental to all analysis.
 
 Summary
@@ -16,31 +14,30 @@ Summary
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
 import logging
-
 import json
 import os
 import pickle
 import sys
 from pathlib import Path
-
 import numpy as np
 import pubchempy as pcp
 import yaml
+from io import UnsupportedOperation
 from tqdm import tqdm
 import importlib.resources
-
 from datetime import datetime
-
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.utils.units import units_dict
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import *
+from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
+
+log = logging.getLogger(__file__)
 
 
 class Experiment:
@@ -134,8 +131,10 @@ class Experiment:
         # Run Computations
         self.run_computation = self.RunComputation(self)
 
-        self.log = None
         self._start_logging()
+
+        self._simulation_data: dict = {}
+        self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
 
     def _start_logging(self):
         logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
@@ -153,8 +152,7 @@ class Experiment:
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
         # get the file specific logger to get information where the log was written!
-        self.log = logging.getLogger(__name__)
-        self.log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
+        log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
 
     def _create_internal_file_paths(self):
         """
@@ -212,10 +210,11 @@ class Experiment:
         with open(filename, 'wb') as save_file:
             save_file.write(pickle.dumps(self.__dict__))  # write to file
 
-    def units_to_si(self, units_system):
+    @staticmethod
+    def units_to_si(units_system):
         """
         Returns a dictionary with equivalences from the unit experiment given by a string to SI.
-        Along with some constants in the unit experiment provided (boltzman, or other conversions).
+        Along with some constants in the unit experiment provided (boltzmann, or other conversions).
         Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit experiment.
 
 
@@ -227,15 +226,6 @@ class Experiment:
         Returns
         -------
         conv_factor (float) -- conversion factor to pass to SI
-
-        Examples
-        --------
-        Pass from metal units of time (ps) to SI
-
-        >>> self.units_to_si('metal')
-        {'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19}
-        >>> self.units_to_si({'time': 1e-12, 'length': 1e-10, 'energy': 1.6022e-19,
-        'NkTV2p':1.6021765e6, 'boltzman':8.617343e-5})
         """
 
         if isinstance(units_system, dict):
@@ -244,8 +234,8 @@ class Experiment:
             try:
                 units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
             except KeyError:
-                print(f'The unit experiment provided is not implemented...')
-                print(f'The available systems are: ')
+                print('The unit experiment provided is not implemented...')
+                print('The available systems are: ')
                 [print(key) for key, _ in units_dict.items()]
                 sys.exit(-1)
         return units
@@ -260,8 +250,7 @@ class Experiment:
         """
 
         if mapping is None:
-            # self.log("Must provide a mapping")
-            self.log.info("Must provide a mapping")
+            log.info("Must provide a mapping")
             return
 
         # rename keys in species dictionary
@@ -329,7 +318,7 @@ class Experiment:
             transformation = transformations_dict[transformation_name]
         except KeyError:
             print(f'{transformation_name} not found')
-            print(f'Available transformations are:')
+            print('Available transformations are:')
             [print(key) for key in transformations_dict.keys()]
             sys.exit(1)
 
@@ -340,9 +329,9 @@ class Experiment:
         """
         Build the 'experiment' for the analysis
 
-        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop the
-        database_path skeleton, get configurations, and process and store the configurations. The method is accompanied
-        by a loading bar which should be customized to make it more interesting.
+        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop
+        the database_path skeleton, get configurations, and process and store the configurations. The method is
+        accompanied by a loading bar which should be customized to make it more interesting.
         """
 
         # Create new analysis directory and change into it
@@ -372,12 +361,43 @@ class Experiment:
         for item in vars(self).items():  # loop over class attributes
             attributes.append(item)  # append to the attributes array
         for tuple_attributes in attributes:  # Split the key and value terms
-            self.log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
+            log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
 
         return attributes
 
-    def add_data(self, trajectory_file: str = None, file_format: str = 'lammps_traj', rename_cols: dict = None,
-                 sort: bool = False):
+    def _check_read_files(self, file_path: str):
+        """
+        Check if a file has been read before and add it to the hidden file.
+
+        Parameters
+        ----------
+        file_path : str
+                Path to the file.
+
+        Returns
+        -------
+
+        """
+        with open('.read_files.txt', 'a') as f:
+            data = []
+            try:
+                for line in f:
+                    data.append(line)
+            except UnsupportedOperation:
+                pass
+
+            result = file_path in data  # check if it exists.
+
+            if not result:
+                f.write(f'{file_path}\n')
+            return result
+
+    def add_data(self,
+                 trajectory_file: str = None,
+                 file_format: str = 'lammps_traj',
+                 rename_cols: dict = None,
+                 sort: bool = False,
+                 force: bool = False):
         """
         Add tensor_values to the database_path
 
@@ -392,12 +412,25 @@ class Experiment:
                 the values.
         sort : bool
                 If true, the tensor_values will be sorted when being entered into the database_path.
+        force : bool
+                If true, a file will be read regardless of if it has already
+                been seen.
         """
 
         # Check if there is a trajectory file.
         if trajectory_file is None:
             print("No tensor_values has been given")
             sys.exit(1)
+
+        file_check = self._check_read_files(trajectory_file)
+        if file_check:
+            if force:
+                pass
+            else:
+                log.info('This file has already been read, skipping this now.'
+                         'If this is not desired, please add force=True'
+                         'to the command.')
+                return  # End the method.
 
         # Load the file reader and the database_path object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
@@ -443,27 +476,26 @@ class Experiment:
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
-        f_object = open(trajectory_file, 'r')  # open the trajectory file
-        for _ in tqdm(range(batch_range), ncols=70):
-            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=self.batch_size,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-            counter += self.batch_size
+        with open(trajectory_file, 'r') as f_object:
+            for _ in tqdm(range(batch_range), ncols=70):
+                database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=self.batch_size,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
+                counter += self.batch_size
 
-        if remainder > 0:
-            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
-            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=remainder,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
-        f_object.close()
+            if remainder > 0:
+                structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
+                database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
+                                  structure=structure,
+                                  start_index=counter,
+                                  batch_size=remainder,
+                                  flux=flux,
+                                  n_atoms=self.number_of_atoms,
+                                  sort=sort)
 
         analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
         analysis_database.build_database()
@@ -515,7 +547,7 @@ class Experiment:
             class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
         except KeyError:
             print(f'{file_format} not found')
-            print(f'Available io formats are are:')
+            print('Available io formats are are:')
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
         return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
@@ -677,8 +709,7 @@ class Experiment:
         with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
             yaml.dump(result_dict, pfw)
 
-    def write_xyz(self, dump_property: str = "Positions", species: list = None, atom_select: np.s_ = np.s_[:],
-                  time_slice: np.s_ = np.s_[:], name: str = 'dump.xyz'):
+    def write_xyz(self, dump_property: str = "Positions", species: list = None, name: str = 'dump.xyz'):
         """
         Write an xyz file from a database dataset
         """
@@ -752,7 +783,7 @@ class Experiment:
         print("Database Information\n")
         print("---------------\n")
         print(f"Database Path: {self.database_path}/database.hdf5\n")
-        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5'))*1e-9: 6.3f}GB\n")
+        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
         print(f"Data Groups: {database.get_database_summary()}\n")
         print("==================================================================================\n")
 
@@ -774,3 +805,53 @@ class Experiment:
         output = database.load_data(parameters)
 
         return output
+
+    @property
+    def simulation_data(self):
+        """
+        Load simulation data from internals.
+        If not available try to read them from file
+
+        Returns
+        -------
+        dict: A dictionary containing all simulation_data
+
+        """
+        if len(self._simulation_data) == 0:
+            try:
+                with open(self.simulation_data_file) as f:
+                    self._simulation_data = yaml.safe_load(f)
+            except FileNotFoundError:
+                log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
+        return self._simulation_data
+
+    @simulation_data.setter
+    def simulation_data(self, value: dict):
+        """Update simulation data
+
+        Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
+
+        Parameters
+        ----------
+        value: dict
+            A dictionary containing the (new) simulation data
+
+        Returns
+        -------
+        Updates the internal simulation_data
+
+        """
+        try:
+            with open(self.simulation_data_file) as f:
+                log.debug("Load simulation data from yaml file")
+                simulation_data = yaml.safe_load(f)
+                if simulation_data is None:
+                    simulation_data = dict()
+        except FileNotFoundError:
+            simulation_data = {}
+        simulation_data.update(value)
+        log.debug("Updating yaml file")
+        self._simulation_data = simulation_data
+
+        with open(self.simulation_data_file, "w") as f:
+            yaml.safe_dump(simulation_data, f)

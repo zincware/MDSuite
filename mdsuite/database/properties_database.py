@@ -6,19 +6,13 @@ https://www.eclipse.org/legal/epl-v20.html
 SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
-"""
 
-"""
 Python module for the properties database.
 """
-
 import logging
-
 import sqlalchemy as sa
-
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-
 from .database_scheme import Base, SystemProperty, Data, Subject
 
 log = logging.getLogger(__file__)
@@ -59,7 +53,8 @@ class PropertiesDatabase:
         log.debug('Creating Database if not existing')
         self.Base.metadata.create_all(self.engine)
 
-    def _build_subject_query(self, subjects, query, ses):
+    @staticmethod
+    def _build_subject_query(subjects, query, ses):
         """Query the one->many subjects relationship
 
         Parameters
@@ -236,10 +231,11 @@ class PropertiesDatabase:
         Parameters
         ----------
         parameters : dict
-                Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion",
-                 "Subject": "Na",
-                 "data_range": 500}
+                Parameters to be used in the addition, e.g.
+
+                .. code-block::
+
+                   {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
 
         Returns
         -------
