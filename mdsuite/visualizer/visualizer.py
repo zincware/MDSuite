@@ -143,4 +143,3 @@ class SimulationVisualizer:
         threading.Thread(target=self._update_thread).start()
 
         app.run()
-
