@@ -36,7 +36,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
-
+from mdsuite.visualizer.visualizer import SimulationVisualizer
 log = logging.getLogger(__file__)
 
 
@@ -289,7 +289,8 @@ class Experiment:
             >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
 
             Returns
-                Instantiated calculator class with added experiment that can be called.
+            -------
+            Instantiated calculator class with added experiment that can be called.
             """
             try:
                 class_compute = dict_classes_computations[item]
@@ -786,6 +787,35 @@ class Experiment:
         print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
         print(f"Data Groups: {database.get_database_summary()}\n")
         print("==================================================================================\n")
+
+    def run_visualization(self,
+                          species: list = None,
+                          molecules: bool = False,
+                          unwrapped: bool = False):
+        """
+        Run a visualization.
+
+        Parameters
+        ----------
+        experiment : object
+                 Experiment object from which the visualizer will gather
+                 information.
+        species : list
+                A list of species to visualize.
+        molecules : list
+                If true, molecules will be visualized.
+        unwrapped : bool
+                If true, unwrapped coordinates are studied.
+
+        Returns
+        -------
+
+        """
+        visualizer = SimulationVisualizer(self,
+                                          species=species,
+                                          molecules=molecules,
+                                          unwrapped=unwrapped)
+        visualizer.run_app()
 
     def export_property_data(self, parameters: dict):
         """
