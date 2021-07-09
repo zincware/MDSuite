@@ -100,6 +100,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
 
+        self._dtype = tf.float32
+
         # Arguments set by the user in __call__
         self.number_of_bins = None
         self.cutoff = None
@@ -272,9 +274,9 @@ class RadialDistributionFunction(Calculator, ABC):
         path_list = [join_path(species, "Positions") for species in self.species]
         data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
         if len(self.species) == 1:
-            return tf.constant(data)
+            return tf.cast(data, dtype=self.dtype)
         else:
-            return tf.concat(data, axis=0)
+            return tf.cast(tf.concat(data, axis=0), dtype=self.dtype)
 
     def _get_species_names(self, species_tuple: tuple) -> str:
         """ Get the correct names of the species being studied
@@ -402,10 +404,10 @@ class RadialDistributionFunction(Calculator, ABC):
 
                 start_time = timer()
                 d_ij = self.get_dij(indices, positions_tensor, atoms,
-                                    tf.cast(self.experiment.box_array, dtype=tf.float64))
+                                    tf.cast(self.experiment.box_array, dtype=self.dtype))
                 exec_time = timer() - start_time
-                atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=tf.float32) / exec_time / 10 ** 6
-                atom_pairs_per_second *= tf.cast(batch_size, dtype=tf.float32)
+                atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+                atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
                 log.debug(f'Computing d_ij took {exec_time} s '
                           f'({atom_pairs_per_second:.1f} million atom pairs / s)')
 
@@ -486,9 +488,9 @@ class RadialDistributionFunction(Calculator, ABC):
             )
             stop_ = start_ + tf.constant([particles_list[tuples[0]], particles_list[tuples[1]]])
             rdf[names] = self.bin_minibatch(start_, stop_, indices, d_ij,
-                                            tf.constant(self.bin_range, dtype=tf.float64),
-                                            tf.constant(self.number_of_bins),
-                                            tf.constant(self.cutoff))
+                                            tf.cast(self.bin_range, dtype=self.dtype),
+                                            tf.cast(self.number_of_bins, dtype=tf.int32),
+                                            tf.cast(self.cutoff, dtype=self.dtype))
         return rdf
 
     @staticmethod

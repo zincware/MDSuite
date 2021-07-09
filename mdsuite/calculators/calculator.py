@@ -38,6 +38,7 @@ from tqdm import tqdm
 from typing import Union, List, Any
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
@@ -145,6 +146,9 @@ class Calculator(metaclass=abc.ABCMeta):
         self.database_group = None
         self.analysis_name = None
 
+        # Properties
+        self._dtype = tf.float64
+
         # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:
             import matplotlib
@@ -156,7 +160,7 @@ class Calculator(metaclass=abc.ABCMeta):
                          data_range: int = 500,
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
-                         tau_values : Union[int, List, Any] = np.s_[:],
+                         tau_values: Union[int, List, Any] = np.s_[:],
                          export: bool = True,
                          gpu: bool = False):
         """
@@ -794,3 +798,8 @@ class Calculator(metaclass=abc.ABCMeta):
             pass
         else:
             return self.perform_computation()
+
+    @property
+    def dtype(self):
+        """Get the dtype used for the calculator"""
+        return self._dtype
