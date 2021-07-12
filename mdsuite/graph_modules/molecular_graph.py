@@ -53,8 +53,7 @@ class MolecularGraph:
         self.species = species
 
         self.database = Database(
-            name=os.path.join(self.experiment.database_path,
-                              "database.hdf5"),
+            name=os.path.join(self.experiment.database_path, "database.hdf5"),
             architecture='simulation')
 
     def _perform_checks(self):
@@ -67,24 +66,26 @@ class MolecularGraph:
         pass
 
     @staticmethod
-    def get_neighbour_list(positions: tf.Tensor,
-                           cell: list = None) -> tf.Tensor:
+    def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
         """
         Generate the neighbour list
 
         Parameters
         ----------
         positions: tf.Tensor
-            Tensor with shape (number_of_configurations, n_atoms, 3) representing the coordinates
+            Tensor with shape (number_of_configurations, n_atoms, 3)
+            representing the coordinates
         cell: list
-            If periodic boundary conditions are used, please supply the cell dimensions, e.g. [13.97, 13.97, 13.97].
-            If the cell is provided minimum image convention will be applied!
+            If periodic boundary conditions are used, please supply the cell
+            dimensions, e.g. [13.97, 13.97, 13.97]. If the cell is provided
+            minimum image convention will be applied!
         batch_size: int
             Has to be evenly divisible by the the number of configurations.
 
         Returns
         -------
-        generator object which results all distances for the current batch of time steps
+        generator object which results all distances for the current batch of
+        time steps
 
         To get the real r_ij matrix for one time_step you can use the following:
             r_ij_mat = np.zeros((n_atoms, n_atoms, 3))

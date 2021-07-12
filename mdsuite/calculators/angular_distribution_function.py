@@ -226,7 +226,8 @@ class AngularDistributionFunction(Calculator, ABC):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
+        data = self.experiment.load_matrix("Positions", path=path_list,
+                                           select_slice=np.s_[:, indices])
         if len(self.species) == 1:
             return data
         else:
@@ -253,7 +254,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def _prepare_generators(self, sample_configs):
         """
-        Prepare the generators and compiled functons for the analysis.
+        Prepare the generators and compiled functions for the analysis.
 
         Returns
         -------
@@ -301,13 +302,15 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         _get_triplets = self._prepare_triples_generator()
 
-        r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1))
+        r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array,
+                                            batch_size=1))
         r_ij_indices = get_triu_indicies(self.number_of_atoms)
 
         # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
         r_ij_mat = tf.scatter_nd(indices=tf.transpose(r_ij_indices),
                                  updates=tf.transpose(r_ij_flat, (1, 2, 0)),
-                                 shape=(self.number_of_atoms, self.number_of_atoms, 3, timesteps))
+                                 shape=(self.number_of_atoms,
+                                        self.number_of_atoms, 3, timesteps))
 
         r_ij_mat -= tf.transpose(r_ij_mat, (1, 0, 2, 3))
         r_ij_mat = tf.transpose(r_ij_mat, (3, 0, 1, 2))
@@ -427,9 +430,9 @@ class AngularDistributionFunction(Calculator, ABC):
                               "data_range": self.data_range,
                               'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
                               }
-                self._update_properties_file(properties,
-                                             delete_duplicate=False)
-                log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
+                self._update_properties_file(properties, delete_duplicate=False)
+                log.warning("Delete duplicates is not supported for calculators "
+                            "that involve more then 3 species!")
 
             if self.plot:
                 fig, ax = plt.subplots()

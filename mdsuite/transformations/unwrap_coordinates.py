@@ -11,10 +11,11 @@ Atomic transformation to unwrap the simulation coordinates.
 
 Summary
 -------
-When performing analysis on the dynamics of a experiment, it often becomes necessary to reverse the effects of periodic
-boundary conditions and track atoms across the box edges. This method uses the box-jump algorithm, wherein particle
-positions jumps of more than a half of the box are counted as a crossing of the boundary, to allow the particles to
-propagate on into space.
+When performing analysis on the dynamics of a experiment, it often becomes
+necessary to reverse the effects of periodic boundary conditions and track
+atoms across the box edges. This method uses the box-jump algorithm, wherein
+particle positions jumps of more than a half of the box are counted as a crossing
+of the boundary, to allow the particles to propagate on into space.
 """
 import numpy as np
 from tqdm import tqdm
@@ -100,9 +101,7 @@ class CoordinateUnwrapper(Transformations):
 
         return tf.experimental.numpy.diff(data, axis=1)
 
-    def _construct_image_mask(self,
-                              data: tf.Tensor,
-                              current_state: tf.Tensor = None):
+    def _construct_image_mask(self, data: tf.Tensor, current_state: tf.Tensor = None):
         """
         Build an image mask on a set of data.
 

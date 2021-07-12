@@ -108,8 +108,7 @@ class DataManager:
                 if type(self.atom_selection) is dict:
                     select_slice = {}
                     for item in self.atom_selection:
-                        select_slice[item] = np.s_[self.atom_selection[item],
-                                             start:stop]
+                        select_slice[item] = np.s_[self.atom_selection[item], start:stop]
                 else:
                     select_slice = np.s_[self.atom_selection, start:stop]
                 yield database.load_data(data_path,

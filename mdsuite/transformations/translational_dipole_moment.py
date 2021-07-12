@@ -137,8 +137,7 @@ class TranslationalDipoleMoment(Transformations):
         """
         type_spec = {}
         data_structure = self._prepare_database_entry()
-        positions_path = [join_path(species, 'Unwrapped_Positions') for species
-                          in self.experiment.species]
+        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
 
         if self._check_for_charges():
             charge_path = [join_path(species, 'Charge') for species
