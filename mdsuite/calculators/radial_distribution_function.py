@@ -404,8 +404,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 # math.stackexchange.com/questions/107269/how-do-you-split-a-90-45-45-triangle-into-equal-area-strips
                 for jdx, corrected_per_atoms_ds in tqdm(enumerate(corrected_ds), ncols=70, disable=not batch_tqm,
                                                         total=self.correct_minibatch_batching,
-                                                        desc=f"Running mini batch loop with batch size correction "
-                                                             f"{idx + 1} / {self.n_batches}"):
+                                                        desc=f"Mini batch {idx + 1}/{self.n_batches}"):
                     pre_factor = np.sqrt(jdx + 1)
                     new_ds = tf.data.Dataset.from_tensor_slices(corrected_per_atoms_ds)
                     new_ds = new_ds.batch(int(pre_factor * self.minibatch))
