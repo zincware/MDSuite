@@ -169,7 +169,7 @@ class SimulationVisualizer:
             data = self.database.load_data(
                 path_list=[join_path(item, self.identifier)],
                 select_slice=np.s_[:])
-            self.data[item]['positions'] = data[:, 0]
+            self.data[item]['positions'] = data[:, 50]
             self.data[item]['differences'] = tf.experimental.numpy.diff(
                 data, axis=1
             )
@@ -180,7 +180,7 @@ class SimulationVisualizer:
             for atom in self.data[item]['positions']:
                 mesh = o3d.geometry.TriangleMesh.create_sphere(
                     radius=self.data[item]['mass'],
-                    resolution=5)
+                    resolution=30)
                 mesh.translate(atom)
                 mesh.compute_vertex_normals()
                 mesh.paint_uniform_color(colour)
