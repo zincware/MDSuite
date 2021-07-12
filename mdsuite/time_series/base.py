@@ -12,6 +12,7 @@ from __future__ import annotations
 from mdsuite.database.simulation_database import Database
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 import tensorflow as tf
 
@@ -60,7 +61,7 @@ class TimeSeries:
     def database(self):
         """Get the database"""
         if self._database is None:
-            self._database = Database(name=self.experiment.database_path + r"\database.hdf5")
+            self._database = Database(name=Path(self.experiment.database_path, "database.hdf5"))
         return self._database
 
     @property
