@@ -194,11 +194,12 @@ class Experiment:
 
         with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
             update_dict: dict = pickle.loads(f.read())
-            try:
-                [update_dict.pop(x) for x in ['run_computation', 'analyse_time_series']]
-                # remove keys that should not be updated!
-            except KeyError:
-                pass
+            for pop_item in ['run_computation', 'analyse_time_series', 'RunComputation']:
+                try:
+                    update_dict.pop(pop_item)
+                    # remove keys that should not be updated!
+                except KeyError:
+                    pass
             self.__dict__.update(update_dict)
 
         self.storage_path = storage_path  # set the one form the database to the new one
