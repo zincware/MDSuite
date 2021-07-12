@@ -118,9 +118,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.key_list = None
         self.rdf = None
 
-        self.correct_minibatch_batching = 100
+        self.correct_minibatch_batching = None
         # split the minibatches into equal sized chunks to use maximum computing and memory resources
-        # 100 seems to be a good value for most systems
 
     def __call__(self,
                  plot=True,
@@ -259,6 +258,10 @@ class RadialDistributionFunction(Calculator, ABC):
 
         if self.molecules:
             self.species = list(self.experiment.molecules)
+
+        if self.gpu:
+            self.correct_minibatch_batching = 100
+            # 100 seems to be a good value for most systems
 
     def _load_positions(self, indices: list) -> tf.Tensor:
         """
