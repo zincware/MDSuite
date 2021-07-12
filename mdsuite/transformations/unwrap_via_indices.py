@@ -14,6 +14,7 @@ from mdsuite.utils.meta_functions import join_path
 import sys
 import tensorflow as tf
 import numpy as np
+from tqdm import tqdm
 
 
 class UnwrapViaIndices(Transformations):
@@ -81,7 +82,11 @@ class UnwrapViaIndices(Transformations):
         """
         return data[0] + tf.math.multiply(data[1], self.experiment.box_array)
 
-    def _save_unwrapped_coordinates(self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict):
+    def _save_unwrapped_coordinates(self,
+                                    data: tf.Tensor,
+                                    index: int,
+                                    batch_size: int,
+                                    data_structure: dict):
         """
         Save the tensor_values into the database_path
 
@@ -122,16 +127,23 @@ class UnwrapViaIndices(Transformations):
         if existing:
             old_shape = self.database.get_data_size(path)
             species_length = len(self.experiment.species[species]['indices'])
-            resize_structure = {path: (species_length, self.experiment.number_of_configurations - old_shape[0], 3)}
+            resize_structure = {path: (species_length,
+                                       self.experiment.number_of_configurations - old_shape[0], 3)}
             self.offset = old_shape[0]
             self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+            data_structure = {path: {'indices': np.s_[:],
+                                     'columns': [0, 1, 2],
+                                     'length': species_length}}
         else:
             species_length = len(self.experiment.species[species]['indices'])
             number_of_configurations = self.experiment.number_of_configurations
-            dataset_structure = {path: (species_length, number_of_configurations, 3)}
+            dataset_structure = {path: (species_length,
+                                        number_of_configurations,
+                                        3)}
             self.database.add_dataset(dataset_structure)
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+            data_structure = {path: {'indices': np.s_[:],
+                                     'columns': [0, 1, 2],
+                                     'length': species_length}}
 
         return data_structure
 
@@ -154,7 +166,8 @@ class UnwrapViaIndices(Transformations):
                                                                                      dtype=tf.float64)
                                                       )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for index, batch in enumerate(data_set):
+            for index, batch in tqdm(enumerate(data_set), ncols=70,
+                                     desc=f'{species}: Unwrapping Coordinates.'):
                 data = self._transformation(batch)
                 self._save_coordinates(data=data,
                                        data_structure=data_structure,

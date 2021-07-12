@@ -16,6 +16,7 @@ from mdsuite.utils.meta_functions import join_path
 import sys
 import tensorflow as tf
 import numpy as np
+from tqdm import tqdm
 
 
 class ScaleCoordinates(Transformations):
@@ -132,7 +133,9 @@ class ScaleCoordinates(Transformations):
                                                                                      dtype=tf.float64)
                                                       )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for index, x in enumerate(data_set):
+            for index, x in tqdm(enumerate(data_set),
+                                 ncols=70,
+                                 desc=f'{species}: Scaling Coordinates'):
                 data = self._transformation(x)
                 self._save_coordinates(data=data,
                                        data_structure=data_structure,

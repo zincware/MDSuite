@@ -226,7 +226,8 @@ class AngularDistributionFunction(Calculator, ABC):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
+        data = self.experiment.load_matrix("Positions", path=path_list,
+                                           select_slice=np.s_[:, indices])
         if len(self.species) == 1:
             return data
         else:
@@ -253,7 +254,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def _prepare_generators(self, sample_configs):
         """
-        Prepare the generators and compiled functons for the analysis.
+        Prepare the generators and compiled functions for the analysis.
 
         Returns
         -------
@@ -301,13 +302,15 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         _get_triplets = self._prepare_triples_generator()
 
-        r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1))
+        r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array,
+                                            batch_size=1))
         r_ij_indices = get_triu_indicies(self.number_of_atoms)
 
         # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
         r_ij_mat = tf.scatter_nd(indices=tf.transpose(r_ij_indices),
                                  updates=tf.transpose(r_ij_flat, (1, 2, 0)),
-                                 shape=(self.number_of_atoms, self.number_of_atoms, 3, timesteps))
+                                 shape=(self.number_of_atoms,
+                                        self.number_of_atoms, 3, timesteps))
 
         r_ij_mat -= tf.transpose(r_ij_mat, (1, 0, 2, 3))
         r_ij_mat = tf.transpose(r_ij_mat, (3, 0, 1, 2))
@@ -366,7 +369,10 @@ class AngularDistributionFunction(Calculator, ABC):
 
         log.debug(f'batch_size: {self._batch_size}')
 
-        for positions in tqdm(dataset, total=self.n_confs):
+        for positions in tqdm(dataset,
+                              total=self.n_confs,
+                              ncols=70,
+                              desc="Building histograms"):
             timesteps, atoms, _ = tf.shape(positions)
             tmp = tf.concat(positions, axis=0)
             r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
@@ -379,7 +385,10 @@ class AngularDistributionFunction(Calculator, ABC):
                 # Get the indices required.
                 angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
                 pre_factor = 1 / pre_factor ** self.norm_power
-                histogram, _ = np.histogram(angle_vals, bins=self.bins, range=self.bin_range, weights=pre_factor,
+                histogram, _ = np.histogram(angle_vals,
+                                            bins=self.bins,
+                                            range=self.bin_range,
+                                            weights=pre_factor,
                                             density=True)
                 histogram = tf.cast(histogram, dtype=tf.float32)
                 if angles.get(name) is not None:
@@ -422,7 +431,8 @@ class AngularDistributionFunction(Calculator, ABC):
                               'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
                               }
                 self._update_properties_file(properties, delete_duplicate=False)
-                log.warning("Delete duplicates is not supported for calculators that involve more then 3 species!")
+                log.warning("Delete duplicates is not supported for calculators "
+                            "that involve more then 3 species!")
 
             if self.plot:
                 fig, ax = plt.subplots()

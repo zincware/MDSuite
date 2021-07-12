@@ -31,7 +31,9 @@ class AnalysisDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=False)
+        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}",
+                                        echo=False,
+                                        future=False)
 
     def build_database(self):
         """
@@ -52,7 +54,8 @@ class AnalysisDatabase:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500, "data": 1.8e-9}
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
+                "data_range": 500, "data": 1.8e-9}
         Returns
         -------
         result : bool
@@ -120,7 +123,8 @@ class AnalysisDatabase:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
+                "data_range": 500}
 
         Returns
         -------

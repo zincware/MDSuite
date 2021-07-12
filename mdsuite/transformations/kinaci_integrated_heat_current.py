@@ -123,7 +123,9 @@ class KinaciIntegratedHeatCurrent(Transformations):
         cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
 
         # x is batch of data.
-        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
+        for idx, x in tqdm(enumerate(data_set), ncols=70,
+                           desc="Kinaci Integrated Current",
+                           total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             data, cumul_integral = self._transformation(x, cumul_integral=cumul_integral, batch_size=current_batch_size)
             self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)

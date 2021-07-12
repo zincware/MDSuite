@@ -103,7 +103,9 @@ class IntegratedHeatCurrent(Transformations):
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Integrated Heat Current", total=self.n_batches):
+        for idx, x in tqdm(enumerate(data_set), ncols=70,
+                           desc="Integrated Heat Current",
+                           total=self.n_batches):
             current_batch_size = int(x[str.encode('data_size')])
             data = self._transformation(x)
             self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)

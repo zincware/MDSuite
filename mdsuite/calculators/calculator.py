@@ -1,7 +1,7 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
@@ -29,7 +29,8 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
-from mdsuite.calculators.transformations_reference import switcher_transformations
+from mdsuite.calculators.transformations_reference import \
+    switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
@@ -52,13 +53,16 @@ class Calculator(metaclass=abc.ABCMeta):
             Decision to save the generated tensor_values arrays.
 
     data_range : int (default=500)
-            Range over which the property should be evaluated. This is not applicable to the current
-            analysis as the full rdf will be calculated.
+            Range over which the property should be evaluated. This is not
+            applicable to the current analysis as the full rdf will be
+            calculated.
     batch_size : dict
-            Size of batches to use in the analysis separated into parallel and serial components, i.e
-            {'Serial': 100, 'Parallel': 50} for a two component, symmetric experiment.
+            Size of batches to use in the analysis separated into parallel and
+             serial components, i.e {'Serial': 100, 'Parallel': 50} for a two
+             component, symmetric experiment.
     n_batches : dict
-            Number of barthes to use as a dictionary for both serial and parallel implementations
+            Number of barthes to use as a dictionary for both serial and
+            parallel implementations
     """
 
     def __init__(self,
@@ -90,7 +94,8 @@ class Calculator(metaclass=abc.ABCMeta):
         export : bool
                 If true, analysis results are exported to a csv file.
         gpu : bool
-                If true, reduce memory usage to what is allowed on the system GPU.
+                If true, reduce memory usage to what is allowed on the system
+                GPU.
         """
         # Set upon instantiation of parent class
         self.experiment = experiment
@@ -100,7 +105,9 @@ class Calculator(metaclass=abc.ABCMeta):
         self.export = export
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"))
+        self.database = Database(
+            name=os.path.join(self.experiment.database_path,
+                              "database.hdf5"))
         self.gpu = gpu
 
         # Set to default by class, over-written in child classes or during operations
@@ -150,11 +157,12 @@ class Calculator(metaclass=abc.ABCMeta):
                          data_range: int = 500,
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
-                         tau_values : Union[int, List, Any] = np.s_[:],
+                         tau_values: Union[int, List, Any] = np.s_[:],
                          export: bool = True,
                          gpu: bool = False):
         """
-        Update the user args that are given by the __call__ method of the calculator
+        Update the user args that are given by the __call__ method of the
+        calculator.
 
         Parameters
         ----------
@@ -171,7 +179,8 @@ class Calculator(metaclass=abc.ABCMeta):
         export : bool
                 If true, analysis results are exported to a csv file.
         gpu : bool
-                If true, reduce memory usage to what is allowed on the system GPU.
+                If true, reduce memory usage to what is allowed on the system
+                GPU.
         """
         self.data_range = data_range
         self.plot = plot
@@ -179,12 +188,14 @@ class Calculator(metaclass=abc.ABCMeta):
         self.export = export
         self.gpu = gpu
         self.tau_values = tau_values
-        self.correlation_time = correlation_time  # correlation time of the property
+        self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
         # attributes based on user args
         self._handle_tau_values()  # process selected tau values.
-        self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+        self.time = np.linspace(0.0,
+                                self.data_range * self.experiment.time_step *
+                                self.experiment.sample_rate,
                                 self.data_resolution)
 
     @abc.abstractmethod
@@ -256,7 +267,8 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         data : list
-                x and y tensor_values for the fitting [np.array, np.array] of (2, data_range)
+                x and y tensor_values for the fitting [np.array, np.array] of
+                (2, data_range)
 
         Returns
         -------
@@ -277,7 +289,8 @@ class Calculator(metaclass=abc.ABCMeta):
             m : float
                     gradient of the line
             a : float
-                    scalar offset, also the y-intercept for those who did not get much maths in school.
+                    scalar offset, also the y-intercept for those who did not
+                    get much maths in school.
 
             Returns
             -------
@@ -289,20 +302,25 @@ class Calculator(metaclass=abc.ABCMeta):
         log_y = np.log10(data[1][1:])
         log_x = np.log10(data[0][1:])
 
-        min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
-        min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
+        min_end_index, max_end_index = int(0.8 * len(log_y)), \
+                                       int(len(log_y) - 1)
+        min_start_index, max_start_index = int(0.3 * len(log_y)), \
+                                           int(0.5 * len(log_y))
 
         for _ in range(100):
-            end_index = random.randint(min_end_index, max_end_index)  # get a random end point
-            start_index = random.randint(min_start_index, max_start_index)  # get a random start point
+            end_index = random.randint(min_end_index, max_end_index)
+            start_index = random.randint(min_start_index, max_start_index)
 
-            popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear func
+            popt, pcov = curve_fit(func, log_x[start_index:end_index],
+                                   log_y[start_index:end_index])
             fits.append(10 ** popt[1])
 
         return [np.mean(fits), np.std(fits)]
 
     @staticmethod
-    def _update_species_type_dict(dictionary: dict, path_list: list, dimension: int):
+    def _update_species_type_dict(dictionary: dict,
+                                  path_list: list,
+                                  dimension: int):
         """
         Update a type spec dictionary for a species input.
 
@@ -320,7 +338,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None,
+                                                                dimension),
+                                                         dtype=tf.float64)
 
         return dictionary
 
@@ -352,8 +372,10 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         name : str
-                name of the tensor_values to save. Usually this is just the analysis name. In the case of species
-                specific analysis, this will be further appended to include the name of the species.
+                name of the tensor_values to save. Usually this is just the
+                analysis name. In the case of species specific analysis,
+                this will be further appended to include the name of the
+                species.
         data : pd.DataFrame
                 Data to be saved.
         Returns
@@ -378,7 +400,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 Mean square displacement.
         """
         if square:
-            return tf.math.squared_difference(tf.gather(ensemble, self.tau_values, axis=1),
+            return tf.math.squared_difference(tf.gather(ensemble,
+                                                        self.tau_values,
+                                                        axis=1),
                                               ensemble[:, None, 0])
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
@@ -393,12 +417,18 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         if type(self.tau_values) is int:
             self.data_resolution = self.tau_values
-            self.tau_values = np.linspace(0, self.data_range - 1, int(self.tau_values), dtype=int)
+            self.tau_values = np.linspace(0,
+                                          self.data_range - 1,
+                                          int(self.tau_values),
+                                          dtype=int)
         if type(self.tau_values) is list:
             self.data_resolution = len(self.tau_values)
             self.data_range = self.tau_values[-1] + 1
         if type(self.tau_values) is slice:
-            self.tau_values = np.linspace(0, self.data_range - 1, self.data_range, dtype=int)[self.tau_values]
+            self.tau_values = np.linspace(0,
+                                          self.data_range - 1,
+                                          self.data_range,
+                                          dtype=int)[self.tau_values]
             self.data_resolution = len(self.tau_values)
 
     def _prepare_managers(self, data_path: list):
@@ -408,7 +438,8 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
+                List of tensor_values paths to load from the hdf5
+                database_path.
 
         Returns
         -------
@@ -419,10 +450,13 @@ class Calculator(metaclass=abc.ABCMeta):
                                             memory_fraction=0.8,
                                             scale_function=self.scale_function,
                                             gpu=self.gpu)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size(
+        self.batch_size, \
+        self.n_batches, \
+        self.remainder = self.memory_manager.get_batch_size(
             system=self.system_property)
 
-        self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(self.data_range, self.correlation_time)
+        self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(
+            self.data_range, self.correlation_time)
         if minibatch:
             self.batch_size = self.memory_manager.batch_size
             self.n_batches = self.memory_manager.n_batches
@@ -451,8 +485,8 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         species : str
-                In the case of a species specific analysis, make sure a species is put here. Otherwise, it is set to
-                System.
+                In the case of a species specific analysis, make sure a species
+                is put here. Otherwise, it is set to System.
         Returns
         -------
         name : str
@@ -467,23 +501,17 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         name : str
-                name of the tensor_values to save. Usually this is just the analysis name. In the case of species
-                specific analysis, this will be further appended to include the name of the species.
+                name of the tensor_values to save. Usually this is just the
+                analysis name. In the case of species specific analysis,
+                this will be further appended to include the name of the
+                species.
         data : pd.DataFrame
                 Data to be saved.
         """
-        database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
+        database = AnalysisDatabase(
+            name=os.path.join(self.experiment.database_path,
+                              "analysis_database"))
         database.add_data(name=name, data_frame=data)
-
-        """
-        title = '_'.join([title, str(self.data_range)])
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r+') as db:
-            if title in db[self.database_group].keys():
-                del db[self.database_group][title]
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-            else:
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-        """
 
     def _plot_fig(self,
                   fig: matplotlib.figure.Figure,
@@ -516,9 +544,11 @@ class Calculator(metaclass=abc.ABCMeta):
         fig.set_facecolor("w")
         fig.show()
 
-        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format=filetype)
+        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"),
+                    dpi=dpi, format=filetype)
 
-    def _plot_data(self, title: str = None, manual: bool = False, dpi: int = 600):
+    def _plot_data(self, title: str = None, manual: bool = False,
+                   dpi: int = 600):
         """
         Plot the tensor_values generated during the analysis
         """
@@ -527,12 +557,19 @@ class Calculator(metaclass=abc.ABCMeta):
             title = f"{self.analysis_name}"
 
         if manual:
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
+            plt.savefig(
+                os.path.join(self.experiment.figures_path,
+                             f"{title}.svg"),
+                dpi=dpi,
+                format='svg')
         else:
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.legend()  # enable the legend
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
+            plt.savefig(
+                os.path.join(self.experiment.figures_path,
+                             f"{title}.svg"),
+                dpi=dpi, format='svg')
 
     def _check_input(self):
         """
@@ -543,13 +580,17 @@ class Calculator(metaclass=abc.ABCMeta):
         status: int
             if 0, check failed, if 1, check passed.
         """
-        if self.data_range > self.experiment.number_of_configurations - self.correlation_time:
-            print("Data range is impossible for this experiment, reduce and try again")
+        if self.data_range > self.experiment.number_of_configurations - \
+                self.correlation_time:
+            print(
+                "Data range is impossible for this experiment, "
+                "reduce and try again")
             sys.exit(1)
 
     def _optimize_einstein_data_range(self, data: np.array):
         """
-        Optimize the tensor_values range of a experiment using the Einstein method of calculation.
+        Optimize the tensor_values range of a experiment using the Einstein
+        method of calculation.
 
         Parameters
         ----------
@@ -572,7 +613,8 @@ class Calculator(metaclass=abc.ABCMeta):
             m : float
                     gradient of the line
             a : float
-                    scalar offset, also the y-intercept for those who did not get much maths in school.
+                    scalar offset, also the y-intercept for those who did not
+                    get much maths in school.
 
             Returns
             -------
@@ -588,7 +630,8 @@ class Calculator(metaclass=abc.ABCMeta):
         end_index = int(len(log_y) - 1)
         start_index = int(0.4 * len(log_y))
 
-        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear regime
+        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[
+                                                                   start_index:end_index])
 
         if 0.85 < popt[0] < 1.15:
             self.loop_condition = True
@@ -596,20 +639,28 @@ class Calculator(metaclass=abc.ABCMeta):
         else:
             try:
                 self.data_range = int(1.1 * self.data_range)
-                self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                self.time = np.linspace(0.0,
+                                        self.data_range *
+                                        self.experiment.time_step *
+                                        self.experiment.sample_rate,
                                         self.data_range)
+
                 # end the calculation if the tensor_values range exceeds the relevant bounds
-                if self.data_range > self.experiment.number_of_configurations - self.correlation_time:
+                if self.data_range > self.experiment.number_of_configurations - \
+                        self.correlation_time:
                     print("Trajectory not long enough to perform analysis.")
                     raise RangeExceeded
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
+    def _update_properties_file(self, parameters: dict,
+                                delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+        database = PropertiesDatabase(
+            name=os.path.join(self.experiment.database_path,
+                              'property_database'))
         database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
@@ -643,12 +694,15 @@ class Calculator(metaclass=abc.ABCMeta):
             transformation call.
             """
 
-            switcher_unwrapping = {'Unwrapped_Positions': self._unwrap_choice(), }
+            switcher_unwrapping = {
+                'Unwrapped_Positions': self._unwrap_choice(), }
 
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
+            choice = switcher.get(argument,
+                                  lambda: "Data not in database and can not "
+                                          "be generated.")
             return choice
 
         transformation = _string_to_function(dependency)
@@ -697,31 +751,44 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         if self.system_property:
             self._calculate_prefactor()
+
             data_path = [join_path(self.loaded_property, self.loaded_property)]
             self._prepare_managers(data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(system=self.system_property)
-            batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
-                                                            args=batch_generator_args,
-                                                            output_signature=self.batch_output_signature)
+
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(
+                system=self.system_property)
+            batch_data_set = tf.data.Dataset.from_generator(
+                generator=batch_generator,
+                args=batch_generator_args,
+                output_signature=self.batch_output_signature)
             batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
+
             for batch_index, batch in enumerate(batch_data_set):
                 ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator(
                     system=self.system_property)
-                ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
-                                                                   args=ensemble_generators_args + (batch,),
-                                                                   output_signature=self.ensemble_output_signature)
-                for ensemble_index, ensemble in tqdm(enumerate(ensemble_data_set), desc="Ensemble Loop", ncols=70,
-                                                     total=self.ensemble_loop):
+                ensemble_data_set = tf.data.Dataset.from_generator(
+                    generator=ensemble_generator,
+                    args=ensemble_generators_args + (batch,),
+                    output_signature=self.ensemble_output_signature)
+
+                for ensemble_index, ensemble in tqdm(
+                        enumerate(ensemble_data_set),
+                        desc="Ensemble Loop",
+                        ncols=70,
+                        total=self.ensemble_loop):
                     self._apply_operation(ensemble, ensemble_index)
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+
             if self.plot:
                 plt.legend()
                 plt.show()
 
         elif self.experimental:
-            data_path = [join_path(species, self.loaded_property) for species in self.experiment.species]
+            data_path = [join_path(species,
+                                   self.loaded_property) for species
+                         in self.experiment.species]
             self._prepare_managers(data_path)
             output = self.run_experimental_analysis()
 
@@ -733,21 +800,34 @@ class Calculator(metaclass=abc.ABCMeta):
         else:
             for species in self.species:
                 self._calculate_prefactor(species)
+
                 data_path = [join_path(species, self.loaded_property)]
                 self._prepare_managers(data_path)
+
                 batch_generator, batch_generator_args = self.data_manager.batch_generator()
-                batch_data_set = tf.data.Dataset.from_generator(generator=batch_generator,
-                                                                args=batch_generator_args,
-                                                                output_signature=self.batch_output_signature)
-                batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                for batch_index, batch in tqdm(enumerate(batch_data_set), ncols=70, desc=species, total=self.n_batches,
+                batch_data_set = tf.data.Dataset.from_generator(
+                    generator=batch_generator,
+                    args=batch_generator_args,
+                    output_signature=self.batch_output_signature)
+                batch_data_set = batch_data_set.prefetch(
+                    tf.data.experimental.AUTOTUNE)
+
+                for batch_index, batch in tqdm(enumerate(batch_data_set),
+                                               ncols=70,
+                                               desc=species,
+                                               total=self.n_batches,
                                                disable=self.memory_manager.minibatch):
+
                     ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
-                    ensemble_data_set = tf.data.Dataset.from_generator(generator=ensemble_generator,
-                                                                       args=ensemble_generators_args + (batch,),
-                                                                       output_signature=self.ensemble_output_signature)
-                    ensemble_data_set = ensemble_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
+                    ensemble_data_set = tf.data.Dataset.from_generator(
+                        generator=ensemble_generator,
+                        args=ensemble_generators_args + (batch,),
+                        output_signature=self.ensemble_output_signature)
+                    ensemble_data_set = ensemble_data_set.prefetch(
+                        tf.data.experimental.AUTOTUNE)
+
+                    for ensemble_index, ensemble in enumerate(
+                            ensemble_data_set):
                         self._apply_operation(ensemble, ensemble_index)
 
                 self._apply_averaging_factor()
@@ -779,11 +859,9 @@ class Calculator(metaclass=abc.ABCMeta):
         self._check_input()
         self._run_dependency_check()
         if self.experimental:
-            log.warning("\n########################################################################################\n "
-                        "  This is an experimental calculator. It is provided as it can still be used, however,"
-                        "  it may not be"
-                        "  memory safe or completely accurate. Please see the documentation for more information.\n "
-                        "#########################################################################################")
+            log.warning(
+                "This is an experimental calculator. Please see the "
+                "documentation before using the results.")
         if self.optimize:
             pass
         else:
