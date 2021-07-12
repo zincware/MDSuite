@@ -99,6 +99,7 @@ def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
     indices = tf.transpose(indices)
     return indices
 
+
 def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
     """
     Enforce a cutoff on a tensor
