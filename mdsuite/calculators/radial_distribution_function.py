@@ -118,6 +118,10 @@ class RadialDistributionFunction(Calculator, ABC):
         self.key_list = None
         self.rdf = None
 
+        self.correct_minibatch_batching = 100
+        # split the minibatches into equal sized chunks to use maximum computing and memory resources
+        # 100 seems to be a good value for most systems
+
     def __call__(self,
                  plot=True,
                  number_of_bins=None,
@@ -394,33 +398,78 @@ class RadialDistributionFunction(Calculator, ABC):
             stop = tf.constant(0)
             rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
 
-            for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), ncols=70,
-                              disable=not batch_tqm, desc=f"Running mini batch loop {idx + 1} / {self.n_batches}"):
-                atoms_per_batch, batch_size, _ = tf.shape(atoms)
-                stop += atoms_per_batch
-                start_time = timer()
-                indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
-                log.debug(f'Calculating indices took {timer() - start_time} s')
+            if self.correct_minibatch_batching is not None:
+                # per_atoms_ds with shape (configurations, 3)
+                corrected_ds = per_atoms_ds.batch(int(len(per_atoms_ds) / self.correct_minibatch_batching))
+                # math.stackexchange.com/questions/107269/how-do-you-split-a-90-45-45-triangle-into-equal-area-strips
+                for jdx, corrected_per_atoms_ds in tqdm(enumerate(corrected_ds), ncols=70, disable=not batch_tqm,
+                                                        total=self.correct_minibatch_batching,
+                                                        desc=f"Running mini batch loop with batch size correction "
+                                                             f"{idx + 1} / {self.n_batches}"):
+                    pre_factor = np.sqrt(jdx + 1)
+                    new_ds = tf.data.Dataset.from_tensor_slices(corrected_per_atoms_ds)
+                    new_ds = new_ds.batch(int(pre_factor * self.minibatch))
+                    log.debug(f'batch size: {int(pre_factor * self.minibatch)} ({self.minibatch} * {pre_factor})')
+                    for atoms in new_ds:
+                        atoms_per_batch, batch_size, _ = tf.shape(atoms)
+                        stop += atoms_per_batch
+                        start_time = timer()
+                        indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
+                        log.debug(f'Calculating indices took {timer() - start_time} s')
 
-                start_time = timer()
-                d_ij = self.get_dij(indices, positions_tensor, atoms,
-                                    tf.cast(self.experiment.box_array, dtype=self.dtype))
-                exec_time = timer() - start_time
-                atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
-                atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
-                log.debug(f'Computing d_ij took {exec_time} s '
-                          f'({atom_pairs_per_second:.1f} million atom pairs / s)')
+                        start_time = timer()
+                        d_ij = self.get_dij(indices, positions_tensor, atoms,
+                                            tf.cast(self.experiment.box_array, dtype=self.dtype))
+                        exec_time = timer() - start_time
+                        atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+                        atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
+                        log.debug(f'Computing d_ij took {exec_time} s '
+                                  f'({atom_pairs_per_second:.1f} million atom pairs / s)')
 
-                start_time = timer()
-                minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
-                log.debug(f'Computing species values took {timer() - start_time} s')
+                        start_time = timer()
+                        minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
+                        log.debug(f'Computing species values took {timer() - start_time} s')
 
-                start_time = timer()
-                rdf = combine_dictionaries(rdf, minibatch_rdf)
-                log.debug(f'Updating dictionaries took {timer() - start_time} s')
+                        start_time = timer()
+                        rdf = combine_dictionaries(rdf, minibatch_rdf)
+                        log.debug(f'Updating dictionaries took {timer() - start_time} s')
 
-                minibatch_start = stop
-            return rdf
+                        minibatch_start = stop
+
+                return rdf
+
+            else:
+                for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), ncols=70,
+                                  disable=not batch_tqm, desc=f"Running mini batch loop {idx + 1} / {self.n_batches}"):
+                    # I assume this code can be removed, because the corrected version is almost always better
+                    # If one still wants to use the uncorrected version, we could make that an option, but
+                    # I don't see why. The only downside of the other method is, that a new dataset is created
+                    # every loop which can be cause a slow down, but I don't think it causes memory issues.
+                    atoms_per_batch, batch_size, _ = tf.shape(atoms)
+                    stop += atoms_per_batch
+                    start_time = timer()
+                    indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
+                    log.debug(f'Calculating indices took {timer() - start_time} s')
+
+                    start_time = timer()
+                    d_ij = self.get_dij(indices, positions_tensor, atoms,
+                                        tf.cast(self.experiment.box_array, dtype=self.dtype))
+                    exec_time = timer() - start_time
+                    atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+                    atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
+                    log.debug(f'Computing d_ij took {exec_time} s '
+                              f'({atom_pairs_per_second:.1f} million atom pairs / s)')
+
+                    start_time = timer()
+                    minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
+                    log.debug(f'Computing species values took {timer() - start_time} s')
+
+                    start_time = timer()
+                    rdf = combine_dictionaries(rdf, minibatch_rdf)
+                    log.debug(f'Updating dictionaries took {timer() - start_time} s')
+
+                    minibatch_start = stop
+                return rdf
 
         execution_time = 0
 
