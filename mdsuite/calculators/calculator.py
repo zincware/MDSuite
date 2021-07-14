@@ -80,7 +80,8 @@ class Calculator(metaclass=abc.ABCMeta):
                  correlation_time: int = 1,
                  atom_selection: object = np.s_[:],
                  export: bool = True,
-                 gpu: bool = False):
+                 gpu: bool = False,
+                 load_data: bool = False):
         """
         Constructor for the calculator class.
 
@@ -116,6 +117,7 @@ class Calculator(metaclass=abc.ABCMeta):
             name=os.path.join(self.experiment.database_path,
                               "database.hdf5"))
         self.gpu = gpu
+        self.load_data = load_data
 
         # Set to default by class, over-written in child classes or during operations
         self.system_property = False
@@ -881,3 +883,8 @@ class Calculator(metaclass=abc.ABCMeta):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
+
+    @property
+    def data(self):
+        """Return the data that may have previously been generated with the same parameters"""
+        return self.experiment.export_property_data(parameters={"analysis": self.analysis_name})

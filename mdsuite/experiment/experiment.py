@@ -132,6 +132,7 @@ class Experiment:
 
         # Run Computations
         self.run_computation = RunModule(self, dict_classes_computations)
+        self.load_data = RunModule(self, dict_classes_computations, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
 
         self._start_logging()

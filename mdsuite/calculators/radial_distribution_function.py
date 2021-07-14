@@ -81,7 +81,7 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, experiment: Experiment, load_data: bool = False):
         """
         Constructor for the RDF calculator.
 
@@ -89,8 +89,10 @@ class RadialDistributionFunction(Calculator, ABC):
         ----------
         experiment :  Experiment
                 Experiment class to call from
+        load_data: bool, default False
+                Whether RunComputation or LoadData is being called
         """
-        super().__init__(experiment)
+        super().__init__(experiment, load_data=load_data)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
@@ -201,6 +203,9 @@ class RadialDistributionFunction(Calculator, ABC):
         # Initial checks and initialization.
         self._check_input()
         self._initialize_rdf_parameters()
+
+        if self.load_data:
+            return self.data
 
         # Perform analysis and save.
         out = self.run_analysis()
@@ -355,7 +360,7 @@ class RadialDistributionFunction(Calculator, ABC):
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
                 self._update_properties_file({
-                    "Property": "RDF",
+                    "Property": "RDF",     # TODO this should be dynamic
                     "Analysis": self.analysis_name,
                     "subjects": names.split("_"),
                     "data_range": self.data_range,
