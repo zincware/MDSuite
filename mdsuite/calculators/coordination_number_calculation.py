@@ -20,7 +20,7 @@ from scipy.signal import find_peaks
 from typing import Union
 from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator
-from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter

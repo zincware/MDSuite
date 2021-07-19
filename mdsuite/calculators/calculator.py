@@ -33,7 +33,7 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import \
     switcher_transformations
-from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
@@ -97,7 +97,7 @@ class Calculator(metaclass=abc.ABCMeta):
         correlation_time : int
                 Correlation time to use in the analysis.
         atom_selection : np.s_
-                Atoms to peform the analysis on.
+                Atoms to perform the analysis on.
         export : bool
                 If true, analysis results are exported to a csv file.
         gpu : bool

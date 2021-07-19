@@ -35,7 +35,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
-from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from .run_module import RunModule
 

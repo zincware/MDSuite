@@ -23,7 +23,7 @@ from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
-from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
 plt.rcParams['figure.facecolor'] = 'white'
 

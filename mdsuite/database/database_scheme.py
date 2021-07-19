@@ -63,7 +63,8 @@ class SystemProperty(Base):
         self.information = information
 
     def data_array(self) -> np.array:
-        """Convert the one-to-many relationship data into a numpy array
+        """
+        Convert the one-to-many relationship data into a numpy array
 
         Returns
         -------
@@ -78,7 +79,8 @@ class SystemProperty(Base):
 
 
 class Data(Base):
-    """Class for the data associated with SystemProperty
+    """
+    Class for the data associated with SystemProperty
 
     Parameters
     ----------
@@ -138,3 +140,4 @@ class Subject(Base):
     def __repr__(self):
         """Representation of the subject"""
         return f"{self.subject}"
+

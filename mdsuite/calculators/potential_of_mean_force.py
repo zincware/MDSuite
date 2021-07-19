@@ -30,7 +30,7 @@ import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.properties_database import PropertiesDatabase
+from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
