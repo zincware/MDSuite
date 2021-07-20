@@ -18,60 +18,107 @@ import numpy as np
 Base = declarative_base()
 
 
-class Project(Base):
+class Experiment(Base):
     """
-    Class for the project table.
+    Class for the experiment table associated with the Project table.
+    """
+    __tablename__ = 'experiments'
 
-    Parameters
-    ----------
-    experiment : int
-            Number of the experiment for which to load data.
-    property : str
-            Name of the property, e.g. diffusion coefficient.
-    analysis : str
-            Name of the analysis, e.g. einstein diffusion coefficients.
-    data_range : int
-            Data range used in the analysis.
-    information : str
-            Any additional information about the analysis required.
-    """
-    __table_name__ = 'project'
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    experiment = Column(Integer)
-    property = Column(String)
-    analysis = Column(String)
-    data_range = Column(Integer)
-    information = Column(String, nullable=True)
 
-    def __init__(self,
-                 experiment: int,
-                 property: str,
-                 analysis: str,
-                 data_range: int,
-                 information: str):
+    experiment_data = relationship("ExperimentData",
+                                   cascade='all delete',
+                                   back_populates='experiment')
+    computation = relationship("Computations")
+
+    def __repr__(self):
         """
-        Constructor for the Project class.
+        Representation of the experiment table.
 
-        Parameters
-        ----------
-        experiment : int
-                    Number of the experiment for which to load data.
-        property : str
-                Name of the property, e.g. diffusion coefficient.
-        analysis : str
-                Name of the analysis, e.g. einstein diffusion coefficients.
-        data_range : int
-                Data range used in the analysis.
+        Returns
+        -------
         information : str
-                Any additional information about the analysis required.
+                Experiment number and name as an fstring
         """
-        self.experiment = experiment
-        self.property = property
-        self.analysis = analysis
-        self.data_range = data_range
-        self.information = information
+        return f"{self.id}: {self.name}"
 
 
+class ExperimentData(Base):
+    """
+    Class for the experiment data table.
+
+    This table is arbitrarily defined and therefore anything can be added to it.
+
+    Attributes
+    ----------
+    id : int
+            Unique identifier of the row.
+    name : str
+            name of the property being recorded.
+    value : float
+            numeric value of the property.
+    str_value : str
+            String value of the property.
+    """
+    __tablename__ = 'experiment_data'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    value = Column(Float, nullable=True)
+    str_value = Column(String, nullable=True)
+
+    experiment_id = Column(Integer, ForeignKey('experiment.id', ondelete="CASCADE"))
+    experiment = relationship("Experiment", back_populates='experiment_data')
 
 
+class Computation(Base):
+    """
+    Class for the computation table.
+    """
+    __tablename__ = 'computations'
+
+    id = Column(Integer, primary_key=True)
+
+    experiment_id = Column(Integer, ForeignKey('experiment.id', ondelete="CASCADE"))
+    experiment = relationship("Experiment")
+
+    computation_attributes = relationship('ComputationAttributes',
+                                         cascade='all delete',
+                                         back_populates='computation')
+    computation_data = relationship('ComputationData',
+                                    cascade='all delete',
+                                    back_populates='computation')
+
+
+class ComputationAttribute(Base):
+    """
+    Class for the meta data of a computation.
+    """
+    __tablename__ = 'computation_attributes'
+
+    # Table data
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    value = Column(Float, nullable=True)
+    str_value = Column(String, nullable=True)
+
+    # Relation data
+    computation_id = Column(Integer, ForeignKey('computation.id', ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates='computation_attributes')
+
+
+class ComputationData(Base):
+    """
+    raw computation data of a calculation.
+    """
+    __tablename__ = 'computation_data'
+
+    id = Column(Integer, primary_key=True)
+
+    value = Column(Float)
+    dimension = Column(String)
+
+    # Relation data
+    computation_id = Column(Integer, ForeignKey('computation.id', ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates='computation_attributes')

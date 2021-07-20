@@ -114,7 +114,7 @@ class Data(Base):
 
 class Subject(Base):
     """
-    Class for the subjects associated with SystemProperty
+    Class for the subjects tables associated with SystemProperty
 
     Parameters
     ---------
