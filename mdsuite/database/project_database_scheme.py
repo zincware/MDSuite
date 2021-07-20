@@ -21,16 +21,57 @@ Base = declarative_base()
 class Project(Base):
     """
     Class for the project table.
+
+    Parameters
+    ----------
+    experiment : int
+            Number of the experiment for which to load data.
+    property : str
+            Name of the property, e.g. diffusion coefficient.
+    analysis : str
+            Name of the analysis, e.g. einstein diffusion coefficients.
+    data_range : int
+            Data range used in the analysis.
+    information : str
+            Any additional information about the analysis required.
     """
     __table_name__ = 'project'
     id = Column(Integer, primary_key=True)
     name = Column(String)
+    experiment = Column(Integer)
+    property = Column(String)
+    analysis = Column(String)
+    data_range = Column(Integer)
+    information = Column(String, nullable=True)
 
-    def __init__(self):
+    def __init__(self,
+                 experiment: int,
+                 property: str,
+                 analysis: str,
+                 data_range: int,
+                 information: str):
         """
         Constructor for the Project class.
+
+        Parameters
+        ----------
+        experiment : int
+                    Number of the experiment for which to load data.
+        property : str
+                Name of the property, e.g. diffusion coefficient.
+        analysis : str
+                Name of the analysis, e.g. einstein diffusion coefficients.
+        data_range : int
+                Data range used in the analysis.
+        information : str
+                Any additional information about the analysis required.
         """
-        pass
+        self.experiment = experiment
+        self.property = property
+        self.analysis = analysis
+        self.data_range = data_range
+        self.information = information
+
 
 
 
