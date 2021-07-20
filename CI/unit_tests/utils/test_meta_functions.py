@@ -7,9 +7,11 @@ Copyright Contributors to the MDSuite Project.
 """
 import unittest
 from mdsuite.utils.meta_functions import join_path, get_dimensionality, get_machine_properties, \
-    line_counter, optimize_batch_size, linear_fitting_function, simple_file_read, round_down, split_array, find_item
+    line_counter, optimize_batch_size, linear_fitting_function, simple_file_read, round_down, split_array, find_item,\
+    golden_section_search
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class TestMetaFunction(unittest.TestCase):
@@ -137,7 +139,11 @@ class TestMetaFunction(unittest.TestCase):
             x**2
             """
             return x**2
-        self.assertEqual(True, True)
+        x_dat = np.linspace(-10, 10, 1000)
+        data = [x_dat, func(x_dat)]
+        output = golden_section_search(data, 10, -10)
+        self.assertEqual(output[0], 0.010010010010010006)
+        self.assertEqual(output[1], 0.03003003003003002)
 
     def test_round_down(self):
         """
