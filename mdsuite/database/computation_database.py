@@ -25,14 +25,18 @@ class ComputationDatabase(DatabaseBase):
 
     def set_attributes(self, name, value=None, str_value=None):
         with self.session as ses:
-            computation_attribute = ComputationAttribute(name=name, value=value, str_value=str_value,
+            computation_attribute = ComputationAttribute(name=name,
+                                                         value=value,
+                                                         str_value=str_value,
                                                          computation=self.computation)
             ses.add(computation_attribute)
             ses.commit()
 
     def set_data(self, value: float, dimension: str):
         with self.session as ses:
-            computation_data = ComputationData(value=value, dimension=dimension, computation=self.computation)
+            computation_data = ComputationData(value=value,
+                                               dimension=dimension,
+                                               computation=self.computation)
             ses.add(computation_data)
             ses.commit()
 
@@ -80,7 +84,8 @@ class ComputationDatabase(DatabaseBase):
             A dictionary {name, value, str_value} to be written to the database
         """
         with self.session as ses:
-            computation_attribute = ComputationAttribute(**value, computation=self.computation)
+            computation_attribute = ComputationAttribute(**value,
+                                                         computation=self.computation)
             ses.add(computation_attribute)
             ses.commit()
 

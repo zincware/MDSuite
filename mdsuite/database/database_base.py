@@ -21,6 +21,9 @@ log = logging.getLogger(__file__)
 
 
 class DatabaseBase:
+    """
+    Docstring
+    """
     def __init__(self, name: str):
         """
 
