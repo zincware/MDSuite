@@ -9,9 +9,6 @@ Copyright Contributors to the Zincware Project.
 Description: Module for the project database.
 """
 import logging
-import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.session import Session
 from .project_database_scheme import Experiment
 
 from .database_base import DatabaseBase
@@ -40,6 +37,14 @@ class ProjectDatabase(DatabaseBase):
 
     @property
     def experiment(self) -> Experiment:
+        """Write an entry for the Experiment the database
+
+        Returns
+        -------
+
+        Experiment instance queried from the database
+
+        """
         if self._experiment_id is None:
             experiment = Experiment(name=self.experiment_name)
             with self.session as ses:

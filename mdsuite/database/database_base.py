@@ -22,6 +22,13 @@ log = logging.getLogger(__file__)
 
 class DatabaseBase:
     def __init__(self, name: str):
+        """
+
+        Parameters
+        ----------
+        name: str
+            name of the database
+        """
         self.name = name
 
         self._engine = None
@@ -29,6 +36,13 @@ class DatabaseBase:
 
     @property
     def engine(self) -> Engine:
+        """Create a SQLAlchemy Engine
+
+        Returns
+        -------
+        a SQLAlchemy Engine connected to the Database
+
+        """
         if self._engine is None:
             self._engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}",
                                             echo=False,
@@ -45,13 +59,25 @@ class DatabaseBase:
         >>> with self.session as ses:
         >>>     ses.add()
 
+        Returns
+            Session that can be used inside a context manager
+
         """
         return sessionmaker(bind=self.engine, future=True)()
 
     @property
     def base(self) -> declarative_base:
+        """
+
+        Returns
+        -------
+        Get the declarative base from the Database scheme
+
+        """
         return Base
 
     def build_database(self):
+        """Build the database and get create the tables
+        """
         log.debug("Creating the database if it does not exist.")
         self.base.metadata.create_all(self.engine)

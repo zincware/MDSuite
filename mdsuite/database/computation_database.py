@@ -38,6 +38,14 @@ class ComputationDatabase(DatabaseBase):
 
     @property
     def computation(self):
+        """Write an entry for the computation the database
+
+        This sets the default id of the instance and writes it to the database
+
+        Returns
+        -------
+        computation instance queried from the database
+        """
         if self._computation_id is None:
             computation = Computation(experiment=self.experiment)
             with self.session as ses:
@@ -51,6 +59,12 @@ class ComputationDatabase(DatabaseBase):
 
     @property
     def attributes(self) -> List[ComputationAttribute]:
+        """Get the attributes of this instances computation
+
+        Returns
+        -------
+            list, A List of ComputationAttributes for this instances computation
+        """
         with self.session as ses:
             out = ses.query(ComputationAttribute).filter_by(computation_id=self._computation_id).all()
 
@@ -58,6 +72,13 @@ class ComputationDatabase(DatabaseBase):
 
     @attributes.setter
     def attributes(self, value: dict):
+        """Write attributes
+
+        Parameters
+        ----------
+        value: dict
+            A dictionary {name, value, str_value} to be written to the database
+        """
         with self.session as ses:
             computation_attribute = ComputationAttribute(**value, computation=self.computation)
             ses.add(computation_attribute)
@@ -65,12 +86,25 @@ class ComputationDatabase(DatabaseBase):
 
     @property
     def data(self):
+        """Get the data of this instances computation
+
+        Returns
+        -------
+            list, A List of ComputationData for this instances computation
+        """
         with self.session as ses:
             out = ses.query(ComputationData).filter_by(computation_id=self._computation_id).all()
         return out
 
     @data.setter
     def data(self, value):
+        """Write data
+
+        Parameters
+        ----------
+        value: dict
+            A dictionary {value, uncertainty, dimension} to be written to the database
+        """
         with self.session as ses:
             data = ComputationData(**value, computation=self.computation)
             ses.add(data)
