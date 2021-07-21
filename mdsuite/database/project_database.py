@@ -12,17 +12,19 @@ import logging
 import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
-from .database_scheme import Base, SystemProperty, Data, Subject
+from .project_database_scheme import Experiment
+
+from .database_base import DatabaseBase
 
 log = logging.getLogger(__file__)
 
 
-class ProjectDatabase:
+class ProjectDatabase(DatabaseBase):
     """
     Class for the management of the project database.
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, experiment_name: str):
         """
         Constructor for the Project database class.
 
@@ -31,36 +33,20 @@ class ProjectDatabase:
         name : str
                 Path to the database location.
         """
-        self.name = name
+        super().__init__(name)
+        self.experiment_name = experiment_name
 
-        # Database parameters
-        self.engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}",
-                                       echo=False,
-                                       future=True)
+        self._experiment_id = None
 
-        self.Session: sessionmaker
-        self.Base = Base
+    @property
+    def experiment(self) -> Experiment:
+        if self._experiment_id is None:
+            experiment = Experiment(name=self.experiment_name)
+            with self.session as ses:
+                ses.add(experiment)
+                ses.commit()
+                self._experiment_id = experiment.id
 
-        self.get_session()
-        self.build_database()
-
-    def get_session(self):
-        """
-        Create a session.
-        Returns
-        -------
-
-        """
-        log.debug('Creating the sessionmaker')
-        self.Session = sessionmaker(bind=self.engine, future=True)
-
-    def build_database(self):
-        """
-        Create the database scheme.
-
-        Returns
-        -------
-
-        """
-        log.debug("Creating the database if it does not exist.")
-        self.Base.metadata.create_all(self.engine)
+        with self.session as ses:
+            experiment = ses.query(Experiment).get(self._experiment_id)
+        return experiment
