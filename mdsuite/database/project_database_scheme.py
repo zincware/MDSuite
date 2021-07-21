@@ -28,9 +28,9 @@ class Experiment(Base):
     name = Column(String)
 
     experiment_data = relationship("ExperimentData",
-                                   cascade='all delete',
+                                   cascade='all, delete',
                                    back_populates='experiment')
-    computation = relationship("Computations")
+    computation = relationship("Computation")
 
     def __repr__(self):
         """
@@ -68,7 +68,7 @@ class ExperimentData(Base):
     value = Column(Float, nullable=True)
     str_value = Column(String, nullable=True)
 
-    experiment_id = Column(Integer, ForeignKey('experiment.id', ondelete="CASCADE"))
+    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates='experiment_data')
 
 
@@ -80,15 +80,26 @@ class Computation(Base):
 
     id = Column(Integer, primary_key=True)
 
-    experiment_id = Column(Integer, ForeignKey('experiment.id', ondelete="CASCADE"))
+    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
     experiment = relationship("Experiment")
 
-    computation_attributes = relationship('ComputationAttributes',
-                                         cascade='all delete',
-                                         back_populates='computation')
+    computation_attributes = relationship('ComputationAttribute',
+                                          cascade='all, delete',
+                                          back_populates='computation')
     computation_data = relationship('ComputationData',
-                                    cascade='all delete',
+                                    cascade='all, delete',
                                     back_populates='computation')
+
+    def __repr__(self):
+        """
+        Representation of the experiment table.
+
+        Returns
+        -------
+        information : str
+                Experiment number and name as an fstring
+        """
+        return f"{self.id}: {self.experiment_id}"
 
 
 class ComputationAttribute(Base):
@@ -104,8 +115,11 @@ class ComputationAttribute(Base):
     str_value = Column(String, nullable=True)
 
     # Relation data
-    computation_id = Column(Integer, ForeignKey('computation.id', ondelete="CASCADE"))
+    computation_id = Column(Integer, ForeignKey('computations.id', ondelete="CASCADE"))
     computation = relationship("Computation", back_populates='computation_attributes')
+
+    def __repr__(self):
+        return f"{self.name}: {self.value} - {self.str_value}"
 
 
 class ComputationData(Base):
@@ -117,8 +131,12 @@ class ComputationData(Base):
     id = Column(Integer, primary_key=True)
 
     value = Column(Float)
+    uncertainty = Column(Float, nullable=True)
     dimension = Column(String)
 
     # Relation data
-    computation_id = Column(Integer, ForeignKey('computation.id', ondelete="CASCADE"))
-    computation = relationship("Computation", back_populates='computation_attributes')
+    computation_id = Column(Integer, ForeignKey('computations.id', ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates='computation_data')
+
+    def __repr__(self):
+        return f"{self.id}: {self.value} ({self.uncertainty}) - {self.dimension}"
