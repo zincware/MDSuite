@@ -22,5 +22,5 @@ class Energies(TimeSeries):
         self.loaded_property = "PE"
         self.fig_labels = {
             'x': r"Timestep $t$",
-            'y': r"Energies $E$"
+            'y': r"Energy $E$"
         }
