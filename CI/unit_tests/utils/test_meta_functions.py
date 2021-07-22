@@ -141,9 +141,10 @@ class TestMetaFunction(unittest.TestCase):
             return x**2
         x_dat = np.linspace(-10, 10, 1000)
         data = [x_dat, func(x_dat)]
-        output = golden_section_search(data, 10, -10)
-        self.assertEqual(output[0], 0.010010010010010006)
-        self.assertEqual(output[1], 0.03003003003003002)
+        output = golden_section_search(data, 10, -10, tol=0.1)
+
+        self.assertEqual(output[0], -0.03003003003003002)
+        self.assertEqual(output[1], 0.05005005005005003)
 
     def test_round_down(self):
         """

@@ -352,7 +352,10 @@ class Experiment:
         -------
 
         """
-        with open('.read_files.txt', 'a') as f:
+
+        read_files = Path(self.storage_path, ".read_files.txt")
+
+        with read_files.open(mode="a") as f:
             data = []
             try:
                 for line in f:
