@@ -1,0 +1,17 @@
+name: Build the documentation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Black Check
+      - uses: psf/black@stable
