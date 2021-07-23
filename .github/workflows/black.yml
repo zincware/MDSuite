@@ -1,4 +1,4 @@
-name: Build the documentation
+name: Check black coding style
 
 on:
   push:
