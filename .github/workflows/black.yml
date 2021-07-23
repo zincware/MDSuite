@@ -12,6 +12,6 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     steps:
-      - name: Black Check
       - uses: actions/checkout@v2
-      - uses: psf/black@stable
+      - name: Black Check
+        uses: psf/black@stable
