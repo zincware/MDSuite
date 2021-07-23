@@ -12,7 +12,17 @@ class PostDevelopCommand(develop):
 
     def run(self):
         develop.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "h5py",
+                "--upgrade",
+                "--no-dependencies",
+            ]
+        )
 
 
 class PostInstallCommand(install):
@@ -20,14 +30,27 @@ class PostInstallCommand(install):
 
     def run(self):
         install.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
+        subprocess.check_call(
+            [
+                sys.executable,
+                "-m",
+                "pip",
+                "install",
+                "h5py",
+                "--upgrade",
+                "--no-dependencies",
+            ]
+        )
 
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'requirements.txt')) as requirements_file:
+with open(path.join(here, "requirements.txt")) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.
-    requirements = [line for line in requirements_file.read().splitlines()
-                    if not line.startswith('#')]
+    requirements = [
+        line
+        for line in requirements_file.read().splitlines()
+        if not line.startswith("#")
+    ]
 
 
 with open("README.rst", "r") as fh:
@@ -48,11 +71,11 @@ setuptools.setup(
         "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
         "Operating System :: OS Independent",
     ],
-    package_data={'': ['form_fac_coeffs.csv']},
+    package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
-    python_requires='>=3.7',
+    python_requires=">=3.7",
     install_requires=requirements,
-    cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
+    cmdclass={"install": PostInstallCommand, "develop": PostDevelopCommand}
     # force install of the newest h5py after the dependencies are installed
     # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
     # TODO remove if tensorflow supports h5py > 3

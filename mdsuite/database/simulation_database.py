@@ -18,12 +18,27 @@ import time
 from typing import Union
 import pandas as pd
 
-var_names = ["Temperature", "Time", "Thermal_Flux", "Stress_visc", "Positions",
-             "Scaled_Positions", "Unwrapped_Positions",
-             "Scaled_Unwrapped_Positions", "Velocities", "Forces",
-             "Box_Images", "Dipole_Orientation_Magnitude",
-             "Angular_Velocity_Spherical", "Angular_Velocity_Non_Spherical",
-             "Torque", "Charge", "KE", "PE", "Stress"]
+var_names = [
+    "Temperature",
+    "Time",
+    "Thermal_Flux",
+    "Stress_visc",
+    "Positions",
+    "Scaled_Positions",
+    "Unwrapped_Positions",
+    "Scaled_Unwrapped_Positions",
+    "Velocities",
+    "Forces",
+    "Box_Images",
+    "Dipole_Orientation_Magnitude",
+    "Angular_Velocity_Spherical",
+    "Angular_Velocity_Non_Spherical",
+    "Torque",
+    "Charge",
+    "KE",
+    "PE",
+    "Stress",
+]
 
 
 class Database:
@@ -45,7 +60,7 @@ class Database:
             The name of the database_path in question.
     """
 
-    def __init__(self, architecture: str = 'simulation', name: str = 'database'):
+    def __init__(self, architecture: str = "simulation", name: str = "database"):
         """
         Constructor for the database_path class.
 
@@ -79,7 +94,9 @@ class Database:
         database.close()
 
     @staticmethod
-    def _update_indices(data: np.array, reference: np.array, batch_size: int, n_atoms: int):
+    def _update_indices(
+        data: np.array, reference: np.array, batch_size: int, n_atoms: int
+    ):
         """
         Update the indices key of the structure dictionary if the tensor_values must be sorted.
 
@@ -99,7 +116,9 @@ class Database:
         ref_ids = np.argsort(ids, axis=1)
         n_batches = ids.shape[0]
 
-        return (ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T).flatten()
+        return (
+            ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T
+        ).flatten()
 
     @staticmethod
     def _build_path_input(structure: dict) -> dict:
@@ -141,7 +160,7 @@ class Database:
 
         return architecture
 
-    def open(self, mode: str = 'a') -> hf.File:
+    def open(self, mode: str = "a") -> hf.File:
         """
         Open the database_path
 
@@ -158,8 +177,18 @@ class Database:
 
         return hf.File(self.name, mode)
 
-    def add_data(self, data: np.array, structure: dict, start_index: int, batch_size: int, tensor: bool = False,
-                 system_tensor: bool = False, flux: bool = False, sort: bool = False, n_atoms: int = None):
+    def add_data(
+        self,
+        data: np.array,
+        structure: dict,
+        start_index: int,
+        batch_size: int,
+        tensor: bool = False,
+        system_tensor: bool = False,
+        flux: bool = False,
+        sort: bool = False,
+        n_atoms: int = None,
+    ):
         """
         Add a set of tensor_values to the database_path.
 
@@ -190,7 +219,7 @@ class Database:
         Adds tensor_values to the database_path
         """
 
-        with hf.File(self.name, 'r+') as database:
+        with hf.File(self.name, "r+") as database:
             stop_index = start_index + batch_size  # get the stop index
             for item in structure:
                 if tensor:
@@ -198,18 +227,33 @@ class Database:
                 elif system_tensor:
                     database[item][start_index:stop_index, :] = data[:, 0:3]
                 elif flux:
-                    database[item][start_index:stop_index, :] = data[structure[item]['indices']][
-                        np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float)
+                    database[item][start_index:stop_index, :] = data[
+                        structure[item]["indices"]
+                    ][
+                        np.s_[
+                            :,
+                            structure[item]["columns"][0] : structure[item]["columns"][
+                                -1
+                            ]
+                            + 1,
+                        ]
+                    ].astype(
+                        float
+                    )
                 else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(data,
-                                                                                  structure,
-                                                                                  item,
-                                                                                  batch_size,
-                                                                                  sort,
-                                                                                  n_atoms=n_atoms)
+                    database[item][:, start_index:stop_index, :] = self._get_data(
+                        data, structure, item, batch_size, sort, n_atoms=n_atoms
+                    )
 
-    def _get_data(self, data: np.array, structure: dict, item: str, batch_size: int, sort: bool = False,
-                  n_atoms: int = None):
+    def _get_data(
+        self,
+        data: np.array,
+        structure: dict,
+        item: str,
+        batch_size: int,
+        sort: bool = False,
+        n_atoms: int = None,
+    ):
         """
         Fetch tensor_values with some format from a large array.
 
@@ -218,15 +262,47 @@ class Database:
 
         """
         if sort:
-            indices = self._update_indices(data, structure[item]['indices'], batch_size, n_atoms)
-            return data[indices][
-                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
-                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+            indices = self._update_indices(
+                data, structure[item]["indices"], batch_size, n_atoms
+            )
+            return (
+                data[indices][
+                    np.s_[
+                        :,
+                        structure[item]["columns"][0] : structure[item]["columns"][-1]
+                        + 1,
+                    ]
+                ]
+                .astype(float)
+                .reshape(
+                    (
+                        structure[item]["length"],
+                        batch_size,
+                        len(structure[item]["columns"]),
+                    ),
+                    order="F",
+                )
+            )
         else:
-            indices = structure[item]['indices']
-            return data[indices][
-                np.s_[:, structure[item]['columns'][0]:structure[item]['columns'][-1] + 1]].astype(float).reshape(
-                (structure[item]['length'], batch_size, len(structure[item]['columns'])), order='F')
+            indices = structure[item]["indices"]
+            return (
+                data[indices][
+                    np.s_[
+                        :,
+                        structure[item]["columns"][0] : structure[item]["columns"][-1]
+                        + 1,
+                    ]
+                ]
+                .astype(float)
+                .reshape(
+                    (
+                        structure[item]["length"],
+                        batch_size,
+                        len(structure[item]["columns"]),
+                    ),
+                    order="F",
+                )
+            )
 
     def resize_dataset(self, structure: dict):
         """
@@ -244,7 +320,7 @@ class Database:
         """
         # ensure the database_path already exists
         try:
-            database = hf.File(self.name, 'r+')
+            database = hf.File(self.name, "r+")
         except DatabaseDoesNotExist:
             raise DatabaseDoesNotExist
 
@@ -313,8 +389,10 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, 'a') as database:
-            architecture = self._build_path_input(structure)  # get the correct file path
+        with hf.File(self.name, "a") as database:
+            architecture = self._build_path_input(
+                structure
+            )  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path
@@ -335,8 +413,13 @@ class Database:
                     max_shape[1] = None
                     max_shape = tuple(max_shape)
 
-                database.create_dataset(dataset_path, dataset_information,
-                                        maxshape=max_shape, scaleoffset=5, chunks=True)
+                database.create_dataset(
+                    dataset_path,
+                    dataset_information,
+                    maxshape=max_shape,
+                    scaleoffset=5,
+                    chunks=True,
+                )
 
     def _add_group_structure(self, structure: dict):
         """
@@ -356,7 +439,7 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, 'a') as database:
+        with hf.File(self.name, "a") as database:
             # Build file paths for the addition.
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
@@ -374,7 +457,7 @@ class Database:
         memory_database : dict
                 A dictionary of the memory information of the groups in the database_path
         """
-        with hf.File(self.name, 'r') as database:
+        with hf.File(self.name, "r") as database:
             memory_database = {}
             for item in database:
                 for ds in database[item]:
@@ -396,11 +479,14 @@ class Database:
         response : bool
                 If true, the path exists, else, it does not.
         """
-        with hf.File(self.name, 'r') as database_object:
+        with hf.File(self.name, "r") as database_object:
             keys = []
-            database_object.visit(lambda item: keys.append(database_object[item].name) if type(
-                database_object[item]) is hf.Dataset else None)
-            path = f'/{path}'  # add the / to avoid name overlapping
+            database_object.visit(
+                lambda item: keys.append(database_object[item].name)
+                if type(database_object[item]) is hf.Dataset
+                else None
+            )
+            path = f"/{path}"  # add the / to avoid name overlapping
 
             response = any(list(item.endswith(path) for item in keys))
         return response
@@ -420,15 +506,21 @@ class Database:
         """
 
         # db = hf.File(self.name, 'r+')  # open the database_path object
-        with hf.File(self.name, 'r+') as db:
+        with hf.File(self.name, "r+") as db:
             groups = list(db.keys())
 
             for item in groups:
                 if item in mapping:
                     db.move(item, mapping[item])
 
-    def load_data(self, path_list: list = None, select_slice: np.s_ = np.s_[:], dictionary: bool = False,
-                  scaling: list = None, d_size: int = None):
+    def load_data(
+        self,
+        path_list: list = None,
+        select_slice: np.s_ = np.s_[:],
+        dictionary: bool = False,
+        scaling: list = None,
+        d_size: int = None,
+    ):
         """
         Load tensor_values from the database_path for some operation.
 
@@ -441,11 +533,16 @@ class Database:
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
-        with hf.File(self.name, 'r') as database:
+        with hf.File(self.name, "r") as database:
             if not dictionary:
                 data = []
                 for i, item in enumerate(path_list):
-                    data.append(tf.convert_to_tensor(database[item][select_slice], dtype=tf.float64) * scaling[i])
+                    data.append(
+                        tf.convert_to_tensor(
+                            database[item][select_slice], dtype=tf.float64
+                        )
+                        * scaling[i]
+                    )
 
             if dictionary:
                 data = {}
@@ -454,8 +551,10 @@ class Database:
                         my_slice = select_slice[item]
                     else:
                         my_slice = select_slice
-                    data[item] = tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
-                data[str.encode('data_size')] = d_size
+                    data[item] = tf.convert_to_tensor(
+                        database[item][my_slice], dtype=tf.float64
+                    )
+                data[str.encode("data_size")] = d_size
 
         if len(data) == 1:
             if dictionary:
@@ -482,18 +581,20 @@ class Database:
         """
         if database_path is None:
             start = time.time()
-            database_path = hf.File(self.name, 'r')
+            database_path = hf.File(self.name, "r")
             database_path.close()
             stop = time.time()
         else:
             start = time.time()
-            database_path = hf.File(database_path, 'r')
+            database_path = hf.File(database_path, "r")
             database_path.close()
             stop = time.time()
 
         return stop - start
 
-    def get_data_size(self, data_path: str, database_path: str = None, system: bool = False) -> tuple:
+    def get_data_size(
+        self, data_path: str, database_path: str = None, system: bool = False
+    ) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
 
@@ -515,11 +616,19 @@ class Database:
             database_path = self.name
 
         if system:
-            with hf.File(database_path, 'r') as db:
-                data_tuple = (db[data_path].shape[0], db[data_path].shape[0], db[data_path].nbytes)
+            with hf.File(database_path, "r") as db:
+                data_tuple = (
+                    db[data_path].shape[0],
+                    db[data_path].shape[0],
+                    db[data_path].nbytes,
+                )
         else:
-            with hf.File(database_path, 'r') as db:
-                data_tuple = (db[data_path].shape[0], db[data_path].shape[1], db[data_path].nbytes)
+            with hf.File(database_path, "r") as db:
+                data_tuple = (
+                    db[data_path].shape[0],
+                    db[data_path].shape[1],
+                    db[data_path].nbytes,
+                )
 
         return data_tuple
 
@@ -542,12 +651,12 @@ class Database:
         -------
         saves a csv to the working directory.
         """
-        if self.architecture == 'simulation':
+        if self.architecture == "simulation":
             print("Method cannot be called in simulation databases.")
             return
 
         identifier = None
-        with hf.File(self.name, 'r') as database:
+        with hf.File(self.name, "r") as database:
             first_layer = list(database.keys())
             for item in first_layer:
                 if group in item:
@@ -586,7 +695,9 @@ class Database:
                         for sub_sub_item in last_layer:
                             if sub_key in sub_sub_item:
                                 final_identifier = sub_sub_item
-                        data = np.array(database[identifier][sub_item][final_identifier])
+                        data = np.array(
+                            database[identifier][sub_item][final_identifier]
+                        )
                         data = data.reshape((len(data[0]), 2))
                         df = pd.DataFrame(data=data, columns=["column1", "column2"])
                         df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
@@ -600,7 +711,7 @@ class Database:
                 A list of properties that are in the database
         """
         dump_list = []
-        database = hf.File(self.name, 'r')
+        database = hf.File(self.name, "r")
         initial_list = list(database.keys())
         for item in var_names:
             if item in initial_list:

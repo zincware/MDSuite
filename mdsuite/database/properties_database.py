@@ -33,7 +33,9 @@ class PropertiesDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}", echo=False, future=True)
+        self.engine = sa.create_engine(
+            f"sqlite+pysqlite:///{self.name}", echo=False, future=True
+        )
 
         # self.engine = sa.create_engine(f"sqlite:///:memory:", echo=True)
         self.Session: sessionmaker
@@ -45,12 +47,12 @@ class PropertiesDatabase:
 
     def get_session(self):
         """Create a session"""
-        log.debug('Creating sessionmaker')
+        log.debug("Creating sessionmaker")
         self.Session = sessionmaker(bind=self.engine, future=True)
 
     def build_database(self):
         """Create the database scheme"""
-        log.debug('Creating Database if not existing')
+        log.debug("Creating Database if not existing")
         self.Base.metadata.create_all(self.engine)
 
     @staticmethod
@@ -71,12 +73,18 @@ class PropertiesDatabase:
             query = query.filter(SystemProperty.subjects.any(subject=subject))
         # select the samples where the subject conditions are full filled and connect them with "and" (multiple filters)
 
-        subject_objs = ses.query(Subject.id).filter(Subject.subject.in_(subjects)).distinct()
+        subject_objs = (
+            ses.query(Subject.id).filter(Subject.subject.in_(subjects)).distinct()
+        )
         # get all subjects where the subject is in the given list
 
-        query = query.filter(~SystemProperty.subjects.any(
-            Subject.id.notin_(subject_objs)  # remove all, that have additional subjects in their query
-        ))
+        query = query.filter(
+            ~SystemProperty.subjects.any(
+                Subject.id.notin_(
+                    subject_objs
+                )  # remove all, that have additional subjects in their query
+            )
+        )
 
         return query
 
@@ -94,26 +102,26 @@ class PropertiesDatabase:
         result : bool
                 True or False depending on existence.
         """
-        log.debug(f'Check if row for {parameters.keys()} exists')
+        log.debug(f"Check if row for {parameters.keys()} exists")
         with self.Session() as ses:
             ses: Session
 
             query = ses.query(SystemProperty)
 
             if parameters.get("data_range") is not None:
-                query = query.filter_by(data_range=parameters['data_range'])
+                query = query.filter_by(data_range=parameters["data_range"])
             if parameters.get("Analysis") is not None:
-                query = query.filter_by(analysis=parameters['Analysis'])
+                query = query.filter_by(analysis=parameters["Analysis"])
             if parameters.get("information") is not None:
-                query = query.filter_by(information=parameters['information'])
+                query = query.filter_by(information=parameters["information"])
 
             log.debug(f"check, without subjects: {query.all()}")
 
-            if parameters.get('subjects') is not None:
-                query = self._build_subject_query(parameters['subjects'], query, ses)
+            if parameters.get("subjects") is not None:
+                query = self._build_subject_query(parameters["subjects"], query, ses)
             query = query.all()
 
-        log.debug(f'Check yielded {query}')
+        log.debug(f"Check yielded {query}")
         return len(query) > 0
 
     def _delete_duplicate_rows(self, parameters: dict):
@@ -137,18 +145,18 @@ class PropertiesDatabase:
             ses: Session
 
             query = ses.query(SystemProperty).filter_by(
-                data_range=parameters['data_range'],
-                analysis=parameters['Analysis'],
+                data_range=parameters["data_range"],
+                analysis=parameters["Analysis"],
             )
             if parameters.get("information") is not None:
                 query = query.filter_by(information=parameters.get("information"))
 
-            if parameters.get('subjects') is not None:
-                query = self._build_subject_query(parameters['subjects'], query, ses)
+            if parameters.get("subjects") is not None:
+                query = self._build_subject_query(parameters["subjects"], query, ses)
 
             system_properties = query.all()
 
-            log.debug(f'Removing {system_properties} from database')
+            log.debug(f"Removing {system_properties} from database")
             for system_property in system_properties:
                 ses.delete(system_property)
 
@@ -172,7 +180,7 @@ class PropertiesDatabase:
         # allow subjects and Subject
         if parameters.get("subjects") is None:
             try:
-                parameters['subjects'] = parameters['Subject']
+                parameters["subjects"] = parameters["Subject"]
             except KeyError:
                 raise KeyError('Please add the key "subjects" to your calculator')
 
@@ -180,7 +188,9 @@ class PropertiesDatabase:
             self._delete_duplicate_rows(parameters)
         else:
             if self._check_row_existence(parameters):
-                log.info("Note, an entry with these parameters already exists in the database.")
+                log.info(
+                    "Note, an entry with these parameters already exists in the database."
+                )
 
         log.debug(f'Adding {parameters.get("Property")} to database!')
 
@@ -191,28 +201,34 @@ class PropertiesDatabase:
             # TODO use **parameters instead with parameters.pop
 
             try:  # check if it is a list
-                data = [Data(**param) for param in parameters['data']]  # param is a dict
+                data = [
+                    Data(**param) for param in parameters["data"]
+                ]  # param is a dict
             except TypeError:
                 try:  # check if it is a dictionary with keys [x, y, z, uncertainty]
-                    data = [Data(parameters['data'])]
+                    data = [Data(parameters["data"])]
                 except TypeError:
-                    data = [Data(x=parameters['data'])]
+                    data = [Data(x=parameters["data"])]
 
             try:
-                subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
+                subjects = [
+                    Subject(subject=param) for param in parameters["subjects"]
+                ]  # param is a string
             except TypeError:
-                subjects = [Subject(subject=parameters['subjects'])]  # param is a string
+                subjects = [
+                    Subject(subject=parameters["subjects"])
+                ]  # param is a string
 
             log.debug(f"Subjects are: {subjects}")
 
             # Create s SystemProperty instance to store the values
             system_property = SystemProperty(
-                property=parameters['Property'],
-                analysis=parameters['Analysis'],
-                data_range=parameters['data_range'],
+                property=parameters["Property"],
+                analysis=parameters["Analysis"],
+                data_range=parameters["data_range"],
                 subjects=subjects,
                 data=data,
-                information=parameters.get("information")
+                information=parameters.get("information"),
             )
 
             log.debug(f"Created: {system_property}")
@@ -243,12 +259,12 @@ class PropertiesDatabase:
                 All rows matching the parameters represented as a dictionary.
         """
 
-        log.debug(f'querying {parameters} from database')
+        log.debug(f"querying {parameters} from database")
 
         with self.Session() as ses:
             ses: Session
 
-            subjects = parameters.pop('subjects', None)
+            subjects = parameters.pop("subjects", None)
             query = ses.query(SystemProperty).filter_by(**parameters)
 
             if subjects is not None:

@@ -23,12 +23,14 @@ class MolecularGraph:
     Class for building and studying molecular graphs.
     """
 
-    def __init__(self,
-                 experiment: object,
-                 from_smiles: bool = False,
-                 from_configuration: bool = True,
-                 smiles_string: str = None,
-                 species: list = None):
+    def __init__(
+        self,
+        experiment: object,
+        from_smiles: bool = False,
+        from_configuration: bool = True,
+        smiles_string: str = None,
+        species: list = None,
+    ):
         """
         Constructor for the MolecularGraph class.
 
@@ -54,7 +56,8 @@ class MolecularGraph:
 
         self.database = Database(
             name=os.path.join(self.experiment.database_path, "database.hdf5"),
-            architecture='simulation')
+            architecture="simulation",
+        )
 
     def _perform_checks(self):
         """
@@ -93,11 +96,12 @@ class MolecularGraph:
             r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
 
         """
-        r_ij_matrix = tf.reshape(positions, (1, len(positions), 3)) - \
-                      tf.reshape(positions, (len(positions), 1, 3))
+        r_ij_matrix = tf.reshape(positions, (1, len(positions), 3)) - tf.reshape(
+            positions, (len(positions), 1, 3)
+        )
         if cell:
             r_ij_matrix -= tf.math.rint(r_ij_matrix / cell) * cell
-        return tf.norm(r_ij_matrix, ord='euclidean', axis=2)
+        return tf.norm(r_ij_matrix, ord="euclidean", axis=2)
 
     def build_smiles_graph(self):
         """
@@ -107,7 +111,7 @@ class MolecularGraph:
         data = mol.nodes
         species = {}
         for i in range(len(data)):
-            item = data[i].get('element')
+            item = data[i].get("element")
             if item in species:
                 species[item] += 1
             else:
@@ -127,8 +131,9 @@ class MolecularGraph:
         cutoff : float
         """
 
-        cutoff_mask = tf.cast(tf.less(tensor, cutoff),
-                              dtype=tf.int16)  # Construct the mask
+        cutoff_mask = tf.cast(
+            tf.less(tensor, cutoff), dtype=tf.int16
+        )  # Construct the mask
 
         return tf.linalg.set_diag(cutoff_mask, np.zeros(len(tensor)))
 
@@ -145,13 +150,14 @@ class MolecularGraph:
         -------
 
         """
-        path_list = [join_path(species, 'Positions') for species in
-                     self.species]
+        path_list = [join_path(species, "Positions") for species in self.species]
         configuration_tensor = tf.concat(
-            self.database.load_data(path_list=path_list,
-                                    select_slice=np.s_[:, 0]), axis=0)
-        distance_matrix = self.get_neighbour_list(configuration_tensor,
-                                                  cell=self.experiment.box_array)
+            self.database.load_data(path_list=path_list, select_slice=np.s_[:, 0]),
+            axis=0,
+        )
+        distance_matrix = self.get_neighbour_list(
+            configuration_tensor, cell=self.experiment.box_array
+        )
 
         return self._apply_system_cutoff(distance_matrix, cutoff)
 
@@ -177,8 +183,7 @@ class MolecularGraph:
                 for mol in molecules:
                     if any(x in molecules[mol] for x in indices):
                         molecule = mol
-                        molecules[mol] = tf.concat([molecules[mol], indices],
-                                                   0)
+                        molecules[mol] = tf.concat([molecules[mol], indices], 0)
                         molecules[mol] = tf.unique(molecules[mol])[0]
                         break
                 if molecule is None:
@@ -190,8 +195,7 @@ class MolecularGraph:
             test_dict = molecules.copy()
             test_dict.pop(item)
             for reference in test_dict:
-                if all(elem in test_dict[reference] for elem in
-                       molecules[item]):
+                if all(elem in test_dict[reference] for elem in molecules[item]):
                     del_list.append(item)
 
         for item in del_list:

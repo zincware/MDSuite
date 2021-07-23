@@ -67,17 +67,26 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
 
         super().__init__(experiment)
 
-        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
-        self.scale_function = {'linear': {'scale_factor': 150}}
+        self.loaded_property = "Velocities"  # Property to be loaded for the analysis
+        self.scale_function = {"linear": {"scale_factor": 150}}
 
-        self.database_group = 'Diffusion_Coefficients'  # Which database_path group to save the tensor_values in
-        self.x_label = 'Time $(s)$'
-        self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'Green_Kubo_Self_Diffusion_Coefficients'
+        self.database_group = "Diffusion_Coefficients"  # Which database_path group to save the tensor_values in
+        self.x_label = "Time $(s)$"
+        self.y_label = "VACF $(m^{2}/s^{2})$"
+        self.analysis_name = "Green_Kubo_Self_Diffusion_Coefficients"
 
-    def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False, molecules: bool = False,
-                 gpu: bool = False):
+    def __call__(
+        self,
+        plot: bool = False,
+        species: list = None,
+        data_range: int = 500,
+        save: bool = True,
+        correlation_time: int = 1,
+        atom_selection=np.s_[:],
+        export: bool = False,
+        molecules: bool = False,
+        gpu: bool = False,
+    ):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -93,8 +102,15 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 If true, tensor_values will be saved after the analysis
         """
 
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            export=export,
+            gpu=gpu,
+        )
 
         self.molecules = molecules
         self.species = species  # Which species to calculate for
@@ -123,8 +139,12 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
         Update the class state.
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(None, self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(None, self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(None, self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -141,15 +161,23 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         if self.molecules:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
-                len(self.experiment.molecules[species]['indices'])
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                3
+                * self.experiment.units["time"]
+                * (self.data_range - 1)
+                * len(self.experiment.molecules[species]["indices"])
+            )
             self.prefactor = numerator / denominator
         else:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * \
-                len(self.experiment.species[species]['indices'])
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                3
+                * self.experiment.units["time"]
+                * (self.data_range - 1)
+                * len(self.experiment.species[species]["indices"])
+            )
             self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -175,10 +203,17 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         vacf = np.zeros(2 * self.data_range - 1)
         for item in ensemble:
-            vacf += sum([signal.correlate(item[:, idx], item[:, idx], mode="full", method='auto') for idx in range(3)])
+            vacf += sum(
+                [
+                    signal.correlate(
+                        item[:, idx], item[:, idx], mode="full", method="auto"
+                    )
+                    for idx in range(3)
+                ]
+            )
 
-        self.vacf += vacf[int(self.data_range - 1):]  # Update the averaged function
-        self.sigma.append(np.trapz(vacf[int(self.data_range - 1):], x=self.time))
+        self.vacf += vacf[int(self.data_range - 1) :]  # Update the averaged function
+        self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -189,31 +224,43 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": [species],
-                      "data_range": self.data_range,
-                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": [species],
+            "data_range": self.data_range,
+            "data": [
+                {
+                    "x": np.mean(result),
+                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
+                }
+            ],
+        }
         self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf,
-                     label=fr"{species}: {np.mean(result): .3E} $\pm$ {np.std(result) / (np.sqrt(len(result))): .3E}")
+            plt.xlabel(rf"{self.x_label}")  # set the x label
+            plt.ylabel(rf"{self.y_label}")  # set the y label
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"],
+                self.vacf,
+                label=fr"{species}: {np.mean(result): .3E} $\pm$ {np.std(result) / (np.sqrt(len(result))): .3E}",
+            )
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": [species],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.vacf)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": [species],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.vacf)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.vacf))
+            self._export_data(
+                name=self._build_table_name(species),
+                data=self._build_pandas_dataframe(self.time, self.vacf),
+            )

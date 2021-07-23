@@ -6,8 +6,8 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zincware Project.
 
-Description: A collection of time series tools, like energies over time
+Description: 
 """
-from .energies import Energies
+import logging
 
-time_series_dict = {"Energies": Energies}
+log = logging.getLogger(__file__)

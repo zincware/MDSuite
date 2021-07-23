@@ -12,6 +12,7 @@ from __future__ import annotations
 from .base import TimeSeries
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
@@ -20,7 +21,4 @@ class Energies(TimeSeries):
     def __init__(self, experiment: Experiment):
         super().__init__(experiment)
         self.loaded_property = "PE"
-        self.fig_labels = {
-            'x': r"Timestep $t$",
-            'y': r"Energies $E$"
-        }
+        self.fig_labels = {"x": r"Timestep $t$", "y": r"Energy $E$"}

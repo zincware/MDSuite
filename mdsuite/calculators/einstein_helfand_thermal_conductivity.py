@@ -61,22 +61,31 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         # parse to the experiment class
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Integrated_Heat_Current'  # Property to be loaded for the analysis
+        self.loaded_property = (
+            "Integrated_Heat_Current"  # Property to be loaded for the analysis
+        )
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Thermal_Conductivity'
+        self.x_label = "Time (s)"
+        self.y_label = "MSD (m$^2$/s)"
+        self.analysis_name = "Einstein_Helfand_Thermal_Conductivity"
 
-        self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in
+        self.database_group = "Thermal_Conductivity"  # Which database_path group to save the tensor_values in
 
         self.prefactor: float
 
-    def __call__(self, plot=True, data_range=500, save=True, correlation_time=1,
-                 export: bool = False, gpu: bool = False):
+    def __call__(
+        self,
+        plot=True,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+    ):
         """
         Python constructor
 
@@ -91,8 +100,14 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
 
         # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
 
         self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
         out = self.run_analysis()
@@ -110,8 +125,12 @@ class EinsteinHelfandThermalConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -127,9 +146,18 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         # Calculate the prefactor
         numerator = 1
-        denominator = 6 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
-        units_change = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
-            'time'] / self.experiment.units['temperature']
+        denominator = (
+            6
+            * self.experiment.volume
+            * self.experiment.temperature
+            * self.experiment.units["boltzman"]
+        )
+        units_change = (
+            self.experiment.units["energy"]
+            / self.experiment.units["length"]
+            / self.experiment.units["time"]
+            / self.experiment.units["temperature"]
+        )
         self.prefactor = numerator / denominator * units_change
 
     def _apply_averaging_factor(self):
@@ -155,7 +183,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
 
-        msd = self.prefactor*tf.reduce_sum(msd, axis=1)
+        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
     def _post_operation_processes(self, species: str = None):
@@ -166,29 +194,35 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": ["System"],
+            "data_range": self.data_range,
+            "data": [{"x": result[0], "uncertainty": result[1]}],
+        }
         self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array)
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"], self.msd_array
+            )
             self._plot_data()
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": ["System"],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.msd_array)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name("System"),
-                              data=self._build_pandas_dataframe(self.time, self.msd_array))
+            self._export_data(
+                name=self._build_table_name("System"),
+                data=self._build_pandas_dataframe(self.time, self.msd_array),
+            )

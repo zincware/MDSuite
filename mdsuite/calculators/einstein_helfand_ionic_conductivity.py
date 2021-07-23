@@ -65,20 +65,29 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         # parse to the experiment class
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
+        self.loaded_property = (
+            "Translational_Dipole_Moment"  # Property to be loaded for the analysis
+        )
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.database_group = 'Ionic_Conductivity'  # Which database_path group to save the tensor_values in
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Ionic_Conductivity'
+        self.database_group = "Ionic_Conductivity"  # Which database_path group to save the tensor_values in
+        self.x_label = "Time (s)"
+        self.y_label = "MSD (m$^2$/s)"
+        self.analysis_name = "Einstein_Helfand_Ionic_Conductivity"
         self.prefactor: float
 
-    def __call__(self, plot=True, data_range=500, save=True, correlation_time=1,
-                 export: bool = False, gpu: bool = False):
+    def __call__(
+        self,
+        plot=True,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+    ):
         """
         Python constructor
 
@@ -99,8 +108,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
         self.msd_array = np.zeros(self.data_range)
 
         out = self.run_analysis()
@@ -117,8 +132,12 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = (tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64))
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -133,10 +152,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         # Calculate the prefactor
-        numerator = (self.experiment.units['length'] ** 2) * (elementary_charge ** 2)
-        denominator = 6 * self.experiment.units['time'] * (
-                self.experiment.volume * self.experiment.units['length'] ** 3) * \
-            self.experiment.temperature * boltzmann_constant
+        numerator = (self.experiment.units["length"] ** 2) * (elementary_charge ** 2)
+        denominator = (
+            6
+            * self.experiment.units["time"]
+            * (self.experiment.volume * self.experiment.units["length"] ** 3)
+            * self.experiment.temperature
+            * boltzmann_constant
+        )
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -172,31 +195,37 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": ["System"],
+            "data_range": self.data_range,
+            "data": [{"x": result[0], "uncertainty": result[1]}],
+        }
         self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
-                     label=fr'{result[0]:.3E} $\pm$ '
-                           f'{result[1]:.3E}')
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"],
+                self.msd_array,
+                label=fr"{result[0]:.3E} $\pm$ " f"{result[1]:.3E}",
+            )
             self._plot_data()
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": ["System"],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.msd_array)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.msd_array))
+            self._export_data(
+                name=self._build_table_name("System"),
+                data=self._build_pandas_dataframe(self.time, self.msd_array),
+            )

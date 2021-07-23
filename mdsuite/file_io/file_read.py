@@ -44,11 +44,15 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         self.experiment = obj  # Experiment class instance to add to.
 
-        self.header_lines = header_lines  # Number of header lines in the given file format.
-        self.file_path = file_path   # path to the file being read
+        self.header_lines = (
+            header_lines  # Number of header lines in the given file format.
+        )
+        self.file_path = file_path  # path to the file being read
 
     @abc.abstractmethod
-    def process_trajectory_file(self, rename_cols: dict = None, update_class: bool = True):
+    def process_trajectory_file(
+        self, rename_cols: dict = None, update_class: bool = True
+    ):
         """
         Get property groups from the trajectory
         This method is dependent on the code that generated the file. So it should be implemented in a grandchild class.
@@ -65,7 +69,9 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def read_configurations(self, number_of_configurations: int, file_object: TextIO, line_length: int):
+    def read_configurations(
+        self, number_of_configurations: int, file_object: TextIO, line_length: int
+    ):
         """
         Read in a number of configurations from a file
 
@@ -87,7 +93,9 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @staticmethod
-    def _extract_properties(database_correspondence_dict: dict, column_dict_properties: dict):
+    def _extract_properties(
+        database_correspondence_dict: dict, column_dict_properties: dict
+    ):
         """
         Construct generalized property array
 
@@ -109,14 +117,23 @@ class FileProcessor(metaclass=abc.ABCMeta):
         for property_label, property_names in database_correspondence_dict.items():
             # for each coordinate for a given property label (position: x, y, z), get idx and the name
             for idx, property_name in enumerate(property_names):
-                if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
+                if (
+                    property_name in column_dict_properties.keys()
+                ):  # if this name (x) is in the input file properties
                     # we change the lammps_properties_dict replacing the string of the property name by the column name
-                    database_correspondence_dict[property_label][idx] = column_dict_properties[property_name]
+                    database_correspondence_dict[property_label][
+                        idx
+                    ] = column_dict_properties[property_name]
 
         # trajectory_properties only need the labels with the integer columns, then we only copy those
         trajectory_properties = {}
         for property_label, properties_columns in database_correspondence_dict.items():
-            if all([isinstance(property_column, int) for property_column in properties_columns]):
+            if all(
+                [
+                    isinstance(property_column, int)
+                    for property_column in properties_columns
+                ]
+            ):
                 trajectory_properties[property_label] = properties_columns
 
         return trajectory_properties

@@ -91,19 +91,30 @@ class CoordinationNumbers(Calculator):
 
         self.post_generation = True
 
-        self.database_group = 'Coordination_Numbers'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = 'CN'
-        self.analysis_name = 'Coordination_Numbers'
+        self.database_group = "Coordination_Numbers"
+        self.x_label = r"r ($\AA$)"
+        self.y_label = "CN"
+        self.analysis_name = "Coordination_Numbers"
 
         # Calculate the rdf if it has not been done already
         if self.experiment.radial_distribution_function_state is False:
-            self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)
+            self.experiment.run_computation(
+                "RadialDistributionFunction", plot=True, n_batches=-1
+            )
 
-    def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
-                 savgol_order: int = 2, savgol_window_length: int = 17):
+    def __call__(
+        self,
+        plot: bool = True,
+        save: bool = True,
+        data_range: int = 1,
+        export: bool = False,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+    ):
 
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        self.update_user_args(
+            plot=plot, save=save, data_range=data_range, export=export
+        )
 
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
@@ -119,7 +130,9 @@ class CoordinationNumbers(Calculator):
         """
         Fill the data_files list with filenames of the rdf tensor_values
         """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+        database = PropertiesDatabase(
+            name=os.path.join(self.experiment.database_path, "property_database")
+        )
 
         return database.load_data({"property": "RDF"})
 
@@ -129,7 +142,9 @@ class CoordinationNumbers(Calculator):
         """
 
         species = species.split("_")  # get an array of the species being studied
-        rdf_number_of_atoms = len(self.experiment.species[species[0]]['indices'])  # get the number of atoms in the RDF
+        rdf_number_of_atoms = len(
+            self.experiment.species[species[0]]["indices"]
+        )  # get the number of atoms in the RDF
 
         return rdf_number_of_atoms / self.experiment.volume
 
@@ -165,9 +180,15 @@ class CoordinationNumbers(Calculator):
         self.integral_data = []  # empty the integral tensor_values array for analysis
         for i in range(1, len(self.radii)):  # Loop over number_of_bins in the rdf
             # Integrate the function up to the bin.
-            self.integral_data.append(np.trapz((np.array(self.radii[1:i]) ** 2) * self.rdf[1:i], x=self.radii[1:i]))
+            self.integral_data.append(
+                np.trapz(
+                    (np.array(self.radii[1:i]) ** 2) * self.rdf[1:i], x=self.radii[1:i]
+                )
+            )
 
-        self.integral_data = np.array(self.integral_data) * 4 * np.pi * density  # Scale the result by the density
+        self.integral_data = (
+            np.array(self.integral_data) * 4 * np.pi * density
+        )  # Scale the result by the density
 
     def _get_max_values(self):
         """
@@ -179,13 +200,17 @@ class CoordinationNumbers(Calculator):
                 If an exception is not raised, the function will return a list of peaks in the rdf.
         """
 
-        filtered_data = apply_savgol_filter(self.rdf, order=self.savgol_order, window_length=self.savgol_window_length)
+        filtered_data = apply_savgol_filter(
+            self.rdf, order=self.savgol_order, window_length=self.savgol_window_length
+        )
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
         # Check that more than one peak exists. If not, the GS search cannot be performed.
         if len(peaks) < 2:
-            print("Not enough peaks were found for the minimum analysis (First shell). Try adjusting the filter "
-                  "parameters or re-calculating the RDF for a smoother function.")
+            print(
+                "Not enough peaks were found for the minimum analysis (First shell). Try adjusting the filter "
+                "parameters or re-calculating the RDF for a smoother function."
+            )
             raise CannotPerformThisAnalysis
         else:
             return [peaks[0], peaks[1], peaks[2]]  # return peaks if they exist
@@ -203,14 +228,26 @@ class CoordinationNumbers(Calculator):
         peaks = self._get_max_values()  # get the max value indices
 
         # Calculate the range in which the coordination numbers should exist.
-        cn_radii_1 = golden_section_search([self.radii, self.rdf], self.radii[peaks[1]], self.radii[peaks[0]])
-        cn_radii_2 = golden_section_search([self.radii, self.rdf], self.radii[peaks[2]], self.radii[peaks[1]])
+        cn_radii_1 = golden_section_search(
+            [self.radii, self.rdf], self.radii[peaks[1]], self.radii[peaks[0]]
+        )
+        cn_radii_2 = golden_section_search(
+            [self.radii, self.rdf], self.radii[peaks[2]], self.radii[peaks[1]]
+        )
 
         # Locate the indices of the radii values
-        cn_indices_1 = list([np.where(self.radii == cn_radii_1[0])[0][0],
-                             np.where(self.radii == cn_radii_1[1])[0][0]])
-        cn_indices_2 = list([np.where(self.radii == cn_radii_2[0])[0][0],
-                             np.where(self.radii == cn_radii_2[1])[0][0]])
+        cn_indices_1 = list(
+            [
+                np.where(self.radii == cn_radii_1[0])[0][0],
+                np.where(self.radii == cn_radii_1[1])[0][0],
+            ]
+        )
+        cn_indices_2 = list(
+            [
+                np.where(self.radii == cn_radii_2[0])[0][0],
+                np.where(self.radii == cn_radii_2[1])[0][0],
+            ]
+        )
 
         return cn_indices_1, cn_indices_2
 
@@ -222,35 +259,70 @@ class CoordinationNumbers(Calculator):
         self.indices = self._find_minimums()  # get the minimums
 
         # Calculate the coordination numbers by averaging over the two values returned by _find_minimums
-        first_shell = np.mean([self.integral_data[self.indices[0][0]], self.integral_data[self.indices[0][1]]])
-        first_shell_error = np.std([self.integral_data[self.indices[0][0]],
-                                    self.integral_data[self.indices[0][1]]]) / np.sqrt(2)
+        first_shell = np.mean(
+            [
+                self.integral_data[self.indices[0][0]],
+                self.integral_data[self.indices[0][1]],
+            ]
+        )
+        first_shell_error = (
+            np.std(
+                [
+                    self.integral_data[self.indices[0][0]],
+                    self.integral_data[self.indices[0][1]],
+                ]
+            )
+            / np.sqrt(2)
+        )
 
-        second_shell = np.mean([self.integral_data[self.indices[1][0]],
-                                self.integral_data[self.indices[1][1]]]) - first_shell
-        second_shell_error = np.std([self.integral_data[self.indices[1][0]],
-                                     self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
+        second_shell = (
+            np.mean(
+                [
+                    self.integral_data[self.indices[1][0]],
+                    self.integral_data[self.indices[1][1]],
+                ]
+            )
+            - first_shell
+        )
+        second_shell_error = (
+            np.std(
+                [
+                    self.integral_data[self.indices[1][0]],
+                    self.integral_data[self.indices[1][1]],
+                ]
+            )
+            / np.sqrt(2)
+        )
 
         # Mean values
-        self._update_properties_file({
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "subjects": self.species_tuple.split("_"),
-            "data_range": self.data_range,
-            "data": [{"x": idx, "y": shell, "uncertainty": uncertainty} for idx, shell, uncertainty in
-                     [[1, first_shell, first_shell_error], [2, second_shell, second_shell_error]]]
-        })
+        self._update_properties_file(
+            {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "subjects": self.species_tuple.split("_"),
+                "data_range": self.data_range,
+                "data": [
+                    {"x": idx, "y": shell, "uncertainty": uncertainty}
+                    for idx, shell, uncertainty in [
+                        [1, first_shell, first_shell_error],
+                        [2, second_shell, second_shell_error],
+                    ]
+                ],
+            }
+        )
 
         # actual data
         data = [{"x": x, "y": y} for x, y in zip(self.radii[1:], self.integral_data)]
-        self._update_properties_file({
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "subjects": self.species_tuple.split("_"),
-            "data_range": self.data_range,
-            "data": data,
-            "information": "series"
-        })
+        self._update_properties_file(
+            {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "subjects": self.species_tuple.split("_"),
+                "data_range": self.data_range,
+                "data": data,
+                "information": "series",
+            }
+        )
 
         return first_shell, first_shell_error
 
@@ -260,16 +332,30 @@ class CoordinationNumbers(Calculator):
         """
 
         fig, ax1 = plt.subplots()  # define the plot
-        ax1.plot(self.radii, self.rdf, label=fr"{self.species_tuple}: {data[0]:.3f} $\pm$ {data[1]:.3f} ")
-        ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
+        ax1.plot(
+            self.radii,
+            self.rdf,
+            label=fr"{self.species_tuple}: {data[0]:.3f} $\pm$ {data[1]:.3f} ",
+        )
+        ax1.set_ylabel("RDF")  # set the y_axis label on the LHS
         ax2 = ax1.twinx()  # split the axis
-        ax2.set_ylabel('CN')  # set the RHS y axis label
+        ax2.set_ylabel("CN")  # set the RHS y axis label
         # plot the CN as a continuous function
-        ax2.plot(self.radii[1:], np.array(self.integral_data), 'r')  # , markersize=1, label=f"{self.species_tuple} CN")
+        ax2.plot(
+            self.radii[1:], np.array(self.integral_data), "r"
+        )  # , markersize=1, label=f"{self.species_tuple} CN")
         # Plot the first and second shell values as a small window.
-        ax1.axvspan(self.radii[self.indices[0][0]] - 0.01, self.radii[self.indices[0][1]] + 0.01, color='g')
-        ax1.axvspan(self.radii[self.indices[1][0]] - 0.01, self.radii[self.indices[1][1]] + 0.01, color='b')
-        ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
+        ax1.axvspan(
+            self.radii[self.indices[0][0]] - 0.01,
+            self.radii[self.indices[0][1]] + 0.01,
+            color="g",
+        )
+        ax1.axvspan(
+            self.radii[self.indices[1][0]] - 0.01,
+            self.radii[self.indices[1][1]] + 0.01,
+            color="b",
+        )
+        ax1.set_xlabel(r"r ($\AA$)")  # set the x-axis label
         ax1.legend()
         plt.show()
 
@@ -282,24 +368,38 @@ class CoordinationNumbers(Calculator):
             log.debug(f"Computing coordination numbers for {data.subjects}")
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load the tensor_values from it
-            density = self._get_density(data.subjects[0].subject)  # calculate the density
+            density = self._get_density(
+                data.subjects[0].subject
+            )  # calculate the density
 
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(
+                [subject.subject for subject in data.subjects]
+            )
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
-            _data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
+            _data = (
+                self._get_coordination_numbers()
+            )  # calculate the coordination numbers and update the experiment
             # Plot the tensor_values if required
             if self.plot:
                 self._plot_coordination_shells(_data)
 
             # TODO what to save?
             if self.save:
-                self._save_data(name=self._build_table_name(self.species_tuple),
-                                data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
+                self._save_data(
+                    name=self._build_table_name(self.species_tuple),
+                    data=self._build_pandas_dataframe(
+                        self.radii[1:], self.integral_data
+                    ),
+                )
             if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
-                                  data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
+                self._export_data(
+                    name=self._build_table_name(self.species_tuple),
+                    data=self._build_pandas_dataframe(
+                        self.radii[1:], self.integral_data
+                    ),
+                )
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

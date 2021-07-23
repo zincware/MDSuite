@@ -48,7 +48,7 @@ class ScaleCoordinates(Transformations):
         """
         super().__init__(experiment)
         self.species = species
-        self.scale_function = {'linear': {'scale_factor': 2}}
+        self.scale_function = {"linear": {"scale_factor": 2}}
 
         if self.species is None:
             self.species = list(self.experiment.species)
@@ -63,11 +63,13 @@ class ScaleCoordinates(Transformations):
         """
         truth_table = []
         for item in self.species:
-            path = join_path(item, 'Scaled_Positions')
+            path = join_path(item, "Scaled_Positions")
             truth_table.append(self.database.check_existence(path))
 
         if not all(truth_table):
-            print("Indices were not included in the database_path generation. Please check your simulation files.")
+            print(
+                "Indices were not included in the database_path generation. Please check your simulation files."
+            )
             sys.exit(1)
 
     def _transformation(self, data: tf.Tensor):
@@ -97,21 +99,41 @@ class ScaleCoordinates(Transformations):
         -------
         tensor_values structure for use in saving the tensor_values to the database_path.
         """
-        path = join_path(species, 'Positions')
+        path = join_path(species, "Positions")
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
-            species_length = len(self.experiment.species[species]['indices'])
-            resize_structure = {path: (species_length, self.experiment.number_of_configurations - old_shape[0], 3)}
+            species_length = len(self.experiment.species[species]["indices"])
+            resize_structure = {
+                path: (
+                    species_length,
+                    self.experiment.number_of_configurations - old_shape[0],
+                    3,
+                )
+            }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+            self.database.resize_dataset(
+                resize_structure
+            )  # add a new dataset to the database_path
+            data_structure = {
+                path: {
+                    "indices": np.s_[:],
+                    "columns": [0, 1, 2],
+                    "length": species_length,
+                }
+            }
         else:
-            species_length = len(self.experiment.species[species]['indices'])
+            species_length = len(self.experiment.species[species]["indices"])
             number_of_configurations = self.experiment.number_of_configurations
             dataset_structure = {path: (species_length, number_of_configurations, 3)}
             self.database.add_dataset(dataset_structure)
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': species_length}}
+            data_structure = {
+                path: {
+                    "indices": np.s_[:],
+                    "columns": [0, 1, 2],
+                    "length": species_length,
+                }
+            }
 
         return data_structure
 
@@ -124,25 +146,29 @@ class ScaleCoordinates(Transformations):
         """
         for species in self.species:
             data_structure = self._prepare_database_entry(species)
-            data_path = [join_path(species, 'Scaled_Positions')]
+            data_path = [join_path(species, "Scaled_Positions")]
             self._prepare_monitors(data_path)
             batch_generator, batch_generator_args = self.data_manager.batch_generator()
-            data_set = tf.data.Dataset.from_generator(batch_generator,
-                                                      args=batch_generator_args,
-                                                      output_signature=tf.TensorSpec(shape=(None, self.batch_size, 3),
-                                                                                     dtype=tf.float64)
-                                                      )
+            data_set = tf.data.Dataset.from_generator(
+                batch_generator,
+                args=batch_generator_args,
+                output_signature=tf.TensorSpec(
+                    shape=(None, self.batch_size, 3), dtype=tf.float64
+                ),
+            )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for index, x in tqdm(enumerate(data_set),
-                                 ncols=70,
-                                 desc=f'{species}: Scaling Coordinates'):
+            for index, x in tqdm(
+                enumerate(data_set), ncols=70, desc=f"{species}: Scaling Coordinates"
+            ):
                 data = self._transformation(x)
-                self._save_coordinates(data=data,
-                                       data_structure=data_structure,
-                                       index=index,
-                                       batch_size=self.batch_size,
-                                       system_tensor=False,
-                                       tensor=True)
+                self._save_coordinates(
+                    data=data,
+                    data_structure=data_structure,
+                    index=index,
+                    batch_size=self.batch_size,
+                    system_tensor=False,
+                    tensor=True,
+                )
 
     def run_transformation(self):
         """

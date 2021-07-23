@@ -31,8 +31,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
-from mdsuite.calculators.transformations_reference import \
-    switcher_transformations
+from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
@@ -72,15 +71,17 @@ class Calculator(metaclass=abc.ABCMeta):
             parallel implementations
     """
 
-    def __init__(self,
-                 experiment: Experiment,
-                 plot: bool = True,
-                 save: bool = True,
-                 data_range: int = 500,
-                 correlation_time: int = 1,
-                 atom_selection: object = np.s_[:],
-                 export: bool = True,
-                 gpu: bool = False):
+    def __init__(
+        self,
+        experiment: Experiment,
+        plot: bool = True,
+        save: bool = True,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        atom_selection: object = np.s_[:],
+        export: bool = True,
+        gpu: bool = False,
+    ):
         """
         Constructor for the calculator class.
 
@@ -113,8 +114,8 @@ class Calculator(metaclass=abc.ABCMeta):
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
         self.database = Database(
-            name=os.path.join(self.experiment.database_path,
-                              "database.hdf5"))
+            name=os.path.join(self.experiment.database_path, "database.hdf5")
+        )
         self.gpu = gpu
 
         # Set to default by class, over-written in child classes or during operations
@@ -159,17 +160,20 @@ class Calculator(metaclass=abc.ABCMeta):
         # Prevent $DISPLAY warnings on clusters.
         if self.experiment.cluster_mode:
             import matplotlib
-            matplotlib.use('Agg')
 
-    def update_user_args(self,
-                         plot: bool = True,
-                         save: bool = True,
-                         data_range: int = 500,
-                         correlation_time: int = 1,
-                         atom_selection: object = np.s_[:],
-                         tau_values: Union[int, List, Any] = np.s_[:],
-                         export: bool = True,
-                         gpu: bool = False):
+            matplotlib.use("Agg")
+
+    def update_user_args(
+        self,
+        plot: bool = True,
+        save: bool = True,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        atom_selection: object = np.s_[:],
+        tau_values: Union[int, List, Any] = np.s_[:],
+        export: bool = True,
+        gpu: bool = False,
+    ):
         """
         Update the user args that are given by the __call__ method of the
         calculator.
@@ -203,10 +207,11 @@ class Calculator(metaclass=abc.ABCMeta):
 
         # attributes based on user args
         self._handle_tau_values()  # process selected tau values.
-        self.time = np.linspace(0.0,
-                                self.data_range * self.experiment.time_step *
-                                self.experiment.sample_rate,
-                                self.data_resolution)
+        self.time = np.linspace(
+            0.0,
+            self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+            self.data_resolution,
+        )
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
@@ -312,25 +317,22 @@ class Calculator(metaclass=abc.ABCMeta):
         log_y = np.log10(data[1][1:])
         log_x = np.log10(data[0][1:])
 
-        min_end_index, max_end_index = int(0.8 * len(log_y)), \
-                                       int(len(log_y) - 1)
-        min_start_index, max_start_index = int(0.3 * len(log_y)), \
-                                           int(0.5 * len(log_y))
+        min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
+        min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
 
         for _ in range(100):
             end_index = random.randint(min_end_index, max_end_index)
             start_index = random.randint(min_start_index, max_start_index)
 
-            popt, pcov = curve_fit(func, log_x[start_index:end_index],
-                                   log_y[start_index:end_index])
+            popt, pcov = curve_fit(
+                func, log_x[start_index:end_index], log_y[start_index:end_index]
+            )
             fits.append(10 ** popt[1])
 
         return [np.mean(fits), np.std(fits)]
 
     @staticmethod
-    def _update_species_type_dict(dictionary: dict,
-                                  path_list: list,
-                                  dimension: int):
+    def _update_species_type_dict(dictionary: dict, path_list: list, dimension: int):
         """
         Update a type spec dictionary for a species input.
 
@@ -348,9 +350,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None,
-                                                                dimension),
-                                                         dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(
+                shape=(None, None, dimension), dtype=tf.float64
+            )
 
         return dictionary
 
@@ -372,7 +374,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 Pandas data frame of the data
         """
 
-        return pd.DataFrame({'x': x, 'y': y})
+        return pd.DataFrame({"x": x, "y": y})
 
     @staticmethod
     def _export_data(name: str, data: pd.DataFrame):
@@ -410,10 +412,9 @@ class Calculator(metaclass=abc.ABCMeta):
                 Mean square displacement.
         """
         if square:
-            return tf.math.squared_difference(tf.gather(ensemble,
-                                                        self.tau_values,
-                                                        axis=1),
-                                              ensemble[:, None, 0])
+            return tf.math.squared_difference(
+                tf.gather(ensemble, self.tau_values, axis=1), ensemble[:, None, 0]
+            )
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
@@ -427,18 +428,16 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         if type(self.tau_values) is int:
             self.data_resolution = self.tau_values
-            self.tau_values = np.linspace(0,
-                                          self.data_range - 1,
-                                          int(self.tau_values),
-                                          dtype=int)
+            self.tau_values = np.linspace(
+                0, self.data_range - 1, int(self.tau_values), dtype=int
+            )
         if type(self.tau_values) is list:
             self.data_resolution = len(self.tau_values)
             self.data_range = self.tau_values[-1] + 1
         if type(self.tau_values) is slice:
-            self.tau_values = np.linspace(0,
-                                          self.data_range - 1,
-                                          self.data_range,
-                                          dtype=int)[self.tau_values]
+            self.tau_values = np.linspace(
+                0, self.data_range - 1, self.data_range, dtype=int
+            )[self.tau_values]
             self.data_resolution = len(self.tau_values)
 
     def _prepare_managers(self, data_path: list):
@@ -455,37 +454,42 @@ class Calculator(metaclass=abc.ABCMeta):
         -------
         Updates the calculator class
         """
-        self.memory_manager = MemoryManager(data_path=data_path,
-                                            database=self.database,
-                                            memory_fraction=0.8,
-                                            scale_function=self.scale_function,
-                                            gpu=self.gpu)
-        self.batch_size, \
-        self.n_batches, \
-        self.remainder = self.memory_manager.get_batch_size(
-            system=self.system_property)
+        self.memory_manager = MemoryManager(
+            data_path=data_path,
+            database=self.database,
+            memory_fraction=0.8,
+            scale_function=self.scale_function,
+            gpu=self.gpu,
+        )
+        (
+            self.batch_size,
+            self.n_batches,
+            self.remainder,
+        ) = self.memory_manager.get_batch_size(system=self.system_property)
 
         self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(
-            self.data_range, self.correlation_time)
+            self.data_range, self.correlation_time
+        )
         if minibatch:
             self.batch_size = self.memory_manager.batch_size
             self.n_batches = self.memory_manager.n_batches
             self.remainder = self.memory_manager.remainder
 
-        self.data_manager = DataManager(data_path=data_path,
-                                        database=self.database,
-                                        data_range=self.data_range,
-                                        batch_size=self.batch_size,
-                                        n_batches=self.n_batches,
-                                        ensemble_loop=self.ensemble_loop,
-                                        correlation_time=self.correlation_time,
-                                        remainder=self.remainder,
-                                        atom_selection=self.atom_selection,
-                                        minibatch=minibatch,
-                                        atom_batch_size=self.memory_manager.atom_batch_size,
-                                        n_atom_batches=self.memory_manager.n_atom_batches,
-                                        atom_remainder=self.memory_manager.atom_remainder
-                                        )
+        self.data_manager = DataManager(
+            data_path=data_path,
+            database=self.database,
+            data_range=self.data_range,
+            batch_size=self.batch_size,
+            n_batches=self.n_batches,
+            ensemble_loop=self.ensemble_loop,
+            correlation_time=self.correlation_time,
+            remainder=self.remainder,
+            atom_selection=self.atom_selection,
+            minibatch=minibatch,
+            atom_batch_size=self.memory_manager.atom_batch_size,
+            n_atom_batches=self.memory_manager.n_atom_batches,
+            atom_remainder=self.memory_manager.atom_remainder,
+        )
         self._update_output_signatures()
 
     def _build_table_name(self, species: str = "System"):
@@ -519,16 +523,18 @@ class Calculator(metaclass=abc.ABCMeta):
                 Data to be saved.
         """
         database = AnalysisDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              "analysis_database"))
+            name=os.path.join(self.experiment.database_path, "analysis_database")
+        )
         database.add_data(name=name, data_frame=data)
 
-    def _plot_fig(self,
-                  fig: matplotlib.figure.Figure,
-                  ax: Axes,
-                  title: str = None,
-                  dpi: int = 600,
-                  filetype: str = 'svg'):
+    def _plot_fig(
+        self,
+        fig: matplotlib.figure.Figure,
+        ax: Axes,
+        title: str = None,
+        dpi: int = 600,
+        filetype: str = "svg",
+    ):
         """
         Class based plotting using fig, ax = plt.subplots
 
@@ -548,17 +554,19 @@ class Calculator(metaclass=abc.ABCMeta):
         if title is None:
             title = f"{self.analysis_name}"
 
-        ax.set_xlabel(rf'{self.x_label}')
-        ax.set_ylabel(rf'{self.y_label}')
+        ax.set_xlabel(rf"{self.x_label}")
+        ax.set_ylabel(rf"{self.y_label}")
         ax.legend()
         fig.set_facecolor("w")
         fig.show()
 
-        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"),
-                    dpi=dpi, format=filetype)
+        fig.savefig(
+            os.path.join(self.experiment.figures_path, f"{title}.svg"),
+            dpi=dpi,
+            format=filetype,
+        )
 
-    def _plot_data(self, title: str = None, manual: bool = False,
-                   dpi: int = 600):
+    def _plot_data(self, title: str = None, manual: bool = False, dpi: int = 600):
         """
         Plot the tensor_values generated during the analysis
         """
@@ -568,18 +576,19 @@ class Calculator(metaclass=abc.ABCMeta):
 
         if manual:
             plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
+                os.path.join(self.experiment.figures_path, f"{title}.svg"),
                 dpi=dpi,
-                format='svg')
+                format="svg",
+            )
         else:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
+            plt.xlabel(rf"{self.x_label}")  # set the x label
+            plt.ylabel(rf"{self.y_label}")  # set the y label
             plt.legend()  # enable the legend
             plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
-                dpi=dpi, format='svg')
+                os.path.join(self.experiment.figures_path, f"{title}.svg"),
+                dpi=dpi,
+                format="svg",
+            )
 
     def _check_input(self):
         """
@@ -590,11 +599,13 @@ class Calculator(metaclass=abc.ABCMeta):
         status: int
             if 0, check failed, if 1, check passed.
         """
-        if self.data_range > self.experiment.number_of_configurations - \
-                self.correlation_time:
+        if (
+            self.data_range
+            > self.experiment.number_of_configurations - self.correlation_time
+        ):
             print(
-                "Data range is impossible for this experiment, "
-                "reduce and try again")
+                "Data range is impossible for this experiment, " "reduce and try again"
+            )
             sys.exit(1)
 
     def _optimize_einstein_data_range(self, data: np.array):
@@ -640,8 +651,9 @@ class Calculator(metaclass=abc.ABCMeta):
         end_index = int(len(log_y) - 1)
         start_index = int(0.4 * len(log_y))
 
-        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[
-                                                                   start_index:end_index])
+        popt, pcov = curve_fit(
+            func, log_x[start_index:end_index], log_y[start_index:end_index]
+        )
 
         if 0.85 < popt[0] < 1.15:
             self.loop_condition = True
@@ -649,28 +661,31 @@ class Calculator(metaclass=abc.ABCMeta):
         else:
             try:
                 self.data_range = int(1.1 * self.data_range)
-                self.time = np.linspace(0.0,
-                                        self.data_range *
-                                        self.experiment.time_step *
-                                        self.experiment.sample_rate,
-                                        self.data_range)
+                self.time = np.linspace(
+                    0.0,
+                    self.data_range
+                    * self.experiment.time_step
+                    * self.experiment.sample_rate,
+                    self.data_range,
+                )
 
                 # end the calculation if the tensor_values range exceeds the relevant bounds
-                if self.data_range > self.experiment.number_of_configurations - \
-                        self.correlation_time:
+                if (
+                    self.data_range
+                    > self.experiment.number_of_configurations - self.correlation_time
+                ):
                     print("Trajectory not long enough to perform analysis.")
                     raise RangeExceeded
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict,
-                                delete_duplicate: bool = True):
+    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
         database = PropertiesDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              'property_database'))
+            name=os.path.join(self.experiment.database_path, "property_database")
+        )
         database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
@@ -705,14 +720,15 @@ class Calculator(metaclass=abc.ABCMeta):
             """
 
             switcher_unwrapping = {
-                'Unwrapped_Positions': self._unwrap_choice(), }
+                "Unwrapped_Positions": self._unwrap_choice(),
+            }
 
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(argument,
-                                  lambda: "Data not in database and can not "
-                                          "be generated.")
+            choice = switcher.get(
+                argument, lambda: "Data not in database and can not " "be generated."
+            )
             return choice
 
         transformation = _string_to_function(dependency)
@@ -725,11 +741,11 @@ class Calculator(metaclass=abc.ABCMeta):
         -------
 
         """
-        indices = self.database.check_existence('Box_Images')
+        indices = self.database.check_existence("Box_Images")
         if indices:
-            return 'UnwrapViaIndices'
+            return "UnwrapViaIndices"
         else:
-            return 'UnwrapCoordinates'
+            return "UnwrapCoordinates"
 
     def _run_dependency_check(self):
         """
@@ -766,26 +782,32 @@ class Calculator(metaclass=abc.ABCMeta):
             self._prepare_managers(data_path)
 
             batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                system=self.system_property)
+                system=self.system_property
+            )
             batch_data_set = tf.data.Dataset.from_generator(
                 generator=batch_generator,
                 args=batch_generator_args,
-                output_signature=self.batch_output_signature)
+                output_signature=self.batch_output_signature,
+            )
             batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
             for batch_index, batch in enumerate(batch_data_set):
-                ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator(
-                    system=self.system_property)
+                (
+                    ensemble_generator,
+                    ensemble_generators_args,
+                ) = self.data_manager.ensemble_generator(system=self.system_property)
                 ensemble_data_set = tf.data.Dataset.from_generator(
                     generator=ensemble_generator,
                     args=ensemble_generators_args + (batch,),
-                    output_signature=self.ensemble_output_signature)
+                    output_signature=self.ensemble_output_signature,
+                )
 
                 for ensemble_index, ensemble in tqdm(
-                        enumerate(ensemble_data_set),
-                        desc="Ensemble Loop",
-                        ncols=70,
-                        total=self.ensemble_loop):
+                    enumerate(ensemble_data_set),
+                    desc="Ensemble Loop",
+                    ncols=70,
+                    total=self.ensemble_loop,
+                ):
                     self._apply_operation(ensemble, ensemble_index)
 
             self._apply_averaging_factor()
@@ -796,9 +818,10 @@ class Calculator(metaclass=abc.ABCMeta):
                 plt.show()
 
         elif self.experimental:
-            data_path = [join_path(species,
-                                   self.loaded_property) for species
-                         in self.experiment.species]
+            data_path = [
+                join_path(species, self.loaded_property)
+                for species in self.experiment.species
+            ]
             self._prepare_managers(data_path)
             output = self.run_experimental_analysis()
 
@@ -814,30 +837,39 @@ class Calculator(metaclass=abc.ABCMeta):
                 data_path = [join_path(species, self.loaded_property)]
                 self._prepare_managers(data_path)
 
-                batch_generator, batch_generator_args = self.data_manager.batch_generator()
+                (
+                    batch_generator,
+                    batch_generator_args,
+                ) = self.data_manager.batch_generator()
                 batch_data_set = tf.data.Dataset.from_generator(
                     generator=batch_generator,
                     args=batch_generator_args,
-                    output_signature=self.batch_output_signature)
-                batch_data_set = batch_data_set.prefetch(
-                    tf.data.experimental.AUTOTUNE)
+                    output_signature=self.batch_output_signature,
+                )
+                batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-                for batch_index, batch in tqdm(enumerate(batch_data_set),
-                                               ncols=70,
-                                               desc=species,
-                                               total=self.n_batches,
-                                               disable=self.memory_manager.minibatch):
+                for batch_index, batch in tqdm(
+                    enumerate(batch_data_set),
+                    ncols=70,
+                    desc=species,
+                    total=self.n_batches,
+                    disable=self.memory_manager.minibatch,
+                ):
 
-                    ensemble_generator, ensemble_generators_args = self.data_manager.ensemble_generator()
+                    (
+                        ensemble_generator,
+                        ensemble_generators_args,
+                    ) = self.data_manager.ensemble_generator()
                     ensemble_data_set = tf.data.Dataset.from_generator(
                         generator=ensemble_generator,
                         args=ensemble_generators_args + (batch,),
-                        output_signature=self.ensemble_output_signature)
+                        output_signature=self.ensemble_output_signature,
+                    )
                     ensemble_data_set = ensemble_data_set.prefetch(
-                        tf.data.experimental.AUTOTUNE)
+                        tf.data.experimental.AUTOTUNE
+                    )
 
-                    for ensemble_index, ensemble in enumerate(
-                            ensemble_data_set):
+                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
                         self._apply_operation(ensemble, ensemble_index)
 
                 self._apply_averaging_factor()
@@ -871,7 +903,8 @@ class Calculator(metaclass=abc.ABCMeta):
         if self.experimental:
             log.warning(
                 "This is an experimental calculator. Please see the "
-                "documentation before using the results.")
+                "documentation before using the results."
+            )
         if self.optimize:
             pass
         else:

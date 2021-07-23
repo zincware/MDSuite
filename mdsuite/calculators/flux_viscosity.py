@@ -62,22 +62,31 @@ class GreenKuboViscosityFlux(Calculator):
                 Experiment class to read and write to
         """
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
+        self.loaded_property = "Stress_visc"  # Property to be loaded for the analysis
         self.system_property = True
 
-        self.database_group = 'Viscosity'  # Which database_path group to save the tensor_values in
-        self.analysis_name = 'Viscosity_Flux'
-        self.x_label = 'Time (s)'
-        self.y_label = 'JACF ($C^{2}\\cdot m^{2}/s^{2}$)'
+        self.database_group = (
+            "Viscosity"  # Which database_path group to save the tensor_values in
+        )
+        self.analysis_name = "Viscosity_Flux"
+        self.x_label = "Time (s)"
+        self.y_label = "JACF ($C^{2}\\cdot m^{2}/s^{2}$)"
 
         self.prefactor: float
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
-    def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
-                 gpu: bool = False):
+    def __call__(
+        self,
+        plot=False,
+        data_range=500,
+        correlation_time=1,
+        save=True,
+        export: bool = False,
+        gpu: bool = False,
+    ):
         """
         Python constructor for the experiment class.
 
@@ -88,8 +97,14 @@ class GreenKuboViscosityFlux(Calculator):
         data_range : int
                 Number of configurations to include in each ensemble
         """
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
@@ -109,8 +124,12 @@ class GreenKuboViscosityFlux(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -126,12 +145,21 @@ class GreenKuboViscosityFlux(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.volume
-        denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units['boltzman']
+        denominator = (
+            3
+            * (self.data_range - 1)
+            * self.experiment.temperature
+            * self.experiment.units["boltzman"]
+        )
 
-        prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-            self.experiment.units['time'] / self.experiment.units['energy']
+        prefactor_units = (
+            self.experiment.units["pressure"] ** 2
+            * self.experiment.units["length"] ** 3
+            * self.experiment.units["time"]
+            / self.experiment.units["energy"]
+        )
 
-        self.prefactor = (numerator / denominator)*prefactor_units
+        self.prefactor = (numerator / denominator) * prefactor_units
 
     def _apply_averaging_factor(self):
         """
@@ -154,17 +182,17 @@ class GreenKuboViscosityFlux(Calculator):
         -------
         updates class vacf with the tensor_values.
         """
-        jacf = (signal.correlate(ensemble[:, 0],
-                                 ensemble[:, 0],
-                                 mode='full', method='auto') +
-                signal.correlate(ensemble[:, 1],
-                                 ensemble[:, 1],
-                                 mode='full', method='auto') +
-                signal.correlate(ensemble[:, 2],
-                                 ensemble[:, 2],
-                                 mode='full', method='auto'))
-        self.jacf += jacf[int(self.data_range - 1):]
-        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+        jacf = (
+            signal.correlate(ensemble[:, 0], ensemble[:, 0], mode="full", method="auto")
+            + signal.correlate(
+                ensemble[:, 1], ensemble[:, 1], mode="full", method="auto"
+            )
+            + signal.correlate(
+                ensemble[:, 2], ensemble[:, 2], mode="full", method="auto"
+            )
+        )
+        self.jacf += jacf[int(self.data_range - 1) :]
+        self.sigma.append(np.trapz(jacf[int(self.data_range - 1) :], x=self.time))
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -173,31 +201,40 @@ class GreenKuboViscosityFlux(Calculator):
         -------
 
         """
-        result = self.prefactor*np.array(self.sigma)
+        result = self.prefactor * np.array(self.sigma)
 
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result)/(np.sqrt(len(result)))}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": ["System"],
+            "data_range": self.data_range,
+            "data": [
+                {
+                    "x": np.mean(result),
+                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
+                }
+            ],
+        }
         self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
+            plt.plot(np.array(self.time) * self.experiment.units["time"], self.jacf)
             self._plot_data()
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.jacf)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": ["System"],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.jacf)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.jacf))
+            self._export_data(
+                name=self._build_table_name("System"),
+                data=self._build_pandas_dataframe(self.time, self.jacf),
+            )

@@ -26,7 +26,10 @@ from io import UnsupportedOperation
 from tqdm import tqdm
 import importlib.resources
 from datetime import datetime
-from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
+from mdsuite.calculators.computations_dict import (
+    dict_classes_computations,
+    dict_classes_db,
+)
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
@@ -67,10 +70,17 @@ class Experiment:
             from the file and will be correct.
     number_of_atoms : int
             The total number of atoms in the simulation
-   """
+    """
 
-    def __init__(self, analysis_name, storage_path='./', time_step=1.0, temperature=0, units='real',
-                 cluster_mode=False):
+    def __init__(
+        self,
+        analysis_name,
+        storage_path="./",
+        time_step=1.0,
+        temperature=0,
+        units="real",
+        cluster_mode=False,
+    ):
         """
         Initialise the experiment class.
 
@@ -91,10 +101,14 @@ class Experiment:
 
         # Taken upon instantiation
         self.analysis_name = analysis_name  # Name of the experiment.
-        self.storage_path = os.path.abspath(storage_path)  # Where to store the tensor_values
+        self.storage_path = os.path.abspath(
+            storage_path
+        )  # Where to store the tensor_values
         self.temperature = temperature  # Temperature of the experiment.
         self.time_step = time_step  # Timestep chosen for the simulation.
-        self.cluster_mode = cluster_mode  # whether or not the script will run on a cluster
+        self.cluster_mode = (
+            cluster_mode  # whether or not the script will run on a cluster
+        )
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
@@ -105,11 +119,15 @@ class Experiment:
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
-        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
+        self.sample_rate = (
+            None  # Rate at which configurations are dumped in the trajectory.
+        )
         self.batch_size = None  # Number of configurations in each batch.
         self.volume = None  # Volume of the experiment.
         self.properties = None  # Properties measured in the simulation.
-        self.property_groups = None  # Names of the properties measured in the simulation
+        self.property_groups = (
+            None  # Names of the properties measured in the simulation
+        )
 
         # Internal File paths
         self.experiment_path: str
@@ -118,14 +136,18 @@ class Experiment:
         self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
-        self.radial_distribution_function_state = False  # Set true if this has been calculated
+        self.radial_distribution_function_state = (
+            False  # Set true if this has been calculated
+        )
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 
         self._results = list(dict_classes_db.keys())
 
         # Memory properties
-        self.memory_requirements = {}  # TODO I think this can be removed. - Not until all calcs are under tf Dataset
+        self.memory_requirements = (
+            {}
+        )  # TODO I think this can be removed. - Not until all calcs are under tf Dataset
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
@@ -137,10 +159,14 @@ class Experiment:
         self._start_logging()
 
         self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
+        self.simulation_data_file = (
+            Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
+        )
 
     def _start_logging(self):
-        logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
+        logfile_name = (
+            datetime.now().replace(microsecond=0).isoformat().replace(":", "-") + ".log"
+        )
         logfile = os.path.join(self.logfile_path, logfile_name)
 
         # there is a good chance, that the root logger is already defined so we have to make some changes to it!
@@ -150,21 +176,31 @@ class Experiment:
         file_handler = logging.FileHandler(filename=logfile)
         file_handler.setLevel(logging.INFO)  # <- file log loglevel
 
-        formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s (%(levelname)s) - %(message)s"
+        )
         file_handler.setFormatter(formatter)
         # attaching the stdout handler to the configured logging
         root.addHandler(file_handler)
         # get the file specific logger to get information where the log was written!
-        log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
+        log.info(
+            f"Created logfile {logfile_name} in experiment path {self.logfile_path}"
+        )
 
     def _create_internal_file_paths(self):
         """
         Create or update internal file paths
         """
-        self.experiment_path = os.path.join(self.storage_path, self.analysis_name)  # path to the experiment files
-        self.database_path = os.path.join(self.experiment_path, 'databases')  # path to the databases
-        self.figures_path = os.path.join(self.experiment_path, 'figures')  # path to the figures directory
-        self.logfile_path = os.path.join(self.experiment_path, 'logfiles')
+        self.experiment_path = os.path.join(
+            self.storage_path, self.analysis_name
+        )  # path to the experiment files
+        self.database_path = os.path.join(
+            self.experiment_path, "databases"
+        )  # path to the databases
+        self.figures_path = os.path.join(
+            self.experiment_path, "figures"
+        )  # path to the figures directory
+        self.logfile_path = os.path.join(self.experiment_path, "logfiles")
 
     def _load_or_build(self) -> bool:
         """
@@ -192,9 +228,15 @@ class Experiment:
 
         storage_path = self.storage_path  # store the new storage path
 
-        with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
+        with open(
+            f"{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin", "rb"
+        ) as f:
             update_dict: dict = pickle.loads(f.read())
-            for pop_item in ['run_computation', 'analyse_time_series', 'RunComputation']:
+            for pop_item in [
+                "run_computation",
+                "analyse_time_series",
+                "RunComputation",
+            ]:
                 try:
                     update_dict.pop(pop_item)
                     # remove keys that should not be updated!
@@ -216,7 +258,7 @@ class Experiment:
         class for later re-loading
         """
         filename = os.path.join(self.experiment_path, f"{self.analysis_name}.bin")
-        with open(filename, 'wb') as save_file:
+        with open(filename, "wb") as save_file:
             save_file.write(pickle.dumps(self.__dict__))  # write to file
 
     @staticmethod
@@ -241,10 +283,12 @@ class Experiment:
             return units_system
         else:
             try:
-                units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
+                units = units_dict[
+                    units_system
+                ]()  # executes the function to return the appropriate dictionary.
             except KeyError:
-                print('The unit experiment provided is not implemented...')
-                print('The available systems are: ')
+                print("The unit experiment provided is not implemented...")
+                print("The available systems are: ")
                 [print(key) for key, _ in units_dict.items()]
                 sys.exit(-1)
         return units
@@ -267,7 +311,9 @@ class Experiment:
             self.species[mapping[item]] = self.species.pop(item)
 
         # rename database_path groups
-        db_object = Database(name=os.path.join(self.database_path, "database_path.hdf5"))
+        db_object = Database(
+            name=os.path.join(self.database_path, "database_path.hdf5")
+        )
         db_object.change_key_names(mapping)
 
         self.save_class()  # update the class state
@@ -291,8 +337,8 @@ class Experiment:
         try:
             transformation = transformations_dict[transformation_name]
         except KeyError:
-            print(f'{transformation_name} not found')
-            print('Available transformations are:')
+            print(f"{transformation_name} not found")
+            print("Available transformations are:")
             [print(key) for key in transformations_dict.keys()]
             sys.exit(1)
 
@@ -352,7 +398,10 @@ class Experiment:
         -------
 
         """
-        with open('.read_files.txt', 'a') as f:
+
+        read_files = Path(self.storage_path, ".read_files.txt")
+
+        with read_files.open(mode="a") as f:
             data = []
             try:
                 for line in f:
@@ -363,15 +412,17 @@ class Experiment:
             result = file_path in data  # check if it exists.
 
             if not result:
-                f.write(f'{file_path}\n')
+                f.write(f"{file_path}\n")
             return result
 
-    def add_data(self,
-                 trajectory_file: str = None,
-                 file_format: str = 'lammps_traj',
-                 rename_cols: dict = None,
-                 sort: bool = False,
-                 force: bool = False):
+    def add_data(
+        self,
+        trajectory_file: str = None,
+        file_format: str = "lammps_traj",
+        rename_cols: dict = None,
+        sort: bool = False,
+        force: bool = False,
+    ):
         """
         Add tensor_values to the database_path
 
@@ -401,85 +452,126 @@ class Experiment:
             if force:
                 pass
             else:
-                log.info('This file has already been read, skipping this now.'
-                         'If this is not desired, please add force=True'
-                         'to the command.')
+                log.info(
+                    "This file has already been read, skipping this now."
+                    "If this is not desired, please add force=True"
+                    "to the command."
+                )
                 return  # End the method.
 
         # Load the file reader and the database_path object
-        trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
-        database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
+        trajectory_reader, file_type = self._load_trajectory_reader(
+            file_format, trajectory_file, sort=sort
+        )
+        database = Database(
+            name=os.path.join(self.database_path, "database.hdf5"),
+            architecture="simulation",
+        )
 
         # Check to see if a database_path exists
-        database_path = Path(os.path.join(self.database_path, 'database.hdf5'))  # get theoretical path.
+        database_path = Path(
+            os.path.join(self.database_path, "database.hdf5")
+        )  # get theoretical path.
 
-        if file_type == 'flux':
+        if file_type == "flux":
             flux = True
         else:
             flux = False
 
         if database_path.exists():
-            self._update_database(trajectory_reader,
-                                  trajectory_file,
-                                  database,
-                                  rename_cols,
-                                  sort=sort)
+            self._update_database(
+                trajectory_reader, trajectory_file, database, rename_cols, sort=sort
+            )
         else:
-            self._build_new_database(trajectory_reader,
-                                     trajectory_file,
-                                     database,
-                                     rename_cols=rename_cols,
-                                     flux=flux,
-                                     sort=sort)
+            self._build_new_database(
+                trajectory_reader,
+                trajectory_file,
+                database,
+                rename_cols=rename_cols,
+                flux=flux,
+                sort=sort,
+            )
 
         self.build_species_dictionary()
         self.memory_requirements = database.get_memory_information()
         self.save_class()  # Update the class state.
 
-    def _build_new_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
-                            rename_cols: dict, flux: bool = False, sort: bool = False):
+    def _build_new_database(
+        self,
+        trajectory_reader: FileProcessor,
+        trajectory_file: str,
+        database: Database,
+        rename_cols: dict,
+        flux: bool = False,
+        sort: bool = False,
+    ):
         """
         Build a new database_path
         """
         # get properties of the trajectory file
-        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols)
+        architecture, line_length = trajectory_reader.process_trajectory_file(
+            rename_cols=rename_cols
+        )
         database.initialize_database(architecture)  # initialize the database_path
 
-        batch_range = int(self.number_of_configurations / self.batch_size)  # calculate the batch range
+        batch_range = int(
+            self.number_of_configurations / self.batch_size
+        )  # calculate the batch range
         remainder = self.number_of_configurations - batch_range * self.batch_size
         counter = 0  # instantiate counter
         structure = trajectory_reader.build_file_structure()  # build the file structure
 
-        with open(trajectory_file, 'r') as f_object:
+        with open(trajectory_file, "r") as f_object:
             for _ in tqdm(range(batch_range), ncols=70):
-                database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
-                                  structure=structure,
-                                  start_index=counter,
-                                  batch_size=self.batch_size,
-                                  flux=flux,
-                                  n_atoms=self.number_of_atoms,
-                                  sort=sort)
+                database.add_data(
+                    data=trajectory_reader.read_configurations(
+                        self.batch_size, f_object, line_length
+                    ),
+                    structure=structure,
+                    start_index=counter,
+                    batch_size=self.batch_size,
+                    flux=flux,
+                    n_atoms=self.number_of_atoms,
+                    sort=sort,
+                )
                 counter += self.batch_size
 
             if remainder > 0:
-                structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
-                database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
-                                  structure=structure,
-                                  start_index=counter,
-                                  batch_size=remainder,
-                                  flux=flux,
-                                  n_atoms=self.number_of_atoms,
-                                  sort=sort)
+                structure = trajectory_reader.build_file_structure(
+                    batch_size=remainder
+                )  # build the file structure
+                database.add_data(
+                    data=trajectory_reader.read_configurations(
+                        remainder, f_object, line_length
+                    ),
+                    structure=structure,
+                    start_index=counter,
+                    batch_size=remainder,
+                    flux=flux,
+                    n_atoms=self.number_of_atoms,
+                    sort=sort,
+                )
 
-        analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
+        analysis_database = AnalysisDatabase(
+            name=os.path.join(self.database_path, "analysis_database")
+        )
         analysis_database.build_database()
-        property_database = PropertiesDatabase(name=os.path.join(self.database_path, "property_database"))
+        property_database = PropertiesDatabase(
+            name=os.path.join(self.database_path, "property_database")
+        )
         property_database.build_database()
 
         self.save_class()  # Update the class state
 
-    def _update_database(self, trajectory_reader: FileProcessor, trajectory_file: str, database: Database,
-                         rename_cols: dict, flux: bool = False, sort: bool = False):
+    def _update_database(
+        self,
+        trajectory_reader: FileProcessor,
+        trajectory_file: str,
+        database: Database,
+        rename_cols: dict,
+        flux: bool = False,
+        sort: bool = False,
+    ):
         """
         Update the database rather than build a new database.
 
@@ -488,40 +580,55 @@ class Experiment:
         Updates the current database.
         """
         counter = self.number_of_configurations
-        architecture, line_length = trajectory_reader.process_trajectory_file(rename_cols=rename_cols,
-                                                                              update_class=False)
+        architecture, line_length = trajectory_reader.process_trajectory_file(
+            rename_cols=rename_cols, update_class=False
+        )
         number_of_new_configurations = self.number_of_configurations - counter
         database.resize_dataset(architecture)  # initialize the database_path
-        batch_range = int(number_of_new_configurations / self.batch_size)  # calculate the batch range
+        batch_range = int(
+            number_of_new_configurations / self.batch_size
+        )  # calculate the batch range
         remainder = number_of_new_configurations - (batch_range * self.batch_size)
         structure = trajectory_reader.build_file_structure()  # build the file structure
-        f_object = open(trajectory_file, 'r')  # open the trajectory file
+        f_object = open(trajectory_file, "r")  # open the trajectory file
         for _ in tqdm(range(batch_range), ncols=70):
-            database.add_data(data=trajectory_reader.read_configurations(self.batch_size, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=self.batch_size,
-                              flux=flux,
-                              n_atoms=self.number_of_atoms,
-                              sort=sort)
+            database.add_data(
+                data=trajectory_reader.read_configurations(
+                    self.batch_size, f_object, line_length
+                ),
+                structure=structure,
+                start_index=counter,
+                batch_size=self.batch_size,
+                flux=flux,
+                n_atoms=self.number_of_atoms,
+                sort=sort,
+            )
             counter += self.batch_size
 
         if remainder > 0:
-            structure = trajectory_reader.build_file_structure(batch_size=remainder)  # build the file structure
-            database.add_data(data=trajectory_reader.read_configurations(remainder, f_object, line_length),
-                              structure=structure,
-                              start_index=counter,
-                              batch_size=remainder,
-                              flux=flux)
+            structure = trajectory_reader.build_file_structure(
+                batch_size=remainder
+            )  # build the file structure
+            database.add_data(
+                data=trajectory_reader.read_configurations(
+                    remainder, f_object, line_length
+                ),
+                structure=structure,
+                start_index=counter,
+                batch_size=remainder,
+                flux=flux,
+            )
 
         f_object.close()
 
     def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
         try:
-            class_file_io, file_type = dict_file_io[file_format]  # file type is per atoms or flux.
+            class_file_io, file_type = dict_file_io[
+                file_format
+            ]  # file type is per atoms or flux.
         except KeyError:
-            print(f'{file_format} not found')
-            print('Available io formats are are:')
+            print(f"{file_format} not found")
+            print("Available io formats are are:")
             [print(key) for key in dict_file_io.keys()]
             sys.exit(1)
         return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
@@ -535,27 +642,37 @@ class Experiment:
         will be used in conductivity calculations.
 
         """
-        with importlib.resources.open_text("mdsuite.data", 'PubChemElements_all.json') as json_file:
+        with importlib.resources.open_text(
+            "mdsuite.data", "PubChemElements_all.json"
+        ) as json_file:
             pse = json.loads(json_file.read())
 
         # Try to get the species tensor_values from the Periodic System of Elements file
         for element in self.species:
-            self.species[element]['charge'] = [0.0]
+            self.species[element]["charge"] = [0.0]
             for entry in pse:
                 if pse[entry][1] == element:
-                    self.species[element]['mass'] = [float(pse[entry][3])]
+                    self.species[element]["mass"] = [float(pse[entry][3])]
 
         # If gathering the tensor_values from the PSE file was not successful try to get it from Pubchem via pubchempy
         for element in self.species:
-            if 'mass' not in self.species[element]:
+            if "mass" not in self.species[element]:
                 try:
-                    temp = pcp.get_compounds(element, 'name')
-                    temp[0].to_dict(properties=['atoms', 'bonds', 'exact_mass', 'molecular_weight', 'elements'])
-                    self.species[element]['mass'] = temp[0].molecular_weight
+                    temp = pcp.get_compounds(element, "name")
+                    temp[0].to_dict(
+                        properties=[
+                            "atoms",
+                            "bonds",
+                            "exact_mass",
+                            "molecular_weight",
+                            "elements",
+                        ]
+                    )
+                    self.species[element]["mass"] = temp[0].molecular_weight
                     print(temp[0].exact_mass)
                 except (ElementMassAssignedZero, IndexError):
-                    self.species[element]['mass'] = [0.0]
-                    print(f'WARNING element {element} has been assigned mass=0.0')
+                    self.species[element]["mass"] = [0.0]
+                    print(f"WARNING element {element} has been assigned mass=0.0")
         self.save_class()
 
     def set_element(self, old_name, new_name):
@@ -585,7 +702,7 @@ class Experiment:
         charge : list
                 New charge/s of the element
         """
-        self.species[element]['charge'] = [charge]  # update entry
+        self.species[element]["charge"] = [charge]  # update entry
         self.save_class()
 
     def set_mass(self, element: str, mass: float):
@@ -599,9 +716,15 @@ class Experiment:
         mass : list
                 New mass/es of the element
         """
-        self.species[element]['mass'] = mass  # update the mass
+        self.species[element]["mass"] = mass  # update the mass
 
-    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: list = None):
+    def load_matrix(
+        self,
+        identifier: str = None,
+        species: dict = None,
+        select_slice: np.s_ = None,
+        path: list = None,
+    ):
         """
         Load a desired property matrix.
 
@@ -621,7 +744,7 @@ class Experiment:
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
-        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
+        database = Database(name=os.path.join(self.database_path, "database.hdf5"))
 
         if path is not None:
             return database.load_data(path_list=path, select_slice=select_slice)
@@ -629,7 +752,9 @@ class Experiment:
         else:
             # If no species list is given, use all species in the Experiment class instance.
             if species is None:
-                species = list(self.species.keys())  # get list of all species available.
+                species = list(
+                    self.species.keys()
+                )  # get list of all species available.
             # If no slice is given, load all configurations.
             if select_slice is None:
                 select_slice = np.s_[:]  # set the numpy slice object.
@@ -663,8 +788,10 @@ class Experiment:
             the actual dictionary with the results from the YAML file
         """
 
-        with open(os.path.join(self.database_path, 'system_properties.yaml')) as pfr:
-            self._results = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
+        with open(os.path.join(self.database_path, "system_properties.yaml")) as pfr:
+            self._results = yaml.load(
+                pfr, Loader=yaml.Loader
+            )  # collect the data in the yaml file
 
         return self._results
 
@@ -680,33 +807,48 @@ class Experiment:
 
         """
 
-        with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
+        with open(
+            os.path.join(self.database_path, "system_properties.yaml"), "w"
+        ) as pfw:
             yaml.dump(result_dict, pfw)
 
-    def write_xyz(self, dump_property: str = "Positions", species: list = None, name: str = 'dump.xyz'):
+    def write_xyz(
+        self,
+        dump_property: str = "Positions",
+        species: list = None,
+        name: str = "dump.xyz",
+    ):
         """
         Write an xyz file from a database dataset
         """
         if species is None:
             species = list(self.species)
 
-        database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
+        database = Database(
+            name=os.path.join(self.database_path, "database.hdf5"),
+            architecture="simulation",
+        )
 
         path_list = [join_path(s, dump_property) for s in species]
         if len(species) == 1:
-            data_matrix = [database.load_data(path_list=path_list, select_slice=np.s_[:, 0:500])]
+            data_matrix = [
+                database.load_data(path_list=path_list, select_slice=np.s_[:, 0:500])
+            ]
         else:
-            data_matrix = database.load_data(path_list=path_list, select_slice=np.s_[:, 0:500])
-        n_atoms = sum(len(self.species[s]['indices']) for s in species)
+            data_matrix = database.load_data(
+                path_list=path_list, select_slice=np.s_[:, 0:500]
+            )
+        n_atoms = sum(len(self.species[s]["indices"]) for s in species)
 
-        with open(f"{name}.xyz", 'w') as f:
+        with open(f"{name}.xyz", "w") as f:
             for i in tqdm(range(500), ncols=70):
                 f.write(f"{n_atoms}\n")
                 f.write("Generated by the mdsuite xyz writer\n")
                 for j, atom_species in enumerate(species):
                     for atom in data_matrix[j].numpy():
                         f.write(
-                            f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
+                            f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n"
+                        )
 
     def export_data(self, group: str, key: str = None, sub_key: str = None):
         """
@@ -724,16 +866,21 @@ class Experiment:
         -------
         saves a csv to the working directory.
         """
-        database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
+        database = Database(
+            name=os.path.join(self.database_path, "analysis_data.hdf5"),
+            architecture="analysis",
+        )
         database.export_csv(group=group, key=key, sub_key=sub_key)
 
     def summarise(self):
         """
         Summarise the properties of the experiment.
         """
-        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
+        database = Database(name=os.path.join(self.database_path, "database.hdf5"))
         print(f"MDSuite {self.analysis_name} Summary\n")
-        print("==================================================================================\n")
+        print(
+            "==================================================================================\n"
+        )
         print(f"Name: {self.analysis_name}\n")
         print(f"Temperature: {self.temperature} K\n")
         print(f"Number of Configurations: {self.number_of_configurations}\n")
@@ -757,9 +904,13 @@ class Experiment:
         print("Database Information\n")
         print("---------------\n")
         print(f"Database Path: {self.database_path}/database.hdf5\n")
-        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
+        print(
+            f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n"
+        )
         print(f"Data Groups: {database.get_database_summary()}\n")
-        print("==================================================================================\n")
+        print(
+            "==================================================================================\n"
+        )
 
     def export_property_data(self, parameters: dict):
         """
@@ -775,7 +926,9 @@ class Experiment:
         output : list
                 A list of rows represneted as dictionaries.
         """
-        database = PropertiesDatabase(name=os.path.join(self.database_path, 'property_database'))
+        database = PropertiesDatabase(
+            name=os.path.join(self.database_path, "property_database")
+        )
         output = database.load_data(parameters)
 
         return output
@@ -796,7 +949,9 @@ class Experiment:
                 with open(self.simulation_data_file) as f:
                     self._simulation_data = yaml.safe_load(f)
             except FileNotFoundError:
-                log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
+                log.debug(
+                    f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. "
+                )
         return self._simulation_data
 
     @simulation_data.setter

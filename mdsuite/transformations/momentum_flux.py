@@ -38,7 +38,7 @@ class MomentumFlux(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 4}}
+        self.scale_function = {"linear": {"scale_factor": 4}}
 
     def _prepare_database_entry(self):
         """
@@ -48,18 +48,33 @@ class MomentumFlux(Transformations):
 
         """
         # collect machine properties and determine batch size
-        path = join_path('Momentum_Flux', 'Momentum_Flux')  # name of the new database_path
+        path = join_path(
+            "Momentum_Flux", "Momentum_Flux"
+        )  # name of the new database_path
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
-            resize_structure = {path: (self.experiment.number_of_configurations - old_shape[0], 3)}
+            resize_structure = {
+                path: (self.experiment.number_of_configurations - old_shape[0], 3)
+            }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:, ], 'columns': [0, 1, 2]}}
+            self.database.resize_dataset(
+                resize_structure
+            )  # add a new dataset to the database_path
+            data_structure = {
+                path: {
+                    "indices": np.s_[
+                        :,
+                    ],
+                    "columns": [0, 1, 2],
+                }
+            }
         else:
             dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
-            self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-            data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+            self.database.add_dataset(
+                dataset_structure
+            )  # add a new dataset to the database_path
+            data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
 
         return data_structure
 
@@ -79,7 +94,7 @@ class MomentumFlux(Transformations):
 
         system_current = np.zeros((self.batch_size, 3))
         for species in self.experiment.species:
-            stress_path = str.encode(join_path(species, 'Stress'))
+            stress_path = str.encode(join_path(species, "Stress"))
             phi_x = data[stress_path][:, :, 3]
             phi_y = data[stress_path][:, :, 4]
             phi_z = data[stress_path][:, :, 5]
@@ -100,27 +115,29 @@ class MomentumFlux(Transformations):
 
         data_structure = self._prepare_database_entry()
         type_spec = {}
-        data_path = [join_path(species, 'Stress') for species in self.experiment.species]
+        data_path = [
+            join_path(species, "Stress") for species in self.experiment.species
+        ]
         self._prepare_monitors(data_path)
 
         type_spec = self._update_species_type_dict(type_spec, data_path, 6)
-        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True, remainder=True)
-        data_set = tf.data.Dataset.from_generator(batch_generator,
-                                                  args=batch_generator_args,
-                                                  output_signature=type_spec)
+        type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=tf.int16)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(
+            dictionary=True, remainder=True
+        )
+        data_set = tf.data.Dataset.from_generator(
+            batch_generator, args=batch_generator_args, output_signature=type_spec
+        )
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        for idx, x in tqdm(enumerate(data_set),
-                           ncols=70,
-                           desc="Momentum Flux",
-                           total=self.n_batches):
-            current_batch_size = int(x[str.encode('data_size')])
+        for idx, x in tqdm(
+            enumerate(data_set), ncols=70, desc="Momentum Flux", total=self.n_batches
+        ):
+            current_batch_size = int(x[str.encode("data_size")])
             data = self._transformation(x)
-            self._save_coordinates(data,
-                                   idx*self.batch_size,
-                                   current_batch_size,
-                                   data_structure)
+            self._save_coordinates(
+                data, idx * self.batch_size, current_batch_size, data_structure
+            )
 
     def run_transformation(self):
         """

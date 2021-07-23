@@ -31,9 +31,9 @@ class AnalysisDatabase:
                 Name of the database. Should be the full path to the name.
         """
         self.name = name
-        self.engine = sql.create_engine(f"sqlite+pysqlite:///{self.name}",
-                                        echo=False,
-                                        future=False)
+        self.engine = sql.create_engine(
+            f"sqlite+pysqlite:///{self.name}", echo=False, future=False
+        )
 
     def build_database(self):
         """
@@ -63,8 +63,10 @@ class AnalysisDatabase:
         """
         truth_table = []
         with self.engine.begin() as conn:
-            stmt = select(self.table).where(column('Subject') == parameters['Subject'],
-                                            column('data_range') == parameters['data_range'])
+            stmt = select(self.table).where(
+                column("Subject") == parameters["Subject"],
+                column("data_range") == parameters["data_range"],
+            )
             for _ in conn.execute(stmt):
                 truth_table.append(True)
 
@@ -81,7 +83,7 @@ class AnalysisDatabase:
         -------
         Updates the sql database
         """
-        data_frame.to_sql(name, self.engine, if_exists='replace')
+        data_frame.to_sql(name, self.engine, if_exists="replace")
 
     def get_tables(self, analysis: str) -> list:
         """

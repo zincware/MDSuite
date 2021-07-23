@@ -59,7 +59,9 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
         Use the upper triangle of the virtual r_ij matrix constructed of n_atoms * n_atoms matrix and subtract
         the transpose to get all distances once! If PBC are used, apply the minimum image convention.
         """
-        r_ij_mat = tf.gather(positions, triu_mask[0], axis=1) - tf.gather(positions, triu_mask[1], axis=1)
+        r_ij_mat = tf.gather(positions, triu_mask[0], axis=1) - tf.gather(
+            positions, triu_mask[1], axis=1
+        )
         if cell:
             r_ij_mat -= tf.math.rint(r_ij_mat / cell) * cell
         return r_ij_mat
@@ -72,7 +74,8 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
             assert positions.shape[0] % batch_size == 0
         except AssertionError:
             print(
-                f"positions must be evenly divisible by batch_size, but are {positions.shape[0]} and {batch_size}")
+                f"positions must be evenly divisible by batch_size, but are {positions.shape[0]} and {batch_size}"
+            )
 
         for positions_batch in tf.split(positions, batch_size):
             yield get_rij_mat(positions_batch, triu_mask, cell)
@@ -81,7 +84,9 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
 
 
 # @tf.function
-def get_triplets(full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200, disable_tqdm=True) -> tf.Tensor:
+def get_triplets(
+    full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200, disable_tqdm=True
+) -> tf.Tensor:
     """Compute the triple indices within a cutoff
 
     Mostly vectorized method to compute the triples inside the cutoff sphere. Therefore a matrix of all

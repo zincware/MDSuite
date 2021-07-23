@@ -48,7 +48,9 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
     return scale_factor * memory_usage * np.log(memory_usage)
 
 
-def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1):
+def quadratic_scale_function(
+    memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1
+):
     """
     Apply a quadratic scaling to memory usage.
 
@@ -65,11 +67,15 @@ def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, out
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**2
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** 2
 
 
-def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
-                              outer_scale_factor: int = 1, order: int = 3):
+def polynomial_scale_function(
+    memory_usage: int,
+    inner_scale_factor: int = 1,
+    outer_scale_factor: int = 1,
+    order: int = 3,
+):
     """
     Apply a polynomial scaling to memory usage.
 
@@ -88,4 +94,4 @@ def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**order
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** order

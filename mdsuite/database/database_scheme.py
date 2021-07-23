@@ -30,7 +30,8 @@ class SystemProperty(Base):
     subjects: Subject
         list of the subjects/species/molecules that are associated with the system property
     """
-    __tablename__ = 'system_properties'
+
+    __tablename__ = "system_properties"
     id = Column(Integer, primary_key=True)
     property = Column(String)
     analysis = Column(String)
@@ -38,7 +39,9 @@ class SystemProperty(Base):
     information = Column(String, nullable=True)
 
     data = relationship("Data", cascade="all, delete", back_populates="system_property")
-    subjects = relationship("Subject", cascade="all, delete", back_populates="system_property")
+    subjects = relationship(
+        "Subject", cascade="all, delete", back_populates="system_property"
+    )
 
     # TODO check that cascade is working properly!
 
@@ -53,7 +56,9 @@ class SystemProperty(Base):
             representation += f" \t {self.information}"
         return representation
 
-    def __init__(self, property, analysis, subjects, data_range, data, information=None):
+    def __init__(
+        self, property, analysis, subjects, data_range, data, information=None
+    ):
         """System Property constructor"""
         self.property = property
         self.analysis = analysis
@@ -92,6 +97,7 @@ class Data(Base):
     uncertainty: float
         uncertainty value of the data
     """
+
     __tablename__ = "data"
 
     id = Column(Integer, primary_key=True)
@@ -101,7 +107,9 @@ class Data(Base):
 
     uncertainty = Column(Float, nullable=True)
 
-    system_property_id = Column(Integer, ForeignKey('system_properties.id', ondelete="CASCADE"))
+    system_property_id = Column(
+        Integer, ForeignKey("system_properties.id", ondelete="CASCADE")
+    )
 
     system_property = relationship("SystemProperty", back_populates="data")
 
@@ -127,11 +135,14 @@ class Subject(Base):
 
 
     """
+
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True)
     subject = Column(String)
 
-    system_property_id = Column(Integer, ForeignKey('system_properties.id', ondelete="CASCADE"))
+    system_property_id = Column(
+        Integer, ForeignKey("system_properties.id", ondelete="CASCADE")
+    )
 
     system_property = relationship("SystemProperty", back_populates="subjects")
 

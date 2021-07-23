@@ -20,8 +20,8 @@ import copy
 var_names = {
     "Temperature": ["temp"],
     "Time": ["time"],
-    "Thermal_Flux": ['c_flux_thermal[1]', 'c_flux_thermal[2]', 'c_flux_thermal[3]'],
-    "Stress_visc": ['pxy', 'pxz', 'pyz'],
+    "Thermal_Flux": ["c_flux_thermal[1]", "c_flux_thermal[2]", "c_flux_thermal[3]"],
+    "Stress_visc": ["pxy", "pxz", "pyz"],
 }
 
 
@@ -46,7 +46,9 @@ class LAMMPSFluxFile(FluxFile):
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
+        super().__init__(
+            obj, header_lines, file_path, sort=sort
+        )  # fill the experiment class
         self.experiment.flux = True
         self.time = None
 
@@ -67,7 +69,7 @@ class LAMMPSFluxFile(FluxFile):
         return line_length
 
     def process_trajectory_file(self, update_class=True, rename_cols=None):
-        """ Get additional information from the trajectory file
+        """Get additional information from the trajectory file
 
         In this method, there are several doc string styled comments. This is included as there are several components
         of the method that are all related to the analysis of the trajectory file.
@@ -96,7 +98,9 @@ class LAMMPSFluxFile(FluxFile):
                 if line.startswith("#"):
                     header.append(line.split())
                 else:
-                    header_line = line.split()  # after the comments, we have the line with the variables
+                    header_line = (
+                        line.split()
+                    )  # after the comments, we have the line with the variables
                     break
 
         self.header_lines = n_lines_header
@@ -106,7 +110,9 @@ class LAMMPSFluxFile(FluxFile):
 
         # Find properties available for analysis
         column_dict_properties = self._get_column_properties(header_line)
-        self.experiment.property_groups = self._extract_properties(copy.deepcopy(var_names), column_dict_properties)
+        self.experiment.property_groups = self._extract_properties(
+            copy.deepcopy(var_names), column_dict_properties
+        )
 
         batch_size = optimize_batch_size(self.file_path, number_of_configurations)
 
@@ -116,9 +122,9 @@ class LAMMPSFluxFile(FluxFile):
             for _ in range(n_lines_header):
                 next(f)
             time_0_line = f.readline().split()
-            time_0 = float(time_0_line[column_dict_properties['time']])
+            time_0 = float(time_0_line[column_dict_properties["time"]])
             time_1_line = f.readline().split()
-            time_1 = float(time_1_line[column_dict_properties['time']])
+            time_1 = float(time_1_line[column_dict_properties["time"]])
 
         sample_rate = (time_1 - time_0) / self.experiment.time_step
 
@@ -131,14 +137,18 @@ class LAMMPSFluxFile(FluxFile):
 
         # Get the number of atoms if not set in initialization
         if self.experiment.number_of_atoms is None:
-            self.experiment.number_of_atoms = int(header[2][1])  # hopefully always in the same position
+            self.experiment.number_of_atoms = int(
+                header[2][1]
+            )  # hopefully always in the same position
 
         # Get the volume, if not set in initialization
         if self.experiment.volume is None:
             print(float(header[4][7]))
-            self.experiment.volume = float(header[4][7])  # hopefully always in the same position
+            self.experiment.volume = float(
+                header[4][7]
+            )  # hopefully always in the same position
 
-        self.experiment.species = {'1': []}
+        self.experiment.species = {"1": []}
 
         if update_class:
             self.experiment.batch_size = batch_size
@@ -148,9 +158,14 @@ class LAMMPSFluxFile(FluxFile):
             self.experiment.batch_size = batch_size
 
         line_length = self._get_line_length()
-        return self._build_architecture(self.experiment.property_groups,
-                                        self.experiment.number_of_atoms,
-                                        number_of_configurations), line_length
+        return (
+            self._build_architecture(
+                self.experiment.property_groups,
+                self.experiment.number_of_atoms,
+                number_of_configurations,
+            ),
+            line_length,
+        )
 
     def build_file_structure(self):
         """
@@ -163,6 +178,6 @@ class LAMMPSFluxFile(FluxFile):
             path = join_path(observable, observable)
             columns = self.experiment.property_groups[observable]
 
-            structure[path] = {'indices': np.s_[:], 'columns': columns, 'length': 1}
+            structure[path] = {"indices": np.s_[:], "columns": columns, "length": 1}
 
         return structure
