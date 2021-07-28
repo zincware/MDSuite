@@ -24,7 +24,7 @@ class RunModule:
     attributes of the `experiment.run_computation` helper class.
     """
 
-    def __init__(self, parent, module_dict):
+    def __init__(self, parent, module_dict, **kwargs):
         """Initialize the attributes
         Parameters
         ----------
@@ -32,8 +32,11 @@ class RunModule:
             the experiment to be passed to the calculator afterwards
         module_dict: dict
             A dictionary containing all the modules / calculators / Time series operations with their names as keys
+        kwargs:
+            Additional parameters to be passed to the module_dict
         """
         self.parent: Experiment = parent
+        self._kwargs = kwargs
         self._module_dict = module_dict
         for key in self._module_dict:
             self.__setattr__(key, self._module_dict[key])
@@ -55,4 +58,4 @@ class RunModule:
         except KeyError:
             return super().__getattribute__(item)
 
-        return class_compute(experiment=self.parent)
+        return class_compute(experiment=self.parent, **self._kwargs)
