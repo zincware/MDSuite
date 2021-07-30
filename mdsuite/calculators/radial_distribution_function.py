@@ -194,6 +194,7 @@ class RadialDistributionFunction(Calculator, ABC):
         # kwarg parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
         self.override_n_batches = kwargs.get('batches')
+        self.benchmark = kwargs.get('benchmark', False)
         self.tqdm_limit = kwargs.pop('tqdm', 10)
         # if there are more batches than in that limit it will show the batch tqdm, otherwise
         # it will show multiple minibatch tqdms
@@ -476,7 +477,8 @@ class RadialDistributionFunction(Calculator, ABC):
         execution_time = 0
 
         batch_tqm = self.tqdm_limit > self.n_batches
-
+        if self.benchmark:
+            full_timer = timer()
         for idx, sample_configuration in tqdm(enumerate(np.array_split(self.sample_configurations, self.n_batches)),
                                               ncols=70, disable=batch_tqm):
             log.debug('Loading Data')
@@ -496,7 +498,13 @@ class RadialDistributionFunction(Calculator, ABC):
 
             execution_time += timer() - start
             log.debug('Calculation done')
-
+        if self.benchmark:
+            full_time = timer() - full_timer
+            log.warning(f"RDF execution time: {full_time} s")
+            n_bins = len(self.sample_configurations) * self.experiment.number_of_atoms * (
+                        self.experiment.number_of_atoms - 1) / 2
+            log.warning(f"Sampled {len(self.sample_configurations)} with {self.experiment.number_of_atoms} atoms")
+            log.warning(f"Total number of computed bins is {n_bins} - {n_bins / full_time / 1e9} GHz")
         self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
         log.debug(f"RDF execution time: {execution_time} s")
 
