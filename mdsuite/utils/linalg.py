@@ -77,6 +77,7 @@ def apply_minimum_image(r_ij, box_array):
     return r_ij - tf.math.rint(r_ij / box_array) * box_array
 
 
+@tf.function(experimental_relax_shapes=True)
 def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
     """Calculate the indices of a slice of the triu values
 
