@@ -11,7 +11,8 @@ The central experiment class fundamental to all analysis.
 
 Summary
 -------
-The experiment class is the main class involved in characterizing and analyzing a simulation.
+The experiment class is the main class involved in characterizing and analyzing
+a simulation.
 """
 import logging
 import json
@@ -36,7 +37,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
-from mdsuite.visualizer.visualizer import SimulationVisualizer
+#from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 log = logging.getLogger(__file__)
 
 

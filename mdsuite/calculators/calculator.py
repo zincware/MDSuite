@@ -32,6 +32,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from tqdm import tqdm
 from typing import Union, List, Any
 
@@ -467,72 +468,15 @@ class Calculator(metaclass=abc.ABCMeta):
         Parameters
         ----------
         name : str
-                name of the tensor_values to save. Usually this is just the analysis name. In the case of species
-                specific analysis, this will be further appended to include the name of the species.
+                name of the tensor_values to save. Usually this is just the
+                analysis name. In the case of species specific analysis, this
+                will be further appended to include the name of the species.
         data : pd.DataFrame
                 Data to be saved.
         """
         database = AnalysisDatabase(name=os.path.join(self.experiment.database_path, "analysis_database"))
-        database.add_data(name=name, data_frame=data)
-
-        """
-        title = '_'.join([title, str(self.data_range)])
-        with hf.File(os.path.join(self.experiment.database_path, 'analysis_data.hdf5'), 'r+') as db:
-            if title in db[self.database_group].keys():
-                del db[self.database_group][title]
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-            else:
-                db[self.database_group].create_dataset(title, data=data, dtype=float)
-        """
-
-    def _plot_fig(self,
-                  fig: matplotlib.figure.Figure,
-                  ax: Axes,
-                  title: str = None,
-                  dpi: int = 600,
-                  filetype: str = 'svg'):
-        """
-        Class based plotting using fig, ax = plt.subplots
-
-        Parameters
-        ----------
-        fig: matplotlib figure
-        ax: matplotlib subplot axes
-            currently only a single axes is supported. Subplots aren't yet!
-        title: str
-            Name of the plot
-        dpi: int
-            matplotlib dpi resolution
-        filetype: str
-            matplotlib filetype / format
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        ax.set_xlabel(rf'{self.x_label}')
-        ax.set_ylabel(rf'{self.y_label}')
-        ax.legend()
-        fig.set_facecolor("w")
-        fig.show()
-
-        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format=filetype)
-
-    def _plot_data(self, title: str = None, manual: bool = False, dpi: int = 600):
-        """
-        Plot the tensor_values generated during the analysis
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        if manual:
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
-        else:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.legend()  # enable the legend
-            plt.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"), dpi=dpi, format='svg')
+        database.add_data(name=name,
+                          data_frame=data)
 
     def _check_input(self):
         """
@@ -549,7 +493,8 @@ class Calculator(metaclass=abc.ABCMeta):
 
     def _optimize_einstein_data_range(self, data: np.array):
         """
-        Optimize the tensor_values range of a experiment using the Einstein method of calculation.
+        Optimize the tensor_values range of a experiment using the Einstein
+        method of calculation.
 
         Parameters
         ----------
@@ -572,7 +517,8 @@ class Calculator(metaclass=abc.ABCMeta):
             m : float
                     gradient of the line
             a : float
-                    scalar offset, also the y-intercept for those who did not get much maths in school.
+                    scalar offset, also the y-intercept for those who did not
+                    get much maths in school.
 
             Returns
             -------
@@ -588,7 +534,10 @@ class Calculator(metaclass=abc.ABCMeta):
         end_index = int(len(log_y) - 1)
         start_index = int(0.4 * len(log_y))
 
-        popt, pcov = curve_fit(func, log_x[start_index:end_index], log_y[start_index:end_index])  # fit linear regime
+        # fit linear regime
+        popt, pcov = curve_fit(func,
+                               log_x[start_index:end_index],
+                               log_y[start_index:end_index])
 
         if 0.85 < popt[0] < 1.15:
             self.loop_condition = True
@@ -596,24 +545,26 @@ class Calculator(metaclass=abc.ABCMeta):
         else:
             try:
                 self.data_range = int(1.1 * self.data_range)
-                self.time = np.linspace(0.0, self.data_range * self.experiment.time_step * self.experiment.sample_rate,
+                self.time = np.linspace(0.0,
+                                        self.data_range *
+                                        self.experiment.time_step *
+                                        self.experiment.sample_rate,
                                         self.data_range)
-                # end the calculation if the tensor_values range exceeds the relevant bounds
+                # end the calculation when tensor_values exceeds the bounds
                 if self.data_range > self.experiment.number_of_configurations - self.correlation_time:
                     print("Trajectory not long enough to perform analysis.")
                     raise RangeExceeded
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
+    def _update_properties_file(self, parameters: dict,
+                                delete_duplicate: bool = True):
         """
         Update the experiment properties YAML file.
         """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path,
+                                                        'property_database'))
         database.add_data(parameters, delete_duplicate)
-
-    def _calculate_system_current(self):
-        pass
 
     def _resolve_dependencies(self, dependency):
         """
@@ -648,7 +599,9 @@ class Calculator(metaclass=abc.ABCMeta):
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
+            choice = switcher.get(argument,
+                                  lambda: "Data not in database and can "
+                                          "not be generated.")
             return choice
 
         transformation = _string_to_function(dependency)
@@ -753,9 +706,23 @@ class Calculator(metaclass=abc.ABCMeta):
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
 
-            if self.plot:
-                plt.legend()
-                plt.show()
+                if self.plot:
+                    self._plot_data(species)
+
+    def _plot_data(self, species):
+        """
+        Plot data from the analysis.
+
+        Returns
+        -------
+
+        """
+        visualizer = DataVisualizer2D(self.time,
+                                      self.msd_array,
+                                      self.x_label,
+                                      self.y_label,
+                                      f"{species} Einstein Diffusion plot")
+        visualizer.plot()
 
     def run_experimental_analysis(self):
         """

@@ -42,7 +42,8 @@ class TestLiquidNaCl(unittest.TestCase):
                          'NaCl_i_q.lammpstraj',
                          'NaCl_ni_nq.lammpstraj']
         for item in cls.endpoints:
-            filename, headers = urllib.request.urlretrieve(f'{base_url}{item}.gz', filename=f'{item}.gz')
+            filename, headers = urllib.request.urlretrieve(f'{base_url}{item}.gz',
+                                                           filename=f'{item}.gz')
             with gzip.open(filename, 'rb') as f_in:
                 with open(item, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -79,8 +80,9 @@ class TestLiquidNaCl(unittest.TestCase):
 
     def test_einstein_diffusion_coefficients(self):
         """
-        Test that einstein diffusion coefficients work as expected. This will include assessing how the unwrapping
-        works for both indices and from the MDSuite box-hopping implementation.
+        Test that einstein diffusion coefficients work as expected. This will
+        include assessing how the unwrapping works for both indices and from
+        the MDSuite box-hopping implementation.
 
         Returns
         -------
@@ -113,9 +115,10 @@ class TestLiquidNaCl(unittest.TestCase):
 
     def test_einstein_ionic_conductivity(self):
         """
-        Test that Einstein-Helfand ionic conductivity work as expected. This will include assessing how the unwrapping
-        works for both indices and from the MDSuite box-hopping implementation. It will also ensure that the different
-        approaches for charge inclusion result in the same values.
+        Test that Einstein-Helfand ionic conductivity work as expected. This
+        will include assessing how the unwrapping works for both indices and
+        from the MDSuite box-hopping implementation. It will also ensure that
+        the different approaches for charge inclusion result in the same values.
 
         Returns
         -------
@@ -140,8 +143,9 @@ class TestLiquidNaCl(unittest.TestCase):
 
     def test_green_kubo_diffusion_coefficients(self):
         """
-        Test that green-kubo diffusion coefficients work as expected. This will include assessing how the unwrapping
-        works for both indices and from the MDSuite box-hopping implementation.
+        Test that green-kubo diffusion coefficients work as expected. This will
+        include assessing how the unwrapping works for both indices and from
+        the MDSuite box-hopping implementation.
 
         Returns
         -------
@@ -171,9 +175,10 @@ class TestLiquidNaCl(unittest.TestCase):
 
     def test_green_kubo_ionic_conductivity(self):
         """
-        Test that Green-Kubo ionic conductivity work as expected. This will include assessing how the unwrapping
-        works for both indices and from the MDSuite box-hopping implementation. It will also ensure that the different
-        approaches for charge inclusion result in the same values.
+        Test that Green-Kubo ionic conductivity work as expected. This will
+        include assessing how the unwrapping works for both indices and from
+        the MDSuite box-hopping implementation. It will also ensure that the
+        different approaches for charge inclusion result in the same values.
 
         Returns
         -------
