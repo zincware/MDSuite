@@ -339,7 +339,7 @@ class Experiment:
 
         return attributes
 
-    def _check_read_files(self, file_path: str):
+    def _check_read_files(self, file_path: str) -> bool:
         """
         Check if a file has been read before and add it to the hidden file.
 
@@ -350,24 +350,21 @@ class Experiment:
 
         Returns
         -------
+        already_read : bool
+            True if the file has been read before, else False.
 
         """
 
-        read_files = Path(self.storage_path, ".read_files.txt")
+        read_files = Path(self.experiment_path, ".read_files.txt")
 
-        with read_files.open(mode="a") as f:
-            data = []
-            try:
-                for line in f:
-                    data.append(line)
-            except UnsupportedOperation:
-                pass
+        with open(read_files, mode="a+") as file_:
+            file_.seek(0)
+            data = [line.strip() for line in file_]
+            already_read = file_path in data
 
-            result = file_path in data  # check if it exists.
-
-            if not result:
-                f.write(f'{file_path}\n')
-            return result
+            if not already_read:
+                file_.write(f'{file_path}\n')
+            return already_read
 
     def add_data(self,
                  trajectory_file: str = None,
@@ -399,15 +396,12 @@ class Experiment:
             print("No tensor_values has been given")
             sys.exit(1)
 
-        file_check = self._check_read_files(trajectory_file)
-        if file_check:
-            if force:
-                pass
-            else:
-                log.info('This file has already been read, skipping this now.'
-                         'If this is not desired, please add force=True'
-                         'to the command.')
-                return  # End the method.
+        already_read = self._check_read_files(trajectory_file)
+        if already_read and not force:
+            log.info('This file has already been read, skipping this now. '
+                     'If this is not desired, please add force=True '
+                     'to the command.')
+            return  # End the method.
 
         # Load the file reader and the database_path object
         trajectory_reader, file_type = self._load_trajectory_reader(file_format, trajectory_file, sort=sort)
