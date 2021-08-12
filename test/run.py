@@ -1,6 +1,7 @@
 import mdsuite as mds
 
-test = mds.Experiment('test')
+if __name__ == '__main__':
 
-#test.add_data('../../small.lammpstrj')
-test.run_visualization()
+    test = mds.Experiment('test')
+    #test.add_data('../../small.lammpstrj')
+    test.run_visualization()

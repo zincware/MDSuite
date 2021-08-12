@@ -815,7 +815,8 @@ class Experiment:
         visualizer = SimulationVisualizer(self,
                                           species=species,
                                           molecules=molecules,
-                                          unwrapped=unwrapped)
+                                          unwrapped=unwrapped,
+                                          number_of_configurations=self.number_of_configurations)
         visualizer.run_app()
 
     def export_property_data(self, parameters: dict):
