@@ -62,26 +62,28 @@ class GreenKuboIonicConductivity(Calculator):
 
         # update experiment class
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Ionic_Current'
+        self.loaded_property = "Ionic_Current"
         self.system_property = True
 
-        self.database_group = 'Ionic_Conductivity'
-        self.x_label = 'Time (s)'
-        self.y_label = r'JACF ($C^{2}\cdot m^{2}/s^{2}$)'
-        self.analysis_name = 'Green_Kubo_Ionic_Conductivity'
+        self.database_group = "Ionic_Conductivity"
+        self.x_label = "Time (s)"
+        self.y_label = r"JACF ($C^{2}\cdot m^{2}/s^{2}$)"
+        self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
         self.prefactor: float
 
-    def __call__(self,
-                 plot=False,
-                 data_range=500,
-                 save=True,
-                 correlation_time=1,
-                 export: bool = False,
-                 gpu: bool = False,
-                 integration_range: int = None):
+    def __call__(
+        self,
+        plot=False,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+        integration_range: int = None,
+    ):
         """
 
         Attributes
@@ -95,12 +97,14 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         # update experiment class
-        self.update_user_args(plot=plot,
-                              data_range=data_range,
-                              save=save,
-                              correlation_time=correlation_time,
-                              export=export,
-                              gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
@@ -123,10 +127,12 @@ class GreenKuboIonicConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3),
-                                                    dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3),
-                                                       dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -141,9 +147,16 @@ class GreenKuboIonicConductivity(Calculator):
 
         """
         # Calculate the prefactor
-        numerator = (elementary_charge ** 2) * (self.experiment.units['length'] ** 2)
-        denominator = 3 * boltzmann_constant * self.experiment.temperature * self.experiment.volume * \
-            (self.experiment.units['length'] ** 3) * self.data_range * self.experiment.units['time']
+        numerator = (elementary_charge ** 2) * (self.experiment.units["length"] ** 2)
+        denominator = (
+            3
+            * boltzmann_constant
+            * self.experiment.temperature
+            * self.experiment.volume
+            * (self.experiment.units["length"] ** 3)
+            * self.data_range
+            * self.experiment.units["time"]
+        )
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -168,13 +181,15 @@ class GreenKuboIonicConductivity(Calculator):
         MSD of the tensor_values.
         """
         jacf = self.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble,
-                                       normalize=False,
-                                       axis=0,
-                                       center=False), axis=-1)
+            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
+            axis=-1,
+        )
         self.jacf += jacf
-        self.sigma.append(np.trapz(jacf[:self.integration_range],
-                                   x=self.time[:self.integration_range]))
+        self.sigma.append(
+            np.trapz(
+                jacf[: self.integration_range], x=self.time[: self.integration_range]
+            )
+        )
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -185,35 +200,49 @@ class GreenKuboIonicConductivity(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': np.mean(result),
-                                'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": ["System"],
+            "data_range": self.data_range,
+            "data": [
+                {
+                    "x": np.mean(result),
+                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
+                }
+            ],
+        }
         self._update_properties_file(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf,
-                     label=fr'{np.mean(result): 0.3E} $\pm$ {np.std(result) / np.sqrt(len(result)): 0.3E}')
-            plt.vlines((np.array(self.time) * self.experiment.units['time'])[
-                           self.integration_range], min(self.jacf),
-                       max(self.jacf))
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"],
+                self.jacf,
+                label=fr"{np.mean(result): 0.3E} $\pm$ {np.std(result) / np.sqrt(len(result)): 0.3E}",
+            )
+            plt.vlines(
+                (np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range
+                ],
+                min(self.jacf),
+                max(self.jacf),
+            )
             self._plot_data()
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.jacf)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": ["System"],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.jacf)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name("System"),
-                              data=self._build_pandas_dataframe(self.time,
-                                                                self.jacf))
+            self._export_data(
+                name=self._build_table_name("System"),
+                data=self._build_pandas_dataframe(self.time, self.jacf),
+            )
