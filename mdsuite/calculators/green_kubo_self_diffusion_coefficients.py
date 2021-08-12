@@ -18,13 +18,8 @@ method and all necessary calculations performed.
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow_probability as tfp
-import warnings
-from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
-
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
 
 
 class GreenKuboSelfDiffusionCoefficients(Calculator):
@@ -127,7 +122,6 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.species)
 
         out = self.run_analysis()
-
         self.experiment.save_class()
 
         return out
@@ -167,13 +161,13 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         if self.molecules:
             numerator = self.experiment.units['length'] ** 2
             denominator = 3 * self.experiment.units['time'] * (
-                        self.integration_range - 1) * \
+                    self.integration_range - 1) * \
                           len(self.experiment.molecules[species]['indices'])
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units['length'] ** 2
-            denominator = 3 * self.experiment.units['time'] * (
-                        self.integration_range - 1) * \
+            denominator = 3 * self.experiment.units['time'] * \
+                          self.integration_range * \
                           len(self.experiment.species[species]['indices'])
             self.prefactor = numerator / denominator
 
@@ -184,8 +178,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
 
         """
-        #self.vacf /= max(self.vacf)
-        return
+        pass
 
     def _apply_operation(self, ensemble, index):
         """
@@ -199,21 +192,20 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         -------
         MSD of the tensor_values.
         """
-        vacf = tfp.stats.auto_correlation(ensemble,
-                                          normalize=False,
-                                          axis=1,
-                                          center=False,
-                                          max_lags=self.data_range)
+        vacf = self.data_range * tfp.stats.auto_correlation(ensemble,
+                                                            normalize=False,
+                                                            axis=1,
+                                                            center=False)
+
         vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
-
         self.vacf += vacf
-
         self.sigma.append(np.trapz(vacf[:self.integration_range],
                                    x=self.time[:self.integration_range]))
 
     def _post_operation_processes(self, species: str = None):
         """
         Apply post-op processes such as saving and plotting.
+
         Returns
         -------
 
@@ -234,7 +226,9 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         if self.plot:
             plt.xlabel(rf'{self.x_label}')
             plt.ylabel(rf'{self.y_label}')
-            plt.vlines((np.array(self.time) * self.experiment.units['time'])[self.integration_range], -0.5e6, 3e6)
+            plt.vlines((np.array(self.time) * self.experiment.units['time'])[
+                           self.integration_range], min(self.vacf),
+                       max(self.vacf))
             plt.plot(np.array(self.time) * self.experiment.units['time'],
                      self.vacf,
                      label=fr"{species}: {np.mean(result): .3E} $\pm$ "
