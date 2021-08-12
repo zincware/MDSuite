@@ -9,15 +9,14 @@ Copyright Contributors to the Zincware Project.
 Description: Visualize a simulation.
 """
 from mdsuite.database.simulation_database import Database
-import open3d as o3d
-from os.path import join
-import tensorflow as tf
-import threading
 from PIL.ImageColor import getcolor
 import importlib.resources
 import json
 import numpy as np
 from mdsuite.utils.meta_functions import join_path
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
 
 
 class SimulationVisualizer:
@@ -47,8 +46,8 @@ class SimulationVisualizer:
         """
         # Particle information
         self.experiment = experiment
-        self.database = Database(name=join(self.experiment.database_path,
-                                           "database.hdf5"))
+        self.database = Database(name=join_path(self.experiment.database_path,
+                                                "database.hdf5"))
         self.molecules = molecules
         self.species = species
         if unwrapped:
@@ -58,12 +57,26 @@ class SimulationVisualizer:
         self._check_input()  # check inputs and build data structure.
         self._fill_species_properties()
 
-        # App information
-        self.is_done = False
-        self.main_vis = None
-        self.snapshot_pos = None
-        self.n_snapshots = 0
-        self.mesh_dict = {}
+        # Instantiate app attributes
+        self.app = None
+        self.widget = None
+        self.grid = None
+        self._instantiate_window()
+
+    def _sphere(self):
+        """
+        Return a sphere mesh object.
+        """
+        md = gl.MeshData.sphere(rows=10, cols=20)
+        colors = np.ones((md.faceCount(), 4), dtype=float)
+        colors[::2, 0] = 0
+        colors[:, 1] = np.linspace(0, 1, colors.shape[0])
+        print(colors)
+        md.setFaceColors(colors)
+        m3 = gl.GLMeshItem(meshdata=md, smooth=False)  # , shader='balloon')
+
+        m3.translate(5, -5, 0)
+        self.widget.addItem(m3)
 
     def _fill_species_properties(self):
         """
@@ -112,21 +125,7 @@ class SimulationVisualizer:
         -------
         Run the simulation in the window.
         """
-        # Loop over configurations
-        # Update current configuration
-        # get distances
-        # apply translation
-        # Update image.
-        for i in range(self.experiment.number_of_configurations):
-            new_pos = tf.concat([self.data[item]['differences'][:, i] for item
-                                 in self.species], axis=0)
-            for j, particle in enumerate(self.mesh_dict):
-                self.mesh_dict[particle].translate(new_pos[j])
-                self.main_vis.remove_geometry(particle)
-                self.main_vis.add_geometry(particle,
-                                           self.mesh_dict[particle])
-
-            self.main_vis.post_redraw()
+        pass
 
     def _on_main_window_closing(self):
         """
@@ -136,7 +135,6 @@ class SimulationVisualizer:
         -------
         Sets the is_done attribute to True.
         """
-        self.is_done = True
 
         return True
 
@@ -148,13 +146,15 @@ class SimulationVisualizer:
         -------
 
         """
-        self.main_vis = o3d.visualization.O3DVisualizer(
-            "MDSuite"
-        )
+        self.app = pg.mkQApp("GLMeshItem Example")
+        self.widget = gl.GLViewWidget()
+        self.widget.show()
+        self.widget.setWindowTitle('MDSuite')
+        self.widget.setCameraPosition(distance=40)
 
-        self.main_vis.add_action("Run Simulation",
-                                 self._on_run_simulation)
-        self.main_vis.set_on_close(self._on_main_window_closing)
+        self.grid = gl.GLGridItem()
+        self.grid.scale(2, 2, 1)
+        self.widget.addItem(self.grid)
 
     def _build_particles(self):
         """
@@ -163,31 +163,7 @@ class SimulationVisualizer:
         -------
 
         """
-        counter = 0
-        for item in self.species:
-            # load all the data into the dict.
-            data = self.database.load_data(
-                path_list=[join_path(item, self.identifier)],
-                select_slice=np.s_[:])
-            self.data[item]['positions'] = data[:, 50]
-            self.data[item]['differences'] = tf.experimental.numpy.diff(
-                data, axis=1
-            )
-
-            colour = list(np.round(np.array(self.data[item]['colour']) / 255,
-                                   1))
-
-            for atom in self.data[item]['positions']:
-                mesh = o3d.geometry.TriangleMesh.create_sphere(
-                    radius=self.data[item]['mass'],
-                    resolution=30)
-                mesh.translate(atom)
-                mesh.compute_vertex_normals()
-                mesh.paint_uniform_color(colour)
-                self.mesh_dict[f'particle_{counter}'] = mesh
-                self.main_vis.add_geometry(f'particle_{counter}', mesh)
-                counter += 1
-        self.main_vis.reset_camera_to_default()  # set camera (is it needed?)
+        pass
 
     def _update_thread(self):
         """
@@ -200,9 +176,7 @@ class SimulationVisualizer:
 
         """
         # add the initial atoms to the visualizer.
-        o3d.visualization.gui.Application.instance.post_to_main_thread(
-            self.main_vis, self._build_particles
-        )
+        pass
 
     def run_app(self):
         """
@@ -212,18 +186,6 @@ class SimulationVisualizer:
         -------
         Launches the app.
         """
-        # define the app and initialize it.
-        app = o3d.visualization.gui.Application.instance
-        app.initialize()
-
-        # Define the window and toolbars.
-        self._instantiate_window()
-
-        app.add_window(self.main_vis)  # add the window to the app.
-        self.snapshot_pos = (self.main_vis.os_frame.x,
-                             self.main_vis.os_frame.y)
-
-        # Start the controls thread.
-        threading.Thread(target=self._update_thread).start()
-
-        app.run()
+        # execute the app.
+        self._sphere()
+        self.app.exec_()

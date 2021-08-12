@@ -7,21 +7,6 @@ import subprocess
 import sys
 
 
-class PostDevelopCommand(develop):
-    """Post-installation for development mode."""
-
-    def run(self):
-        develop.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
-
-
-class PostInstallCommand(install):
-    """Post-installation for installation mode."""
-
-    def run(self):
-        install.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
-
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'requirements.txt')) as requirements_file:
@@ -52,7 +37,6 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.7',
     install_requires=requirements,
-    cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
     # force install of the newest h5py after the dependencies are installed
     # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
     # TODO remove if tensorflow supports h5py > 3

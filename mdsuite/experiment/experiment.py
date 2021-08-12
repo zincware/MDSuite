@@ -37,7 +37,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.properties_database import PropertiesDatabase
 from mdsuite.database.analysis_database import AnalysisDatabase
-#from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 log = logging.getLogger(__file__)
 
 
