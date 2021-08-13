@@ -74,7 +74,14 @@ def get_dimensionality(box: list) -> int:
 
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
-        if box[0] == 0 and box[1] == 0 or box[0] == 0 and box[2] == 0 or box[1] == 0 and box[2] == 0:
+        if (
+            box[0] == 0
+            and box[1] == 0
+            or box[0] == 0
+            and box[2] == 0
+            or box[1] == 0
+            and box[2] == 0
+        ):
             dimensions = 1
         else:
             dimensions = 2
@@ -100,16 +107,16 @@ def get_machine_properties() -> dict:
     available_memory = psutil.virtual_memory().available  # RAM available
     total_cpu_cores = psutil.cpu_count(logical=True)  # CPU cores available
     # Update the machine properties dictionary
-    machine_properties['cpu'] = total_cpu_cores
-    machine_properties['memory'] = available_memory
-    machine_properties['gpu'] = {}
+    machine_properties["cpu"] = total_cpu_cores
+    machine_properties["memory"] = available_memory
+    machine_properties["gpu"] = {}
 
     try:
         total_gpu_devices = GPUtil.getGPUs()  # get information on all the gpu's
         for gpu in total_gpu_devices:
-            machine_properties['gpu'][gpu.id] = {}
-            machine_properties['gpu'][gpu.id]['name'] = gpu.name
-            machine_properties['gpu'][gpu.id]['memory'] = gpu.memoryTotal
+            machine_properties["gpu"][gpu.id] = {}
+            machine_properties["gpu"][gpu.id]["name"] = gpu.name
+            machine_properties["gpu"][gpu.id]["memory"] = gpu.memoryTotal
     except (NoGPUInSystem, ValueError):
         log.warning("No GPUs detected, continuing without GPU support")
 
@@ -134,14 +141,19 @@ def line_counter(filename: str) -> int:
             Number of lines in the file
     """
 
-    f = open(filename, 'rb')
+    f = open(filename, "rb")
     num_lines = sum(1 for _ in f)
     f.close()
     return num_lines
 
 
-def optimize_batch_size(filepath: str, number_of_configurations: int,
-                        _file_size: int = None, _memory: int = None, test: bool = False) -> int:
+def optimize_batch_size(
+    filepath: str,
+    number_of_configurations: int,
+    _file_size: int = None,
+    _memory: int = None,
+    test: bool = False,
+) -> int:
     """
     Optimize the size of batches during initial processing
 
@@ -173,10 +185,16 @@ def optimize_batch_size(filepath: str, number_of_configurations: int,
     else:
         computer_statistics = get_machine_properties()  # Get computer statistics
         file_size = os.path.getsize(filepath)  # Get the size of the file
-        database_memory = 0.1 * computer_statistics['memory']  # We take 10% of the available memory
+        database_memory = (
+            0.1 * computer_statistics["memory"]
+        )  # We take 10% of the available memory
 
-    memory_per_configuration = file_size / number_of_configurations  # get the memory per configuration
-    initial_batch_number = int(database_memory / (5 * memory_per_configuration))  # trivial batch allocation
+    memory_per_configuration = (
+        file_size / number_of_configurations
+    )  # get the memory per configuration
+    initial_batch_number = int(
+        database_memory / (5 * memory_per_configuration)
+    )  # trivial batch allocation
 
     # The database_path generation expands memory ~5x
     if 10 * file_size < database_memory:
@@ -229,9 +247,11 @@ def simple_file_read(filename: str) -> list:
     """
 
     data_array = []  # define empty tensor_values array
-    with open(filename, 'r+') as f:  # Open the file for reading
+    with open(filename, "r+") as f:  # Open the file for reading
         for line in f:  # Loop over the lines
-            data_array.append(line.split())  # Split the lines by whitespace and add to tensor_values array
+            data_array.append(
+                line.split()
+            )  # Split the lines by whitespace and add to tensor_values array
 
     return data_array
 
@@ -263,14 +283,16 @@ def timeit(f: Callable) -> Callable:
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.
-        print(f'func:{f.__name__} took: {(te - ts)} sec')  # print the outcome.
+        print(f"func:{f.__name__} took: {(te - ts)} sec")  # print the outcome.
 
         return result
 
     return wrap
 
 
-def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> np.ndarray:
+def apply_savgol_filter(
+    data: list, order: int = 2, window_length: int = 17
+) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing
 
@@ -301,7 +323,7 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
 
 
 def golden_section_search(data: np.array, a: float, b: float) -> tuple:
-    """ Perform a golden-section search for function minimums
+    """Perform a golden-section search for function minimums
 
     The Golden-section search algorithm is one of the best min-finding algorithms available and is here used to
     the minimums of functions during analysis. For example, in the evaluation of coordination numbers the minimum
@@ -412,7 +434,9 @@ def split_array(data: np.array, condition: np.array) -> list:
 
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
-    if len(initial_split[1]) == 0:  # if the condition is never met, return only the raw tensor_values
+    if (
+        len(initial_split[1]) == 0
+    ):  # if the condition is never met, return only the raw tensor_values
         return [data[condition]]
     else:  # else return the whole array
         return initial_split

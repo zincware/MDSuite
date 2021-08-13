@@ -27,7 +27,9 @@ def angle_between(v1, v2, acos=True):
     # return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
     # return tf.math.acos(tf.clip_by_value(tf.einsum("ijk, ijk -> ij", v1_u, v2_u), -1.0, 1.0))
     if acos:
-        return tf.math.acos(tf.clip_by_value(tf.einsum("ij, ij -> i", v1_u, v2_u), -1.0, 1.0))
+        return tf.math.acos(
+            tf.clip_by_value(tf.einsum("ij, ij -> i", v1_u, v2_u), -1.0, 1.0)
+        )
     else:
         return tf.einsum("ij, ij -> i", v1_u, v2_u)
 
@@ -53,7 +55,11 @@ def get_angles(r_ij_mat, indices, acos=True):
     tf.Tensor: Tensor with the shape (triples)
     """
 
-    r_ij = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1))
-    r_ik = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1))
+    r_ij = tf.gather_nd(
+        r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1)
+    )
+    r_ik = tf.gather_nd(
+        r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1)
+    )
 
     return angle_between(r_ij, r_ik, acos)

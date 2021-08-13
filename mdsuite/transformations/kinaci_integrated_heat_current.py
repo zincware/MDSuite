@@ -39,9 +39,11 @@ class KinaciIntegratedHeatCurrent(Transformations):
                 Experiment this transformation is attached to.
         """
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-    def _transformation(self, data: tf.Tensor, cumul_integral, batch_size) -> Tuple[tf.Tensor, tf.Tensor]:
+    def _transformation(
+        self, data: tf.Tensor, cumul_integral, batch_size
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
         """
         Calculate the integrated thermal current of the system.
 
@@ -54,17 +56,21 @@ class KinaciIntegratedHeatCurrent(Transformations):
         system_current = tf.zeros((batch_size, 3), dtype=tf.float64)
 
         for species in self.experiment.species:
-            positions_path = str.encode(join_path(species, 'Unwrapped_Positions'))
-            velocity_path = str.encode(join_path(species, 'Velocities'))
-            force_path = str.encode(join_path(species, 'Forces'))
-            pe_path = str.encode(join_path(species, 'PE'))
+            positions_path = str.encode(join_path(species, "Unwrapped_Positions"))
+            velocity_path = str.encode(join_path(species, "Velocities"))
+            force_path = str.encode(join_path(species, "Forces"))
+            pe_path = str.encode(join_path(species, "PE"))
 
-            integrand = tf.einsum('ijk,ijk->ij', data[force_path], data[velocity_path])
+            integrand = tf.einsum("ijk,ijk->ij", data[force_path], data[velocity_path])
             # add here the value from the previous iteration to all the steps in this batch.
-            integral += tf.cumsum(integrand, axis=1) * self.experiment.time_step * self.experiment.sample_rate
+            integral += (
+                tf.cumsum(integrand, axis=1)
+                * self.experiment.time_step
+                * self.experiment.sample_rate
+            )
 
-            r_k = tf.einsum('ijk,ij->jk', data[positions_path], integral)
-            r_p = tf.einsum('ijk,ijm->jm', data[pe_path], data[positions_path])
+            r_k = tf.einsum("ijk,ij->jk", data[positions_path], integral)
+            r_p = tf.einsum("ijk,ijm->jm", data[pe_path], data[positions_path])
 
             system_current += r_k + r_p
 
@@ -82,10 +88,12 @@ class KinaciIntegratedHeatCurrent(Transformations):
         """
 
         number_of_configurations = self.experiment.number_of_configurations
-        path = join_path('Kinaci_Heat_Current', 'Kinaci_Heat_Current')
+        path = join_path("Kinaci_Heat_Current", "Kinaci_Heat_Current")
         dataset_structure = {path: (number_of_configurations, 3)}
-        self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
-        data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
+        self.database.add_dataset(
+            dataset_structure
+        )  # add a new dataset to the database_path
+        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
 
         return data_structure
 
@@ -99,11 +107,20 @@ class KinaciIntegratedHeatCurrent(Transformations):
         data_structure = self._prepare_database_entry()
         type_spec = {}
 
-        positions_path = [join_path(species, 'Unwrapped_Positions') for species in self.experiment.species]
-        velocities_path = [join_path(species, 'Velocities') for species in self.experiment.species]
-        forces_path = [join_path(species, 'Forces') for species in self.experiment.species]
-        pe_path = [join_path(species, 'PE') for species in self.experiment.species]
-        data_path = np.concatenate((positions_path, velocities_path, forces_path, pe_path))
+        positions_path = [
+            join_path(species, "Unwrapped_Positions")
+            for species in self.experiment.species
+        ]
+        velocities_path = [
+            join_path(species, "Velocities") for species in self.experiment.species
+        ]
+        forces_path = [
+            join_path(species, "Forces") for species in self.experiment.species
+        ]
+        pe_path = [join_path(species, "PE") for species in self.experiment.species]
+        data_path = np.concatenate(
+            (positions_path, velocities_path, forces_path, pe_path)
+        )
 
         self._prepare_monitors(data_path)
         # update the dictionary (mutable object)
@@ -111,22 +128,34 @@ class KinaciIntegratedHeatCurrent(Transformations):
         type_spec = self._update_species_type_dict(type_spec, velocities_path, 3)
         type_spec = self._update_species_type_dict(type_spec, forces_path, 3)
         type_spec = self._update_species_type_dict(type_spec, pe_path, 1)
-        type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
-        batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True,
-                                                                                  remainder=True)
-        data_set = tf.data.Dataset.from_generator(batch_generator,
-                                                  args=batch_generator_args,
-                                                  output_signature=type_spec)
+        type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=tf.int16)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(
+            dictionary=True, remainder=True
+        )
+        data_set = tf.data.Dataset.from_generator(
+            batch_generator, args=batch_generator_args, output_signature=type_spec
+        )
 
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
+        cumul_integral = tf.zeros(
+            [self.experiment.number_of_atoms, 1], dtype=tf.float64
+        )
 
         # x is batch of data.
-        for idx, x in tqdm(enumerate(data_set), ncols=70, desc="Kinaci Integrated Current", total=self.n_batches):
-            current_batch_size = int(x[str.encode('data_size')])
-            data, cumul_integral = self._transformation(x, cumul_integral=cumul_integral, batch_size=current_batch_size)
-            self._save_coordinates(data, idx*self.batch_size, current_batch_size, data_structure)
+        for idx, x in tqdm(
+            enumerate(data_set),
+            ncols=70,
+            desc="Kinaci Integrated Current",
+            total=self.n_batches,
+        ):
+            current_batch_size = int(x[str.encode("data_size")])
+            data, cumul_integral = self._transformation(
+                x, cumul_integral=cumul_integral, batch_size=current_batch_size
+            )
+            self._save_coordinates(
+                data, idx * self.batch_size, current_batch_size, data_structure
+            )
 
     def run_transformation(self):
         """

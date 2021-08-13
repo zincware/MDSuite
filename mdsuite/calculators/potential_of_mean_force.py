@@ -97,14 +97,21 @@ class PotentialOfMeanForce(Calculator):
         self.species_tuple = None
         self.pomf = None
         self.indices = None
-        self.database_group = 'Potential_Of_Mean_Force'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = r'$w^{(2)}(r)$'
-        self.analysis_name = 'Potential_of_Mean_Force'
+        self.database_group = "Potential_Of_Mean_Force"
+        self.x_label = r"r ($\AA$)"
+        self.y_label = r"$w^{(2)}(r)$"
+        self.analysis_name = "Potential_of_Mean_Force"
         self.post_generation = True
 
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False,
-                 savgol_order: int = 2, savgol_window_length: int = 17):
+    def __call__(
+        self,
+        plot=True,
+        save=True,
+        data_range=1,
+        export: bool = False,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+    ):
         """
         Python constructor for the class
 
@@ -120,7 +127,9 @@ class PotentialOfMeanForce(Calculator):
                             analysis as the full rdf will be calculated.
         """
 
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        self.update_user_args(
+            plot=plot, save=save, data_range=data_range, export=export
+        )
         self.data_files = []
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
@@ -137,7 +146,9 @@ class PotentialOfMeanForce(Calculator):
         Fill the data_files list with filenames of the rdf tensor_values
         """
 
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+        database = PropertiesDatabase(
+            name=os.path.join(self.experiment.database_path, "property_database")
+        )
 
         return database.load_data({"property": "RDF"})
 
@@ -166,15 +177,21 @@ class PotentialOfMeanForce(Calculator):
         Calculate the potential of mean force
         """
 
-        self.pomf = -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
+        self.pomf = (
+            -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
+        )
 
     def _get_max_values(self):
         """
         Calculate the maximums of the rdf
         """
-        filtered_data = apply_savgol_filter(self.pomf, order=self.savgol_order, window_length=self.savgol_window_length)
+        filtered_data = apply_savgol_filter(
+            self.pomf, order=self.savgol_order, window_length=self.savgol_window_length
+        )
 
-        peaks = find_peaks(filtered_data)[0]  # Find the maximums in the filtered dataset
+        peaks = find_peaks(filtered_data)[
+            0
+        ]  # Find the maximums in the filtered dataset
 
         return [peaks[0], peaks[1]]
 
@@ -191,13 +208,21 @@ class PotentialOfMeanForce(Calculator):
                 Location of the minimums of the pomf values.
         """
 
-        peaks = self._get_max_values()  # get the peaks of the tensor_values post-filtering
+        peaks = (
+            self._get_max_values()
+        )  # get the peaks of the tensor_values post-filtering
 
         # Calculate the radii of the minimum range
-        pomf_radii = golden_section_search([self.radii, self.pomf], self.radii[peaks[1]], self.radii[peaks[0]])
+        pomf_radii = golden_section_search(
+            [self.radii, self.pomf], self.radii[peaks[1]], self.radii[peaks[0]]
+        )
 
-        pomf_indices = list([np.where(self.radii == pomf_radii[0])[0][0],
-                             np.where(self.radii == pomf_radii[1])[0][0]])
+        pomf_indices = list(
+            [
+                np.where(self.radii == pomf_radii[0])[0][0],
+                np.where(self.radii == pomf_radii[1])[0][0],
+            ]
+        )
 
         return pomf_indices
 
@@ -206,19 +231,24 @@ class PotentialOfMeanForce(Calculator):
         Use a min-finding algorithm to calculate the potential of mean force value
         """
 
-        self.indices = self._find_minimum()  # update the class with the minimum value indices
+        self.indices = (
+            self._find_minimum()
+        )  # update the class with the minimum value indices
 
         # Calculate the value and error of the potential of mean-force
         pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
-        pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]]) / np.sqrt(2)
+        pomf_error = np.std(
+            [self.pomf[self.indices[0]], self.pomf[self.indices[1]]]
+        ) / np.sqrt(2)
 
         # Update the experiment class
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": self.species_tuple.split('_'),
-                      "data_range": self.data_range,
-                      'data': [{'x': pomf_value, 'uncertainty': pomf_error}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": self.species_tuple.split("_"),
+            "data_range": self.data_range,
+            "data": [{"x": pomf_value, "uncertainty": pomf_error}],
+        }
         self._update_properties_file(properties)
 
         return pomf_value, pomf_error
@@ -227,8 +257,18 @@ class PotentialOfMeanForce(Calculator):
         """
         Plot the predicted minimum value before parsing the other tensor_values for plotting
         """
-        plt.plot(self.radii, self.pomf, label=fr'{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
-        plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
+        plt.plot(
+            self.radii,
+            self.pomf,
+            label=fr"{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}",
+        )
+        plt.axvspan(
+            self.radii[self.indices[0]],
+            self.radii[self.indices[1]],
+            color="y",
+            alpha=0.5,
+            lw=0,
+        )
 
     def run_post_generation_analysis(self):
         """
@@ -239,28 +279,35 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self._get_rdf_data():
             self.file_to_study = data  # Set the correct tensor_values file in the class
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(
+                [subject.subject for subject in data.subjects]
+            )
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load up the tensor_values
-            log.debug(f'rdf: {self.rdf} \t radii: {self.radii}')
+            log.debug(f"rdf: {self.rdf} \t radii: {self.radii}")
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
-            _data = self._get_pomf_value()  # Determine the min values of the function and update experiment
+            _data = (
+                self._get_pomf_value()
+            )  # Determine the min values of the function and update experiment
 
             # Update the experiment class
 
             if self.save:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": self.species_tuple.split('_'),
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)],
-                              'information': 'series'
-                              }
+                properties = {
+                    "Property": self.database_group,
+                    "Analysis": self.analysis_name,
+                    "Subject": self.species_tuple.split("_"),
+                    "data_range": self.data_range,
+                    "data": [{"x": x, "y": y} for x, y in zip(self.radii, self.pomf)],
+                    "information": "series",
+                }
                 self._update_properties_file(properties)
 
             if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
-                                  data=self._build_pandas_dataframe(self.radii, self.pomf))
+                self._export_data(
+                    name=self._build_table_name(self.species_tuple),
+                    data=self._build_pandas_dataframe(self.radii, self.pomf),
+                )
 
             if self.plot:
                 self._plot_fits(_data)

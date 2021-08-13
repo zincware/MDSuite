@@ -75,25 +75,42 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
 
         super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 150}}
-        self.loaded_property = 'Unwrapped_Positions'
+        self.scale_function = {"linear": {"scale_factor": 150}}
+        self.loaded_property = "Unwrapped_Positions"
         self.species = None
         self.molecules = None
-        self.database_group = 'Diffusion_Coefficients'
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$)'
-        self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
+        self.database_group = "Diffusion_Coefficients"
+        self.x_label = "Time (s)"
+        self.y_label = "MSD (m$^2$)"
+        self.analysis_name = "Einstein_Self_Diffusion_Coefficients"
         self.loop_condition = False
         self.optimize = None
         self.msd_array = None  # define empty msd array
         self.species = list()
-        log.info('starting Einstein Diffusion Computation')
+        log.info("starting Einstein Diffusion Computation")
 
-    def __call__(self, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
-                 molecules: bool = False, gpu: bool = False):
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
+    def __call__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 100,
+        save: bool = True,
+        optimize: bool = False,
+        correlation_time: int = 1,
+        atom_selection=np.s_[:],
+        export: bool = False,
+        molecules: bool = False,
+        gpu: bool = False,
+    ):
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            export=export,
+            gpu=gpu,
+        )
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
@@ -121,8 +138,12 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         Update the class state.
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(None, self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(None, self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(None, self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -139,12 +160,18 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         if self.molecules:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = (self.experiment.units['time'] * len(self.experiment.molecules[species]['indices'])) * 6
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                self.experiment.units["time"]
+                * len(self.experiment.molecules[species]["indices"])
+            ) * 6
         else:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = (self.experiment.units['time'] * len(self.experiment.species[species]['indices'])) * 6
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                self.experiment.units["time"]
+                * len(self.experiment.species[species]["indices"])
+            ) * 6
 
         self.prefactor = numerator / denominator
 
@@ -185,32 +212,40 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": [species],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": [species],
+            "data_range": self.data_range,
+            "data": [{"x": result[0], "uncertainty": result[1]}],
+        }
         self._update_properties_file(properties)
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": [species],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"}
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": [species],
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.msd_array)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
+            self._export_data(
+                name=self._build_table_name(species),
+                data=self._build_pandas_dataframe(self.time, self.msd_array),
+            )
 
         if self.plot:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array * self.experiment.units['time'],
-                     label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
+            plt.xlabel(rf"{self.x_label}")  # set the x label
+            plt.ylabel(rf"{self.y_label}")  # set the y label
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"],
+                self.msd_array * self.experiment.units["time"],
+                label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}",
+            )
 
     def _optimized_calculation(self):
         """

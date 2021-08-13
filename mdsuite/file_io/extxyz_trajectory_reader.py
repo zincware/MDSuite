@@ -20,14 +20,14 @@ from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
 
 var_names = {
-    "Positions": 'pos',
-    "Velocities": 'vel',
-    "Forces": 'forces',
-    "Stress": 'stress',
-    "PE": 'energies',
-    "Time": 'time',
-    "Lattice": 'Lattice',
-    "Momenta": 'momenta'
+    "Positions": "pos",
+    "Velocities": "vel",
+    "Forces": "forces",
+    "Stress": "stress",
+    "PE": "energies",
+    "Time": "time",
+    "Lattice": "Lattice",
+    "Momenta": "momenta",
 }
 
 
@@ -52,7 +52,9 @@ class EXTXYZFileReader(TrajectoryFile):
         Python class constructor
         """
 
-        super().__init__(obj, header_lines, file_path, sort=sort)  # fill the experiment class
+        super().__init__(
+            obj, header_lines, file_path, sort=sort
+        )  # fill the experiment class
 
         self.f_object = open(self.file_path)  # file object
 
@@ -86,7 +88,9 @@ class EXTXYZFileReader(TrajectoryFile):
         -------
 
         """
-        number_of_lines = line_counter(self.file_path)  # get the number of lines in the file
+        number_of_lines = line_counter(
+            self.file_path
+        )  # get the number of lines in the file
 
         return int(number_of_lines / (number_of_atoms + self.header_lines))
 
@@ -106,11 +110,11 @@ class EXTXYZFileReader(TrajectoryFile):
         """
         time = None
         for item in data:
-            if var_names['Time'] in item:
+            if var_names["Time"] in item:
                 try:
-                    time = float(item.split('=')[-1])
+                    time = float(item.split("=")[-1])
                 except ValueError:
-                    time = float(item.split('=')[-1].split(',')[0])
+                    time = float(item.split("=")[-1].split(",")[0])
         return time
 
     def _get_time_information(self, number_of_atoms: int) -> Union[float, None]:
@@ -128,7 +132,9 @@ class EXTXYZFileReader(TrajectoryFile):
         """
         header = self._read_header(self.f_object)  # get the first header
         time_0 = self._get_time_value(header[1])
-        header = self._read_header(self.f_object, offset=number_of_atoms)  # get the second header
+        header = self._read_header(
+            self.f_object, offset=number_of_atoms
+        )  # get the second header
         time_1 = self._get_time_value(header[1])  # Time in second configuration
         self.f_object.seek(0)  # return to first line in file
 
@@ -155,7 +161,7 @@ class EXTXYZFileReader(TrajectoryFile):
         lattice = None
         start = None
         for idx, item in enumerate(data):
-            if var_names['Lattice'] in item:
+            if var_names["Lattice"] in item:
                 start = idx
                 break
 
@@ -166,9 +172,9 @@ class EXTXYZFileReader(TrajectoryFile):
                     break
 
         if stop is not None:
-            lattice = data[start:stop + 1]
-            lattice[0] = lattice[0].split('=')[1].replace('"', '')
-            lattice[-1] = lattice[-1].replace('"', '')
+            lattice = data[start : stop + 1]
+            lattice[0] = lattice[0].split("=")[1].replace('"', "")
+            lattice[-1] = lattice[-1].replace('"', "")
             lattice = np.array(lattice).astype(float)
 
         return [lattice[0], lattice[4], lattice[8]]
@@ -190,13 +196,13 @@ class EXTXYZFileReader(TrajectoryFile):
         key_list = list(var_names.keys())
         value_list = list(var_names.values())
         for idx, item in enumerate(data):
-            if 'Properties' in item:
+            if "Properties" in item:
                 start = idx
-        data = data[start].split('=')[1].replace(':S', '').replace(':R', '').split(':')
+        data = data[start].split("=")[1].replace(":S", "").replace(":R", "").split(":")
         index = 0
         property_summary = {}
         for idx, item in enumerate(data):
-            if item == 'species':
+            if item == "species":
                 species_index = index
                 index += 1
             if item in value_list:
@@ -250,13 +256,17 @@ class EXTXYZFileReader(TrajectoryFile):
             line_length = len(line)
             if line[element_index] not in species_summary:
                 species_summary[line[element_index]] = {}
-                species_summary[line[element_index]]['indices'] = []
+                species_summary[line[element_index]]["indices"] = []
 
-            species_summary[line[element_index]]['indices'].append(i + self.header_lines)
+            species_summary[line[element_index]]["indices"].append(
+                i + self.header_lines
+            )
 
         return species_summary, box, property_groups, line_length
 
-    def process_trajectory_file(self, update_class: bool = True, rename_cols: dict = None):
+    def process_trajectory_file(
+        self, update_class: bool = True, rename_cols: dict = None
+    ):
         """
         Get additional information from the trajectory file
 
@@ -284,10 +294,19 @@ class EXTXYZFileReader(TrajectoryFile):
         if rename_cols is not None:
             var_names.update(rename_cols)
         number_of_atoms = self._get_number_of_atoms()  # get the number of atoms
-        number_of_configurations = self._get_number_of_configurations(number_of_atoms)  # get number of configurations
+        number_of_configurations = self._get_number_of_configurations(
+            number_of_atoms
+        )  # get number of configurations
         sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
-        batch_size = optimize_batch_size(self.file_path, number_of_configurations)  # get the batch size
-        species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
+        batch_size = optimize_batch_size(
+            self.file_path, number_of_configurations
+        )  # get the batch size
+        (
+            species_summary,
+            box,
+            property_groups,
+            line_length,
+        ) = self._get_species_information(number_of_atoms)
 
         if update_class:
             self.experiment.batch_size = batch_size
@@ -303,4 +322,9 @@ class EXTXYZFileReader(TrajectoryFile):
         else:
             self.experiment.batch_size = batch_size
 
-        return self._build_architecture(species_summary, property_groups, number_of_configurations), line_length
+        return (
+            self._build_architecture(
+                species_summary, property_groups, number_of_configurations
+            ),
+            line_length,
+        )

@@ -126,18 +126,22 @@ class Project:
         list_experiments = []
         for idx, experiment in enumerate(self.experiments):
             list_experiments.append(f"{idx}.) {experiment}")
-        return '\n'.join(list_experiments)
+        return "\n".join(list_experiments)
 
     def _load_class(self):
         """
         Load the class state of the Project class from a saved file.
         """
 
-        class_file = open(f'{self.storage_path}/{self.name}/{self.name}_state.bin', 'rb')  # Open the class state file
+        class_file = open(
+            f"{self.storage_path}/{self.name}/{self.name}_state.bin", "rb"
+        )  # Open the class state file
         pickle_data = class_file.read()  # Read in the tensor_values
         class_file.close()  # Close the state file
 
-        self.__dict__.update(pickle.loads(pickle_data))  # Initialize the class with the loaded parameters
+        self.__dict__.update(
+            pickle.loads(pickle_data)
+        )  # Initialize the class with the loaded parameters
 
     def _save_class(self):
         """
@@ -146,14 +150,26 @@ class Project:
         In order to keep properties of a class the state must be stored. This method will store the instance of the
         class for later re-loading
         """
-        self.__dict__.update(self.experiments)  # updates the dictionary with the new experiments added
+        self.__dict__.update(
+            self.experiments
+        )  # updates the dictionary with the new experiments added
 
-        save_file = open(f"{self.storage_path}/{self.name}/{self.name}_state.bin", 'wb')  # Open the class state file
-        save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
+        save_file = open(
+            f"{self.storage_path}/{self.name}/{self.name}_state.bin", "wb"
+        )  # Open the class state file
+        save_file.write(
+            pickle.dumps(self.__dict__)
+        )  # write the current state of the class
         save_file.close()  # Close the state file
 
-    def add_experiment(self, experiment: Union[str, dict] = None, timestep: float = None, temperature: float = None,
-                       units: str = None, cluster_mode: bool = None):
+    def add_experiment(
+        self,
+        experiment: Union[str, dict] = None,
+        timestep: float = None,
+        temperature: float = None,
+        units: str = None,
+        cluster_mode: bool = None,
+    ):
         """
         Add an experiment to the project
 
@@ -185,14 +201,18 @@ class Project:
                 return
 
             # If the experiment does not exists, instantiate a new Experiment
-            new_experiment = Experiment(experiment,
-                                        storage_path=f"{self.storage_path}/{self.name}",
-                                        time_step=timestep,
-                                        units=units,
-                                        temperature=temperature,
-                                        cluster_mode=cluster_mode)
+            new_experiment = Experiment(
+                experiment,
+                storage_path=f"{self.storage_path}/{self.name}",
+                time_step=timestep,
+                units=units,
+                temperature=temperature,
+                cluster_mode=cluster_mode,
+            )
 
-            self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
+            self.experiments[
+                new_experiment.analysis_name
+            ] = new_experiment  # add the new experiment to the dictionary
         else:
             for item in experiment:
                 # Run a check to see if that experiment already exists
@@ -204,16 +224,19 @@ class Project:
                     continue
 
                 # If the experiment does not exists, instantiate a new Experiment
-                new_experiment = Experiment(item,
-                                            storage_path=f"{self.storage_path}/{self.name}",
-                                            **experiment[item])
+                new_experiment = Experiment(
+                    item,
+                    storage_path=f"{self.storage_path}/{self.name}",
+                    **experiment[item],
+                )
 
                 self.experiments[
-                    new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
+                    new_experiment.analysis_name
+                ] = new_experiment  # add the new experiment to the dictionary
 
         self._save_class()  # Save the class state
 
-    def add_data(self, data_sets: dict, file_format='lammps_traj'):
+    def add_data(self, data_sets: dict, file_format="lammps_traj"):
         """
         Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
         different experiments at the same time.
@@ -237,10 +260,14 @@ class Project:
                 log.error("Keys of the data_sets do not match keys of the file_format")
 
             for item in data_sets:
-                self.experiments[item].add_data(data_sets[item], file_format=file_format[item])
+                self.experiments[item].add_data(
+                    data_sets[item], file_format=file_format[item]
+                )
         else:
             for item in data_sets:
-                self.experiments[item].add_data(data_sets[item], file_format=file_format)
+                self.experiments[item].add_data(
+                    data_sets[item], file_format=file_format
+                )
 
     def get_results(self, key_to_find):
         """
@@ -259,12 +286,14 @@ class Project:
 
         results = {}
         for experiment_name, experiment_class in self.experiments.items():
-            results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
+            results_yaml = (
+                experiment_class.results
+            )  # this is a dict with the results from the yaml file
             result = find_item(results_yaml, key_to_find)
 
             if isinstance(result, str):
-                if result.startswith('['):
-                    result = list(result.replace('[', '').replace(']', '').split(','))
+                if result.startswith("["):
+                    result = list(result.replace("[", "").replace("]", "").split(","))
                 else:
                     result = float(result)
 
@@ -298,7 +327,9 @@ class Project:
 
         properties_dict = {}
         for item in experiments:
-            properties_dict[item] = self.experiments[item].export_property_data(parameters.copy())
+            properties_dict[item] = self.experiments[item].export_property_data(
+                parameters.copy()
+            )
 
         return properties_dict
 
@@ -346,5 +377,7 @@ class Project:
                 self.experiments.pop(experiment_name, None)
                 self._save_class()
             except InterruptedError:
-                print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
-                      "to do this again.")
+                print(
+                    "You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
+                    "to do this again."
+                )
