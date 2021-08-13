@@ -675,9 +675,6 @@ class Calculator(metaclass=abc.ABCMeta):
                               'property_database'))
         database.add_data(parameters, delete_duplicate)
 
-    def _calculate_system_current(self):
-        pass
-
     def _resolve_dependencies(self, dependency):
         """
         Resolve any calculation dependencies if possible.
