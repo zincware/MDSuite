@@ -17,6 +17,7 @@ from mdsuite.utils.meta_functions import join_path
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
+import time
 
 
 class SimulationVisualizer:
@@ -48,8 +49,9 @@ class SimulationVisualizer:
         self.counter = 0
         # Particle information
         self.experiment = experiment
-        self.database = Database(name=join_path(self.experiment.database_path,
-                                                "database.hdf5"))
+        self.database = Database(name=join_path(
+            self.experiment.database_path, "database.hdf5")
+        )
         self.molecules = molecules
         self.species = species
         self.number_of_configurations = number_of_configurations
@@ -67,7 +69,8 @@ class SimulationVisualizer:
         self.trajectory = []
         self._instantiate_window()
 
-    def _sphere(self, location: np.ndarray, colour: np.ndarray, radius: float):
+    @staticmethod
+    def _sphere(location: np.ndarray, colour: np.ndarray, radius: float):
         """
         Return a sphere mesh object.
 
@@ -81,16 +84,15 @@ class SimulationVisualizer:
         radius : float
                 Radius of the sphere.
         """
-        md = gl.MeshData.sphere(radius=radius, rows=20, cols=20)
+        md = gl.MeshData.sphere(radius=radius, rows=50, cols=50)
         colors = np.ones((md.faceCount(), 4), dtype=float)
         colors[:, 0:3] = colour
         md.setFaceColors(colors)
         m3 = gl.GLMeshItem(meshdata=md,
-                           smooth=False,
+                           smooth=True,
                            shader='shaded')
 
         m3.translate(*location)
-        # self.widget.addItem(m3)
 
         return m3
 
@@ -146,17 +148,44 @@ class SimulationVisualizer:
         -------
 
         """
+        self._build_app()  # construct the app window and main GL widget.
+        self.widget.show()  # make it big at the start.
+        #self._build_layout()  # add screen elements.
+
+    def _build_layout(self):
+        """
+        Build the layout of the window.
+
+        Returns
+        -------
+
+        """
+        layout = QtGui.QGridLayout()  # instantiate a layout.
+        self.widget.setLayout(layout)  # add the layout to the app.
+
+        # Next configuration button.
+        button = QtGui.QPushButton("Next configuration")
+        button.clicked.connect(self._update_thread)
+        layout.addWidget(button, 1, 2)
+
+        # Run simulation button.
+        button = QtGui.QPushButton("Run simulation")
+        button.clicked.connect(self._run_sim)
+        layout.addWidget(button, 1, 1)
+
+    def _build_app(self):
+        """
+        Build the app window and update the class.
+
+        Returns
+        -------
+        Updates the class.
+        """
         self.app = pg.mkQApp("GLMeshItem Example")
         self.widget = gl.GLViewWidget()
-        self.widget.setWindowTitle('MDSuite')
-        self.widget.setCameraPosition(distance=60)
-        self.button = QtGui.QPushButton("Next configuration")
-        self.button.clicked.connect(self._update_thread)
-
-        layout = QtGui.QGridLayout()
-        self.widget.setLayout(layout)
-        layout.addWidget(self.button, 0, 0)
-        self.widget.show()
+        self.widget.setBackgroundColor(8, 87, 96)
+        self.widget.setWindowTitle('MDSuite Visualizer')
+        self.widget.setCameraPosition(distance=110)
 
     def _build_particles(self, configuration: int):
         """
@@ -176,7 +205,9 @@ class SimulationVisualizer:
             colour = np.array(self.data[element]['colour']) / 255
             radius = self.data[element]['mass']
             for atom in self.data[element]['particles']:
-                output.append(self._sphere(location=atom[configuration], colour=colour, radius=radius))
+                output.append(self._sphere(location=atom[configuration],
+                                           colour=colour,
+                                           radius=radius))
 
         return output
 
@@ -189,29 +220,36 @@ class SimulationVisualizer:
         Updates the class state.
         """
         self.trajectory = [
-            self._build_particles(i) for i in range(self.number_of_configurations)
+            self._build_particles(i) for i in range(
+                self.number_of_configurations
+            )
         ]
 
-    def _update_thread(self):
+    def _update_thread(self, configuration: int = None):
         """
-        This method can interactively update the display of the particles
-        but is not used for button events. Currently the only thing it can do
-        is add particles to the scene.
+        This method updates the positions of the particles.
 
         Returns
         -------
 
         """
-        if self.counter + 1 == self.number_of_configurations:
-            self.counter = 0
-        self.widget.clear()
-        self.widget.items = self.trajectory[self.counter]
-        self.counter += 1
+        if configuration is None:
+            if self.counter + 1 == self.number_of_configurations:
+                self.counter = 0
+            self.widget.clear()
+            self.widget.items = self.trajectory[self.counter]
+            self.counter += 1
+        else:
+            if configuration > self.number_of_configurations - 1:
+                configuration = self.number_of_configurations - 1
+            self.widget.clear()
+            self.widget.items = self.trajectory[configuration]
 
     def _run_sim(self):
         """
-        Run the simulation
+        Run the simulation.
 
+        TODO: Make it work...
         Returns
         -------
 
