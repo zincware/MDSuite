@@ -14,10 +14,9 @@ import importlib.resources
 import json
 import numpy as np
 from mdsuite.utils.meta_functions import join_path
-from pyqtgraph.Qt import QtCore, QtGui
-import pyqtgraph as pg
-import pyqtgraph.opengl as gl
-import time
+import open3d as o3d
+import open3d.visualization.gui as gui
+import open3d.visualization.rendering as rendering
 
 
 class SimulationVisualizer:
@@ -61,40 +60,12 @@ class SimulationVisualizer:
             self.identifier = "Positions"
         self._check_input()  # check inputs and build data structure.
         self._fill_species_properties()
+        self._build_trajectory()
 
-        # Instantiate app attributes
+        # App attributes
         self.app = None
-        self.widget = None
-        self.grid = None
-        self.trajectory = []
-        self._instantiate_window()
-
-    @staticmethod
-    def _sphere(location: np.ndarray, colour: np.ndarray, radius: float):
-        """
-        Return a sphere mesh object.
-
-        Parameters
-        ----------
-        location : np.ndarray
-                Location of the particle.
-        colour : np.ndarray
-                Colour of the particle. This should be in reduced rgb, i.e.
-                (255, 255, 255) = (1, 1, 1).
-        radius : float
-                Radius of the sphere.
-        """
-        md = gl.MeshData.sphere(radius=radius, rows=50, cols=50)
-        colors = np.ones((md.faceCount(), 4), dtype=float)
-        colors[:, 0:3] = colour
-        md.setFaceColors(colors)
-        m3 = gl.GLMeshItem(meshdata=md,
-                           smooth=True,
-                           shader='shaded')
-
-        m3.translate(*location)
-
-        return m3
+        self.vis = None
+        self._build_app()
 
     def _fill_species_properties(self):
         """
@@ -140,81 +111,42 @@ class SimulationVisualizer:
         for item in self.species:
             self.data[item] = {}
 
-    def _instantiate_window(self):
+    def _mesh(self, location: np.ndarray, radius: float, colour: np.ndarray):
         """
-        Instantiate the actual visualizer window.
-
-        Returns
-        -------
-
+        Return a mesh object coloured by element.
         """
-        self._build_app()  # construct the app window and main GL widget.
-        self.widget.show()  # make it big at the start.
-        #self._build_layout()  # add screen elements.
+        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
+                                                       resolution=50)
+        mesh.compute_vertex_normals()
+        mesh.translate(location)
+        mesh.paint_uniform_color(colour)
 
-    def _build_layout(self):
-        """
-        Build the layout of the window.
-
-        Returns
-        -------
-
-        """
-        layout = QtGui.QGridLayout()  # instantiate a layout.
-        self.widget.setLayout(layout)  # add the layout to the app.
-
-        # Next configuration button.
-        button = QtGui.QPushButton("Next configuration")
-        button.clicked.connect(self._update_thread)
-        layout.addWidget(button, 1, 2)
-
-        # Run simulation button.
-        button = QtGui.QPushButton("Run simulation")
-        button.clicked.connect(self._run_sim)
-        layout.addWidget(button, 1, 1)
-
-    def _build_app(self):
-        """
-        Build the app window and update the class.
-
-        Returns
-        -------
-        Updates the class.
-        """
-        self.app = pg.mkQApp("GLMeshItem Example")
-        self.widget = gl.GLViewWidget()
-        self.widget.setBackgroundColor(8, 87, 96)
-        self.widget.setWindowTitle('MDSuite Visualizer')
-        self.widget.setCameraPosition(distance=110)
+        return mesh
 
     def _build_particles(self, configuration: int):
         """
         Add the initial atoms to the system.
-
         Parameters
         ----------
         configuration : int
                 Configuration number to load.
-
         Returns
         -------
-
         """
         output = []
         for element in self.species:
             colour = np.array(self.data[element]['colour']) / 255
             radius = self.data[element]['mass']
             for atom in self.data[element]['particles']:
-                output.append(self._sphere(location=atom[configuration],
-                                           colour=colour,
-                                           radius=radius))
+                output.append(self._mesh(location=atom[configuration],
+                                         colour=colour,
+                                         radius=radius))
 
         return output
 
-    def _build_simulation(self):
+    def _build_trajectory(self):
         """
         Build the simulation array.
-
         Returns
         -------
         Updates the class state.
@@ -225,10 +157,29 @@ class SimulationVisualizer:
             )
         ]
 
-    def _update_thread(self, configuration: int = None):
+    def _build_app(self):
         """
-        This method updates the positions of the particles.
+        Build the app window and update the class.
 
+        Returns
+        -------
+        Updates the class.
+        """
+        self.app = gui.Application.instance
+        self.app.initialize()
+
+        self.vis = o3d.visualization.O3DVisualizer("MDSuite Visualizer",
+                                                   1024,
+                                                   768)
+        self.vis.show_settings = True
+        # Add meshes
+        self.vis.reset_camera_to_default()
+
+        self.app.add_window(self.vis)
+
+    def _updated_scene(self, configuration: int = None):
+        """
+        Update the scene.
         Returns
         -------
 
@@ -236,26 +187,19 @@ class SimulationVisualizer:
         if configuration is None:
             if self.counter + 1 == self.number_of_configurations:
                 self.counter = 0
-            self.widget.clear()
-            self.widget.items = self.trajectory[self.counter]
+
+            for i in range(len(self.trajectory[self.counter])):
+                self.vis.add_geometry(f"sphere_{i}",
+                                      self.trajectory[self.counter][i])
+
             self.counter += 1
         else:
             if configuration > self.number_of_configurations - 1:
                 configuration = self.number_of_configurations - 1
-            self.widget.clear()
-            self.widget.items = self.trajectory[configuration]
 
-    def _run_sim(self):
-        """
-        Run the simulation.
-
-        TODO: Make it work...
-        Returns
-        -------
-
-        """
-        while True:
-            self._update_thread()
+            for i in range(len(self.trajectory[configuration])):
+                self.vis.add_geometry(f"sphere_{i}",
+                                      self.trajectory[configuration][i])
 
     def run_app(self):
         """
@@ -265,7 +209,7 @@ class SimulationVisualizer:
         -------
         Launches the app.
         """
-        self._build_simulation()  # load data into spheres
-        self._update_thread()
+        self._updated_scene()
+        self.vis.reset_camera_to_default()
 
-        self.app.exec()
+        self.app.run()
