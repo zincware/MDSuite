@@ -116,7 +116,7 @@ class SimulationVisualizer:
         Return a mesh object coloured by element.
         """
         mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
-                                                       resolution=50)
+                                                       resolution=10)
         mesh.compute_vertex_normals()
         mesh.translate(location)
         mesh.paint_uniform_color(colour)
@@ -191,7 +191,6 @@ class SimulationVisualizer:
             for i in range(len(self.trajectory[self.counter])):
                 self.vis.add_geometry(f"sphere_{i}",
                                       self.trajectory[self.counter][i])
-
             self.counter += 1
         else:
             if configuration > self.number_of_configurations - 1:
