@@ -791,6 +791,7 @@ class Experiment:
 
     def run_visualization(self,
                           species: list = None,
+                          starting_configuration: int = None,
                           molecules: bool = False,
                           unwrapped: bool = False):
         """
@@ -798,9 +799,8 @@ class Experiment:
 
         Parameters
         ----------
-        experiment : object
-                 Experiment object from which the visualizer will gather
-                 information.
+        starting_configuration : int
+                Configuration from which to begin visualization.
         species : list
                 A list of species to visualize.
         molecules : list
@@ -817,7 +817,7 @@ class Experiment:
                                           molecules=molecules,
                                           unwrapped=unwrapped,
                                           number_of_configurations=self.number_of_configurations)
-        visualizer.run_app()
+        visualizer.run_app(starting_configuration=starting_configuration)
 
     def export_property_data(self, parameters: dict):
         """

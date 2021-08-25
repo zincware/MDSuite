@@ -116,7 +116,7 @@ class SimulationVisualizer:
         Return a mesh object coloured by element.
         """
         mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
-                                                       resolution=10)
+                                                       resolution=5)
         mesh.compute_vertex_normals()
         mesh.translate(location)
         mesh.paint_uniform_color(colour)
@@ -126,6 +126,7 @@ class SimulationVisualizer:
     def _build_particles(self, configuration: int):
         """
         Add the initial atoms to the system.
+
         Parameters
         ----------
         configuration : int
@@ -200,7 +201,7 @@ class SimulationVisualizer:
                 self.vis.add_geometry(f"sphere_{i}",
                                       self.trajectory[configuration][i])
 
-    def run_app(self):
+    def run_app(self, starting_configuration: int = None):
         """
         Run the app.
 
@@ -208,7 +209,7 @@ class SimulationVisualizer:
         -------
         Launches the app.
         """
-        self._updated_scene()
+        self._updated_scene(configuration=starting_configuration)
         self.vis.reset_camera_to_default()
 
         self.app.run()
