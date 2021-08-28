@@ -34,7 +34,7 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import \
     switcher_transformations
 from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.analysis_database import AnalysisDatabase
+# from mdsuite.database.analysis_database import AnalysisDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
@@ -520,10 +520,10 @@ class Calculator(metaclass=abc.ABCMeta):
         data : pd.DataFrame
                 Data to be saved.
         """
-        database = AnalysisDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              "analysis_database"))
-        database.add_data(name=name, data_frame=data)
+        # database = AnalysisDatabase(
+        #     name=os.path.join(self.experiment.database_path,
+        #                       "analysis_database"))
+        # database.add_data(name=name, data_frame=data)
 
     def _plot_fig(self,
                   fig: matplotlib.figure.Figure,

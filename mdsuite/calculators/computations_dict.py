@@ -46,23 +46,13 @@ dict_classes_db = {
     'viscosity': {}
 }
 
-dict_classes_computations = {
-    'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
-    'EinsteinDistinctDiffusionCoefficients': EinsteinDistinctDiffusionCoefficients,
-    'GreenKuboDiffusionCoefficients': GreenKuboSelfDiffusionCoefficients,
-    'GreenKuboDistinctDiffusionCoefficients': GreenKuboDistinctDiffusionCoefficients,
-    'GreenKuboIonicConductivity': GreenKuboIonicConductivity,
-    'EinsteinHelfandIonicConductivity': EinsteinHelfandIonicConductivity,
-    'RadialDistributionFunction': RadialDistributionFunction,
-    'CoordinationNumbers': CoordinationNumbers,
-    'PotentialOfMeanForce': PotentialOfMeanForce,
-    'KirkwoodBuffIntegral': KirkwoodBuffIntegral,
-    'GreenKuboThermalConductivity': GreenKuboThermalConductivity,
-    'StructureFactor': StructureFactor,
-    'EinsteinHelfandThermalConductivity': EinsteinHelfandThermalConductivity,
-    'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
-    'GreenKuboViscosity': GreenKuboViscosity,
-    'AngularDistributionFunction': AngularDistributionFunction,
-    'NernstEinsteinIonicConductivity': NernstEinsteinIonicConductivity,
-    'EinsteinHelfandThermalKinaci': EinsteinHelfandThermalKinaci,
-}
+calculators = [EinsteinDiffusionCoefficients, EinsteinDistinctDiffusionCoefficients, GreenKuboSelfDiffusionCoefficients,
+               GreenKuboDistinctDiffusionCoefficients, GreenKuboIonicConductivity, EinsteinHelfandIonicConductivity,
+               RadialDistributionFunction, CoordinationNumbers, PotentialOfMeanForce, KirkwoodBuffIntegral,
+               GreenKuboThermalConductivity, StructureFactor, EinsteinHelfandThermalConductivity,
+               GreenKuboViscosityFlux,
+               GreenKuboViscosity, AngularDistributionFunction, NernstEinsteinIonicConductivity,
+               EinsteinHelfandThermalKinaci]
+
+dict_classes_computations = {calc.__name__: calc for calc in calculators}
+# TODO depreciate the dict_classes_computations and replace inside the modules with the respective .__name__ !

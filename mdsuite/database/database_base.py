@@ -14,8 +14,9 @@ import sqlalchemy as sa
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.orm.session import Session
 from sqlalchemy.engine import Engine
+from pathlib import Path
 
-from .project_database_scheme import Base
+from .scheme import Base
 
 log = logging.getLogger(__file__)
 
@@ -24,15 +25,16 @@ class DatabaseBase:
     """
     Docstring
     """
-    def __init__(self, name: str):
+    def __init__(self, database_name: str):
         """
 
         Parameters
         ----------
-        name: str
+        database_name: str
             name of the database
         """
-        self.name = name
+        self.database_name = database_name
+        self.storage_path = "./"
 
         self._engine = None
         self._Session = None
@@ -47,7 +49,7 @@ class DatabaseBase:
 
         """
         if self._engine is None:
-            self._engine = sa.create_engine(f"sqlite+pysqlite:///{self.name}",
+            self._engine = sa.create_engine(f"sqlite+pysqlite:///{Path(self.storage_path, self.database_name)}",
                                             echo=False,
                                             future=True)
         return self._engine

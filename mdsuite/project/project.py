@@ -24,11 +24,12 @@ from typing import Union
 import shutil
 from mdsuite.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
+from mdsuite.database.project_database import ProjectDatabase
 
 log = logging.getLogger(__file__)
 
 
-class Project:
+class Project(ProjectDatabase):
     """
     Class for the main container of all experiments.
 
@@ -69,16 +70,16 @@ class Project:
                 Where to store the tensor_values and databases. This should be a place with sufficient storage space
                 for the full analysis.
         """
+        super().__init__()
         self.name = f"{name}_MDSuite_Project"
-        self.description = None
         self.storage_path = storage_path
 
-        self.experiments = {}
+        self.experiments = {}  # TODO make property and read from db
 
         # Check for project directory, if none exist, create a new one
-        test_dir = Path(f"{self.storage_path}/{self.name}")
-        if test_dir.exists():
-            print("Loading the class state")
+        project_dir = Path(f"{self.storage_path}/{self.name}")
+        if project_dir.exists():
+            log.info("Loading the class state")
             self._load_class()
 
             # load the class state for each experiment attached to the Project.
@@ -88,32 +89,11 @@ class Project:
             # List the experiments available to the user
             self.__str__()
         else:
-            os.mkdir(f"{self.storage_path}/{self.name}")
+            project_dir.mkdir(parents=True, exist_ok=True)
             self._save_class()
 
     def __str__(self):
         return self.list_experiments()
-
-    def add_description(self, description: str):
-        """
-        Allow users to add a short description to their project
-
-        Parameters
-        ----------
-        description : str
-                Description of the project. If the string ends in .txt, the contents of the txt file will be read. If
-                it ends in .md, same outcome. Anything else will be read as is.
-        """
-
-        # Check the file type and read accordingly
-        if description[-3:] == "txt":
-            self.description = simple_file_read(description)
-        elif description[-2:] == "md":
-            self.description = simple_file_read(description)
-        else:
-            self.description = description
-
-        self._save_class()  # Update the class state
 
     def list_experiments(self):
         """
@@ -132,7 +112,7 @@ class Project:
         """
         Load the class state of the Project class from a saved file.
         """
-
+        # TODO move over to database!
         class_file = open(f'{self.storage_path}/{self.name}/{self.name}_state.bin', 'rb')  # Open the class state file
         pickle_data = class_file.read()  # Read in the tensor_values
         class_file.close()  # Close the state file
@@ -146,6 +126,7 @@ class Project:
         In order to keep properties of a class the state must be stored. This method will store the instance of the
         class for later re-loading
         """
+        # TODO move over to database!
         self.__dict__.update(self.experiments)  # updates the dictionary with the new experiments added
 
         save_file = open(f"{self.storage_path}/{self.name}/{self.name}_state.bin", 'wb')  # Open the class state file
@@ -181,7 +162,7 @@ class Project:
 
             # Check if the file exists, if so, return the method without changing the class state
             if test_file.exists():
-                print("This experiment already exists")
+                log.info("This experiment already exists")
                 return
 
             # If the experiment does not exists, instantiate a new Experiment

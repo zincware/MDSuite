@@ -26,7 +26,7 @@ from io import UnsupportedOperation
 from tqdm import tqdm
 import importlib.resources
 from datetime import datetime
-from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db
+from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db, calculators
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.file_io.file_io_dict import dict_file_io
@@ -36,7 +36,7 @@ from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.analysis_database import AnalysisDatabase
+# from mdsuite.database.analysis_database import AnalysisDatabase
 from .run_module import RunModule
 
 log = logging.getLogger(__file__)
@@ -472,8 +472,8 @@ class Experiment:
                                   n_atoms=self.number_of_atoms,
                                   sort=sort)
 
-        analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
-        analysis_database.build_database()
+        # analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
+        # analysis_database.build_database()
         property_database = PropertiesDatabase(name=os.path.join(self.database_path, "property_database"))
         property_database.build_database()
 

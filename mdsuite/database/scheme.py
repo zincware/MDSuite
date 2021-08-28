@@ -6,7 +6,7 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zincware Project.
 
-Description: Module for the project database schema.
+Description: Collection of all used SQLAlchemy Database schemes
 """
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey
@@ -18,6 +18,14 @@ import numpy as np
 Base = declarative_base()
 
 
+class Project(Base):
+    __tablename__ = "projects"
+    id = Column(Integer, primary_key=True)
+    description = Column(String, nullable=True)
+
+    experiments = relationship("Experiment")
+
+
 class Experiment(Base):
     """
     Class for the experiment table associated with the Project table.
@@ -27,10 +35,13 @@ class Experiment(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
+    project_id = Column(Integer, ForeignKey('projects.id', ondelete="CASCADE"))
+    project = relationship("Project")
+
     experiment_data = relationship("ExperimentData",
                                    cascade='all, delete',
                                    back_populates='experiment')
-    computation = relationship("Computation")
+    computations = relationship("Computation")
 
     def __repr__(self):
         """
