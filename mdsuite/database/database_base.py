@@ -39,6 +39,8 @@ class DatabaseBase:
         self._engine = None
         self._Session = None
 
+        self.build_database()
+
     @property
     def engine(self) -> Engine:
         """Create a SQLAlchemy Engine

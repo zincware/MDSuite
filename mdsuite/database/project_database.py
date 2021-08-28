@@ -9,7 +9,7 @@ Copyright Contributors to the Zincware Project.
 Description: Module for the project database.
 """
 import logging
-from .scheme import Project
+from .scheme import Project, Experiment
 
 from .database_base import DatabaseBase
 from mdsuite.utils.database import get_or_create
@@ -26,11 +26,6 @@ class ProjectDatabase(DatabaseBase):
     def __init__(self):
         """
         Constructor for the Project database class.
-
-        Parameters
-        ----------
-        name : str
-                Path to the database location.
         """
         super().__init__(database_name="project.db")
 
@@ -38,6 +33,13 @@ class ProjectDatabase(DatabaseBase):
     def project_id(self) -> int:
         """The id of this project in the database"""
         return 1
+
+    @property
+    def experiments(self):
+        """Get all experiments"""
+        with self.session as ses:
+            experiments = ses.query(Experiment).all()
+        return experiments
 
     @property
     def description(self):

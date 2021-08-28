@@ -82,6 +82,14 @@ class ExperimentData(Base):
     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates='experiment_data')
 
+    def __repr__(self):
+        if self.value is not None:
+            return f"{self.value}"
+        elif self.str_value is not None:
+            return self.str_value
+        else:
+            return None
+
 
 class Computation(Base):
     """

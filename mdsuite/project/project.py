@@ -54,7 +54,7 @@ class Project(ProjectDatabase):
             experiments.
     """
 
-    def __init__(self, name: str = "My_Project", storage_path: str = "./"):
+    def __init__(self, name: str = None, storage_path: str = "./"):
         """
         Project class constructor
 
@@ -71,26 +71,26 @@ class Project(ProjectDatabase):
                 for the full analysis.
         """
         super().__init__()
-        self.name = f"{name}_MDSuite_Project"
+        if name is None:
+            name = datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.name = f"MDSuite_Project_{name}"
         self.storage_path = storage_path
-
-        self.experiments = {}  # TODO make property and read from db
 
         # Check for project directory, if none exist, create a new one
         project_dir = Path(f"{self.storage_path}/{self.name}")
         if project_dir.exists():
             log.info("Loading the class state")
-            self._load_class()
-
-            # load the class state for each experiment attached to the Project.
-            for experiment in self.experiments.values():
-                experiment.load_class()
-
-            # List the experiments available to the user
-            self.__str__()
+            # self._load_class()
+            #
+            # # load the class state for each experiment attached to the Project.
+            # for experiment in self.experiments.values():
+            #     experiment.load_class()
+            #
+            # # List the experiments available to the user
+            # self.__str__()
         else:
             project_dir.mkdir(parents=True, exist_ok=True)
-            self._save_class()
+            # self._save_class()
 
     def __str__(self):
         return self.list_experiments()
@@ -107,31 +107,6 @@ class Project(ProjectDatabase):
         for idx, experiment in enumerate(self.experiments):
             list_experiments.append(f"{idx}.) {experiment}")
         return '\n'.join(list_experiments)
-
-    def _load_class(self):
-        """
-        Load the class state of the Project class from a saved file.
-        """
-        # TODO move over to database!
-        class_file = open(f'{self.storage_path}/{self.name}/{self.name}_state.bin', 'rb')  # Open the class state file
-        pickle_data = class_file.read()  # Read in the tensor_values
-        class_file.close()  # Close the state file
-
-        self.__dict__.update(pickle.loads(pickle_data))  # Initialize the class with the loaded parameters
-
-    def _save_class(self):
-        """
-        Saves class instance
-
-        In order to keep properties of a class the state must be stored. This method will store the instance of the
-        class for later re-loading
-        """
-        # TODO move over to database!
-        self.__dict__.update(self.experiments)  # updates the dictionary with the new experiments added
-
-        save_file = open(f"{self.storage_path}/{self.name}/{self.name}_state.bin", 'wb')  # Open the class state file
-        save_file.write(pickle.dumps(self.__dict__))  # write the current state of the class
-        save_file.close()  # Close the state file
 
     def add_experiment(self, experiment: Union[str, dict] = None, timestep: float = None, temperature: float = None,
                        units: str = None, cluster_mode: bool = None):
@@ -192,7 +167,7 @@ class Project(ProjectDatabase):
                 self.experiments[
                     new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
-        self._save_class()  # Save the class state
+        # self._save_class()  # Save the class state
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
@@ -327,7 +302,7 @@ class Project(ProjectDatabase):
                 dir_path = os.path.join(self.storage_path, self.name, experiment_name)
                 shutil.rmtree(dir_path)
                 self.experiments.pop(experiment_name, None)
-                self._save_class()
+                # self._save_class()
             except InterruptedError:
                 print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
                       "to do this again.")
