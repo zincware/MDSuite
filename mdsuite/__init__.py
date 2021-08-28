@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from .project import Project
-from .experiment.experiment import Experiment
+from .experiment import Experiment
 from .graph_modules import adjacency_matrix
 from .utils.report_computer_characteristics import Report
 

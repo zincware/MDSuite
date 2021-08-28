@@ -8,3 +8,7 @@ Copyright Contributors to the Zincware Project.
 
 Description: 
 """
+
+from .project import Project
+
+__all__ = ['Project']

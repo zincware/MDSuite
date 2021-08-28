@@ -22,7 +22,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 import shutil
-from mdsuite.experiment.experiment import Experiment
+from mdsuite.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
 
 log = logging.getLogger(__file__)

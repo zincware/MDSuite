@@ -7,3 +7,7 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the MDSuite Project.
 """
+
+from .experiment import Experiment
+
+__all__ = ['Experiment']
