@@ -35,8 +35,9 @@ class ProjectDatabase(DatabaseBase):
         return 1
 
     @property
-    def experiments(self):
+    def db_experiments(self):
         """Get all experiments"""
+        # renamed to db_experiments because experiments contains the instances of the Experiment class
         with self.session as ses:
             experiments = ses.query(Experiment).all()
         return experiments

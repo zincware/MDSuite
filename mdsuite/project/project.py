@@ -25,6 +25,7 @@ import shutil
 from mdsuite.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
 from mdsuite.database.project_database import ProjectDatabase
+import mdsuite.database.scheme as db
 
 log = logging.getLogger(__file__)
 
@@ -72,9 +73,13 @@ class Project(ProjectDatabase):
         """
         super().__init__()
         if name is None:
-            name = datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.name = f"MDSuite_Project_{name}"
+            self.name = f"MDSuite_Project"
+        else:
+            self.name = f"MDSuite_Project_{name}"
         self.storage_path = storage_path
+
+        # Properties
+        self._experiments = {}
 
         # Check for project directory, if none exist, create a new one
         project_dir = Path(f"{self.storage_path}/{self.name}")
@@ -93,20 +98,15 @@ class Project(ProjectDatabase):
             # self._save_class()
 
     def __str__(self):
-        return self.list_experiments()
-
-    def list_experiments(self):
         """
-        List the available experiments as a numerical list.
 
         Returns
         -------
-        str: per-line list of experiments
+        str:
+            A list of all available experiments like "1.) Exp01\n2.) Exp02\n3.) Exp03"
+
         """
-        list_experiments = []
-        for idx, experiment in enumerate(self.experiments):
-            list_experiments.append(f"{idx}.) {experiment}")
-        return '\n'.join(list_experiments)
+        return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
     def add_experiment(self, experiment: Union[str, dict] = None, timestep: float = None, temperature: float = None,
                        units: str = None, cluster_mode: bool = None):
@@ -127,27 +127,31 @@ class Project(ProjectDatabase):
                 LAMMPS units used
         """
 
-        if type(experiment) is str:
+        if isinstance(experiment, str):
             # Set a name in case none is given
             if experiment is None:
-                experiment = f"Experiment_{datetime.now()}"  # set the experiment name to the current date and time
+                experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+                # set the experiment name to the current date and time
 
-            # Run a check to see if that experiment already exists
-            test_file = Path(f"{self.storage_path}/{self.name}/{experiment}")
-
-            # Check if the file exists, if so, return the method without changing the class state
-            if test_file.exists():
+            # Run a query to see if that experiment already exists
+            with self.session as ses:
+                experiments = ses.query(db.Experiment).filter(db.Experiment.name == experiment).all()
+            if len(experiments) > 0:
                 log.info("This experiment already exists")
                 return
 
             # If the experiment does not exists, instantiate a new Experiment
-            new_experiment = Experiment(experiment,
-                                        storage_path=f"{self.storage_path}/{self.name}",
-                                        time_step=timestep,
-                                        units=units,
-                                        temperature=temperature,
-                                        cluster_mode=cluster_mode)
+            new_experiment = Experiment(
+                project=self,
+                experiment_name=experiment,
+                storage_path=f"{self.storage_path}/{self.name}",
+                time_step=timestep,
+                units=units,
+                temperature=temperature,
+                cluster_mode=cluster_mode
+            )
 
+            # TODO should be replaced by active experiments that are loaded!
             self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
         else:
             for item in experiment:
@@ -168,6 +172,33 @@ class Project(ProjectDatabase):
                     new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
         # self._save_class()  # Save the class state
+
+    def load_experiments(self, names: Union[str, list]):
+        """Load experiments, such that they are used for the computations
+
+        Parameters
+        ----------
+        names: Name or list of names of experiments that should be instantiated and loaded into self.experiments
+
+        Returns
+        -------
+
+        """
+
+        if isinstance(names, str):
+            names = [names]
+
+        for name in names:
+            if name not in [exp.name for exp in self.db_experiments]:
+                raise ValueError(f'Could not find an experiment titled {name}!')
+
+            new_experiment = Experiment(
+                project=self,
+                experiment_name=name,
+            )
+
+            self.experiments = {new_experiment.analysis_name: new_experiment, **self.experiments}
+            # merge two dicts - this will be removed eventually
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
@@ -306,3 +337,15 @@ class Project(ProjectDatabase):
             except InterruptedError:
                 print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
                       "to do this again.")
+
+    @property
+    def experiments(self):
+        """Get a dict of instantiated experiments that are currently selected!"""
+        # TODO instantiate all experiments that are loaded - the idea is, that all of these experiments shall be used
+        #   for the calculations
+        return self._experiments
+
+    @experiments.setter
+    def experiments(self, value):
+        # TODO this should not be required
+        self._experiments = value
