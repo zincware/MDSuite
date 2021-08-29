@@ -12,6 +12,7 @@ import os
 from tempfile import TemporaryDirectory
 import pytest
 import mdsuite as mds
+import numpy as np
 
 temp_dir = TemporaryDirectory()
 cwd = os.getcwd()
@@ -75,6 +76,7 @@ def test_project_number_of_configurations():
     project_2.load_experiments('Exp01')
     assert project_2.experiments['Exp01'].number_of_configurations == 100
 
+
 def test_project_number_of_atoms():
     """Test that the project description is stored correctly in the database"""
 
@@ -85,3 +87,17 @@ def test_project_number_of_atoms():
     project_2 = mds.Project()
     project_2.load_experiments('Exp01')
     assert project_2.experiments['Exp01'].number_of_atoms == 100
+
+
+def test_project_box_array():
+    """Test that the project description is stored correctly in the database"""
+
+    box_array = np.array([1.0, 1.414, 1.732])
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01")
+    project_1.experiments['Exp01'].box_array = box_array
+
+    project_2 = mds.Project()
+    project_2.load_experiments('Exp01')
+    np.testing.assert_array_equal(project_2.experiments['Exp01'].box_array, box_array)

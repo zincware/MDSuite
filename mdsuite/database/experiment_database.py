@@ -11,7 +11,7 @@ Description: Module for the experiment database.
 from __future__ import annotations
 
 import logging
-from mdsuite.database.scheme import Project, Experiment, ExperimentData
+from mdsuite.database.scheme import Project, Experiment, ExperimentData, Species, SpeciesData
 from mdsuite.utils.database import get_or_create
 
 log = logging.getLogger(__file__)
@@ -114,14 +114,14 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def number_of_configurations(self):
+    def number_of_configurations(self) -> int:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.experiment_name)
             number_of_configurations = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
                 ExperimentData.name == "number_of_configurations").first()
         try:
-            return number_of_configurations.value
+            return int(number_of_configurations.value)
         except AttributeError:
             return None
 
@@ -138,14 +138,14 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def number_of_atoms(self):
+    def number_of_atoms(self) -> int:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.experiment_name)
             number_of_atoms = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
                 ExperimentData.name == "number_of_atoms").first()
         try:
-            return number_of_atoms.value
+            return int(number_of_atoms.value)
         except AttributeError:
             return None
 
@@ -157,6 +157,123 @@ class ExperimentDatabase:
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.experiment_name)
             number_of_atoms: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment,
-                                                                     name="number_of_atoms")
+                                                            name="number_of_atoms")
             number_of_atoms.value = value
+            ses.commit()
+
+    @property
+    def sample_rate(self):
+        """Get the sample_rate of the experiment"""
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            sample_rate = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
+                ExperimentData.name == "sample_rate").first()
+        try:
+            return sample_rate.value
+        except AttributeError:
+            return None
+
+    @sample_rate.setter
+    def sample_rate(self, value):
+        """Set the time_step of the experiment"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            sample_rate: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment, name="sample_rate")
+            sample_rate.value = value
+            ses.commit()
+
+    @property
+    def volume(self):
+        """Get the volume of the experiment"""
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            volume = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
+                ExperimentData.name == "volume").first()
+        try:
+            return volume.value
+        except AttributeError:
+            return None
+
+    @volume.setter
+    def volume(self, value):
+        """Set the volume of the experiment"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            volume: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment, name="volume")
+            volume.value = value
+            ses.commit()
+
+    @property
+    def box_array(self):
+        """Get the sample_rate of the experiment"""
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            box_arrays = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
+                ExperimentData.name.startswith("box_array")).all()
+
+            box_array = [box_side.value for box_side in box_arrays]
+
+        return box_array
+
+    @box_array.setter
+    def box_array(self, value):
+        """Set the time_step of the experiment"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            for idx, box_length in enumerate(value):
+                sample_rate: ExperimentData = get_or_create(
+                    ses, ExperimentData, experiment=experiment, name=f"box_array_{idx}")
+                sample_rate.value = box_length
+            ses.commit()
+
+    @property
+    def species(self):
+        species_dict = {}
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+            for species in experiment.species:
+                species_dict.update({
+                    species.name: {
+                        "indices": species.indices,
+                        "mass": species.mass,
+                        "charge": species.charge
+                    }
+                })
+
+        return species_dict
+
+    @species.setter
+    def species(self, value):
+        """
+
+        Parameters
+        ----------
+        value
+
+        Notes
+        -----
+
+        species = {C: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+
+        """
+        if value is None:
+            return
+        log.warning(value)
+        with self.project.session as ses:
+            for species_name in value:
+                species = get_or_create(ses, Species, name=species_name)
+                species.experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+                for species_attr, species_values in value[species_name].items():
+                    for idx, species_value in enumerate(species_values):
+                        species_data = get_or_create(
+                            ses, SpeciesData,
+                            name=species_attr, species=species, value=species_value
+                        )
+
             ses.commit()

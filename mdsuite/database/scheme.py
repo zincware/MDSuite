@@ -44,7 +44,9 @@ class Experiment(Base):
     experiment_data = relationship("ExperimentData",
                                    cascade='all, delete',
                                    back_populates='experiment')
+
     computations = relationship("Computation")
+    species = relationship("Species")
 
     def __repr__(self):
         """
@@ -92,6 +94,54 @@ class ExperimentData(Base):
             return self.str_value
         else:
             return None
+
+
+class Species(Base):
+    __tablename__ = 'species'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+
+    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
+    experiment = relationship("Experiment", back_populates='species')
+
+    species_data = relationship("SpeciesData")
+
+    @property
+    def indices(self):
+        indices = []
+        for species_data in self.species_data:
+            if species_data.name == "indices":
+                indices.append(int(species_data.value))
+        return indices
+
+    @property
+    def mass(self):
+        mass = []
+        for species_data in self.species_data:
+            if species_data.name == "mass":
+                mass.append(species_data.value)
+        return mass
+
+    @property
+    def charge(self):
+        charge = []
+        for species_data in self.species_data:
+            if species_data.name == "charge":
+                charge.append(species_data.value)
+        return charge
+
+#      TODO consider adding species data as a function here!
+
+
+class SpeciesData(Base):
+    __tablename__ = 'species_data'
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    value = Column(Float, nullable=True)
+    str_value = Column(String, nullable=True)
+
+    species_id = Column(Integer, ForeignKey('species.id', ondelete="CASCADE"))
+    species = relationship("Species", back_populates='species_data')
 
 
 class Computation(Base):
