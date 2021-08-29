@@ -155,6 +155,10 @@ class Project(ProjectDatabase):
         # self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
     def load_experiments(self, names: Union[str, list]):
+        """Alias for activate_experiments"""
+        self.activate_experiments(names)
+
+    def activate_experiments(self, names: Union[str, list]):
         """Load experiments, such that they are used for the computations
 
         Parameters
@@ -180,8 +184,31 @@ class Project(ProjectDatabase):
 
             new_experiment.active = True
 
-            # self.experiments = {new_experiment.analysis_name: new_experiment, **self.experiments}
-            # merge two dicts - this will be removed eventually
+    def disable_experiments(self, names: Union[str, list]):
+        """Disable experiments
+
+        Parameters
+        ----------
+        names: Name or list of names of experiments that should be instantiated and loaded into self.experiments
+
+        Returns
+        -------
+
+        """
+
+        if isinstance(names, str):
+            names = [names]
+
+        for name in names:
+            if name not in [exp.name for exp in self.db_experiments]:
+                raise ValueError(f'Could not find an experiment titled {name}!')
+
+            new_experiment = Experiment(
+                project=self,
+                experiment_name=name,
+            )
+
+            new_experiment.active = False
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
