@@ -55,7 +55,7 @@ class Project(ProjectDatabase):
             experiments.
     """
 
-    def __init__(self, name: str = None, storage_path: str = "./"):
+    def __init__(self, name: str = None, storage_path: str = "./", description: str = None):
         """
         Project class constructor
 
@@ -85,17 +85,14 @@ class Project(ProjectDatabase):
         project_dir = Path(f"{self.storage_path}/{self.name}")
         if project_dir.exists():
             log.info("Loading the class state")
-            # self._load_class()
-            #
-            # # load the class state for each experiment attached to the Project.
-            # for experiment in self.experiments.values():
-            #     experiment.load_class()
-            #
-            # # List the experiments available to the user
-            # self.__str__()
+            log.info(f"Available experiments are: {self.db_experiments}")
         else:
             project_dir.mkdir(parents=True, exist_ok=True)
-            # self._save_class()
+
+        self.build_database()
+
+        # Database Properties
+        self.description = description
 
     def __str__(self):
         """
@@ -108,13 +105,15 @@ class Project(ProjectDatabase):
         """
         return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
-    def add_experiment(self, experiment: Union[str, dict] = None, timestep: float = None, temperature: float = None,
-                       units: str = None, cluster_mode: bool = None):
+    def add_experiment(self, experiment: str = None, timestep: float = None, temperature: float = None,
+                       units: str = None, cluster_mode: bool = None, active: bool = True):
         """
         Add an experiment to the project
 
         Parameters
         ----------
+        active: bool, default = True
+                Activate the experiment when added
         cluster_mode : bool
                 If true, cluster mode is parsed to the experiment class.
         experiment : str
@@ -127,51 +126,33 @@ class Project(ProjectDatabase):
                 LAMMPS units used
         """
 
-        if isinstance(experiment, str):
-            # Set a name in case none is given
-            if experiment is None:
-                experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-                # set the experiment name to the current date and time
+        if experiment is None:
+            experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            # set the experiment name to the current date and time if None is provided
 
-            # Run a query to see if that experiment already exists
-            with self.session as ses:
-                experiments = ses.query(db.Experiment).filter(db.Experiment.name == experiment).all()
-            if len(experiments) > 0:
-                log.info("This experiment already exists")
-                return
+        # Run a query to see if that experiment already exists
+        with self.session as ses:
+            experiments = ses.query(db.Experiment).filter(db.Experiment.name == experiment).all()
+        if len(experiments) > 0:
+            log.info("This experiment already exists")
+            self.load_experiments(experiment)
+            return
 
-            # If the experiment does not exists, instantiate a new Experiment
-            new_experiment = Experiment(
-                project=self,
-                experiment_name=experiment,
-                storage_path=f"{self.storage_path}/{self.name}",
-                time_step=timestep,
-                units=units,
-                temperature=temperature,
-                cluster_mode=cluster_mode
-            )
+        # If the experiment does not exists, instantiate a new Experiment
+        new_experiment = Experiment(
+            project=self,
+            experiment_name=experiment,
+            storage_path=f"{self.storage_path}/{self.name}",
+            time_step=timestep,
+            units=units,
+            temperature=temperature,
+            cluster_mode=cluster_mode
+        )
 
-            # TODO should be replaced by active experiments that are loaded!
-            self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
-        else:
-            for item in experiment:
-                # Run a check to see if that experiment already exists
-                test_file = Path(f"{self.storage_path}/{self.name}/{item}")
+        new_experiment.active = active
 
-                # Check if the file exists, if so, return the method without changing the class state
-                if test_file.exists():
-                    print("This experiment already exists, aborting addition")
-                    continue
-
-                # If the experiment does not exists, instantiate a new Experiment
-                new_experiment = Experiment(item,
-                                            storage_path=f"{self.storage_path}/{self.name}",
-                                            **experiment[item])
-
-                self.experiments[
-                    new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
-
-        # self._save_class()  # Save the class state
+        # # TODO should be replaced by active experiments that are loaded!
+        # self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
 
     def load_experiments(self, names: Union[str, list]):
         """Load experiments, such that they are used for the computations
@@ -197,7 +178,9 @@ class Project(ProjectDatabase):
                 experiment_name=name,
             )
 
-            self.experiments = {new_experiment.analysis_name: new_experiment, **self.experiments}
+            new_experiment.active = True
+
+            # self.experiments = {new_experiment.analysis_name: new_experiment, **self.experiments}
             # merge two dicts - this will be removed eventually
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
@@ -229,123 +212,127 @@ class Project(ProjectDatabase):
             for item in data_sets:
                 self.experiments[item].add_data(data_sets[item], file_format=file_format)
 
-    def get_results(self, key_to_find):
-        """
-        Gets the results from the experiments and puts them in a dict
+    # def get_results(self, key_to_find):
+    #     """
+    #     Gets the results from the experiments and puts them in a dict
+    #
+    #     Parameters
+    #     ----------
+    #     key_to_find : str
+    #         name of the parameter to search in the results.
+    #
+    #     Returns
+    #     -------
+    #     results: dict
+    #         collects the results from the different experiments
+    #     """
+    #
+    #     results = {}
+    #     for experiment_name, experiment_class in self.experiments.items():
+    #         results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
+    #         result = find_item(results_yaml, key_to_find)
+    #
+    #         if isinstance(result, str):
+    #             if result.startswith('['):
+    #                 result = list(result.replace('[', '').replace(']', '').split(','))
+    #             else:
+    #                 result = float(result)
+    #
+    #         if isinstance(result, list):
+    #             result = [float(res) for res in result]  # convert results to floats
+    #         results[experiment_name] = result
+    #
+    #     return results
 
-        Parameters
-        ----------
-        key_to_find : str
-            name of the parameter to search in the results.
+    # def get_properties(self, parameters: dict, experiments: list = None):
+    #     """
+    #     Get some property of each experiment.
+    #
+    #     Parameters
+    #     ----------
+    #     parameters : dict
+    #             Parameters to be used in the addition, i.e.
+    #
+    #             .. code-block:: python
+    #
+    #                {"Analysis": "Green_Kubo_Self_Diffusion",  "Subject": "Na", "data_range": 500}
+    #
+    #     experiments : list
+    #             List of experiments to fetch information for. If None, all will be searched.
+    #
+    #     Returns
+    #     -------
+    #     properties_dict : dict
+    #             A dictionary of lists of properties for each system
+    #     """
+    #     if experiments is None:
+    #         experiments = list(self.experiments)
+    #
+    #     properties_dict = {}
+    #     for item in experiments:
+    #         properties_dict[item] = self.experiments[item].export_property_data(parameters.copy())
+    #
+    #     return properties_dict
 
-        Returns
-        -------
-        results: dict
-            collects the results from the different experiments
-        """
+    # def get_attribute(self, attribute):
+    #     """
+    #     Get an attribute from the experiments. Equivalent to get_results but for system parameters such as:
+    #     temperature, time_step, etc.
+    #
+    #     Parameters
+    #     ----------
+    #     attribute : str
+    #         name of the parameter to search in the experiment.
+    #
+    #     Returns
+    #     -------
+    #     results: dict
+    #         collects the results from the different experiments
+    #     """
+    #
+    #     results = {}
+    #     for experiment_name, experiment_class in self.experiments.items():
+    #         value_attr = experiment_class.__getattribute__(attribute)
+    #         results[experiment_name] = value_attr
+    #
+    #     return results
 
-        results = {}
-        for experiment_name, experiment_class in self.experiments.items():
-            results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
-            result = find_item(results_yaml, key_to_find)
-
-            if isinstance(result, str):
-                if result.startswith('['):
-                    result = list(result.replace('[', '').replace(']', '').split(','))
-                else:
-                    result = float(result)
-
-            if isinstance(result, list):
-                result = [float(res) for res in result]  # convert results to floats
-            results[experiment_name] = result
-
-        return results
-
-    def get_properties(self, parameters: dict, experiments: list = None):
-        """
-        Get some property of each experiment.
-
-        Parameters
-        ----------
-        parameters : dict
-                Parameters to be used in the addition, i.e.
-
-                .. code-block:: python
-
-                   {"Analysis": "Green_Kubo_Self_Diffusion",  "Subject": "Na", "data_range": 500}
-
-        experiments : list
-                List of experiments to fetch information for. If None, all will be searched.
-
-        Returns
-        -------
-        properties_dict : dict
-                A dictionary of lists of properties for each system
-        """
-        if experiments is None:
-            experiments = list(self.experiments)
-
-        properties_dict = {}
-        for item in experiments:
-            properties_dict[item] = self.experiments[item].export_property_data(parameters.copy())
-
-        return properties_dict
-
-    def get_attribute(self, attribute):
-        """
-        Get an attribute from the experiments. Equivalent to get_results but for system parameters such as:
-        temperature, time_step, etc.
-
-        Parameters
-        ----------
-        attribute : str
-            name of the parameter to search in the experiment.
-
-        Returns
-        -------
-        results: dict
-            collects the results from the different experiments
-        """
-
-        results = {}
-        for experiment_name, experiment_class in self.experiments.items():
-            value_attr = experiment_class.__getattribute__(attribute)
-            results[experiment_name] = value_attr
-
-        return results
-
-    def remove_experiment(self, experiment_name: str):
-        """
-        Delete an experiment from the project
-        Parameters
-        ----------
-        experiment_name
-
-        Returns
-        -------
-        Updates the class state.
-        """
-        if experiment_name not in list(self.experiments):
-            print("Experiment does not exist")
-            return
-        else:
-            try:
-                dir_path = os.path.join(self.storage_path, self.name, experiment_name)
-                shutil.rmtree(dir_path)
-                self.experiments.pop(experiment_name, None)
-                # self._save_class()
-            except InterruptedError:
-                print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
-                      "to do this again.")
+    # def remove_experiment(self, experiment_name: str):
+    #     """
+    #     Delete an experiment from the project
+    #     Parameters
+    #     ----------
+    #     experiment_name
+    #
+    #     Returns
+    #     -------
+    #     Updates the class state.
+    #     """
+    #     if experiment_name not in list(self.experiments):
+    #         print("Experiment does not exist")
+    #         return
+    #     else:
+    #         try:
+    #             dir_path = os.path.join(self.storage_path, self.name, experiment_name)
+    #             shutil.rmtree(dir_path)
+    #             self.experiments.pop(experiment_name, None)
+    #             # self._save_class()
+    #         except InterruptedError:
+    #             print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"
+    #                   "to do this again.")
 
     @property
-    def experiments(self):
+    def experiments(self) -> dict:
         """Get a dict of instantiated experiments that are currently selected!"""
-        # TODO instantiate all experiments that are loaded - the idea is, that all of these experiments shall be used
-        #   for the calculations
-        return self._experiments
+        # TODO there could be a performance increase if the experiments are stored instead of instantiated every time
+        #   this property is called.
+        experiments = {}
 
-    @experiments.setter
-    def experiments(self, value):
-        # TODO this should not be required
-        self._experiments = value
+        with self.session as ses:
+            db_experiments = ses.query(db.Experiment).filter(db.Experiment.active).all()
+
+        for exp in db_experiments:
+            exp: db.Experiment
+            experiments[exp.name] = Experiment(project=self, experiment_name=exp.name)
+
+        return experiments

@@ -9,7 +9,7 @@ Copyright Contributors to the Zincware Project.
 Description: Collection of all used SQLAlchemy Database schemes
 """
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
 
@@ -34,6 +34,9 @@ class Experiment(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
+
+    active = Column(Boolean, default=False)
+    # Whether this experiment is currently loaded in the project class
 
     project_id = Column(Integer, ForeignKey('projects.id', ondelete="CASCADE"))
     project = relationship("Project")

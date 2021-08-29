@@ -34,8 +34,8 @@ def test_project_load_experiments():
 
     project_1 = mds.Project()
     project_1.description = "HelloWorld"
-    project_1.add_experiment("Exp01")
-    project_1.add_experiment("Exp02")
+    project_1.add_experiment("Exp01", active=False)
+    project_1.add_experiment("Exp02", active=False)
 
     project_2 = mds.Project()
     project_2.load_experiments("Exp01")

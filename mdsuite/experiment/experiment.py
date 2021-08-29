@@ -154,6 +154,9 @@ class Experiment(ExperimentDatabase):
         self._simulation_data: dict = {}
         self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
 
+    def __repr__(self):
+        return self.analysis_name
+
     # def _start_logging(self):
     #     logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
     #     logfile = os.path.join(self.logfile_path, logfile_name)

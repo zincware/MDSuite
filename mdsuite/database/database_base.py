@@ -25,6 +25,7 @@ class DatabaseBase:
     """
     Docstring
     """
+
     def __init__(self, database_name: str):
         """
 
@@ -33,13 +34,12 @@ class DatabaseBase:
         database_name: str
             name of the database
         """
+        self.name = ""  # Name of the Project
         self.database_name = database_name
         self.storage_path = "./"
 
         self._engine = None
         self._Session = None
-
-        self.build_database()
 
     @property
     def engine(self) -> Engine:
@@ -51,9 +51,10 @@ class DatabaseBase:
 
         """
         if self._engine is None:
-            self._engine = sa.create_engine(f"sqlite+pysqlite:///{Path(self.storage_path, self.database_name)}",
-                                            echo=False,
-                                            future=True)
+            self._engine = sa.create_engine(
+                f"sqlite+pysqlite:///{Path(self.storage_path, self.name, self.database_name)}",
+                echo=False,
+                future=True)
         return self._engine
 
     @property

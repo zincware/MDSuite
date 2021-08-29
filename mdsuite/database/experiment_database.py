@@ -28,6 +28,23 @@ class ExperimentDatabase:
         self.experiment_name = experiment_name
 
     @property
+    def active(self):
+        """Get the state (activated or not) of the experiment"""
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+        return experiment.active
+
+    @active.setter
+    def active(self, value):
+        """Set the state (activated or not) of the experiment"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            experiment.active = value
+            ses.commit()
+
+    @property
     def temperature(self):
         """Get the temperature of the experiment"""
         with self.project.session as ses:

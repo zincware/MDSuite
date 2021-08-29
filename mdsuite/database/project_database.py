@@ -62,6 +62,8 @@ class ProjectDatabase(DatabaseBase):
                 Description of the project. If the string ends in .txt, the contents of the txt file will be read. If
                 it ends in .md, same outcome. Anything else will be read as is.
         """
+        if value is None:
+            return
         if Path(value).exists():
             value = Path(value).read_text()
 
