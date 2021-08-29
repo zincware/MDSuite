@@ -670,6 +670,11 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         Update the experiment properties YAML file.
         """
+        with self.experiment.project.session as ses:
+            pass
+
+        log.warning("Using depreciated experiment-based  PropertiesDatabase!")
+
         database = PropertiesDatabase(
             name=os.path.join(self.experiment.database_path,
                               'property_database'))

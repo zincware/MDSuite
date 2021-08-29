@@ -266,7 +266,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     self._start_logging()
     #     # TODO Why is this necessary? What does it exactly?
     #
-    # def save_class(self):
+    def save_class(self):
+        log.warning("Using depreciated method `save_class`!")
     #     """
     #     Saves class instance
     #
