@@ -20,6 +20,7 @@ cwd = os.getcwd()
 
 @pytest.fixture(autouse=True)
 def prepare_env():
+    """Prepare temporary environment"""
     temp_dir = TemporaryDirectory()
     os.chdir(temp_dir.name)
 
