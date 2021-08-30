@@ -244,7 +244,9 @@ class ExperimentDatabase:
                     species.name: {
                         "indices": species.indices,
                         "mass": species.mass,
-                        "charge": species.charge
+                        "charge": species.charge,
+                        "particle_density": species.particle_density,
+                        "molar_fraction": species.molar_fraction
                     }
                 })
 
@@ -271,11 +273,20 @@ class ExperimentDatabase:
                 species = get_or_create(ses, Species, name=species_name)
                 species.experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
                 for species_attr, species_values in value[species_name].items():
-                    for idx, species_value in enumerate(species_values):
-                        species_data = get_or_create(
-                            ses, SpeciesData,
-                            name=species_attr, species=species, value=species_value
-                        )
+                    try:
+                        for idx, species_value in enumerate(species_values):
+                            _ = get_or_create(
+                                ses, SpeciesData,
+                                name=species_attr, species=species, value=species_value
+                            )
+                    except TypeError:
+                        # e.g., float or int values that are not iterable
+                        if species_values is not None:
+                            log.warning(f"Updating {species_attr} with {species_values}")
+                            _ = get_or_create(
+                                ses, SpeciesData,
+                                name=species_attr, species=species, value=species_values
+                            )
 
             ses.commit()
 

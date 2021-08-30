@@ -25,6 +25,7 @@ from mdsuite import data as static_data
 from importlib.resources import open_text
 from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.database.database_scheme import SystemProperty
+
 plt.rcParams['figure.facecolor'] = 'white'
 
 log = logging.getLogger(__file__)
@@ -111,26 +112,26 @@ class StructureFactor(Calculator):
 
         return out
 
-    def _get_rdf_data(self):
-        """
-        Fill the data_files list with filenames of the rdf tensor_values
-        """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+    # def _get_rdf_data(self):
+    #     """
+    #     Fill the data_files list with filenames of the rdf tensor_values
+    #     """
+    #     database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+    #
+    #     return database.load_data({"property": "RDF"})
 
-        return database.load_data({"property": "RDF"})
-
-    def _load_rdf_from_file(self, system_property: SystemProperty):
-        """
-        Load the raw rdf tensor_values from a directory
-        """
-        radii = []
-        rdf = []
-        for _bin in system_property.data:
-            radii.append(_bin.x)
-            rdf.append(_bin.y)
-
-        self.radii = np.array(radii)[1:]
-        self.rdf = np.array(rdf)[1:]
+    # def _load_rdf_from_file(self, system_property: SystemProperty):
+    #     """
+    #     Load the raw rdf tensor_values from a directory
+    #     """
+    #     radii = []
+    #     rdf = []
+    #     for _bin in system_property.data:
+    #         radii.append(_bin.x)
+    #         rdf.append(_bin.y)
+    #
+    #     self.radii = np.array(radii)[1:]
+    #     self.rdf = np.array(rdf)[1:]
 
     def _autocorrelation_time(self):
         """
@@ -175,20 +176,30 @@ class StructureFactor(Calculator):
         Calculates the molar fractions for all elements in the species dictionary and add it to the species
         dictionary
         """
+        species = dict(self.experiment.species)
+
         for el in self.experiment.species:
-            self.experiment.species[el]['molar_fraction'] = len(
+            species[el]['molar_fraction'] = len(
                 self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
 
+        self.experiment.species = species
+
     def species_densities(self):
-        """
-        Calculates the particle densities for all the speies in the species dictionary and add it to the species
+        """Calculates the particle densities
+
+        Calculates the particle densities for all the species in the species dictionary and add it to the species
         dictionary
         """
+        log.warning("Updating particle_density")
+        species = dict(self.experiment.species)
         for el in self.experiment.species:
-            self.experiment.species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (
-                        self.experiment.box_array[0] *
-                        self.experiment.box_array[1] *
-                        self.experiment.box_array[2])
+            species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (
+                    self.experiment.box_array[0] *
+                    self.experiment.box_array[1] *
+                    self.experiment.box_array[2])
+        self.experiment.species = species
+        log.warning(species)
+        log.warning(self.experiment.species)
 
     def average_atomic_form_factor(self, scattering_scalar):
         """
@@ -244,7 +255,7 @@ class StructureFactor(Calculator):
             log.debug(f"Loaded data: {data}")
             self._load_rdf_from_file(data)
             log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
-            elements = [subject.subject for subject in data.subjects]
+            elements = data.subjects
             log.debug(f'Elements are: {elements}')
             s_12, _, _ = self.partial_structure_factor(scattering_scalar, elements)
             s_in = self.weight_factor(scattering_scalar, elements) * s_12

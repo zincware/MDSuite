@@ -140,13 +140,13 @@ class PotentialOfMeanForce(Calculator):
     #
     #     return database.load_data({"property": "RDF"})
 
-    def _load_rdf_from_file(self, computation: db.Computation):
-        """
-        Load the raw rdf tensor_values from a directory
-        """
-
-        self.radii = np.array(computation.data_dict['x']).astype(float)
-        self.rdf = np.array(computation.data_dict['y']).astype(float)
+    # def _load_rdf_from_file(self, computation: db.Computation):
+    #     """
+    #     Load the raw rdf tensor_values from a directory
+    #     """
+    #
+    #     self.radii = np.array(computation.data_dict['x']).astype(float)
+    #     self.rdf = np.array(computation.data_dict['y']).astype(float)
 
     def _autocorrelation_time(self):
         """

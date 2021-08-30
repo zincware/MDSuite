@@ -81,6 +81,7 @@ class CalculatorDatabase:
 
             ses.commit()
 
+    # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self):
         """Fill the data_files list with filenames of the rdf tensor_values"""
         with self.experiment.project.session as ses:
@@ -93,6 +94,13 @@ class CalculatorDatabase:
                 _ = computation.data_range
 
         return computations
+
+    # TODO rename and potentially move to a RDF based parent class
+    def _load_rdf_from_file(self, computation: db.Computation):
+        """Load the raw rdf tensor_values from a directory"""
+
+        self.radii = np.array(computation.data_dict['x']).astype(float)
+        self.rdf = np.array(computation.data_dict['y']).astype(float)
 
     @property
     def data(self) -> np.ndarray:

@@ -108,7 +108,7 @@ class Species(Base):
     species_data = relationship("SpeciesData")
 
     @property
-    def indices(self):
+    def indices(self) -> list:
         indices = []
         for species_data in self.species_data:
             if species_data.name == "indices":
@@ -116,7 +116,7 @@ class Species(Base):
         return indices
 
     @property
-    def mass(self):
+    def mass(self) -> list:
         mass = []
         for species_data in self.species_data:
             if species_data.name == "mass":
@@ -124,12 +124,26 @@ class Species(Base):
         return mass
 
     @property
-    def charge(self):
+    def charge(self) -> list:
         charge = []
         for species_data in self.species_data:
             if species_data.name == "charge":
                 charge.append(species_data.value)
         return charge
+
+    @property
+    def particle_density(self) -> float:
+        for species_data in self.species_data:
+            if species_data.name == "particle_density":
+                return species_data.value
+        return None
+
+    @property
+    def molar_fraction(self) -> float:
+        for species_data in self.species_data:
+            if species_data.name == "molar_fraction":
+                return species_data.value
+        return None
 
 
 #      TODO consider adding species data as a function here!
