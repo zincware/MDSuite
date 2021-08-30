@@ -11,15 +11,17 @@ Description: Module for the experiment database.
 from __future__ import annotations
 
 import logging
+
 from mdsuite.database.scheme import Project, Experiment, ExperimentData, Species, SpeciesData
 from mdsuite.utils.database import get_or_create
 
-log = logging.getLogger(__file__)
-
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite import Project
+
+log = logging.getLogger(__file__)
 
 
 class ExperimentDatabase:
@@ -264,7 +266,6 @@ class ExperimentDatabase:
         """
         if value is None:
             return
-        log.warning(value)
         with self.project.session as ses:
             for species_name in value:
                 species = get_or_create(ses, Species, name=species_name)
@@ -312,4 +313,24 @@ class ExperimentDatabase:
                     get_or_create(ses, ExperimentData, name=f"property_group_{group}", value=group_value,
                                   experiment=experiment)
 
+            ses.commit()
+
+    @property
+    def read_files(self):
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+            read_files = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
+                ExperimentData.name == "read_file").all()
+            read_files = [Path(file.str_value) for file in read_files]
+        return read_files
+
+    @read_files.setter
+    def read_files(self, value):
+        if value is None:
+            return
+        if isinstance(value, Path):
+            value = value.as_posix()
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+            get_or_create(ses, ExperimentData, name="read_file", str_value=value, experiment=experiment)
             ses.commit()

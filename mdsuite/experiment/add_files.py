@@ -39,6 +39,7 @@ class ExperimentAddingFiles:
         self.number_of_atoms = None
         self.species = None
         self.property_groups = None
+        self.read_files = None
 
     def add_data(self,
                  trajectory_file: str = None,
@@ -108,8 +109,7 @@ class ExperimentAddingFiles:
         self.build_species_dictionary()
         self.memory_requirements = database.get_memory_information()
 
-    @staticmethod
-    def _check_read_files(file_path: str):
+    def _check_read_files(self, file_path: str):
         """
         Check if a file has been read before and add it to the hidden file.
 
@@ -122,19 +122,12 @@ class ExperimentAddingFiles:
         -------
 
         """
-        with open('.read_files.txt', 'a') as f:
-            data = []
-            try:
-                for line in f:
-                    data.append(line)
-            except UnsupportedOperation:
-                pass
-
-            result = file_path in data  # check if it exists.
-
-            if not result:
-                f.write(f'{file_path}\n')
-            return result
+        file_path = Path(file_path)
+        if file_path in self.read_files:
+            return True
+        else:
+            self.read_files = file_path
+            return False
 
     def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
         try:
