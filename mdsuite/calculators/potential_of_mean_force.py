@@ -30,8 +30,7 @@ import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
+import mdsuite.database.scheme as db
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import golden_section_search
@@ -132,28 +131,22 @@ class PotentialOfMeanForce(Calculator):
 
         return out
 
-    def _get_rdf_data(self):
-        """
-        Fill the data_files list with filenames of the rdf tensor_values
-        """
+    # def _get_rdf_data(self):
+    #     """
+    #     Fill the data_files list with filenames of the rdf tensor_values
+    #     """
+    #
+    #     database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+    #
+    #     return database.load_data({"property": "RDF"})
 
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-
-        return database.load_data({"property": "RDF"})
-
-    def _load_rdf_from_file(self, system_property: SystemProperty):
+    def _load_rdf_from_file(self, computation: db.Computation):
         """
         Load the raw rdf tensor_values from a directory
         """
 
-        radii = []
-        rdf = []
-        for _bin in system_property.data:
-            radii.append(_bin.x)
-            rdf.append(_bin.y)
-
-        self.radii = np.array(radii)[1:].astype(float)
-        self.rdf = np.array(rdf)[1:].astype(float)
+        self.radii = np.array(computation.data_dict['x']).astype(float)
+        self.rdf = np.array(computation.data_dict['y']).astype(float)
 
     def _autocorrelation_time(self):
         """
@@ -239,7 +232,7 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self._get_rdf_data():
             self.file_to_study = data  # Set the correct tensor_values file in the class
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load up the tensor_values
             log.debug(f'rdf: {self.rdf} \t radii: {self.radii}')

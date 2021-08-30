@@ -35,6 +35,7 @@ from mdsuite.calculators.transformations_reference import \
     switcher_transformations
 from mdsuite.database.property_database import PropertiesDatabase
 # from mdsuite.database.analysis_database import AnalysisDatabase
+from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
@@ -46,7 +47,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__file__)
 
 
-class Calculator(metaclass=abc.ABCMeta):
+class Calculator(CalculatorDatabase):
     """
     Parent class for analysis modules
 
@@ -72,15 +73,8 @@ class Calculator(metaclass=abc.ABCMeta):
             parallel implementations
     """
 
-    def __init__(self,
-                 experiment: Experiment,
-                 plot: bool = True,
-                 save: bool = True,
-                 data_range: int = 500,
-                 correlation_time: int = 1,
-                 atom_selection: object = np.s_[:],
-                 export: bool = True,
-                 gpu: bool = False,
+    def __init__(self, experiment: Experiment, plot: bool = True, save: bool = True, data_range: int = 500,
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False,
                  load_data: bool = False):
         """
         Constructor for the calculator class.
@@ -106,6 +100,7 @@ class Calculator(metaclass=abc.ABCMeta):
                 GPU.
         """
         # Set upon instantiation of parent class
+        super().__init__(experiment)
         self.experiment: Experiment = experiment
         self.data_range = data_range
         self.plot = plot
@@ -670,15 +665,17 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         Update the experiment properties YAML file.
         """
-        with self.experiment.project.session as ses:
-            pass
-
-        log.warning("Using depreciated experiment-based  PropertiesDatabase!")
-
-        database = PropertiesDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              'property_database'))
-        database.add_data(parameters, delete_duplicate)
+        log.warning("Using depreciated method `_update_properties_file` \t Please use `update_database` instead.")
+        log.warning([x for x in parameters])
+        log.warning(f"{parameters}")
+        self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
+        #
+        #
+        #
+        # database = PropertiesDatabase(
+        #     name=os.path.join(self.experiment.database_path,
+        #                       'property_database'))
+        # database.add_data(parameters, delete_duplicate)
 
     def _calculate_system_current(self):
         pass

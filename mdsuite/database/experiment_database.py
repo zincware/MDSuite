@@ -317,6 +317,14 @@ class ExperimentDatabase:
 
     @property
     def read_files(self):
+        """
+
+        Returns
+        -------
+        read_files: list[Path]
+            A List of all files that were added to the database already
+
+        """
         with self.project.session as ses:
             experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
             read_files = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
@@ -326,6 +334,16 @@ class ExperimentDatabase:
 
     @read_files.setter
     def read_files(self, value):
+        """Add a file that has been read to the database
+
+        Does nothing if the file already  exists within the database
+
+        Parameters
+        ----------
+        value: str, Path
+            A filepath that will be added to the database
+
+        """
         if value is None:
             return
         if isinstance(value, Path):

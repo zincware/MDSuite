@@ -60,6 +60,7 @@ class Experiment(Base):
         return f"{self.id}: {self.name}"
 
 
+# TODO consider renaming ExperimentAttributes in accordance to ComputationAttributes
 class ExperimentData(Base):
     """
     Class for the experiment data table.
@@ -130,6 +131,7 @@ class Species(Base):
                 charge.append(species_data.value)
         return charge
 
+
 #      TODO consider adding species data as a function here!
 
 
@@ -171,7 +173,42 @@ class Computation(Base):
         information : str
                 Experiment number and name as an fstring
         """
-        return f"{self.id}: {self.experiment_id}"
+        return f"{self.experiment_id}: Computation {self.id}"
+
+    @property
+    def data_dict(self) -> dict:
+        """
+
+        Returns
+        -------
+        data_dict: dict
+            A dictionary of the type {x: [1, 2, 3], y: [5, 6, 7], ...}
+            where the keys are defined by computation_data.dimension
+
+        """
+        data_dict = {}
+        for data in self.computation_data:
+            data_list = data_dict.get(data.dimension, [])
+            data_list.append(data.value)
+            data_dict[data.dimension] = data_list
+
+        return data_dict
+
+    @property
+    def data_range(self) -> int:
+        """Get the data_range stored in computation_attributes"""
+        for comp_attr in self.computation_attributes:
+            if comp_attr.name == "data_range":
+                return int(comp_attr.value)
+
+    @property
+    def subjects(self) -> list:
+        """Get the subjects stored in computation_attributes"""
+        subjects = []
+        for comp_attr in self.computation_attributes:
+            if comp_attr.name == "subject":
+                subjects.append(comp_attr.str_value)
+        return subjects
 
 
 class ComputationAttribute(Base):
