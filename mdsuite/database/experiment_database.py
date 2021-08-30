@@ -277,3 +277,39 @@ class ExperimentDatabase:
                         )
 
             ses.commit()
+
+    @property
+    def property_groups(self):
+        """Get the property groups from the database
+
+        Returns
+        -------
+        property_groups: dict
+                Example: {'Positions': [3, 4, 5], 'Velocities': [6, 7, 8], ...}
+        """
+        property_groups = {}
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+            for experiment_data in experiment.experiment_data:
+                if experiment_data.name.startswith('property_group_'):
+                    property_group = experiment_data.name.split('property_group_', 1)[1]
+                    # everything after, max 1 split
+                    group_values = property_groups.get(property_group, [])
+                    group_values.append(int(experiment_data.value))
+                    property_groups[property_group] = group_values
+
+        return property_groups
+
+    @property_groups.setter
+    def property_groups(self, value):
+        """Write the property groups to the database"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+            for group in value:
+                for group_value in value[group]:
+                    get_or_create(ses, ExperimentData, name=f"property_group_{group}", value=group_value,
+                                  experiment=experiment)
+
+            ses.commit()

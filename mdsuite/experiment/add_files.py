@@ -38,6 +38,7 @@ class ExperimentAddingFiles:
         self.batch_size = None
         self.number_of_atoms = None
         self.species = None
+        self.property_groups = None
 
     def add_data(self,
                  trajectory_file: str = None,
@@ -254,8 +255,6 @@ class ExperimentAddingFiles:
                     log.warning(f'WARNING element {element} has been assigned mass=0.0')
         # self.save_class()
         self.species = species
-        log.warning(species)
-        log.warning(self.species)
 
     def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: list = None):
         """
