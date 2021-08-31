@@ -132,15 +132,15 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-            (self.experiment.volume * (self.experiment.units['length'] ** 3))
+                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
         uncertainty = 0.0
         for item in diffusion_information:
             log.debug(f"Analysing: {item}")
-            diffusion_coefficient = item.data[0].x
-            diffusion_uncertainty = item.data[0].uncertainty
+            diffusion_coefficient = item.data_dict[0].x
+            diffusion_uncertainty = item.data_dict[0].uncertainty
             species = item.subjects[0].subject
             charge_term = self.experiment.species[species]['charge'][0] ** 2
             mass_fraction_term = len(self.experiment.species[species]['indices']) / self.experiment.number_of_atoms
@@ -169,7 +169,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-            (self.experiment.volume * (self.experiment.units['length'] ** 3))
+                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
@@ -188,10 +188,10 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_uncertainty = item['uncertainty']
             constituents = item['Subject'].split("_")
             charge_term = self.experiment.species[constituents[0]]['charge'][0] * \
-                self.experiment.species[constituents[1]]['charge'][0]
+                          self.experiment.species[constituents[1]]['charge'][0]
             mass_fraction_term = (len(
                 self.experiment.species[constituents[0]]['indices']) / self.experiment.number_of_atoms) * \
-                (len(self.experiment.species[constituents[1]][
+                                 (len(self.experiment.species[constituents[1]][
                                           'indices']) / self.experiment.number_of_atoms)
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
             uncertainty += diffusion_uncertainty * charge_term * mass_fraction_term

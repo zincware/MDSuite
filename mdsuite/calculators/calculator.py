@@ -886,7 +886,7 @@ class Calculator(CalculatorDatabase):
         """Get the dtype used for the calculator"""
         return self._dtype
 
-    @property
-    def data(self):
-        """Return the data that may have previously been generated with the same parameters"""
-        return self.experiment.export_property_data(parameters={"analysis": self.analysis_name})
+    # @property
+    # def data(self):
+    #     """Return the data that may have previously been generated with the same parameters"""
+    #     return self.experiment.export_property_data(parameters={"Analysis": self.analysis_name})

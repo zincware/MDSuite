@@ -102,12 +102,19 @@ class CalculatorDatabase:
         self.radii = np.array(computation.data_dict['x']).astype(float)[1:]
         self.rdf = np.array(computation.data_dict['y']).astype(float)[1:]
 
-    @property
-    def data(self) -> np.ndarray:
-        with self.experiment.project.session as ses:
-            ses.query(db.Computation)
-
-        return 0
+    # @property
+    # def data(self) -> np.ndarray:
+    #     """
+    #
+    #     Returns
+    #     -------
+    #     object that contains `
+    #
+    #     """
+    #     with self.experiment.project.session as ses:
+    #         ses.query(db.Computation)
+    #
+    #     return 0
         #
         # # if delete_duplicate:
         # #     self._delete_duplicate_rows(parameters)

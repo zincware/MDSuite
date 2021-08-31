@@ -12,11 +12,12 @@ from __future__ import annotations
 
 import logging
 
+import mdsuite.database.scheme as db
 from mdsuite.database.scheme import Project, Experiment, ExperimentData, Species, SpeciesData
 from mdsuite.utils.database import get_or_create
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from mdsuite import Project
@@ -28,6 +29,47 @@ class ExperimentDatabase:
     def __init__(self, project: Project, experiment_name):
         self.project = project
         self.experiment_name = experiment_name
+
+    def export_property_data(self, parameters: dict) -> List[db.Computation]:
+        """
+        Export property data from the SQL database.
+
+        Parameters
+        ----------
+        parameters : dict
+                Parameters to be used in the addition, i.e.
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
+        Returns
+        -------
+        output : list
+                A list of rows represented as dictionaries.
+        """
+        with self.project.session as ses:
+            subjects = parameters.pop('subjects', [])
+
+            query = ses.query(db.Computation)
+            for key, val in parameters.items():
+                if isinstance(val, str):
+                    query = query.filter(
+                        db.Computation.computation_attributes.any(name=key),
+                        db.Computation.computation_attributes.any(str_value=val)
+                    )
+                else:
+                    query = query.filter(
+                        db.Computation.computation_attributes.any(name=key),
+                        db.Computation.computation_attributes.any(value=val)
+                    )
+            computations_all_subjects = query.all()
+            # Filter out subjects, this is easier to do this way around than via SQL statements (feel free to rewrite!)
+            computations = []
+            for x in computations_all_subjects:
+                if set(x.subjects).issubset(subjects):
+                    computations.append(x)
+
+            for computation in computations:
+                _ = computation.data_dict
+
+        return computations
 
     @property
     def active(self):

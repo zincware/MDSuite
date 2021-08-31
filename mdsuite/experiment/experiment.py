@@ -517,25 +517,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
     #     print(f"Data Groups: {database.get_database_summary()}\n")
     #     print("==================================================================================\n")
-    #
-    # def export_property_data(self, parameters: dict):
-    #     """
-    #     Export property data from the SQL database.
-    #
-    #     Parameters
-    #     ----------
-    #     parameters : dict
-    #             Parameters to be used in the addition, i.e.
-    #             {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
-    #     Returns
-    #     -------
-    #     output : list
-    #             A list of rows represneted as dictionaries.
-    #     """
-    #     database = PropertiesDatabase(name=os.path.join(self.database_path, 'property_database'))
-    #     output = database.load_data(parameters)
-    #
-    #     return output
+
     #
     # @property
     # def simulation_data(self):
