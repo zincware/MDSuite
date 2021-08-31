@@ -270,8 +270,8 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             for species_name in value:
-                species = get_or_create(ses, Species, name=species_name)
-                species.experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+                experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
+                species = get_or_create(ses, Species, name=species_name, experiment=experiment)
                 for species_attr, species_values in value[species_name].items():
                     try:
                         for idx, species_value in enumerate(species_values):
