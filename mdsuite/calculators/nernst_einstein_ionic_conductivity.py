@@ -45,6 +45,9 @@ class NernstEinsteinIonicConductivity(Calculator):
         super().__init__(experiment)
         self.post_generation = True
 
+        # Properties
+        self._truth_table = None
+
         self.database_group = "Ionic_Conductivity"
 
     def __call__(self, corrected: bool = False, plot: bool = False, data_range: int = 1,
@@ -60,7 +63,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
         self.data = self._load_data()  # tensor_values to be read in
-        self.truth_table = self._build_truth_table()  # build truth table for analysis
 
         if species is None:
             self.species = list(self.experiment.species)
@@ -87,7 +89,8 @@ class NernstEinsteinIonicConductivity(Calculator):
         test = self.experiment.export_property_data({'property': 'Diffusion_Coefficients'})
         return test
 
-    def _build_truth_table(self):
+    @property
+    def truth_table(self):
         """
         Builds a truth table to communicate which tensor_values is available to the analysis.
 
@@ -96,18 +99,21 @@ class NernstEinsteinIonicConductivity(Calculator):
         truth_table : list
                 A truth table communication which tensor_values is available for the analysis.
         """
-        log.warning('No support for different data ranges! This method always picks the first entry in the database!')
-        case_1 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
-        case_2 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
-        case_3 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Einstein_Self_Diffusion_Coefficients"})
-        case_4 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Einstein_Distinct_Diffusion_Coefficients"})
-        truth_table = [list(map(operator.not_, [not case_1, not case_2])),
-                       list(map(operator.not_, [not case_3, not case_4]))]
-        return truth_table
+        if self._truth_table is None:
+            log.warning(
+                'No support for different data ranges! This method always picks the first entry in the database!')
+            case_1 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
+            case_2 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
+            case_3 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Einstein_Self_Diffusion_Coefficients"})
+            case_4 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Einstein_Distinct_Diffusion_Coefficients"})
+            truth_table = [list(map(operator.not_, [not case_1, not case_2])),
+                           list(map(operator.not_, [not case_3, not case_4]))]
+            self._truth_table = truth_table
+        return self._truth_table
 
     def _nernst_einstein(self, diffusion_information: list):
         """
@@ -229,8 +235,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
         if not any(ne_table):
-            print("There is no values to analyse, please run a diffusion calculation to proceed")
-            sys.exit(1)
+            ValueError("There is no values to analyse, please run a diffusion calculation to proceed")
 
     def _run_corrected_nernst_einstein(self):
         """
