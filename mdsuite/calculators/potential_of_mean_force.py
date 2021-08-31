@@ -26,11 +26,9 @@ The potential of mean-force is a measure of the binding strength between atomic 
 """
 import logging
 import numpy as np
-import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-import mdsuite.database.scheme as db
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.utils.meta_functions import golden_section_search
@@ -130,23 +128,6 @@ class PotentialOfMeanForce(Calculator):
         # need to move save_class() to here, because it can't be done in the experiment any more!
 
         return out
-
-    # def _get_rdf_data(self):
-    #     """
-    #     Fill the data_files list with filenames of the rdf tensor_values
-    #     """
-    #
-    #     database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-    #
-    #     return database.load_data({"property": "RDF"})
-
-    # def _load_rdf_from_file(self, computation: db.Computation):
-    #     """
-    #     Load the raw rdf tensor_values from a directory
-    #     """
-    #
-    #     self.radii = np.array(computation.data_dict['x']).astype(float)
-    #     self.rdf = np.array(computation.data_dict['y']).astype(float)
 
     def _autocorrelation_time(self):
         """
