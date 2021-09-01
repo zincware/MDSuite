@@ -15,6 +15,7 @@ Module containing all the code for the Project class. The project class is the g
 mdsuite program. Within the project class include all of the method required to add a new experiment and
 compare the results of the analysis on that experiment.
 """
+from __future__ import annotations
 import logging
 import os
 import pickle
@@ -26,6 +27,11 @@ from mdsuite.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
+
+from typing import TYPE_CHECKING, Dict
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 log = logging.getLogger(__file__)
 
@@ -106,12 +112,15 @@ class Project(ProjectDatabase):
         return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
     def add_experiment(self, experiment: str = None, timestep: float = None, temperature: float = None,
-                       units: str = None, cluster_mode: bool = None, active: bool = True):
+                       units: str = None, cluster_mode: bool = None, active: bool = True,
+                       data: Union[str, list, dict] = None):
         """
         Add an experiment to the project
 
         Parameters
         ----------
+        data:
+            data that should be added to the experiment. If dict, {file:<file>, format:<format>}
         active: bool, default = True
                 Activate the experiment when added
         cluster_mode : bool
@@ -151,8 +160,28 @@ class Project(ProjectDatabase):
 
         new_experiment.active = active
 
-        # # TODO should be replaced by active experiments that are loaded!
-        # self.experiments[new_experiment.analysis_name] = new_experiment  # add the new experiment to the dictionary
+        if data is not None:
+            def handle_file_format(inp):
+                """Run experiment.add_data
+
+                Parameters
+                ----------
+                inp: str, dict, list
+                    If dict, {file:<file>, format:<format>}
+                """
+                if isinstance(inp, str):
+                    self.experiments[experiment].add_data(trajectory_file=inp)
+                if isinstance(inp, dict):
+                    try:
+                        self.experiments[experiment].add_data(trajectory_file=inp['file'], file_format=inp['format'])
+                    except KeyError:
+                        raise KeyError(
+                            f'passed dictionary does not contain `file` and `format`, but {[x for x in inp]}')
+                if isinstance(inp, list):
+                    for obj in inp:
+                        handle_file_format(obj)
+
+            handle_file_format(data)
 
     def load_experiments(self, names: Union[str, list]):
         """Alias for activate_experiments"""
@@ -349,7 +378,7 @@ class Project(ProjectDatabase):
     #                   "to do this again.")
 
     @property
-    def experiments(self) -> dict:
+    def experiments(self) -> Dict[str, Experiment]:
         """Get a dict of instantiated experiments that are currently selected!"""
         # TODO there could be a performance increase if the experiments are stored instead of instantiated every time
         #   this property is called.

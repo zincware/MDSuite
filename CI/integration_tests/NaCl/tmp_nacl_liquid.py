@@ -16,7 +16,6 @@ import gzip
 import shutil
 import os
 import numpy as np
-import shutil
 
 # TODO run in temporary directory!
 
