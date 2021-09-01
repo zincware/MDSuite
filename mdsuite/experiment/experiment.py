@@ -21,6 +21,7 @@ from pathlib import Path
 import yaml
 from datetime import datetime
 from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db, calculators
+from mdsuite.calculators import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.units import units_dict
@@ -134,7 +135,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self._load_or_build()
 
         # Run Computations
-        self.run_computation = RunModule(self, dict_classes_computations)
+        # self.run_computation = RunModule(self, dict_classes_computations)
+        self.run_computation = RunComputation(experiment=self)
         self.load_data = RunModule(self, dict_classes_computations, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
 
@@ -268,6 +270,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #
     def save_class(self):
         log.warning("Using depreciated method `save_class`!")
+
     #     """
     #     Saves class instance
     #

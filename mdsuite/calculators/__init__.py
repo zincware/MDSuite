@@ -9,6 +9,7 @@ Copyright Contributors to the MDSuite Project.
 
 __init__ module for the analysis directory
 """
+from __future__ import annotations
 
 from .calculator import Calculator
 from .angular_distribution_function import AngularDistributionFunction
@@ -30,9 +31,111 @@ from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
 from .structure_factor import StructureFactor
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
+
 __all__ = ['Calculator', 'AngularDistributionFunction', 'CoordinationNumbers', 'EinsteinDiffusionCoefficients',
            'EinsteinDistinctDiffusionCoefficients', 'EinsteinHelfandIonicConductivity',
            'EinsteinHelfandThermalConductivity', 'EinsteinHelfandThermalKinaci', 'GreenKuboViscosityFlux',
            'GreenKuboDistinctDiffusionCoefficients', 'GreenKuboIonicConductivity', 'GreenKuboSelfDiffusionCoefficients',
            'GreenKuboThermalConductivity', 'GreenKuboViscosity', 'KirkwoodBuffIntegral',
            'NernstEinsteinIonicConductivity', 'PotentialOfMeanForce', 'RadialDistributionFunction', 'StructureFactor']
+
+
+class RunComputation:
+    """Collection of all calculators that can be used by an experiment"""
+    def __init__(self, experiment: Experiment):
+        """Collection of all calculators
+
+        Parameters
+        ----------
+        experiment: Experiment
+            Experiment to run the computations for
+        """
+        self.experiment = experiment
+
+    @property
+    def AngularDistributionFunction(self):
+        """Calculator Property"""
+        return AngularDistributionFunction(experiment=self.experiment)
+
+    @property
+    def CoordinationNumbers(self):
+        """Calculator Property"""
+        return CoordinationNumbers(experiment=self.experiment)
+
+    @property
+    def EinsteinDiffusionCoefficients(self):
+        """Calculator Property"""
+        return EinsteinDiffusionCoefficients(experiment=self.experiment)
+
+    @property
+    def EinsteinDistinctDiffusionCoefficients(self):
+        """Calculator Property"""
+        return EinsteinDistinctDiffusionCoefficients(experiment=self.experiment)
+
+    @property
+    def EinsteinHelfandIonicConductivity(self):
+        """Calculator Property"""
+        return EinsteinHelfandIonicConductivity(experiment=self.experiment)
+
+    @property
+    def EinsteinHelfandThermalKinaci(self):
+        """Calculator Property"""
+        return EinsteinHelfandThermalKinaci(experiment=self.experiment)
+
+    @property
+    def GreenKuboViscosityFlux(self):
+        """Calculator Property"""
+        return GreenKuboViscosityFlux(experiment=self.experiment)
+
+    @property
+    def GreenKuboDistinctDiffusionCoefficients(self):
+        """Calculator Property"""
+        return GreenKuboDistinctDiffusionCoefficients(experiment=self.experiment)
+
+    @property
+    def GreenKuboIonicConductivity(self):
+        """Calculator Property"""
+        return GreenKuboIonicConductivity(experiment=self.experiment)
+
+    @property
+    def GreenKuboSelfDiffusionCoefficients(self):
+        """Calculator Property"""
+        return GreenKuboSelfDiffusionCoefficients(experiment=self.experiment)
+
+    @property
+    def GreenKuboThermalConductivity(self):
+        """Calculator Property"""
+        return GreenKuboThermalConductivity(experiment=self.experiment)
+
+    @property
+    def GreenKuboViscosity(self):
+        """Calculator Property"""
+        return GreenKuboViscosity(experiment=self.experiment)
+
+    @property
+    def KirkwoodBuffIntegral(self):
+        """Calculator Property"""
+        return KirkwoodBuffIntegral(experiment=self.experiment)
+
+    @property
+    def NernstEinsteinIonicConductivity(self):
+        """Calculator Property"""
+        return NernstEinsteinIonicConductivity(experiment=self.experiment)
+
+    @property
+    def PotentialOfMeanForce(self):
+        """Calculator Property"""
+        return PotentialOfMeanForce(experiment=self.experiment)
+
+    @property
+    def RadialDistributionFunction(self):
+        """Calculator Property"""
+        return RadialDistributionFunction(experiment=self.experiment)
+
+    @property
+    def StructureFactor(self):
+        """Calculator Property"""
+        return StructureFactor(experiment=self.experiment)
