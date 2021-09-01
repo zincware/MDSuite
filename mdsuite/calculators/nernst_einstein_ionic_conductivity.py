@@ -33,7 +33,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Standard constructor
 
@@ -42,13 +42,14 @@ class NernstEinsteinIonicConductivity(Calculator):
         experiment : Experiment
                 Experiment class from which to read
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.post_generation = True
 
         # Properties
         self._truth_table = None
 
         self.database_group = "Ionic_Conductivity"
+        self.analysis_name = "Nernst_Einstein_Ionic_Conductivity"
 
     def __call__(self, corrected: bool = False, plot: bool = False, data_range: int = 1,
                  export: bool = False, species: list = None, save: bool = True):
@@ -59,22 +60,37 @@ class NernstEinsteinIonicConductivity(Calculator):
         ----------
         corrected : bool
                 If true, the corrected Nernst Einstein will also be calculated
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
         """
-        self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
-        self.corrected = corrected
-        self.data = self._load_data()  # tensor_values to be read in
+        out = {}
 
-        if species is None:
-            self.species = list(self.experiment.species)
+        for experiment in self.experiments:
+            self.experiment = experiment
+
+            self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
+            self.corrected = corrected
+            self.data = self._load_data()  # tensor_values to be read in
+
+            if species is None:
+                self.species = list(self.experiment.species)
+            else:
+                self.species = species
+
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
         else:
-            self.species = species
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
+            return out[self.experiment.experiment_name]
 
     def _load_data(self):
         """
