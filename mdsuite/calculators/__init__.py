@@ -144,3 +144,8 @@ class RunComputation:
     def StructureFactor(self):
         """Calculator Property"""
         return StructureFactor(**self.kwargs)
+
+    @property
+    def EinsteinHelfandThermalConductivity(self):
+        """Calculator Property"""
+        return EinsteinHelfandThermalConductivity(**self.kwargs)

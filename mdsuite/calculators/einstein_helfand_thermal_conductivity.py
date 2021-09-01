@@ -49,7 +49,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
     experiment.run_computation.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -60,7 +60,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Integrated_Heat_Current'  # Property to be loaded for the analysis
@@ -88,19 +88,34 @@ class EinsteinHelfandThermalConductivity(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
         """
 
-        # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
-        out = self.run_analysis()
 
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
+            # parse to the experiment class
+            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                                  export=export, gpu=gpu)
 
-        return out
+            self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _update_output_signatures(self):
         """
