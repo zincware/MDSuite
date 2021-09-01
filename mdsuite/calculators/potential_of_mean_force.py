@@ -77,7 +77,7 @@ class PotentialOfMeanForce(Calculator):
     experiment.run_computation.PotentialOfMeanForce(savgol_order = 2, savgol_window_length = 17)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor for the class
 
@@ -85,9 +85,12 @@ class PotentialOfMeanForce(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
+        experiments : class object
+                        Class object of the experiment.
+        load_data : bool
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.file_to_study = None
         self.rdf = None
         self.radii = None
@@ -116,15 +119,20 @@ class PotentialOfMeanForce(Calculator):
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
         """
+        out = None
+        for experiment in self.experiments:
+            self.experiment = experiment
+            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+            self.data_files = []
+            self.savgol_order = savgol_order
+            self.savgol_window_length = savgol_window_length
 
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
-        self.data_files = []
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
+            if self.load_data:
+                return self.experiment.export_property_data({'Analysis': self.analysis_name})
 
-        out = self.run_analysis()
+            out = self.run_analysis()
 
-        self.experiment.save_class()
+            self.experiment.save_class()
         # need to move save_class() to here, because it can't be done in the experiment any more!
 
         return out

@@ -63,13 +63,12 @@ class RunComputation:
     @property
     def AngularDistributionFunction(self):
         """Calculator Property"""
-        # TODO consider passing **self.<placeholder> so you can update it more easily
-        return AngularDistributionFunction(experiment=self.experiment)
+        return AngularDistributionFunction(**self.kwargs)
 
     @property
     def CoordinationNumbers(self):
         """Calculator Property"""
-        return CoordinationNumbers(experiment=self.experiment)
+        return CoordinationNumbers(**self.kwargs)
 
     @property
     def EinsteinDiffusionCoefficients(self):
@@ -79,62 +78,62 @@ class RunComputation:
     @property
     def EinsteinDistinctDiffusionCoefficients(self):
         """Calculator Property"""
-        return EinsteinDistinctDiffusionCoefficients(experiment=self.experiment)
+        return EinsteinDistinctDiffusionCoefficients(**self.kwargs)
 
     @property
     def EinsteinHelfandIonicConductivity(self):
         """Calculator Property"""
-        return EinsteinHelfandIonicConductivity(experiment=self.experiment)
+        return EinsteinHelfandIonicConductivity(**self.kwargs)
 
     @property
     def EinsteinHelfandThermalKinaci(self):
         """Calculator Property"""
-        return EinsteinHelfandThermalKinaci(experiment=self.experiment)
+        return EinsteinHelfandThermalKinaci(**self.kwargs)
 
     @property
     def GreenKuboViscosityFlux(self):
         """Calculator Property"""
-        return GreenKuboViscosityFlux(experiment=self.experiment)
+        return GreenKuboViscosityFlux(**self.kwargs)
 
     @property
     def GreenKuboDistinctDiffusionCoefficients(self):
         """Calculator Property"""
-        return GreenKuboDistinctDiffusionCoefficients(experiment=self.experiment)
+        return GreenKuboDistinctDiffusionCoefficients(**self.kwargs)
 
     @property
     def GreenKuboIonicConductivity(self):
         """Calculator Property"""
-        return GreenKuboIonicConductivity(experiment=self.experiment)
+        return GreenKuboIonicConductivity(**self.kwargs)
 
     @property
     def GreenKuboSelfDiffusionCoefficients(self):
         """Calculator Property"""
-        return GreenKuboSelfDiffusionCoefficients(experiment=self.experiment)
+        return GreenKuboSelfDiffusionCoefficients(**self.kwargs)
 
     @property
     def GreenKuboThermalConductivity(self):
         """Calculator Property"""
-        return GreenKuboThermalConductivity(experiment=self.experiment)
+        return GreenKuboThermalConductivity(**self.kwargs)
 
     @property
     def GreenKuboViscosity(self):
         """Calculator Property"""
-        return GreenKuboViscosity(experiment=self.experiment)
+        return GreenKuboViscosity(**self.kwargs)
 
     @property
     def KirkwoodBuffIntegral(self):
         """Calculator Property"""
-        return KirkwoodBuffIntegral(experiment=self.experiment)
+        return KirkwoodBuffIntegral(**self.kwargs)
 
     @property
     def NernstEinsteinIonicConductivity(self):
         """Calculator Property"""
-        return NernstEinsteinIonicConductivity(experiment=self.experiment)
+        return NernstEinsteinIonicConductivity(**self.kwargs)
 
     @property
     def PotentialOfMeanForce(self):
         """Calculator Property"""
-        return PotentialOfMeanForce(experiment=self.experiment)
+        return PotentialOfMeanForce(**self.kwargs)
 
     @property
     def RadialDistributionFunction(self):
@@ -144,4 +143,4 @@ class RunComputation:
     @property
     def StructureFactor(self):
         """Calculator Property"""
-        return StructureFactor(experiment=self.experiment)
+        return StructureFactor(**self.kwargs)
