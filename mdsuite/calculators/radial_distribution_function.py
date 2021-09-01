@@ -81,7 +81,7 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment: Experiment, load_data: bool = False):
+    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
         """
         Constructor for the RDF calculator.
 
@@ -92,7 +92,7 @@ class RadialDistributionFunction(Calculator, ABC):
         load_data: bool, default False
                 Whether RunComputation or LoadData is being called
         """
-        super().__init__(experiment, load_data=load_data)
+        super().__init__(experiment, experiments=experiments, load_data=load_data)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
@@ -177,21 +177,30 @@ class RadialDistributionFunction(Calculator, ABC):
                     If true, tf.function is used in the calculation.
         """
         # Calculator arguments
-        self.update_user_args(plot=plot,
-                              save=save,
-                              data_range=data_range,
-                              export=export,
-                              gpu=gpu)
-
         # RDF arguments
-        self.number_of_bins = number_of_bins
-        self.cutoff = cutoff
-        self.start = start
-        self.stop = stop
-        self.number_of_configurations = number_of_configurations
-        self.molecules = molecules
-        self.minibatch = minibatch
-        self.species = species
+        for experiment in self.experiments:
+            self.number_of_bins = number_of_bins
+            self.cutoff = cutoff
+            self.start = start
+            self.stop = stop
+            self.number_of_configurations = number_of_configurations
+            self.molecules = molecules
+            self.minibatch = minibatch
+            self.species = species
+
+            self.experiment = experiment
+
+            if self.load_data:
+                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+
+            self._call(**kwargs)
+
+    def _call(self, **kwargs):
+        """All methods that have to be run for each experiment individually
+
+        This method allows running multiple calculations on different experiments in a loop
+        """
+        self.update_user_args(**kwargs)
 
         # kwarg parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -203,9 +212,6 @@ class RadialDistributionFunction(Calculator, ABC):
         # Initial checks and initialization.
         self._check_input()
         self._initialize_rdf_parameters()
-
-        if self.load_data:
-            return self.data
 
         # Perform analysis and save.
         out = self.run_analysis()
@@ -360,7 +366,7 @@ class RadialDistributionFunction(Calculator, ABC):
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
                 self._update_properties_file({
-                    "Property": "RDF",     # TODO this should be dynamic
+                    "Property": "RDF",  # TODO this should be dynamic
                     "Analysis": self.analysis_name,
                     "subjects": names.split("_"),
                     "data_range": self.data_range,

@@ -25,10 +25,11 @@ from typing import Union
 import shutil
 from mdsuite.experiment import Experiment
 from mdsuite.utils.meta_functions import simple_file_read, find_item
+from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -267,6 +268,28 @@ class Project(ProjectDatabase):
         else:
             for item in data_sets:
                 self.experiments[item].add_data(data_sets[item], file_format=file_format)
+
+    @property
+    def run_computation(self):
+        """Method to access the available calculators
+
+        Returns
+        -------
+        RunComputation:
+            class that has all available calculators as properties
+        """
+        return RunComputation(experiments=[x for x in self.experiments.values()])
+
+    @property
+    def load_data(self):
+        """Method to access the available calculators results
+
+        Returns
+        -------
+        if called, return List[db.Computation]
+
+        """
+        return RunComputation(experiments=[x for x in self.experiments.values()], load_data=True)
 
     # def get_results(self, key_to_find):
     #     """

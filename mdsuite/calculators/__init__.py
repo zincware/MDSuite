@@ -31,7 +31,8 @@ from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
 from .structure_factor import StructureFactor
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
+
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
@@ -45,7 +46,8 @@ __all__ = ['Calculator', 'AngularDistributionFunction', 'CoordinationNumbers', '
 
 class RunComputation:
     """Collection of all calculators that can be used by an experiment"""
-    def __init__(self, experiment: Experiment):
+
+    def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, load_data: bool = False):
         """Collection of all calculators
 
         Parameters
@@ -54,10 +56,14 @@ class RunComputation:
             Experiment to run the computations for
         """
         self.experiment = experiment
+        self.experiments = experiments
+
+        self.kwargs = {'experiment': experiment, 'experiments': experiments, 'load_data': load_data}
 
     @property
     def AngularDistributionFunction(self):
         """Calculator Property"""
+        # TODO consider passing **self.<placeholder> so you can update it more easily
         return AngularDistributionFunction(experiment=self.experiment)
 
     @property
@@ -133,7 +139,7 @@ class RunComputation:
     @property
     def RadialDistributionFunction(self):
         """Calculator Property"""
-        return RadialDistributionFunction(experiment=self.experiment)
+        return RadialDistributionFunction(**self.kwargs)
 
     @property
     def StructureFactor(self):

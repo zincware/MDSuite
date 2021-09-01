@@ -23,6 +23,7 @@ import sys
 import matplotlib.figure
 import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
+from pathlib import Path
 import tensorflow as tf
 import pandas as pd
 from scipy.optimize import curve_fit
@@ -73,7 +74,8 @@ class Calculator(CalculatorDatabase):
             parallel implementations
     """
 
-    def __init__(self, experiment: Experiment, plot: bool = True, save: bool = True, data_range: int = 500,
+    def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, plot: bool = True,
+                 save: bool = True, data_range: int = 500,
                  correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False,
                  load_data: bool = False):
         """
@@ -83,6 +85,8 @@ class Calculator(CalculatorDatabase):
         ----------
         experiment : Experiment
                 Experiment object to update.
+        experiments: List[Experiment]:
+                List of experiments, for that the calculation should be executed
         plot : bool
                 If true, analysis is plotted.
         save : bool
@@ -102,15 +106,19 @@ class Calculator(CalculatorDatabase):
         # Set upon instantiation of parent class
         super().__init__(experiment)
         self.experiment: Experiment = experiment
+        self.experiments: List[Experiment] = experiments
+
+        # Setting the experiment value supersedes setting experiments
+        if self.experiment is not None:
+            self.experiments = [self.experiment]
+
         self.data_range = data_range
         self.plot = plot
         self.save = save
         self.export = export
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
-        self.database = Database(
-            name=os.path.join(self.experiment.database_path,
-                              "database.hdf5"))
+        self.database = None
         self.gpu = gpu
         self.load_data = load_data
 
@@ -153,11 +161,6 @@ class Calculator(CalculatorDatabase):
         # Properties
         self._dtype = tf.float64
 
-        # Prevent $DISPLAY warnings on clusters.
-        if self.experiment.cluster_mode:
-            import matplotlib
-            matplotlib.use('Agg')
-
     def update_user_args(self,
                          plot: bool = True,
                          save: bool = True,
@@ -166,7 +169,9 @@ class Calculator(CalculatorDatabase):
                          atom_selection: object = np.s_[:],
                          tau_values: Union[int, List, Any] = np.s_[:],
                          export: bool = True,
-                         gpu: bool = False):
+                         gpu: bool = False,
+                         *args,
+                         **kwargs):
         """
         Update the user args that are given by the __call__ method of the
         calculator.
@@ -189,6 +194,15 @@ class Calculator(CalculatorDatabase):
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
         """
+        # everything related to self.experiment can not be in the __init__ because there can be multiple experiments
+        self.database = Database(
+            name=Path(self.experiment.database_path, "database.hdf5").as_posix())
+
+        # Prevent $DISPLAY warnings on clusters.
+        if self.experiment.cluster_mode:
+            import matplotlib
+            matplotlib.use('Agg')
+
         self.data_range = data_range
         self.plot = plot
         self.save = save

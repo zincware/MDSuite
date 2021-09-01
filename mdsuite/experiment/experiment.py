@@ -137,7 +137,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # Run Computations
         # self.run_computation = RunModule(self, dict_classes_computations)
         self.run_computation = RunComputation(experiment=self)
-        self.load_data = RunModule(self, dict_classes_computations, load_data=True)
+        self.load_data = RunComputation(experiment=self, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
 
         # self._start_logging()
