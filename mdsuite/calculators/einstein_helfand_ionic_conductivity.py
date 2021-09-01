@@ -53,7 +53,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
     experiment.run_computation.EinsteinHelfandTIonicConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -64,7 +64,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
@@ -96,18 +96,34 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 If true, export the results to a csv.
         gpu : bool
                 If true, reduce memory usage to the maximum GPU capability.
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
 
-        # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
-        self.msd_array = np.zeros(self.data_range)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        out = self.run_analysis()
+            # parse to the experiment class
+            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                                  export=export, gpu=gpu)
+            self.msd_array = np.zeros(self.data_range)
 
-        self.experiment.save_class()
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-        return out
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _update_output_signatures(self):
         """
@@ -136,7 +152,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         numerator = (self.experiment.units['length'] ** 2) * (elementary_charge ** 2)
         denominator = 6 * self.experiment.units['time'] * (
                 self.experiment.volume * self.experiment.units['length'] ** 3) * \
-            self.experiment.temperature * boltzmann_constant
+                      self.experiment.temperature * boltzmann_constant
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
