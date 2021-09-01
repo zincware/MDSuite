@@ -408,3 +408,27 @@ class ExperimentDatabase:
             experiment = ses.query(Experiment).filter(Experiment.name == self.experiment_name).first()
             get_or_create(ses, ExperimentData, name="read_file", str_value=value, experiment=experiment)
             ses.commit()
+
+    @property
+    def radial_distribution_function_state(self) -> bool:
+        """Get the radial_distribution_function_state of the experiment"""
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            rdf_state = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
+                ExperimentData.name == "radial_distribution_function_state").first()
+        try:
+            return rdf_state.value
+        except AttributeError:
+            return False
+
+    @radial_distribution_function_state.setter
+    def radial_distribution_function_state(self, value):
+        """Set the radial_distribution_function_state of the experiment"""
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.experiment_name)
+            rdf_state: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment,
+                                                      name="radial_distribution_function_state")
+            rdf_state.value = value
+            ses.commit()

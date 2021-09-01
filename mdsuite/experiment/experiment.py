@@ -122,7 +122,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
-        self.radial_distribution_function_state = False  # Set true if this has been calculated
+        # self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
 

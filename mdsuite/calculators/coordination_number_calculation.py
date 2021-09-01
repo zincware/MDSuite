@@ -25,7 +25,6 @@ from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
-
 log = logging.getLogger(__file__)
 
 
@@ -69,7 +68,7 @@ class CoordinationNumbers(Calculator):
     experiment.run_computation.CoordinationNumbers(savgol_order = 2, savgol_window_length = 17)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -79,7 +78,7 @@ class CoordinationNumbers(Calculator):
                         Class object of the experiment.
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.file_to_study = None
         self.rdf = None
         self.radii = None
@@ -96,32 +95,30 @@ class CoordinationNumbers(Calculator):
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
 
-        # Calculate the rdf if it has not been done already
-        if self.experiment.radial_distribution_function_state is False:
-            self.experiment.run_computation('RadialDistributionFunction', plot=True, n_batches=-1)
-
     def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
 
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
+            # Calculate the rdf if it has not been done already
+            if self.experiment.radial_distribution_function_state is False:
+                self.experiment.run_computation.RadialDistributionFunction(plot=True, n_batches=-1)
 
-        out = self.run_analysis()
+            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
 
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
+            self.savgol_order = savgol_order
+            self.savgol_window_length = savgol_window_length
 
-        return out
+            if self.load_data:
+                return self.experiment.export_property_data({'Analysis': self.analysis_name})
 
-    def _get_rdf_data(self):
-        """
-        Fill the data_files list with filenames of the rdf tensor_values
-        """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
+            out = self.run_analysis()
 
-        return database.load_data({"property": "RDF"})
+            self.experiment.save_class()
+            # need to move save_class() to here, because it can't be done in the experiment any more!
+
+            return out
 
     def _get_density(self, species: str) -> float:
         """
@@ -132,24 +129,6 @@ class CoordinationNumbers(Calculator):
         rdf_number_of_atoms = len(self.experiment.species[species[0]]['indices'])  # get the number of atoms in the RDF
 
         return rdf_number_of_atoms / self.experiment.volume
-
-    def _load_rdf_from_file(self, system_property: SystemProperty):
-        """
-        Load the raw rdf tensor_values from a directory
-
-        Parameters
-        ----------
-        system_property: SystemProperty
-        """
-
-        radii = []
-        rdf = []
-        for _bin in system_property.data:
-            radii.append(_bin.x)
-            rdf.append(_bin.y)
-
-        self.radii = np.array(radii)
-        self.rdf = np.array(rdf)
 
     def _autocorrelation_time(self):
         """
@@ -282,9 +261,9 @@ class CoordinationNumbers(Calculator):
             log.debug(f"Computing coordination numbers for {data.subjects}")
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load the tensor_values from it
-            density = self._get_density(data.subjects[0].subject)  # calculate the density
+            density = self._get_density(data.subjects[0])  # calculate the density
 
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(data.subjects)
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied

@@ -58,35 +58,36 @@ def traj_files(tmp_path_factory) -> list:
 def true_values() -> dict:
     """Values to compare to"""
     static_path = Path(static_data.__file__).parent
-    data = static_path / 'potential_of_mean_force.json'
+    data = static_path / 'coordination_numbers.json'
     return json.loads(data.read_bytes())
 
 
-def test_pomf_project(traj_files, true_values, tmp_path):
-    """Test the pomf called from the project class"""
+def test_cn_project(traj_files, true_values, tmp_path):
+    """Test the CN called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(data_range=-1, plot=False)
-    project.run_computation.PotentialOfMeanForce(plot=False)
+    # project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.run_computation.CoordinationNumbers(plot=False)
 
-    data_dict = project.load_data.PotentialOfMeanForce()[0].data_dict
+    data_dict = project.load_data.CoordinationNumbers()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
 
 
-def test_pomf_experiment(traj_files, true_values, tmp_path):
-    """Test the pomf called from the experiment class"""
+def test_cn_experiment(traj_files, true_values, tmp_path):
+    """Test the CN called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(data_range=-1, plot=False)
-    project.experiments['NaCl'].run_computation.PotentialOfMeanForce(plot=False)
+    project.experiments['NaCl'].run_computation.CoordinationNumbers(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.PotentialOfMeanForce()[0].data_dict
+    data_dict = project.experiments['NaCl'].load_data.CoordinationNumbers()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
