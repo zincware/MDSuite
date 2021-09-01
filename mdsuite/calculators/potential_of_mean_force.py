@@ -118,8 +118,14 @@ class PotentialOfMeanForce(Calculator):
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
-        out = None
+        out = {}
         for experiment in self.experiments:
             self.experiment = experiment
             self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
@@ -128,14 +134,16 @@ class PotentialOfMeanForce(Calculator):
             self.savgol_window_length = savgol_window_length
 
             if self.load_data:
-                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-            out = self.run_analysis()
-
-            self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _autocorrelation_time(self):
         """

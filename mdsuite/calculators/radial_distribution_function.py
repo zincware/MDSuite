@@ -175,10 +175,16 @@ class RadialDistributionFunction(Calculator, ABC):
                     override the automatic batch size calculation
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
         # Calculator arguments
         # RDF arguments
-        out = None
+        out = {}
         for experiment in self.experiments:
             self.number_of_bins = number_of_bins
             self.cutoff = cutoff
@@ -192,26 +198,34 @@ class RadialDistributionFunction(Calculator, ABC):
             self.experiment = experiment
 
             if self.load_data:
-                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                self.update_user_args(plot=plot,
+                                      save=save,
+                                      data_range=data_range,
+                                      export=export,
+                                      gpu=gpu)
 
-            self.update_user_args(**kwargs)
+                # kwarg parsing
+                self.use_tf_function = kwargs.pop("use_tf_function", False)
+                self.override_n_batches = kwargs.get('batches')
+                self.tqdm_limit = kwargs.pop('tqdm', 10)
+                # if there are more batches than in that limit it will show the batch tqdm, otherwise
+                # it will show multiple minibatch tqdms
 
-            # kwarg parsing
-            self.use_tf_function = kwargs.pop("use_tf_function", False)
-            self.override_n_batches = kwargs.get('batches')
-            self.tqdm_limit = kwargs.pop('tqdm', 10)
-            # if there are more batches than in that limit it will show the batch tqdm, otherwise
-            # it will show multiple minibatch tqdms
+                # Initial checks and initialization.
+                self._check_input()
+                self._initialize_rdf_parameters()
 
-            # Initial checks and initialization.
-            self._check_input()
-            self._initialize_rdf_parameters()
+                # Perform analysis and save.
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-            # Perform analysis and save.
-            out = self.run_analysis()
-            self.experiment.save_class()
-
-        return out
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _initialize_rdf_parameters(self):
         """

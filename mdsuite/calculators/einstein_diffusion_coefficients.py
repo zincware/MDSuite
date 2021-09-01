@@ -115,7 +115,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                  gpu: bool = False):
 
         # TODO Docstrings!!
-        out = None
+        out = {}
         for experiment in self.experiments:
             self.experiment = experiment
 
@@ -140,13 +140,16 @@ class EinsteinDiffusionCoefficients(Calculator):
                     self.species = list(self.experiment.species)
 
             if self.load_data:
-                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-            out = self.run_analysis()
-
-            self.experiment.save_class()
-
-        return out
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _update_output_signatures(self):
         """

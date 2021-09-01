@@ -74,7 +74,7 @@ class StructureFactor(Calculator):
     If they are not correct, the structure factor will not work.
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor for the class
 
@@ -84,7 +84,7 @@ class StructureFactor(Calculator):
                         Class object of the experiment.
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -98,40 +98,34 @@ class StructureFactor(Calculator):
         self.y_label = r'S(Q)'
         self.analysis_name = 'total_structure_factor'
 
-        self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
-                                                      self.experiment.box_array[1] * self.experiment.box_array[2])
+        self.rho = None
+
         with open_text(static_data, 'form_fac_coeffs.csv') as file:
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
 
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        # TODO docstrings!
 
-        out = self.run_analysis()
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        self.experiment.save_class()
+            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
 
-        return out
+            self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
+                                                          self.experiment.box_array[1] * self.experiment.box_array[2])
 
-    # def _get_rdf_data(self):
-    #     """
-    #     Fill the data_files list with filenames of the rdf tensor_values
-    #     """
-    #     database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-    #
-    #     return database.load_data({"property": "RDF"})
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-    # def _load_rdf_from_file(self, system_property: SystemProperty):
-    #     """
-    #     Load the raw rdf tensor_values from a directory
-    #     """
-    #     radii = []
-    #     rdf = []
-    #     for _bin in system_property.data:
-    #         radii.append(_bin.x)
-    #         rdf.append(_bin.y)
-    #
-    #     self.radii = np.array(radii)[1:]
-    #     self.rdf = np.array(rdf)[1:]
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _autocorrelation_time(self):
         """

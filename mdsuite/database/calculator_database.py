@@ -15,7 +15,7 @@ from mdsuite.utils.database import get_or_create
 
 import logging
 import numpy as np
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -82,7 +82,7 @@ class CalculatorDatabase:
             ses.commit()
 
     # TODO rename and potentially move to a RDF based parent class
-    def _get_rdf_data(self):
+    def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""
         with self.experiment.project.session as ses:
             computations = ses.query(db.Computation).filter(

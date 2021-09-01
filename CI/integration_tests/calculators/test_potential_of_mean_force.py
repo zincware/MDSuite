@@ -68,7 +68,7 @@ def test_pomf_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(data_range=-1, plot=False)
+    project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
     project.run_computation.PotentialOfMeanForce(plot=False)
 
     data_dict = project.load_data.PotentialOfMeanForce()[0].data_dict
@@ -83,7 +83,7 @@ def test_pomf_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(data_range=-1, plot=False)
+    project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
     project.experiments['NaCl'].run_computation.PotentialOfMeanForce(plot=False)
 
     data_dict = project.experiments['NaCl'].load_data.PotentialOfMeanForce()[0].data_dict

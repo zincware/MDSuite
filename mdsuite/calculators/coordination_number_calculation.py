@@ -98,6 +98,10 @@ class CoordinationNumbers(Calculator):
     def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
 
+        # TODO docstrings
+
+        out = {}
+
         for experiment in self.experiments:
             self.experiment = experiment
 
@@ -111,14 +115,17 @@ class CoordinationNumbers(Calculator):
             self.savgol_window_length = savgol_window_length
 
             if self.load_data:
-                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
 
-            out = self.run_analysis()
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-            self.experiment.save_class()
-            # need to move save_class() to here, because it can't be done in the experiment any more!
-
-            return out
+            if len(self.experiments) > 1:
+                return out
+            else:
+                return out[self.experiment.experiment_name]
 
     def _get_density(self, species: str) -> float:
         """
