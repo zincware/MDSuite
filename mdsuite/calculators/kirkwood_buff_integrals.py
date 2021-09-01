@@ -60,7 +60,7 @@ class KirkwoodBuffIntegral(Calculator):
     experiment.run_computation.KirkwoodBuffIntegral()
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor for the class
 
@@ -70,17 +70,17 @@ class KirkwoodBuffIntegral(Calculator):
                         Class object of the experiment.
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
         self.radii = None
         self.species_tuple = None
         self.kb_integral = None
-        self.database_group = 'Kirkwood_Buff_Integral'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = r'$G(\mathbf{r})$'
-        self.analysis_name = 'Kirkwood-Buff_Integral'
+        self.database_group = "Kirkwood_Buff_Integral"
+        self.x_label = r"r ($\AA$)"
+        self.y_label = r"$G(\mathbf{r})$"
+        self.analysis_name = "Kirkwood-Buff_Integral"
 
         self.post_generation = True
 
@@ -100,48 +100,38 @@ class KirkwoodBuffIntegral(Calculator):
 
         Returns
         -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
 
         """
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
+            self.update_user_args(
+                plot=plot, save=save, data_range=data_range, export=export
+            )
 
-        out = self.run_analysis()
+            if self.load_data:
+                out.update(
+                    {
+                        self.experiment.experiment_name: self.experiment.export_property_data(
+                            {"Analysis": self.analysis_name}
+                        )
+                    }
+                )
+            else:
+                out.update({self.experiment.experiment_name: self.run_analysis()})
 
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
+        if len(out) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _autocorrelation_time(self):
         """
         Not needed in this analysis
         """
         raise NotApplicableToAnalysis
-
-    def _get_rdf_data(self) -> Iterable:
-        """
-        Fill the data_files list with filenames of the rdf tensor_values
-        """
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-
-        return database.load_data({"property": "RDF"})
-
-    def _load_rdf_from_file(self, system_property: SystemProperty):
-        """
-        Load the raw rdf tensor_values from a directory
-
-        Parameters
-        ----------
-        system_property: SystemProperty
-        """
-
-        radii = []
-        rdf = []
-        for _bin in system_property.data:
-            radii.append(_bin.x)
-            rdf.append(_bin.y)
-
-        self.radii = np.array(radii)
-        self.rdf = np.array(rdf)
 
     def _calculate_kb_integral(self):
         """
@@ -152,7 +142,14 @@ class KirkwoodBuffIntegral(Calculator):
 
         for i in range(1, len(self.radii)):
             self.kb_integral.append(
-                4 * np.pi * (np.trapz((self.rdf[1:i] - 1) * (self.radii[1:i]) ** 2, x=self.radii[1:i])))
+                4
+                * np.pi
+                * (
+                    np.trapz(
+                        (self.rdf[1:i] - 1) * (self.radii[1:i]) ** 2, x=self.radii[1:i]
+                    )
+                )
+            )
 
     def run_post_generation_analysis(self):
         """
@@ -160,7 +157,7 @@ class KirkwoodBuffIntegral(Calculator):
         """
 
         for data in self._get_rdf_data():  # Loop over all existing RDFs
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range
 
             self._load_rdf_from_file(data)  # load the tensor_values from it
@@ -169,19 +166,25 @@ class KirkwoodBuffIntegral(Calculator):
 
             # Plot if required
             if self.plot:
-                plt.plot(self.radii[1:], self.kb_integral, label=f"{self.species_tuple}")
+                plt.plot(
+                    self.radii[1:], self.kb_integral, label=f"{self.species_tuple}"
+                )
                 self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
 
             if self.save or self.export:
-                data = [{"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)]
+                data = [
+                    {"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)
+                ]
                 log.debug(f"Writing {self.analysis_name} to database!")
-                self._update_properties_file({
-                    "Property": self.system_property,
-                    "Analysis": self.analysis_name,
-                    "subjects": self.species_tuple.split("_"),
-                    "data_range": self.data_range,
-                    "data": data
-                })
+                self._update_properties_file(
+                    {
+                        "Property": self.system_property,
+                        "Analysis": self.analysis_name,
+                        "subjects": self.species_tuple.split("_"),
+                        "data_range": self.data_range,
+                        "data": data,
+                    }
+                )
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
