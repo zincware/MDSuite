@@ -6,8 +6,9 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zincware Project.
 
-Description: Test the RDF
+Description: Test for the einstein_diffusion_coefficients
 """
+
 import json
 import os
 
@@ -58,45 +59,34 @@ def traj_files(tmp_path_factory) -> list:
 def true_values() -> dict:
     """Values to compare to"""
     static_path = Path(static_data.__file__).parent
-    data = static_path / 'radial_distribution_function.json'
+    data = static_path / 'einstein_diffusion_coefficients.json'
     return json.loads(data.read_bytes())
 
 
 def test_rdf_project(traj_files, true_values, tmp_path):
-    """Test the rdf called from the project class"""
+    """Test the EinsteinDiffusionCoefficients called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.run_computation.EinsteinDiffusionCoefficients(plot=False, data_range=300, correlation_time=1)
 
-    data_dict = project.load_data.RadialDistributionFunction()[0].data_dict
-
-    data_dict['x'][data_dict['x'] is None] = 0
-    data_dict['y'][data_dict['y'] is None] = 0
-
-    true_values['x'][true_values['x'] is None] = 0
-    true_values['y'][true_values['y'] is None] = 0
+    data_dict = project.load_data.EinsteinDiffusionCoefficients()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
 
 
 def test_rdf_experiment(traj_files, true_values, tmp_path):
-    """Test the rdf called from the experiment class"""
+    """Test the EinsteinDiffusionCoefficients called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.experiments['NaCl'].run_computation.EinsteinDiffusionCoefficients(plot=False, data_range=300,
+                                                                              correlation_time=1)
 
-    data_dict = project.experiments['NaCl'].load_data.RadialDistributionFunction()[0].data_dict
-
-    data_dict['x'][data_dict['x'] is None] = 0
-    data_dict['y'][data_dict['y'] is None] = 0
-
-    true_values['x'][true_values['x'] is None] = 0
-    true_values['y'][true_values['y'] is None] = 0
+    data_dict = project.experiments['NaCl'].load_data.EinsteinDiffusionCoefficients()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

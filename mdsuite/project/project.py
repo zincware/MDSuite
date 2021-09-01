@@ -270,7 +270,7 @@ class Project(ProjectDatabase):
                 self.experiments[item].add_data(data_sets[item], file_format=file_format)
 
     @property
-    def run_computation(self):
+    def run_computation(self) -> RunComputation:
         """Method to access the available calculators
 
         Returns
@@ -281,12 +281,13 @@ class Project(ProjectDatabase):
         return RunComputation(experiments=[x for x in self.experiments.values()])
 
     @property
-    def load_data(self):
+    def load_data(self) -> RunComputation:
         """Method to access the available calculators results
 
         Returns
         -------
-        if called, return List[db.Computation]
+        RunComputation:
+            if called, return List[db.Computation]
 
         """
         return RunComputation(experiments=[x for x in self.experiments.values()], load_data=True)

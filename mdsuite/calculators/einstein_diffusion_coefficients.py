@@ -16,6 +16,7 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
 calculations performed.
 """
+from __future__ import annotations
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,6 +25,11 @@ from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +51,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Attributes
     ----------
-    experiment :  object
+    experiment :  Experiment
             Experiment class to call from
     species : list
             Which species to perform the analysis on
@@ -67,16 +73,20 @@ class EinsteinDiffusionCoefficients(Calculator):
     experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Parameters
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
+        experiments :  Experiment
+                Experiment classes to call from
+        load_data :  bool
+                whether to load data or not
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 150}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = None
@@ -104,29 +114,37 @@ class EinsteinDiffusionCoefficients(Calculator):
                  tau_values: Union[int, List, Any] = np.s_[:],
                  gpu: bool = False):
 
-        self.update_user_args(plot=plot,
-                              data_range=data_range,
-                              save=save,
-                              correlation_time=correlation_time,
-                              atom_selection=atom_selection,
-                              tau_values=tau_values,
-                              export=export,
-                              gpu=gpu)
-        self.species = species
-        self.molecules = molecules
-        self.optimize = optimize
-        # attributes based on user args
-        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
+        # TODO Docstrings!!
+        out = None
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        if species is None:
-            if molecules:
-                self.species = list(self.experiment.molecules)
-            else:
-                self.species = list(self.experiment.species)
+            self.update_user_args(plot=plot,
+                                  data_range=data_range,
+                                  save=save,
+                                  correlation_time=correlation_time,
+                                  atom_selection=atom_selection,
+                                  tau_values=tau_values,
+                                  export=export,
+                                  gpu=gpu)
+            self.species = species
+            self.molecules = molecules
+            self.optimize = optimize
+            # attributes based on user args
+            self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
-        out = self.run_analysis()
+            if species is None:
+                if molecules:
+                    self.species = list(self.experiment.molecules)
+                else:
+                    self.species = list(self.experiment.species)
 
-        self.experiment.save_class()
+            if self.load_data:
+                return self.experiment.export_property_data({'Analysis': self.analysis_name})
+
+            out = self.run_analysis()
+
+            self.experiment.save_class()
 
         return out
 

@@ -74,7 +74,7 @@ class RunComputation:
     @property
     def EinsteinDiffusionCoefficients(self):
         """Calculator Property"""
-        return EinsteinDiffusionCoefficients(experiment=self.experiment)
+        return EinsteinDiffusionCoefficients(**self.kwargs)
 
     @property
     def EinsteinDistinctDiffusionCoefficients(self):
