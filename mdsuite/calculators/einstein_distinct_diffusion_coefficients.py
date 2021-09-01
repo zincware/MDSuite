@@ -58,7 +58,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     experiment.run_computation.EinsteinDistinctDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -67,7 +67,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
 
         self.scale_function = {'linear': {'scale_factor': 10}}
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
@@ -80,10 +80,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         self.msd_array = np.zeros(self.data_range)  # define empty msd array
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
-
-        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+        self.combinations = []
 
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
@@ -100,22 +97,44 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
 
-        self.species = species  # Which species to calculate for
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
-        self.species = species  # Which species to calculate for
-        if self.species is None:
-            self.species = list(self.experiment.species)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+            if self.species is None:
+                self.species = list(self.experiment.species)
+            self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
-        out = self.run_analysis()
-        self.experiment.save_class()
+            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                                  atom_selection=atom_selection, export=export, gpu=gpu)
 
-        return out
+            self.species = species  # Which species to calculate for
+            self.msd_array = np.zeros(self.data_range)  # define empty msd array
+            self.species = species  # Which species to calculate for
+            if self.species is None:
+                self.species = list(self.experiment.species)
+
+            self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
