@@ -46,6 +46,7 @@ class ExperimentDatabase:
         """
         with self.project.session as ses:
             subjects = parameters.pop('subjects', None)
+            experiment = parameters.pop('experiment', None)
 
             query = ses.query(db.Computation)
             for key, val in parameters.items():
@@ -59,7 +60,10 @@ class ExperimentDatabase:
                         db.Computation.computation_attributes.any(name=key),
                         db.Computation.computation_attributes.any(value=val)
                     )
+            if experiment is not None:
+                query = query.filter(db.Computation.experiment.has(name=experiment))
             computations_all_subjects = query.all()
+
             # Filter out subjects, this is easier to do this way around than via SQL statements (feel free to rewrite!)
             computations = []
             if subjects is not None:

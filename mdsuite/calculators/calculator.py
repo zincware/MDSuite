@@ -47,6 +47,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__file__)
 
+
 def call(func):
     """Decorator for the calculator call method
 
@@ -64,6 +65,7 @@ def call(func):
     decorated __call__ method
 
     """
+
     def inner(self, *args, **kwargs):
         """Manage the call method
 
@@ -83,7 +85,7 @@ def call(func):
             func(self, *args, **kwargs)
             if self.load_data:
                 out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
+                    {"Analysis": self.analysis_name, "experiment": self.experiment.experiment_name}
                 )
             else:
                 out[self.experiment.experiment_name] = self.run_analysis()
