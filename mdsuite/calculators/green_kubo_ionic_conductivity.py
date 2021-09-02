@@ -95,7 +95,7 @@ class GreenKuboIonicConductivity(Calculator):
         Returns
         -------
         data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
 
         """
 

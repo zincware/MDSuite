@@ -72,7 +72,7 @@ class ProjectDatabase(DatabaseBase):
             project.description = value
             ses.commit()
 
-        # self.experiment_name = experiment_name
+        # self.name = name
         #
         # self._experiment_id = None
     #
@@ -87,7 +87,7 @@ class ProjectDatabase(DatabaseBase):
     #
     #     """
     #     if self._experiment_id is None:
-    #         experiment = Experiment(name=self.experiment_name)
+    #         experiment = Experiment(name=self.name)
     #         with self.session as ses:
     #             ses.add(experiment)
     #             ses.commit()

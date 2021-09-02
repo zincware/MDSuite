@@ -116,16 +116,16 @@ class StructureFactor(Calculator):
                                                           self.experiment.box_array[1] * self.experiment.box_array[2])
 
             if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                out[self.experiment.name] = self.experiment.export_property_data(
                     {"Analysis": self.analysis_name}
                 )
             else:
-                out[self.experiment.experiment_name] = self.run_analysis()
+                out[self.experiment.name] = self.run_analysis()
 
         if len(self.experiments) > 1:
             return out
         else:
-            return out[self.experiment.experiment_name]
+            return out[self.experiment.name]
 
     def _autocorrelation_time(self):
         """

@@ -39,7 +39,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
     Attributes
     ----------
-    analysis_name : str
+    name : str
             The name of the analysis being performed e.g. NaCl_1400K
     storage_path : str
             Path to where the tensor_values should be stored (best to have  drive capable of storing large files)
@@ -82,7 +82,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
         # Taken upon instantiation
         super().__init__(project=project, experiment_name=experiment_name)
-        self.analysis_name = experiment_name  # Name of the experiment.
+        self.name = experiment_name  # Name of the experiment.
         self.storage_path = os.path.abspath(storage_path)  # Where to store the tensor_values
         self.cluster_mode = cluster_mode  # whether or not the script will run on a cluster
 
@@ -143,10 +143,10 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # self._start_logging()
 
         self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / self.analysis_name / "simulation_data.yaml"
+        self.simulation_data_file = Path(self.storage_path) / self.name / "simulation_data.yaml"
 
     def __repr__(self):
-        return self.analysis_name
+        return self.name
 
     # def _start_logging(self):
     #     logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
@@ -170,7 +170,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         """
         Create or update internal file paths
         """
-        self.experiment_path = Path(self.storage_path, self.analysis_name)  # path to the experiment files
+        self.experiment_path = Path(self.storage_path, self.name)  # path to the experiment files
         self.database_path = Path(self.experiment_path, 'databases')  # path to the databases
         self.figures_path = Path(self.experiment_path, 'figures')  # path to the figures directory
         self.logfile_path = Path(self.experiment_path, 'logfiles')
@@ -194,7 +194,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             return
 
         # self.save_class()  # save the class state.
-        log.info(f"** An experiment has been added titled {self.analysis_name} **")
+        log.info(f"** An experiment has been added titled {self.name} **")
 
     @staticmethod
     def units_to_si(units_system):
@@ -252,7 +252,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #
     #     storage_path = self.storage_path  # store the new storage path
     #
-    #     with open(f'{self.storage_path}/{self.analysis_name}/{self.analysis_name}.bin', 'rb') as f:
+    #     with open(f'{self.storage_path}/{self.name}/{self.name}.bin', 'rb') as f:
     #         update_dict: dict = pickle.loads(f.read())
     #         for pop_item in ['run_computation', 'analyse_time_series', 'RunComputation']:
     #             try:
@@ -277,7 +277,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     In order to keep properties of a class the state must be stored. This method will store the instance of the
     #     class for later re-loading
     #     """
-    #     filename = os.path.join(self.experiment_path, f"{self.analysis_name}.bin")
+    #     filename = os.path.join(self.experiment_path, f"{self.name}.bin")
     #     with open(filename, 'wb') as save_file:
     #         save_file.write(pickle.dumps(self.__dict__))  # write to file
     #
@@ -492,9 +492,9 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     Summarise the properties of the experiment.
     #     """
     #     database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
-    #     print(f"MDSuite {self.analysis_name} Summary\n")
+    #     print(f"MDSuite {self.name} Summary\n")
     #     print("==================================================================================\n")
-    #     print(f"Name: {self.analysis_name}\n")
+    #     print(f"Name: {self.name}\n")
     #     print(f"Temperature: {self.temperature} K\n")
     #     print(f"Number of Configurations: {self.number_of_configurations}\n")
     #     print(f"Number of Atoms: {self.number_of_atoms}\n")

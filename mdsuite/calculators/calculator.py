@@ -77,23 +77,23 @@ def call(func):
         Returns
         -------
         data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
         """
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
             func(self, *args, **kwargs)
             if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name, "experiment": self.experiment.experiment_name}
+                out[self.experiment.name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name, "experiment": self.experiment.name}
                 )
             else:
-                out[self.experiment.experiment_name] = self.run_analysis()
+                out[self.experiment.name] = self.run_analysis()
 
         if len(self.experiments) > 1:
             return out
         else:
-            return out[self.experiment.experiment_name]
+            return out[self.experiment.name]
 
     return inner
 
@@ -953,4 +953,4 @@ class Calculator(CalculatorDatabase):
     # @property
     # def data(self):
     #     """Return the data that may have previously been generated with the same parameters"""
-    #     return self.experiment.export_property_data(parameters={"Analysis": self.analysis_name})
+    #     return self.experiment.export_property_data(parameters={"Analysis": self.name})

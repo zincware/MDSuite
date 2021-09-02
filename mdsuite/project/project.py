@@ -308,7 +308,7 @@ class Project(ProjectDatabase):
     #     """
     #
     #     results = {}
-    #     for experiment_name, experiment_class in self.experiments.items():
+    #     for name, experiment_class in self.experiments.items():
     #         results_yaml = experiment_class.results  # this is a dict with the results from the yaml file
     #         result = find_item(results_yaml, key_to_find)
     #
@@ -320,7 +320,7 @@ class Project(ProjectDatabase):
     #
     #         if isinstance(result, list):
     #             result = [float(res) for res in result]  # convert results to floats
-    #         results[experiment_name] = result
+    #         results[name] = result
     #
     #     return results
 
@@ -371,31 +371,31 @@ class Project(ProjectDatabase):
     #     """
     #
     #     results = {}
-    #     for experiment_name, experiment_class in self.experiments.items():
+    #     for name, experiment_class in self.experiments.items():
     #         value_attr = experiment_class.__getattribute__(attribute)
-    #         results[experiment_name] = value_attr
+    #         results[name] = value_attr
     #
     #     return results
 
-    # def remove_experiment(self, experiment_name: str):
+    # def remove_experiment(self, name: str):
     #     """
     #     Delete an experiment from the project
     #     Parameters
     #     ----------
-    #     experiment_name
+    #     name
     #
     #     Returns
     #     -------
     #     Updates the class state.
     #     """
-    #     if experiment_name not in list(self.experiments):
+    #     if name not in list(self.experiments):
     #         print("Experiment does not exist")
     #         return
     #     else:
     #         try:
-    #             dir_path = os.path.join(self.storage_path, self.name, experiment_name)
+    #             dir_path = os.path.join(self.storage_path, self.name, name)
     #             shutil.rmtree(dir_path)
-    #             self.experiments.pop(experiment_name, None)
+    #             self.experiments.pop(name, None)
     #             # self._save_class()
     #         except InterruptedError:
     #             print("You are likely using a notebook of some kind such as jupyter. Please restart the kernel and try"

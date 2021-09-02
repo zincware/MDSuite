@@ -63,8 +63,11 @@ def project(tmp_path_factory) -> mds.Project:
     return project
 
 
-def test_adding_data(project, traj_files):
-    """Add data and run RDF on all of them"""
+def test_add_run_load_data(project, traj_files):
+    """Add data and run RDF on all of them
+
+    Test the run_computation and load_data method on multiple experiments
+    """
     project.add_experiment("NaCl0", data=traj_files[0], timestep=0.002, temperature=1400)
     project.add_experiment("NaCl1", data=traj_files[1], timestep=0.002, temperature=1400)
     project.add_experiment("NaCl2", data=traj_files[2], timestep=0.002, temperature=1400)

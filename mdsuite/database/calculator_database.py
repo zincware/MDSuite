@@ -51,7 +51,7 @@ class CalculatorDatabase:
                 raise KeyError('Please add the key "subjects" to your calculator')
 
         with self.experiment.project.session as ses:
-            experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.experiment_name).first()
+            experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
             computation = db.Computation(experiment=experiment)
             ses.add(computation)
 
