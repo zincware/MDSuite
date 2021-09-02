@@ -63,7 +63,7 @@ class AngularDistributionFunction(Calculator, ABC):
                                                            use_tf_function = False)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -72,7 +72,7 @@ class AngularDistributionFunction(Calculator, ABC):
         experiment : object
                 Experiment object from which to take attributes.
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
         self.loaded_property = 'Positions'
 
@@ -144,30 +144,46 @@ class AngularDistributionFunction(Calculator, ABC):
         -----
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
 
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
-        # Parse the parent class arguments.
-        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        # Parse the user arguments.
-        self.use_tf_function = use_tf_function
-        self.r_cut = r_cut
-        self.start = start
-        self.stop = stop
-        self.molecules = molecules
-        self.n_confs = n_confs
-        self.bins = bins
-        self._batch_size = batch_size  # memory management for all batches
-        self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
-        self.species = species
-        self._check_inputs()
-        self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
-        self.norm_power = norm_power
 
-        # Run the analysis and save it.
-        out = self.run_analysis()
-        self.experiment.save_class()
+            # Parse the parent class arguments.
+            self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
 
-        return out
+            # Parse the user arguments.
+            self.use_tf_function = use_tf_function
+            self.r_cut = r_cut
+            self.start = start
+            self.stop = stop
+            self.molecules = molecules
+            self.n_confs = n_confs
+            self.bins = bins
+            self._batch_size = batch_size  # memory management for all batches
+            self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
+            self.species = species
+            self._check_inputs()
+            self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
+            self.norm_power = norm_power
+
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _check_inputs(self):
         """
