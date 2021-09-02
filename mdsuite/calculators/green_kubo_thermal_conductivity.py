@@ -52,7 +52,7 @@ class GreenKuboThermalConductivity(Calculator):
     experiment.run_computation.GreenKuboThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Class for the Green-Kubo Thermal conductivity implementation
 
@@ -61,7 +61,7 @@ class GreenKuboThermalConductivity(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Thermal_Flux'  # property to be loaded for the analysis
@@ -86,20 +86,35 @@ class GreenKuboThermalConductivity(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         correlation_time: int
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
 
-        self.jacf = np.zeros(self.data_range)
-        self.prefactor: float
-        self.sigma = []
+            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                                  export=export, gpu=gpu)
 
-        out = self.run_analysis()
+            self.jacf = np.zeros(self.data_range)
+            self.prefactor: float
+            self.sigma = []
 
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
 
-        return out
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
 
     def _update_output_signatures(self):
         """
@@ -128,7 +143,7 @@ class GreenKuboThermalConductivity(Calculator):
         # prepare the prefactor for the integral
         numerator = 1
         denominator = 3 * (self.data_range - 1) * self.experiment.temperature ** 2 * self.experiment.units['boltzman'] \
-            * self.experiment.volume  # we use Boltzmann constant in the units provided.
+                      * self.experiment.volume  # we use Boltzmann constant in the units provided.
         prefactor_units = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
             'time']
 
