@@ -11,14 +11,10 @@ Class for the calculation of the coordinated numbers
 """
 import logging
 import numpy as np
-import os
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
-from mdsuite.calculators.calculator import Calculator
-from typing import Iterable
+from mdsuite.calculators.calculator import Calculator, call
 
 log = logging.getLogger(__file__)
 
@@ -84,6 +80,7 @@ class KirkwoodBuffIntegral(Calculator):
 
         self.post_generation = True
 
+    @call
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
         """
         Doc string for this one.
@@ -97,35 +94,11 @@ class KirkwoodBuffIntegral(Calculator):
                 Default to 1 for this analysis
         export : bool
                 If tue, csv files will be dumped after the analysis.
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
-            self.update_user_args(
-                plot=plot, save=save, data_range=data_range, export=export
-            )
 
-            if self.load_data:
-                out.update(
-                    {
-                        self.experiment.experiment_name: self.experiment.export_property_data(
-                            {"Analysis": self.analysis_name}
-                        )
-                    }
-                )
-            else:
-                out.update({self.experiment.experiment_name: self.run_analysis()})
-
-        if len(out) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        self.update_user_args(
+            plot=plot, save=save, data_range=data_range, export=export
+        )
 
     def _autocorrelation_time(self):
         """

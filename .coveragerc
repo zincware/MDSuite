@@ -4,7 +4,7 @@ branch = True
 [report]
 # Regexes for lines to exclude from consideration
 omit =
-    # omit anything in a Temp directory anywhere
+# omit anything in a Temp directory anywhere
     */Temp/*
     */AppData/*
     */CI/*

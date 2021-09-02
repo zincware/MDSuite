@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from scipy import signal
 
 tqdm.monitor_interval = 0
@@ -72,6 +72,7 @@ class GreenKuboThermalConductivity(Calculator):
         self.y_label = r'JACF ($C^{2}\cdot m^{2}/s^{2}$)'
         self.analysis_name = 'Green_Kubo_Thermal_Conductivity'
 
+    @call
     def __call__(self, plot=False, data_range=500, save=True, correlation_time: int = 1,
                  export: bool = False, gpu: bool = False):
         """
@@ -86,35 +87,13 @@ class GreenKuboThermalConductivity(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         correlation_time: int
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              export=export, gpu=gpu)
 
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  export=export, gpu=gpu)
-
-            self.jacf = np.zeros(self.data_range)
-            self.prefactor: float
-            self.sigma = []
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        self.jacf = np.zeros(self.data_range)
+        self.prefactor: float
+        self.sigma = []
 
     def _update_output_signatures(self):
         """

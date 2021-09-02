@@ -13,7 +13,7 @@ import tensorflow as tf
 import itertools
 import numpy as np
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
@@ -98,6 +98,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
 
+    @call
     def __call__(self, batch_size: int = 1,
                  n_minibatches: int = 50,
                  n_confs: int = 5,
@@ -144,46 +145,24 @@ class AngularDistributionFunction(Calculator, ABC):
         -----
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
 
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
+        # Parse the parent class arguments.
+        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
 
-
-            # Parse the parent class arguments.
-            self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
-
-            # Parse the user arguments.
-            self.use_tf_function = use_tf_function
-            self.r_cut = r_cut
-            self.start = start
-            self.stop = stop
-            self.molecules = molecules
-            self.n_confs = n_confs
-            self.bins = bins
-            self._batch_size = batch_size  # memory management for all batches
-            self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
-            self.species = species
-            self._check_inputs()
-            self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
-            self.norm_power = norm_power
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        # Parse the user arguments.
+        self.use_tf_function = use_tf_function
+        self.r_cut = r_cut
+        self.start = start
+        self.stop = stop
+        self.molecules = molecules
+        self.n_confs = n_confs
+        self.bins = bins
+        self._batch_size = batch_size  # memory management for all batches
+        self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
+        self.species = species
+        self._check_inputs()
+        self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
+        self.norm_power = norm_power
 
     def _check_inputs(self):
         """

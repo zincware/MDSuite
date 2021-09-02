@@ -32,7 +32,7 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 
@@ -123,6 +123,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.correct_minibatch_batching = None
         # split the minibatches into equal sized chunks to use maximum computing and memory resources
 
+    @call
     def __call__(self,
                  plot=True,
                  number_of_bins=None,
@@ -175,57 +176,38 @@ class RadialDistributionFunction(Calculator, ABC):
                     override the automatic batch size calculation
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
         # Calculator arguments
         # RDF arguments
-        out = {}
-        for experiment in self.experiments:
-            self.number_of_bins = number_of_bins
-            self.cutoff = cutoff
-            self.start = start
-            self.stop = stop
-            self.number_of_configurations = number_of_configurations
-            self.molecules = molecules
-            self.minibatch = minibatch
-            self.species = species
+        self.number_of_bins = number_of_bins
+        self.cutoff = cutoff
+        self.start = start
+        self.stop = stop
+        self.number_of_configurations = number_of_configurations
+        self.molecules = molecules
+        self.minibatch = minibatch
+        self.species = species
 
-            self.experiment = experiment
+        self.update_user_args(plot=plot,
+                              save=save,
+                              data_range=data_range,
+                              export=export,
+                              gpu=gpu)
 
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                self.update_user_args(plot=plot,
-                                      save=save,
-                                      data_range=data_range,
-                                      export=export,
-                                      gpu=gpu)
+        # kwarg parsing
+        self.use_tf_function = kwargs.pop("use_tf_function", False)
+        self.override_n_batches = kwargs.get('batches')
+        self.tqdm_limit = kwargs.pop('tqdm', 10)
+        # if there are more batches than in that limit it will show the batch tqdm, otherwise
+        # it will show multiple minibatch tqdms
 
-                # kwarg parsing
-                self.use_tf_function = kwargs.pop("use_tf_function", False)
-                self.override_n_batches = kwargs.get('batches')
-                self.tqdm_limit = kwargs.pop('tqdm', 10)
-                # if there are more batches than in that limit it will show the batch tqdm, otherwise
-                # it will show multiple minibatch tqdms
+        # Initial checks and initialization.
+        self._check_input()
+        self._initialize_rdf_parameters()
 
-                # Initial checks and initialization.
-                self._check_input()
-                self._initialize_rdf_parameters()
+        # # Perform analysis and save.
+        # return self.run_analysis()
 
-                # Perform analysis and save.
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
 
     def _initialize_rdf_parameters(self):
         """

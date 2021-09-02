@@ -23,7 +23,7 @@ import tensorflow as tf
 import itertools
 from scipy import signal
 import matplotlib.pyplot as plt
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -76,6 +76,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.analysis_name = 'Green_Kubo_Distinct_Diffusion_Coefficients'
         self.experimental = True
 
+    @call
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
         """
@@ -91,44 +92,21 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              atom_selection=atom_selection, export=export, gpu=gpu)
 
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
+        self.species = species  # Which species to calculate for
 
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  atom_selection=atom_selection, export=export, gpu=gpu)
+        self._return_arrays = {}
 
-            self.species = species  # Which species to calculate for
+        self.vacf = np.zeros(self.data_range)
+        self.sigma = []
 
-            self._return_arrays = {}
+        if self.species is None:
+            self.species = list(self.experiment.species)
 
-            self.vacf = np.zeros(self.data_range)
-            self.sigma = []
-
-            if self.species is None:
-                self.species = list(self.experiment.species)
-
-            self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """

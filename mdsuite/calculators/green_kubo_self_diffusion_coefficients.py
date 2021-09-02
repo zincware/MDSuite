@@ -21,7 +21,7 @@ import numpy as np
 import warnings
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -75,6 +75,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.y_label = 'VACF $(m^{2}/s^{2})$'
         self.analysis_name = 'Green_Kubo_Self_Diffusion_Coefficients'
 
+    @call
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False, molecules: bool = False,
                  gpu: bool = False):
@@ -92,43 +93,22 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
 
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
 
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              atom_selection=atom_selection, export=export, gpu=gpu)
 
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  atom_selection=atom_selection, export=export, gpu=gpu)
+        self.molecules = molecules
+        self.species = species  # Which species to calculate for
 
-            self.molecules = molecules
-            self.species = species  # Which species to calculate for
+        self.vacf = np.zeros(self.data_range)
+        self.sigma = []
 
-            self.vacf = np.zeros(self.data_range)
-            self.sigma = []
-
-            if species is None:
-                if molecules:
-                    self.species = list(self.experiment.molecules)
-                else:
-                    self.species = list(self.experiment.species)
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
+        if species is None:
+            if molecules:
+                self.species = list(self.experiment.molecules)
             else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+                self.species = list(self.experiment.species)
 
     def _update_output_signatures(self):
         """

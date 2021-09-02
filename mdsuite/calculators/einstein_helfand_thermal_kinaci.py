@@ -18,7 +18,7 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -77,6 +77,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         self.prefactor: float
 
+    @call
     def __call__(self, plot=True, data_range=500, save=True, correlation_time=1, export: bool = False,
                  gpu: bool = False):
         """
@@ -91,36 +92,11 @@ class EinsteinHelfandThermalKinaci(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
 
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
-
         """
-
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
-
-
-            # parse to the experiment class
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  export=export, gpu=gpu)
-            self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        # parse to the experiment class
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              export=export, gpu=gpu)
+        self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
     def _update_output_signatures(self):
         """

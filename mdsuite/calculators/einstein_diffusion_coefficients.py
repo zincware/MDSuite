@@ -24,14 +24,12 @@ import warnings
 from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
-
-log = logging.getLogger(__name__)
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -102,6 +100,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = list()
         log.info('starting Einstein Diffusion Computation')
 
+    @call
     def __call__(self, plot: bool = True,
                  species: list = None,
                  data_range: int = 100,
@@ -115,41 +114,26 @@ class EinsteinDiffusionCoefficients(Calculator):
                  gpu: bool = False):
 
         # TODO Docstrings!!
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
 
-            self.update_user_args(plot=plot,
-                                  data_range=data_range,
-                                  save=save,
-                                  correlation_time=correlation_time,
-                                  atom_selection=atom_selection,
-                                  tau_values=tau_values,
-                                  export=export,
-                                  gpu=gpu)
-            self.species = species
-            self.molecules = molecules
-            self.optimize = optimize
-            # attributes based on user args
-            self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
+        self.update_user_args(plot=plot,
+                              data_range=data_range,
+                              save=save,
+                              correlation_time=correlation_time,
+                              atom_selection=atom_selection,
+                              tau_values=tau_values,
+                              export=export,
+                              gpu=gpu)
+        self.species = species
+        self.molecules = molecules
+        self.optimize = optimize
+        # attributes based on user args
+        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
-            if species is None:
-                if molecules:
-                    self.species = list(self.experiment.molecules)
-                else:
-                    self.species = list(self.experiment.species)
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
+        if species is None:
+            if molecules:
+                self.species = list(self.experiment.molecules)
             else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+                self.species = list(self.experiment.species)
 
     def _update_output_signatures(self):
         """

@@ -30,7 +30,7 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
@@ -103,6 +103,7 @@ class PotentialOfMeanForce(Calculator):
         self.analysis_name = 'Potential_of_Mean_Force'
         self.post_generation = True
 
+    @call
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
         """
@@ -118,32 +119,11 @@ class PotentialOfMeanForce(Calculator):
         data_range : int (default=500)
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
-            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
-            self.data_files = []
-            self.savgol_order = savgol_order
-            self.savgol_window_length = savgol_window_length
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        self.data_files = []
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
 
     def _autocorrelation_time(self):
         """

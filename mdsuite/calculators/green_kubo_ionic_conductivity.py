@@ -22,7 +22,7 @@ import tensorflow as tf
 from scipy import signal
 from tqdm import tqdm
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -78,6 +78,7 @@ class GreenKuboIonicConductivity(Calculator):
 
         self.prefactor: float
 
+    @call
     def __call__(self, plot=True, data_range=500, save=True, correlation_time=1, export: bool = False,
                  gpu: bool = False):
         """
@@ -97,27 +98,12 @@ class GreenKuboIonicConductivity(Calculator):
             A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
 
         """
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
 
-            # update experiment class
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  export=export, gpu=gpu)
-            self.jacf = np.zeros(self.data_range)
-            self.sigma = []
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        # update experiment class
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              export=export, gpu=gpu)
+        self.jacf = np.zeros(self.data_range)
+        self.sigma = []
 
     def _update_output_signatures(self):
         """

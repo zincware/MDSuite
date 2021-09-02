@@ -23,7 +23,7 @@ from tqdm import tqdm
 import tensorflow as tf
 import itertools
 import matplotlib.pyplot as plt
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -82,6 +82,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         self.combinations = []
 
+    @call
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
         """
@@ -98,43 +99,21 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
 
-        Returns
-        -------
-        data:
-            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
-
         """
+        if self.species is None:
+            self.species = list(self.experiment.species)
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
-        out = {}
-        for experiment in self.experiments:
-            self.experiment = experiment
+        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
+                              atom_selection=atom_selection, export=export, gpu=gpu)
 
-            if self.species is None:
-                self.species = list(self.experiment.species)
-            self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+        self.species = species  # Which species to calculate for
+        self.msd_array = np.zeros(self.data_range)  # define empty msd array
+        self.species = species  # Which species to calculate for
+        if self.species is None:
+            self.species = list(self.experiment.species)
 
-            self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                                  atom_selection=atom_selection, export=export, gpu=gpu)
-
-            self.species = species  # Which species to calculate for
-            self.msd_array = np.zeros(self.data_range)  # define empty msd array
-            self.species = species  # Which species to calculate for
-            if self.species is None:
-                self.species = list(self.experiment.species)
-
-            self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-        if len(self.experiments) > 1:
-            return out
-        else:
-            return out[self.experiment.experiment_name]
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """

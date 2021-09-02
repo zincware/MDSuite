@@ -47,6 +47,54 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__file__)
 
+def call(func):
+    """Decorator for the calculator call method
+
+    This decorator provides a unified approach for handling run_computation and load_data for a single or multiple
+    experiments.
+    It handles the `run_computation()` method, iterates over experiments and loads data if requested!
+    Therefore, the __call__ method does not and can not return any values anymore!
+
+    Parameters
+    ----------
+    func: Calculator.__call__ method
+
+    Returns
+    -------
+    decorated __call__ method
+
+    """
+    def inner(self, *args, **kwargs):
+        """Manage the call method
+
+        Parameters
+        ----------
+        self: Calculator
+
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {experiment_name: data} for multiple len(experiments) > 1 or otherwise just data
+        """
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
+            func(self, *args, **kwargs)
+            if self.load_data:
+                out[self.experiment.experiment_name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name}
+                )
+            else:
+                out[self.experiment.experiment_name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.experiment_name]
+
+    return inner
+
 
 class Calculator(CalculatorDatabase):
     """

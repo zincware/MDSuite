@@ -13,15 +13,12 @@ Summary
 -------
 """
 import logging
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from typing import Union
 from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
-from mdsuite.calculators.calculator import Calculator
-from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
@@ -95,37 +92,20 @@ class CoordinationNumbers(Calculator):
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
 
+    @call
     def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
 
         # TODO docstrings
 
-        out = {}
+        # Calculate the rdf if it has not been done already
+        if self.experiment.radial_distribution_function_state is False:
+            self.experiment.run_computation.RadialDistributionFunction(plot=True, n_batches=-1)
 
-        for experiment in self.experiments:
-            self.experiment = experiment
+        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
 
-            # Calculate the rdf if it has not been done already
-            if self.experiment.radial_distribution_function_state is False:
-                self.experiment.run_computation.RadialDistributionFunction(plot=True, n_batches=-1)
-
-            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
-
-            self.savgol_order = savgol_order
-            self.savgol_window_length = savgol_window_length
-
-            if self.load_data:
-                out[self.experiment.experiment_name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name}
-                )
-            else:
-
-                out[self.experiment.experiment_name] = self.run_analysis()
-
-            if len(self.experiments) > 1:
-                return out
-            else:
-                return out[self.experiment.experiment_name]
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
 
     def _get_density(self, species: str) -> float:
         """
