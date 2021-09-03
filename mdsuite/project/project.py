@@ -404,15 +404,13 @@ class Project(ProjectDatabase):
     @property
     def experiments(self) -> Dict[str, Experiment]:
         """Get a dict of instantiated experiments that are currently selected!"""
-        # TODO there could be a performance increase if the experiments are stored instead of instantiated every time
-        #   this property is called.
-        experiments = {}
 
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).filter(db.Experiment.active).all()
 
         for exp in db_experiments:
             exp: db.Experiment
-            experiments[exp.name] = Experiment(project=self, experiment_name=exp.name)
+            if exp.name not in self._experiments:
+                self._experiments[exp.name] = Experiment(project=self, experiment_name=exp.name)
 
-        return experiments
+        return self._experiments

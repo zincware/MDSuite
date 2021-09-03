@@ -100,7 +100,7 @@ class CoordinationNumbers(Calculator):
 
         # Calculate the rdf if it has not been done already
         if self.experiment.radial_distribution_function_state is False:
-            self.experiment.run_computation.RadialDistributionFunction(plot=True, n_batches=-1)
+            self.experiment.run_computation.RadialDistributionFunction(plot=False, n_batches=-1)
 
         self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
 

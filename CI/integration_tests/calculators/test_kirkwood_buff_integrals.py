@@ -62,7 +62,7 @@ def true_values() -> dict:
     return json.loads(data.read_bytes())
 
 
-def test_kbi_project(traj_files, true_values, tmp_path):
+def test_project(traj_files, true_values, tmp_path):
     """Test the kbi called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
@@ -73,11 +73,11 @@ def test_kbi_project(traj_files, true_values, tmp_path):
 
     data_dict = project.load_data.KirkwoodBuffIntegral()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)
 
 
-def test_rdf_experiment(traj_files, true_values, tmp_path):
+def test_experiment(traj_files, true_values, tmp_path):
     """Test the rdf called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
@@ -88,5 +88,5 @@ def test_rdf_experiment(traj_files, true_values, tmp_path):
 
     data_dict = project.experiments['NaCl'].load_data.KirkwoodBuffIntegral()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)

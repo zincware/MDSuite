@@ -148,24 +148,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     def __repr__(self):
         return self.name
 
-    # def _start_logging(self):
-    #     logfile_name = datetime.now().replace(microsecond=0).isoformat().replace(':', '-') + ".log"
-    #     logfile = os.path.join(self.logfile_path, logfile_name)
-    #
-    #     # there is a good chance, that the root logger is already defined so we have to make some changes to it!
-    #     root = logging.getLogger()
-    #
-    #     # Logging to the logfile
-    #     file_handler = logging.FileHandler(filename=logfile)
-    #     file_handler.setLevel(logging.INFO)  # <- file log loglevel
-    #
-    #     formatter = logging.Formatter('%(asctime)s - %(name)s (%(levelname)s) - %(message)s')
-    #     file_handler.setFormatter(formatter)
-    #     # attaching the stdout handler to the configured logging
-    #     root.addHandler(file_handler)
-    #     # get the file specific logger to get information where the log was written!
-    #     log.info(f"Created logfile {logfile_name} in experiment path {self.logfile_path}")
-    #
     def _create_internal_file_paths(self):
         """
         Create or update internal file paths
@@ -242,46 +224,9 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             self._build_model()
             return False
 
-    #
-    # def load_class(self):
-    #     """
-    #     Load class instance
-    #
-    #     A function to load a class instance given the project name.
-    #     """
-    #
-    #     storage_path = self.storage_path  # store the new storage path
-    #
-    #     with open(f'{self.storage_path}/{self.name}/{self.name}.bin', 'rb') as f:
-    #         update_dict: dict = pickle.loads(f.read())
-    #         for pop_item in ['run_computation', 'analyse_time_series', 'RunComputation']:
-    #             try:
-    #                 update_dict.pop(pop_item)
-    #                 # remove keys that should not be updated!
-    #             except KeyError:
-    #                 pass
-    #         self.__dict__.update(update_dict)
-    #
-    #     self.storage_path = storage_path  # set the one form the database to the new one
-    #     self._create_internal_file_paths()  # force rebuild every time
-    #
-    #     self._start_logging()
-    #     # TODO Why is this necessary? What does it exactly?
-    #
     def save_class(self):
         log.warning("Using depreciated method `save_class`!")
 
-    #     """
-    #     Saves class instance
-    #
-    #     In order to keep properties of a class the state must be stored. This method will store the instance of the
-    #     class for later re-loading
-    #     """
-    #     filename = os.path.join(self.experiment_path, f"{self.name}.bin")
-    #     with open(filename, 'wb') as save_file:
-    #         save_file.write(pickle.dumps(self.__dict__))  # write to file
-    #
-    #
     # def map_elements(self, mapping: dict = None):
     #     """
     #     Map numerical keys to element names in the Experiment class and database_path.
@@ -487,39 +432,39 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
     #     database.export_csv(group=group, key=key, sub_key=sub_key)
     #
-    # def summarise(self):
-    #     """
-    #     Summarise the properties of the experiment.
-    #     """
-    #     database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
-    #     print(f"MDSuite {self.name} Summary\n")
-    #     print("==================================================================================\n")
-    #     print(f"Name: {self.name}\n")
-    #     print(f"Temperature: {self.temperature} K\n")
-    #     print(f"Number of Configurations: {self.number_of_configurations}\n")
-    #     print(f"Number of Atoms: {self.number_of_atoms}\n")
-    #     print("Species Summary\n")
-    #     print("---------------\n")
-    #     print("Atomic Species\n")
-    #     print("***************\n")
-    #     for item in self.species:
-    #         try:
-    #             print(f"{item}: {len(self.species[item]['indices'])}\n")
-    #         except ValueError:
-    #             pass
-    #     print("Molecule Species\n")
-    #     print("*****************\n")
-    #     for item in self.molecules:
-    #         try:
-    #             print(f"{item}: {len(self.molecules[item]['indices'])}\n")
-    #         except ValueError:
-    #             pass
-    #     print("Database Information\n")
-    #     print("---------------\n")
-    #     print(f"Database Path: {self.database_path}/database.hdf5\n")
-    #     print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f}GB\n")
-    #     print(f"Data Groups: {database.get_database_summary()}\n")
-    #     print("==================================================================================\n")
+    def summarise(self):
+        """
+        Summarise the properties of the experiment.
+        """
+        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
+        print(f"MDSuite {self.name} Summary\n")
+        print("==================================================================================\n")
+        print(f"Name: {self.name}\n")
+        print(f"Temperature: {self.temperature} K\n")
+        print(f"Number of Configurations: {self.number_of_configurations}\n")
+        print(f"Number of Atoms: {self.number_of_atoms}\n")
+        print("Species Summary\n")
+        print("---------------\n")
+        print("Atomic Species\n")
+        print("***************\n")
+        for item in self.species:
+            try:
+                print(f"{item}: {len(self.species[item]['indices'])}\n")
+            except ValueError:
+                pass
+        print("Molecule Species\n")
+        print("*****************\n")
+        for item in self.molecules:
+            try:
+                print(f"{item}: {len(self.molecules[item]['indices'])}\n")
+            except ValueError:
+                pass
+        print("Database Information\n")
+        print("---------------\n")
+        print(f"Database Path: {self.database_path}/database.hdf5\n")
+        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f} GB\n")
+        print(f"Data Groups: {database.get_database_summary()}\n")
+        print("==================================================================================\n")
 
     #
     # @property

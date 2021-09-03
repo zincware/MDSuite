@@ -72,8 +72,8 @@ def test_adf_project(traj_files, true_values, tmp_path):
 
     data_dict = project.load_data.AngularDistributionFunction()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)
 
 
 def test_adf_experiment(traj_files, true_values, tmp_path):
@@ -86,5 +86,5 @@ def test_adf_experiment(traj_files, true_values, tmp_path):
 
     data_dict = project.experiments['NaCl'].load_data.AngularDistributionFunction()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)

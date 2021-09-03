@@ -78,8 +78,8 @@ def test_rdf_project(traj_files, true_values, tmp_path):
     true_values['x'][true_values['x'] is None] = 0
     true_values['y'][true_values['y'] is None] = 0
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=3)
 
 
 def test_rdf_experiment(traj_files, true_values, tmp_path):
@@ -98,5 +98,5 @@ def test_rdf_experiment(traj_files, true_values, tmp_path):
     true_values['x'][true_values['x'] is None] = 0
     true_values['y'][true_values['y'] is None] = 0
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
+    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=3)
