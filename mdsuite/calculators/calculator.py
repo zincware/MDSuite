@@ -730,8 +730,6 @@ class Calculator(CalculatorDatabase):
         Update the experiment properties YAML file.
         """
         log.warning("Using depreciated method `_update_properties_file` \t Please use `update_database` instead.")
-        log.warning([x for x in parameters])
-        log.warning(f"{parameters}")
         self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
         #
         #
