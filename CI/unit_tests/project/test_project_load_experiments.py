@@ -41,9 +41,9 @@ def test_project_load_experiments():
     project_2 = mds.Project()
     project_2.load_experiments("Exp01")
 
-    assert len(project_2.experiments) == 1
+    assert len(project_2.active_experiments) == 1
 
     project_3 = mds.Project()
     project_3.load_experiments(["Exp01", "Exp02"])
 
-    assert len(project_3.experiments) == 2
+    assert len(project_3.active_experiments) == 2

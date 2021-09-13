@@ -205,15 +205,7 @@ class Project(ProjectDatabase):
             names = [names]
 
         for name in names:
-            if name not in [exp.name for exp in self.db_experiments]:
-                raise ValueError(f'Could not find an experiment titled {name}!')
-
-            new_experiment = Experiment(
-                project=self,
-                experiment_name=name,
-            )
-
-            new_experiment.active = True
+            self.experiments[name].active = True
 
     def disable_experiments(self, names: Union[str, list]):
         """Disable experiments
@@ -231,15 +223,7 @@ class Project(ProjectDatabase):
             names = [names]
 
         for name in names:
-            if name not in [exp.name for exp in self.db_experiments]:
-                raise ValueError(f'Could not find an experiment titled {name}!')
-
-            new_experiment = Experiment(
-                project=self,
-                experiment_name=name,
-            )
-
-            new_experiment.active = False
+            self.experiments[name].active = False
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
