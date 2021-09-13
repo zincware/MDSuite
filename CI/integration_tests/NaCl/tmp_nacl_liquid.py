@@ -15,6 +15,7 @@ import urllib.request
 import gzip
 import os
 import numpy as np
+import shutil
 
 # TODO run in temporary directory!
 
