@@ -24,10 +24,11 @@ from pathlib import Path
 from typing import Union
 import shutil
 from mdsuite.experiment import Experiment
-from mdsuite.utils.meta_functions import simple_file_read, find_item
+from mdsuite.utils.meta_functions import DotDict, simple_file_read, find_item
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
+from dataclasses import make_dataclass
 
 from typing import TYPE_CHECKING, Dict, List
 
@@ -403,7 +404,15 @@ class Project(ProjectDatabase):
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
-        """Get a dict of instantiated experiments!"""
+        """Get a DotDict of instantiated experiments!
+
+        Examples
+        --------
+        Either use
+            >>> Project().experiments.<experiment_name>.run_compution.<Computation>
+        Or use
+            >>> Project.experiments["<experiment_name"].run_computation.<Computation>
+        """
 
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).all()
@@ -413,10 +422,12 @@ class Project(ProjectDatabase):
             if exp.name not in self._experiments:
                 self._experiments[exp.name] = Experiment(project=self, experiment_name=exp.name)
 
-        return self._experiments
+        return DotDict(self._experiments)
 
     @property
     def active_experiments(self) -> Dict[str, Experiment]:
-        """Get a dict of instantiated experiments that are currently selected!"""
+        """Get a DotDict of instantiated experiments that are currently selected!"""
 
-        return {key: val for key, val in self._experiments.items() if val.active}
+        active_experiment = {key: val for key, val in self._experiments.items() if val.active}
+
+        return DotDict(active_experiment)

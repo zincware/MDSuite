@@ -146,7 +146,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.simulation_data_file = Path(self.storage_path) / self.name / "simulation_data.yaml"
 
     def __repr__(self):
-        return self.name
+        return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
         """
