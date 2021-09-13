@@ -403,13 +403,10 @@ class Project(ProjectDatabase):
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
-        """Get a dict of instantiated experiments that are currently selected!"""
-
-        # remove disabled experiments
-        self._experiments = {key: val for key, val in self._experiments.items() if val.active}
+        """Get a dict of instantiated experiments!"""
 
         with self.session as ses:
-            db_experiments = ses.query(db.Experiment).filter(db.Experiment.active).all()
+            db_experiments = ses.query(db.Experiment).all()
 
         for exp in db_experiments:
             exp: db.Experiment
@@ -417,3 +414,9 @@ class Project(ProjectDatabase):
                 self._experiments[exp.name] = Experiment(project=self, experiment_name=exp.name)
 
         return self._experiments
+
+    @property
+    def active_experiments(self) -> Dict[str, Experiment]:
+        """Get a dict of instantiated experiments that are currently selected!"""
+
+        return {key: val for key, val in self._experiments.items() if val.active}
