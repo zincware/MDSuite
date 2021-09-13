@@ -34,8 +34,6 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import \
     switcher_transformations
-from mdsuite.database.property_database import PropertiesDatabase
-# from mdsuite.database.analysis_database import AnalysisDatabase
 from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any

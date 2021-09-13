@@ -220,7 +220,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             # self.load_class()
             return True
         else:
-            log.info("Creating a new experiment! How exciting!")
+            log.info("Creating a new experiment!")
             self._build_model()
             return False
 
