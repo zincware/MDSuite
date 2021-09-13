@@ -432,41 +432,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
     #     database.export_csv(group=group, key=key, sub_key=sub_key)
     #
-    def summarise(self):
-        """
-        Summarise the properties of the experiment.
-        """
-        database = Database(name=os.path.join(self.database_path, 'database.hdf5'))
-        print(f"MDSuite {self.name} Summary\n")
-        print("==================================================================================\n")
-        print(f"Name: {self.name}\n")
-        print(f"Temperature: {self.temperature} K\n")
-        print(f"Number of Configurations: {self.number_of_configurations}\n")
-        print(f"Number of Atoms: {self.number_of_atoms}\n")
-        print("Species Summary\n")
-        print("---------------\n")
-        print("Atomic Species\n")
-        print("***************\n")
-        for item in self.species:
-            try:
-                print(f"{item}: {len(self.species[item]['indices'])}\n")
-            except ValueError:
-                pass
-        print("Molecule Species\n")
-        print("*****************\n")
-        for item in self.molecules:
-            try:
-                print(f"{item}: {len(self.molecules[item]['indices'])}\n")
-            except ValueError:
-                pass
-        print("Database Information\n")
-        print("---------------\n")
-        print(f"Database Path: {self.database_path}/database.hdf5\n")
-        print(f"Database Size: {os.path.getsize(os.path.join(self.database_path, 'database.hdf5')) * 1e-9: 6.3f} GB\n")
-        print(f"Data Groups: {database.get_database_summary()}\n")
-        print("==================================================================================\n")
-
-    #
     # @property
     # def simulation_data(self):
     #     """
