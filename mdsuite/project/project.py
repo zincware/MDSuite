@@ -405,6 +405,9 @@ class Project(ProjectDatabase):
     def experiments(self) -> Dict[str, Experiment]:
         """Get a dict of instantiated experiments that are currently selected!"""
 
+        # remove disabled experiments
+        self._experiments = {key: val for key, val in self._experiments.items() if val.active}
+
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).filter(db.Experiment.active).all()
 
