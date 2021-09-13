@@ -21,7 +21,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 
 class GreenKuboIonicConductivity(Calculator):
@@ -51,7 +51,7 @@ class GreenKuboIonicConductivity(Calculator):
     plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Attributes
@@ -61,7 +61,7 @@ class GreenKuboIonicConductivity(Calculator):
         """
 
         # update experiment class
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = "Ionic_Current"
@@ -74,9 +74,10 @@ class GreenKuboIonicConductivity(Calculator):
 
         self.prefactor: float
 
+    @call
     def __call__(
         self,
-        plot=False,
+        plot=True,
         data_range=500,
         save=True,
         correlation_time=1,
@@ -94,6 +95,12 @@ class GreenKuboIonicConductivity(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
+
         """
 
         # update experiment class
@@ -112,12 +119,6 @@ class GreenKuboIonicConductivity(Calculator):
             self.integration_range = self.data_range
         else:
             self.integration_range = integration_range
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """

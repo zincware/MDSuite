@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
 
 tqdm.monitor_interval = 0
@@ -53,7 +53,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
     experiment.run_computation.EinsteinHelfandTIonicConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -64,7 +64,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
@@ -77,6 +77,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.analysis_name = 'Einstein_Helfand_Ionic_Conductivity'
         self.prefactor: float
 
+    @call
     def __call__(self, plot=True, data_range=500, save=True, correlation_time=1,
                  export: bool = False, gpu: bool = False):
         """
@@ -96,18 +97,12 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 If true, export the results to a csv.
         gpu : bool
                 If true, reduce memory usage to the maximum GPU capability.
-        """
 
+        """
         # parse to the experiment class
         self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
                               export=export, gpu=gpu)
         self.msd_array = np.zeros(self.data_range)
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """
@@ -136,7 +131,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         numerator = (self.experiment.units['length'] ** 2) * (elementary_charge ** 2)
         denominator = 6 * self.experiment.units['time'] * (
                 self.experiment.volume * self.experiment.units['length'] ** 3) * \
-            self.experiment.temperature * boltzmann_constant
+                      self.experiment.temperature * boltzmann_constant
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

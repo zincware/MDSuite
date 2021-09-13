@@ -50,7 +50,7 @@ class FluxFile(FileProcessor, metaclass=abc.ABCMeta):
         """
         We need to override the method because the flux files have a different structure
         """
-        # database_path = hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.analysis_name), 'w',
+        # database_path = hf.File('{0}/{1}/{1}.hdf5'.format(self.project.storage_path, self.project.name), 'w',
         #                    libver='latest')
         axis_names = ('x', 'y', 'z', 'xy', 'xz', 'yz', 'yx', 'zx', 'zy')
 

@@ -13,7 +13,7 @@ import tensorflow as tf
 import itertools
 import numpy as np
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
 import matplotlib.pyplot as plt
@@ -63,7 +63,7 @@ class AngularDistributionFunction(Calculator, ABC):
                                                            use_tf_function = False)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Compute the Angular Distribution Function for all species combinations
 
@@ -72,7 +72,7 @@ class AngularDistributionFunction(Calculator, ABC):
         experiment : object
                 Experiment object from which to take attributes.
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
         self.loaded_property = 'Positions'
 
@@ -98,6 +98,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.x_label = r'Angle ($\theta$)'
         self.y_label = 'ADF /a.u.'
 
+    @call
     def __call__(self, batch_size: int = 1,
                  n_minibatches: int = 50,
                  n_confs: int = 5,
@@ -162,12 +163,6 @@ class AngularDistributionFunction(Calculator, ABC):
         self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
-
-        # Run the analysis and save it.
-        out = self.run_analysis()
-        self.experiment.save_class()
-
-        return out
 
     def _check_inputs(self):
         """

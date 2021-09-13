@@ -24,7 +24,7 @@ import itertools
 from scipy import signal
 import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
 
@@ -54,7 +54,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
     plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -63,7 +63,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 5}}
         self.loaded_property = "Velocities"
@@ -74,6 +74,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.analysis_name = "Green_Kubo_Distinct_Diffusion_Coefficients"
         self.experimental = True
 
+    @call
     def __call__(
         self,
         plot: bool = False,
@@ -128,12 +129,6 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.combinations = list(
             itertools.combinations_with_replacement(self.species, 2)
         )
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """

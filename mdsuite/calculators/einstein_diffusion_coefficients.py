@@ -16,6 +16,7 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
 calculations performed.
 """
+from __future__ import annotations
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,9 +24,12 @@ import warnings
 from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
-log = logging.getLogger(__name__)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -45,7 +49,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Attributes
     ----------
-    experiment :  object
+    experiment :  Experiment
             Experiment class to call from
     species : list
             Which species to perform the analysis on
@@ -67,16 +71,20 @@ class EinsteinDiffusionCoefficients(Calculator):
     experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Parameters
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
+        experiments :  Experiment
+                Experiment classes to call from
+        load_data :  bool
+                whether to load data or not
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 150}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = None
@@ -92,6 +100,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = list()
         log.info('starting Einstein Diffusion Computation')
 
+    @call
     def __call__(self, plot: bool = True,
                  species: list = None,
                  data_range: int = 100,
@@ -103,6 +112,8 @@ class EinsteinDiffusionCoefficients(Calculator):
                  molecules: bool = False,
                  tau_values: Union[int, List, Any] = np.s_[:],
                  gpu: bool = False):
+
+        # TODO Docstrings!!
 
         self.update_user_args(plot=plot,
                               data_range=data_range,
@@ -123,12 +134,6 @@ class EinsteinDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """

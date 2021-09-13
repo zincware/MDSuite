@@ -18,7 +18,7 @@ from mdsuite.calculators.einstein_diffusion_coefficients import EinsteinDiffusio
 from mdsuite.calculators.einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from mdsuite.calculators.einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
-from mdsuite.calculators.flux_viscosity import GreenKuboViscosityFlux
+from mdsuite.calculators.green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from mdsuite.calculators.green_kubo_ionic_conductivity import GreenKuboIonicConductivity
 from mdsuite.calculators.green_kubo_self_diffusion_coefficients import GreenKuboSelfDiffusionCoefficients
 from mdsuite.calculators.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
@@ -46,23 +46,13 @@ dict_classes_db = {
     'viscosity': {}
 }
 
-dict_classes_computations = {
-    'EinsteinDiffusionCoefficients': EinsteinDiffusionCoefficients,
-    'EinsteinDistinctDiffusionCoefficients': EinsteinDistinctDiffusionCoefficients,
-    'GreenKuboDiffusionCoefficients': GreenKuboSelfDiffusionCoefficients,
-    'GreenKuboDistinctDiffusionCoefficients': GreenKuboDistinctDiffusionCoefficients,
-    'GreenKuboIonicConductivity': GreenKuboIonicConductivity,
-    'EinsteinHelfandIonicConductivity': EinsteinHelfandIonicConductivity,
-    'RadialDistributionFunction': RadialDistributionFunction,
-    'CoordinationNumbers': CoordinationNumbers,
-    'PotentialOfMeanForce': PotentialOfMeanForce,
-    'KirkwoodBuffIntegral': KirkwoodBuffIntegral,
-    'GreenKuboThermalConductivity': GreenKuboThermalConductivity,
-    'StructureFactor': StructureFactor,
-    'EinsteinHelfandThermalConductivity': EinsteinHelfandThermalConductivity,
-    'GreenKuboViscosityFlux': GreenKuboViscosityFlux,
-    'GreenKuboViscosity': GreenKuboViscosity,
-    'AngularDistributionFunction': AngularDistributionFunction,
-    'NernstEinsteinIonicConductivity': NernstEinsteinIonicConductivity,
-    'EinsteinHelfandThermalKinaci': EinsteinHelfandThermalKinaci,
-}
+calculators = [EinsteinDiffusionCoefficients, EinsteinDistinctDiffusionCoefficients, GreenKuboSelfDiffusionCoefficients,
+               GreenKuboDistinctDiffusionCoefficients, GreenKuboIonicConductivity, EinsteinHelfandIonicConductivity,
+               RadialDistributionFunction, CoordinationNumbers, PotentialOfMeanForce, KirkwoodBuffIntegral,
+               GreenKuboThermalConductivity, StructureFactor, EinsteinHelfandThermalConductivity,
+               GreenKuboViscosityFlux,
+               GreenKuboViscosity, AngularDistributionFunction, NernstEinsteinIonicConductivity,
+               EinsteinHelfandThermalKinaci]
+
+dict_classes_computations = {calc.__name__: calc for calc in calculators}
+# TODO depreciate the dict_classes_computations and replace inside the modules with the respective .__name__ !

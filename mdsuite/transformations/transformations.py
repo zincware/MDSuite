@@ -9,6 +9,7 @@ Copyright Contributors to the MDSuite Project.
 
 Parent class for MDSuite transformations
 """
+from __future__ import annotations
 import time
 from typing import Union
 import os
@@ -18,6 +19,10 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 switcher_transformations = {
     'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
@@ -51,7 +56,7 @@ class Transformations:
             memory manager for the computation.
     """
 
-    def __init__(self, experiment: object):
+    def __init__(self, experiment: Experiment):
         """
         Constructor for the experiment class
 

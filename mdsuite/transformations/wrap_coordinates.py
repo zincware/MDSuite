@@ -81,7 +81,7 @@ class CoordinateWrapper(Transformations):
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.storage_path = self.experiment.storage_path
-        self.analysis_name = self.experiment.analysis_name
+        self.analysis_name = self.experiment.name
         self.center_box = center_box
 
         self.box_array = self.experiment.box_array

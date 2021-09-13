@@ -452,3 +452,16 @@ def find_item(obj, key):
             item = find_item(v, key)
             if item is not None:
                 return item
+
+
+class DotDict(dict):
+    """dot.notation access to dictionary attributes
+
+    References
+    ----------
+    https://stackoverflow.com/questions/2352181/how-to-use-a-dot-to-access-members-of-dictionary
+    """
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    __dir__ = dict.keys

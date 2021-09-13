@@ -104,7 +104,6 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
             # Read the tensor_values into the arrays.
             for k in range(self.experiment.number_of_atoms):
-
                 configurations_data[counter] = np.array(list(file_object.readline().split()))
                 counter += 1  # update the counter
         return configurations_data

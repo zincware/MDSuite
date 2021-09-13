@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 
 class GreenKuboViscosity(Calculator):
@@ -46,7 +46,7 @@ class GreenKuboViscosity(Calculator):
     correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Attributes
@@ -54,7 +54,7 @@ class GreenKuboViscosity(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = "Momentum_Flux"
@@ -66,6 +66,7 @@ class GreenKuboViscosity(Calculator):
         self.analysis_name = "Green_Kubo_Viscosity"
         self.prefactor: float
 
+    @call
     def __call__(
         self,
         plot=False,
@@ -87,6 +88,7 @@ class GreenKuboViscosity(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
+
         self.update_user_args(
             plot=plot,
             data_range=data_range,
@@ -103,11 +105,6 @@ class GreenKuboViscosity(Calculator):
             self.integration_range = self.data_range
         else:
             self.integration_range = integration_range
-
-        out = self.run_analysis()
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """

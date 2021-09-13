@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow_probability as tfp
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 
 class GreenKuboSelfDiffusionCoefficients(Calculator):
@@ -49,7 +49,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
     experiment.run_computation.GreenKuboSelfDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -58,7 +58,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
 
         self.loaded_property = "Velocities"
         self.scale_function = {"linear": {"scale_factor": 150}}
@@ -68,6 +68,7 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.y_label = "VACF $(m^{2}/s^{2})$"
         self.analysis_name = "Green_Kubo_Self_Diffusion_Coefficients"
 
+    @call
     def __call__(
         self,
         plot: bool = False,
@@ -124,11 +125,6 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
-
-        out = self.run_analysis()
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """

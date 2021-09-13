@@ -23,7 +23,7 @@ from tqdm import tqdm
 import tensorflow as tf
 from scipy import signal
 
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -52,7 +52,7 @@ class GreenKuboViscosityFlux(Calculator):
     experiment.run_computation.GreenKuboViscosityFlux(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor for the experiment class.
 
@@ -61,7 +61,7 @@ class GreenKuboViscosityFlux(Calculator):
         experiment : object
                 Experiment class to read and write to
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
@@ -76,6 +76,7 @@ class GreenKuboViscosityFlux(Calculator):
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
+    @call
     def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
                  gpu: bool = False):
         """
@@ -88,18 +89,12 @@ class GreenKuboViscosityFlux(Calculator):
         data_range : int
                 Number of configurations to include in each ensemble
         """
+
         self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
                               export=export, gpu=gpu)
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
 
     def _update_output_signatures(self):
         """

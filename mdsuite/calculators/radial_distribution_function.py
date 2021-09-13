@@ -32,7 +32,7 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 
@@ -81,7 +81,7 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
         """
         Constructor for the RDF calculator.
 
@@ -89,8 +89,10 @@ class RadialDistributionFunction(Calculator, ABC):
         ----------
         experiment :  Experiment
                 Experiment class to call from
+        load_data: bool, default False
+                Whether RunComputation or LoadData is being called
         """
-        super().__init__(experiment)
+        super().__init__(experiment, experiments=experiments, load_data=load_data)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
@@ -121,6 +123,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.correct_minibatch_batching = None
         # split the minibatches into equal sized chunks to use maximum computing and memory resources
 
+    @call
     def __call__(self,
                  plot=True,
                  number_of_bins=None,
@@ -175,12 +178,6 @@ class RadialDistributionFunction(Calculator, ABC):
                     If true, tf.function is used in the calculation.
         """
         # Calculator arguments
-        self.update_user_args(plot=plot,
-                              save=save,
-                              data_range=data_range,
-                              export=export,
-                              gpu=gpu)
-
         # RDF arguments
         self.number_of_bins = number_of_bins
         self.cutoff = cutoff
@@ -190,6 +187,12 @@ class RadialDistributionFunction(Calculator, ABC):
         self.molecules = molecules
         self.minibatch = minibatch
         self.species = species
+
+        self.update_user_args(plot=plot,
+                              save=save,
+                              data_range=data_range,
+                              export=export,
+                              gpu=gpu)
 
         # kwarg parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -202,11 +205,9 @@ class RadialDistributionFunction(Calculator, ABC):
         self._check_input()
         self._initialize_rdf_parameters()
 
-        # Perform analysis and save.
-        out = self.run_analysis()
-        self.experiment.save_class()
+        # # Perform analysis and save.
+        # return self.run_analysis()
 
-        return out
 
     def _initialize_rdf_parameters(self):
         """
@@ -355,7 +356,7 @@ class RadialDistributionFunction(Calculator, ABC):
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
                 self._update_properties_file({
-                    "Property": "RDF",
+                    "Property": "RDF",  # TODO this should be dynamic
                     "Analysis": self.analysis_name,
                     "subjects": names.split("_"),
                     "data_range": self.data_range,

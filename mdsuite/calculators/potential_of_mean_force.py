@@ -26,14 +26,11 @@ The potential of mean-force is a measure of the binding strength between atomic 
 """
 import logging
 import numpy as np
-import os
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 from typing import Union
-from mdsuite.database.properties_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
@@ -80,7 +77,7 @@ class PotentialOfMeanForce(Calculator):
     experiment.run_computation.PotentialOfMeanForce(savgol_order = 2, savgol_window_length = 17)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor for the class
 
@@ -88,9 +85,12 @@ class PotentialOfMeanForce(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
+        experiments : class object
+                        Class object of the experiment.
+        load_data : bool
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.file_to_study = None
         self.rdf = None
         self.radii = None
@@ -103,6 +103,7 @@ class PotentialOfMeanForce(Calculator):
         self.analysis_name = 'Potential_of_Mean_Force'
         self.post_generation = True
 
+    @call
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
         """
@@ -119,41 +120,10 @@ class PotentialOfMeanForce(Calculator):
                             Range over which the property should be evaluated. This is not applicable to the current
                             analysis as the full rdf will be calculated.
         """
-
         self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
         self.data_files = []
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
-
-    def _get_rdf_data(self):
-        """
-        Fill the data_files list with filenames of the rdf tensor_values
-        """
-
-        database = PropertiesDatabase(name=os.path.join(self.experiment.database_path, 'property_database'))
-
-        return database.load_data({"property": "RDF"})
-
-    def _load_rdf_from_file(self, system_property: SystemProperty):
-        """
-        Load the raw rdf tensor_values from a directory
-        """
-
-        radii = []
-        rdf = []
-        for _bin in system_property.data:
-            radii.append(_bin.x)
-            rdf.append(_bin.y)
-
-        self.radii = np.array(radii)[1:].astype(float)
-        self.rdf = np.array(rdf)[1:].astype(float)
 
     def _autocorrelation_time(self):
         """
@@ -239,7 +209,7 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self._get_rdf_data():
             self.file_to_study = data  # Set the correct tensor_values file in the class
-            self.species_tuple = "_".join([subject.subject for subject in data.subjects])
+            self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load up the tensor_values
             log.debug(f'rdf: {self.rdf} \t radii: {self.radii}')

@@ -23,6 +23,7 @@ import sys
 import matplotlib.figure
 import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
+from pathlib import Path
 import tensorflow as tf
 import pandas as pd
 from scipy.optimize import curve_fit
@@ -33,8 +34,7 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import \
     switcher_transformations
-from mdsuite.database.properties_database import PropertiesDatabase
-from mdsuite.database.analysis_database import AnalysisDatabase
+from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
@@ -46,7 +46,57 @@ if TYPE_CHECKING:
 log = logging.getLogger(__file__)
 
 
-class Calculator(metaclass=abc.ABCMeta):
+def call(func):
+    """Decorator for the calculator call method
+
+    This decorator provides a unified approach for handling run_computation and load_data for a single or multiple
+    experiments.
+    It handles the `run_computation()` method, iterates over experiments and loads data if requested!
+    Therefore, the __call__ method does not and can not return any values anymore!
+
+    Parameters
+    ----------
+    func: Calculator.__call__ method
+
+    Returns
+    -------
+    decorated __call__ method
+
+    """
+
+    def inner(self, *args, **kwargs):
+        """Manage the call method
+
+        Parameters
+        ----------
+        self: Calculator
+
+
+        Returns
+        -------
+        data:
+            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
+        """
+        out = {}
+        for experiment in self.experiments:
+            self.experiment = experiment
+            func(self, *args, **kwargs)
+            if self.load_data:
+                out[self.experiment.name] = self.experiment.export_property_data(
+                    {"Analysis": self.analysis_name, "experiment": self.experiment.name}
+                )
+            else:
+                out[self.experiment.name] = self.run_analysis()
+
+        if len(self.experiments) > 1:
+            return out
+        else:
+            return out[self.experiment.name]
+
+    return inner
+
+
+class Calculator(CalculatorDatabase):
     """
     Parent class for analysis modules
 
@@ -72,15 +122,10 @@ class Calculator(metaclass=abc.ABCMeta):
             parallel implementations
     """
 
-    def __init__(self,
-                 experiment: Experiment,
-                 plot: bool = True,
-                 save: bool = True,
-                 data_range: int = 500,
-                 correlation_time: int = 1,
-                 atom_selection: object = np.s_[:],
-                 export: bool = True,
-                 gpu: bool = False):
+    def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, plot: bool = True,
+                 save: bool = True, data_range: int = 500,
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False,
+                 load_data: bool = False):
         """
         Constructor for the calculator class.
 
@@ -88,6 +133,8 @@ class Calculator(metaclass=abc.ABCMeta):
         ----------
         experiment : Experiment
                 Experiment object to update.
+        experiments: List[Experiment]:
+                List of experiments, for that the calculation should be executed
         plot : bool
                 If true, analysis is plotted.
         save : bool
@@ -97,7 +144,7 @@ class Calculator(metaclass=abc.ABCMeta):
         correlation_time : int
                 Correlation time to use in the analysis.
         atom_selection : np.s_
-                Atoms to peform the analysis on.
+                Atoms to perform the analysis on.
         export : bool
                 If true, analysis results are exported to a csv file.
         gpu : bool
@@ -105,17 +152,23 @@ class Calculator(metaclass=abc.ABCMeta):
                 GPU.
         """
         # Set upon instantiation of parent class
+        super().__init__(experiment)
         self.experiment: Experiment = experiment
+        self.experiments: List[Experiment] = experiments
+
+        # Setting the experiment value supersedes setting experiments
+        if self.experiment is not None:
+            self.experiments = [self.experiment]
+
         self.data_range = data_range
         self.plot = plot
         self.save = save
         self.export = export
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
-        self.database = Database(
-            name=os.path.join(self.experiment.database_path,
-                              "database.hdf5"))
+        self.database = None
         self.gpu = gpu
+        self.load_data = load_data
 
         # Set to default by class, over-written in child classes or during operations
         self.system_property = False
@@ -157,11 +210,6 @@ class Calculator(metaclass=abc.ABCMeta):
         # Properties
         self._dtype = tf.float64
 
-        # Prevent $DISPLAY warnings on clusters.
-        if self.experiment.cluster_mode:
-            import matplotlib
-            matplotlib.use('Agg')
-
     def update_user_args(self,
                          plot: bool = True,
                          save: bool = True,
@@ -170,7 +218,9 @@ class Calculator(metaclass=abc.ABCMeta):
                          atom_selection: object = np.s_[:],
                          tau_values: Union[int, List, Any] = np.s_[:],
                          export: bool = True,
-                         gpu: bool = False):
+                         gpu: bool = False,
+                         *args,
+                         **kwargs):
         """
         Update the user args that are given by the __call__ method of the
         calculator.
@@ -193,6 +243,15 @@ class Calculator(metaclass=abc.ABCMeta):
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
         """
+        # everything related to self.experiment can not be in the __init__ because there can be multiple experiments
+        self.database = Database(
+            name=Path(self.experiment.database_path, "database.hdf5").as_posix())
+
+        # Prevent $DISPLAY warnings on clusters.
+        if self.experiment.cluster_mode:
+            import matplotlib
+            matplotlib.use('Agg')
+
         self.data_range = data_range
         self.plot = plot
         self.save = save
@@ -520,10 +579,10 @@ class Calculator(metaclass=abc.ABCMeta):
         data : pd.DataFrame
                 Data to be saved.
         """
-        database = AnalysisDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              "analysis_database"))
-        database.add_data(name=name, data_frame=data)
+        # database = AnalysisDatabase(
+        #     name=os.path.join(self.experiment.database_path,
+        #                       "analysis_database"))
+        # database.add_data(name=name, data_frame=data)
 
     def _plot_fig(self,
                   fig: matplotlib.figure.Figure,
@@ -670,10 +729,15 @@ class Calculator(metaclass=abc.ABCMeta):
         """
         Update the experiment properties YAML file.
         """
-        database = PropertiesDatabase(
-            name=os.path.join(self.experiment.database_path,
-                              'property_database'))
-        database.add_data(parameters, delete_duplicate)
+        log.warning("Using depreciated method `_update_properties_file` \t Please use `update_database` instead.")
+        self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
+        #
+        #
+        #
+        # database = PropertiesDatabase(
+        #     name=os.path.join(self.experiment.database_path,
+        #                       'property_database'))
+        # database.add_data(parameters, delete_duplicate)
 
     def _resolve_dependencies(self, dependency):
         """
@@ -880,3 +944,8 @@ class Calculator(metaclass=abc.ABCMeta):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
+
+    # @property
+    # def data(self):
+    #     """Return the data that may have previously been generated with the same parameters"""
+    #     return self.experiment.export_property_data(parameters={"Analysis": self.name})

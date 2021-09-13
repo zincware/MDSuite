@@ -17,6 +17,7 @@ import os
 import numpy as np
 import shutil
 
+# TODO run in temporary directory!
 
 class TestLiquidNaCl(unittest.TestCase):
     """
