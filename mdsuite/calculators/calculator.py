@@ -185,6 +185,7 @@ class Calculator(CalculatorDatabase):
         self.database_group = None
         self.analysis_name = None
         self.tau_values = None
+        self.time = None
         self.data_resolution = None
 
         # Set during operation or by child class
@@ -261,11 +262,7 @@ class Calculator(CalculatorDatabase):
         self.atom_selection = atom_selection
 
         # attributes based on user args
-        self._handle_tau_values()  # process selected tau values.
-        self.time = np.linspace(0.0,
-                                self.data_range * self.experiment.time_step *
-                                self.experiment.sample_rate,
-                                self.data_resolution)
+        self.time = self._handle_tau_values()  # process selected tau values.
 
     @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
@@ -476,29 +473,34 @@ class Calculator(CalculatorDatabase):
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
-    def _handle_tau_values(self):
+    def _handle_tau_values(self) -> np.array:
         """
         Handle the parsing of custom tau values.
 
         Returns
         -------
-        Updates the class state.
+        times : np.array
+            The time values corresponding to the selected tau values
         """
-        if type(self.tau_values) is int:
+        if isinstance(self.tau_values, int):
             self.data_resolution = self.tau_values
             self.tau_values = np.linspace(0,
                                           self.data_range - 1,
-                                          int(self.tau_values),
+                                          self.tau_values,
                                           dtype=int)
-        if type(self.tau_values) is list:
+        if isinstance(self.tau_values, list) or isinstance(self.tau_values, np.ndarray):
             self.data_resolution = len(self.tau_values)
             self.data_range = self.tau_values[-1] + 1
-        if type(self.tau_values) is slice:
+        if isinstance(self.tau_values, slice):
             self.tau_values = np.linspace(0,
                                           self.data_range - 1,
                                           self.data_range,
                                           dtype=int)[self.tau_values]
             self.data_resolution = len(self.tau_values)
+
+        times = np.asarray(self.tau_values) * self.experiment.time_step * self.experiment.sample_rate
+
+        return times
 
     def _prepare_managers(self, data_path: list):
         """
@@ -736,9 +738,6 @@ class Calculator(CalculatorDatabase):
         #     name=os.path.join(self.experiment.database_path,
         #                       'property_database'))
         # database.add_data(parameters, delete_duplicate)
-
-    def _calculate_system_current(self):
-        pass
 
     def _resolve_dependencies(self, dependency):
         """
