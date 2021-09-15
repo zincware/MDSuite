@@ -140,11 +140,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.load_data = RunComputation(experiment=self, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
 
-        # self._start_logging()
-
-        self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / self.name / "simulation_data.yaml"
-
     def __repr__(self):
         return f"exp_{self.name}"
 
@@ -432,52 +427,3 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
     #     database.export_csv(group=group, key=key, sub_key=sub_key)
     #
-    # @property
-    # def simulation_data(self):
-    #     """
-    #     Load simulation data from internals.
-    #     If not available try to read them from file
-    #
-    #     Returns
-    #     -------
-    #     dict: A dictionary containing all simulation_data
-    #
-    #     """
-    #     if len(self._simulation_data) == 0:
-    #         try:
-    #             with open(self.simulation_data_file) as f:
-    #                 self._simulation_data = yaml.safe_load(f)
-    #         except FileNotFoundError:
-    #             log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
-    #     return self._simulation_data
-    #
-    # @simulation_data.setter
-    # def simulation_data(self, value: dict):
-    #     """Update simulation data
-    #
-    #     Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
-    #
-    #     Parameters
-    #     ----------
-    #     value: dict
-    #         A dictionary containing the (new) simulation data
-    #
-    #     Returns
-    #     -------
-    #     Updates the internal simulation_data
-    #
-    #     """
-    #     try:
-    #         with open(self.simulation_data_file) as f:
-    #             log.debug("Load simulation data from yaml file")
-    #             simulation_data = yaml.safe_load(f)
-    #             if simulation_data is None:
-    #                 simulation_data = dict()
-    #     except FileNotFoundError:
-    #         simulation_data = {}
-    #     simulation_data.update(value)
-    #     log.debug("Updating yaml file")
-    #     self._simulation_data = simulation_data
-    #
-    #     with open(self.simulation_data_file, "w") as f:
-    #         yaml.safe_dump(simulation_data, f)
