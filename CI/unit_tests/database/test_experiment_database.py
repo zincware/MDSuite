@@ -102,3 +102,35 @@ def test_project_box_array():
     project_2 = mds.Project()
     project_2.load_experiments('Exp01')
     np.testing.assert_array_equal(project_2.experiments['Exp01'].box_array, box_array)
+
+
+def test_experiment_simulation_data():
+    """Test that the experiment simulation data is stored correctly in the database"""
+
+    simulation_data = {"a": [10.0, 11.0, 12.0], "b": "HelloWorld", "c": 15.0}  # can only handle float and str
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01")
+    project_1.experiments['Exp01'].simulation_data = simulation_data
+
+    project_2 = mds.Project()
+    project_2.load_experiments('Exp01')
+
+    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+        assert val == simulation_data[key]
+
+def test_experiment_simulation_data_nested():
+    """Test that nested experiment simulation data is stored correctly in the database"""
+
+    simulation_data = {"a": {"one": [1., 2., 3.], "two": [4., 5., 6.]}}
+    simulation_true = {"a.one": [1., 2., 3.], "a.two": [4., 5., 6.]}
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01")
+    project_1.experiments['Exp01'].simulation_data = simulation_data
+
+    project_2 = mds.Project()
+    project_2.load_experiments('Exp01')
+
+    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+        assert val == simulation_true[key]

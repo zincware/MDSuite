@@ -442,7 +442,7 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def simulation_data(self):
+    def simulation_data(self) -> dict:
         """
         Load simulation data from internals.
         If not available try to read them from file
