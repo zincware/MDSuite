@@ -653,10 +653,9 @@ class Calculator(CalculatorDatabase):
         """
         if self.data_range > self.experiment.number_of_configurations - \
                 self.correlation_time:
-            print(
+            raise ValueError(
                 "Data range is impossible for this experiment, "
                 "reduce and try again")
-            sys.exit(1)
 
     def _optimize_einstein_data_range(self, data: np.array):
         """

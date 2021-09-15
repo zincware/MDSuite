@@ -162,6 +162,9 @@ class Project(ProjectDatabase):
 
         new_experiment.active = active
 
+        # Update the internal experiment dictionary for self.experiment property
+        self._experiments[experiment] = new_experiment
+
         if data is not None:
             def handle_file_format(inp):
                 """Run experiment.add_data
