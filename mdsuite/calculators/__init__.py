@@ -29,6 +29,7 @@ from .kirkwood_buff_integrals import KirkwoodBuffIntegral
 from .nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
 from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
+from .spatial_distribution_function import SpatialDistributionFunction
 from .structure_factor import StructureFactor
 
 from typing import TYPE_CHECKING, List
@@ -41,7 +42,8 @@ __all__ = ['Calculator', 'AngularDistributionFunction', 'CoordinationNumbers', '
            'EinsteinHelfandThermalConductivity', 'EinsteinHelfandThermalKinaci', 'GreenKuboViscosityFlux',
            'GreenKuboDistinctDiffusionCoefficients', 'GreenKuboIonicConductivity', 'GreenKuboSelfDiffusionCoefficients',
            'GreenKuboThermalConductivity', 'GreenKuboViscosity', 'KirkwoodBuffIntegral',
-           'NernstEinsteinIonicConductivity', 'PotentialOfMeanForce', 'RadialDistributionFunction', 'StructureFactor']
+           'NernstEinsteinIonicConductivity', 'PotentialOfMeanForce', 'RadialDistributionFunction', 'StructureFactor',
+           'SpatialDistributionFunction']
 
 
 class RunComputation:
@@ -149,3 +151,8 @@ class RunComputation:
     def EinsteinHelfandThermalConductivity(self):
         """Calculator Property"""
         return EinsteinHelfandThermalConductivity(**self.kwargs)
+
+    @property
+    def SpatialDistributionFunction(self):
+        """Calculator Property"""
+        return SpatialDistributionFunction(**self.kwargs)
