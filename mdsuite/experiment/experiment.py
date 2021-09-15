@@ -30,7 +30,7 @@ from mdsuite.database.experiment_database import ExperimentDatabase
 from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class Experiment(ExperimentDatabase, ExperimentAddingFiles):

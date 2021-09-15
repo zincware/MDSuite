@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from mdsuite import Project
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class ExperimentDatabase:

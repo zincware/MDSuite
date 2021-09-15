@@ -35,7 +35,7 @@ from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class PotentialOfMeanForce(Calculator):

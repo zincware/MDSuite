@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class EinsteinDiffusionCoefficients(Calculator):

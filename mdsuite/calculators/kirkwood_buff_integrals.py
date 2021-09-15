@@ -16,7 +16,7 @@ from typing import Union
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class KirkwoodBuffIntegral(Calculator):

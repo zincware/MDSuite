@@ -28,7 +28,7 @@ from mdsuite.database.database_scheme import SystemProperty
 
 plt.rcParams['figure.facecolor'] = 'white'
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class StructureFactor(Calculator):

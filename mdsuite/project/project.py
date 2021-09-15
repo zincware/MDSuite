@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class Project(ProjectDatabase):
