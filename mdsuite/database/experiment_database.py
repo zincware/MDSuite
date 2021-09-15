@@ -21,7 +21,7 @@ from mdsuite.utils.database import get_or_create
 import pandas as pd
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from mdsuite import Project
@@ -146,26 +146,30 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def unit_system(self):
-        """Get the unit_system of the experiment"""
+    def units(self) -> Dict[str, float]:
+        """Get the units of the experiment"""
+        units = {}
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
-            unit_system = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
-                ExperimentData.name == "unit_system").first()
-        try:
-            return unit_system.str_value
-        except AttributeError:
-            return None
+            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            for experiment_data in experiment.experiment_data:
+                if experiment_data.name.startswith('unit_system_'):
+                    unit_name = experiment_data.name.split('unit_system_', 1)[1]
+                    # everything after, max 1 split
+                    units[unit_name] = experiment_data.value
 
-    @unit_system.setter
-    def unit_system(self, value):
-        """Set the unit_system of the experiment"""
+        return units
+
+    @units.setter
+    def units(self, value: dict):
+        """Set the units of the experiment"""
         if value is None:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            unit_system: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment, name="unit_system")
-            unit_system.str_value = value
+            for unit in value:
+                unit_entry = get_or_create(ses, ExperimentData, experiment=experiment, name=f"unit_system_{unit}")
+                unit_entry.value = value[unit]
+
             ses.commit()
 
     @property

@@ -30,6 +30,8 @@ from mdsuite.database.experiment_database import ExperimentDatabase
 from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
 
+from typing import Union
+
 log = logging.getLogger(__file__)
 
 
@@ -60,7 +62,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             The total number of atoms in the simulation
    """
 
-    def __init__(self, project, experiment_name, storage_path='./', time_step=None, temperature=None, units=None,
+    def __init__(self, project, experiment_name, storage_path='./', time_step=None, temperature=None,
+                 units: Union[str, dict] = None,
                  cluster_mode=False):
         """
         Initialise the experiment class.
@@ -75,6 +78,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
                 Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+        units: Union[str, dict], default = "real"
+            The units to be used in the experiment to convert to SI
         cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
@@ -89,21 +94,18 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # ExperimentDatabase stored properties:
         # ------- #
         # set default values
-        if units is None and self.unit_system is None:
-            units = "real"
         if self.number_of_configurations is None:
             self.number_of_configurations = 0  # Number of configurations in the trajectory.
         # update database (None values are ignored)
         self.temperature = temperature  # Temperature of the experiment.
         self.time_step = time_step  # Timestep chosen for the simulation.
-        self.unit_system = units
 
         # Available properties that aren't set on default
         self.number_of_atoms = None  # Number of atoms in the simulation.
         # ------- #
 
         # Added from trajectory file
-        self.units = self.units_to_si(self.unit_system)  # Units used during the simulation.
+        self.units = self.units_to_si(units)  # Units used during the simulation.
         self.species = None  # Species dictionary.
         self.molecules = {}  # molecules
         self.box_array = None  # Box vectors.
@@ -191,11 +193,16 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         conv_factor (float) -- conversion factor to pass to SI
         """
 
+        if units_system is None:
+            units_system = "real"  # set default here!
+
         if isinstance(units_system, dict):
             return units_system
         else:
             try:
-                units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
+                units = units_dict[units_system]()
+                # executes the function to return the appropriate dictionary.
+                # TODO Why is this a function?!
             except KeyError:
                 raise KeyError(
                     f"The unit '{units_system}' is not implemented."

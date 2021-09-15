@@ -134,3 +134,24 @@ def test_experiment_simulation_data_nested():
 
     for key, val in project_2.experiments['Exp01'].simulation_data.items():
         assert val == simulation_true[key]
+
+
+def test_experiment_units():
+    """Test that the experiment simulation data is stored correctly in the database"""
+
+    custom_units = {"time": 17, "length": 1e-23}
+
+    from mdsuite.utils.units import units_real
+
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01", units="real")
+    project_1.add_experiment(experiment="Exp02", units=custom_units)
+
+    project_2 = mds.Project()
+
+    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+        assert val == units_real()[key]
+
+    for key, val in project_2.experiments['Exp02'].simulation_data.items():
+        assert val == custom_units[key]
