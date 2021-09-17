@@ -107,7 +107,7 @@ def test_project_box_array():
 def test_experiment_simulation_data():
     """Test that the experiment simulation data is stored correctly in the database"""
 
-    simulation_data = {"a": [10.0, 11.0, 12.0], "b": "HelloWorld", "c": 15.0}  # can only handle float and str
+    simulation_data = {"a_5": [10.0, 11.0, 12.0], "b_test": "HelloWorld", "c": 15.0}  # can only handle float and str
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")

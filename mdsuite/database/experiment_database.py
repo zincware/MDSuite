@@ -466,7 +466,7 @@ class ExperimentDatabase:
                     no_list = False
                     if simulation_data_name[-1] == "nolist":  # check if list or single str/float
                         no_list = True
-                    simulation_data_name = "".join(simulation_data_name[:-1])
+                    simulation_data_name = "_".join(simulation_data_name[:-1])
                     # everything after, max 1 split
                     group_values = simulation_data.get(simulation_data_name, [])
                     if experiment_data.value is not None:
