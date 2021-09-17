@@ -32,7 +32,7 @@ from scipy.signal import savgol_filter
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 def join_path(a, b):

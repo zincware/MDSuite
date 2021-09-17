@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 from .database_scheme import Base, SystemProperty, Data, Subject
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class PropertiesDatabase:

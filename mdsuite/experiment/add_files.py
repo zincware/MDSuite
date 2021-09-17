@@ -25,7 +25,7 @@ import importlib.resources
 import json
 import numpy as np
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class ExperimentAddingFiles:

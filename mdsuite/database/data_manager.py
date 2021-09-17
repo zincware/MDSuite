@@ -16,7 +16,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.database.simulation_database import Database
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class DataManager:

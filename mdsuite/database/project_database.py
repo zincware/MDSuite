@@ -15,7 +15,7 @@ from .database_base import DatabaseBase
 from mdsuite.utils.database import get_or_create
 from pathlib import Path
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class ProjectDatabase(DatabaseBase):
