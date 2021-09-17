@@ -197,4 +197,6 @@ class MolecularGraph:
         for item in del_list:
             molecules.pop(item)
 
+        print(len(molecules))
+
         return molecules

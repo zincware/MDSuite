@@ -16,17 +16,13 @@ from __future__ import annotations
 
 import logging
 import numpy as np
-import os
-import abc
 import random
-import sys
-import matplotlib.figure
 import matplotlib.pyplot as plt
-from matplotlib.axes._subplots import Axes
 from pathlib import Path
 import tensorflow as tf
 import pandas as pd
 from scipy.optimize import curve_fit
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.utils.exceptions import RangeExceeded
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
@@ -120,6 +116,9 @@ class Calculator(CalculatorDatabase):
     n_batches : dict
             Number of barthes to use as a dictionary for both serial and
             parallel implementations
+    plot_array : list
+            A list of plot objects to be show together at the end of the
+            species loop.
     """
 
     def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, plot: bool = True,
@@ -203,6 +202,9 @@ class Calculator(CalculatorDatabase):
         self.x_label: str
         self.y_label: str
         self.analysis_name: str
+        self.plot_array = []
+        self.last_iteration = False
+        self.plotter = DataVisualizer2D(title=self.analysis_name)
 
         self.database_group = None
         self.analysis_name = None
@@ -326,6 +328,7 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
+    @staticmethod
     def _fit_einstein_curve(data: list):
         """
         Fit operation for Einstein calculations
@@ -581,63 +584,22 @@ class Calculator(CalculatorDatabase):
         #                       "analysis_database"))
         # database.add_data(name=name, data_frame=data)
 
-    def _plot_fig(self,
-                  fig: matplotlib.figure.Figure,
-                  ax: Axes,
-                  title: str = None,
-                  dpi: int = 600,
-                  filetype: str = 'svg'):
+    def run_visualization(
+            self, x_data, y_data, title: str
+    ):
         """
-        Class based plotting using fig, ax = plt.subplots
+        Run a visualization session on the data.
 
-        Parameters
-        ----------
-        fig: matplotlib figure
-        ax: matplotlib subplot axes
-            currently only a single axes is supported. Subplots aren't yet!
-        title: str
-            Name of the plot
-        dpi: int
-            matplotlib dpi resolution
-        filetype: str
-            matplotlib filetype / format
+        Returns
+        -------
+
         """
+        self.plot_array.append(self.plotter.construct_plot(
+            x_data=x_data, y_data=y_data, title=title, x_label=self.x_label, y_label=self.y_label
+        ))
 
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        ax.set_xlabel(rf'{self.x_label}')
-        ax.set_ylabel(rf'{self.y_label}')
-        ax.legend()
-        fig.set_facecolor("w")
-        fig.show()
-
-        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"),
-                    dpi=dpi, format=filetype)
-
-    def _plot_data(self, title: str = None, manual: bool = False,
-                   dpi: int = 600):
-        """
-        Plot the tensor_values generated during the analysis
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        if manual:
-            plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
-                dpi=dpi,
-                format='svg')
-        else:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.legend()  # enable the legend
-            plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
-                dpi=dpi, format='svg')
+        if self.last_iteration:
+            self.plotter.grid_show(self.plot_array)
 
     def _check_input(self):
         """
@@ -850,10 +812,6 @@ class Calculator(CalculatorDatabase):
             self._apply_averaging_factor()
             self._post_operation_processes()
 
-            if self.plot:
-                plt.legend()
-                plt.show()
-
         elif self.experimental:
             data_path = [join_path(species,
                                    self.loaded_property) for species
@@ -867,7 +825,9 @@ class Calculator(CalculatorDatabase):
             self.run_post_generation_analysis()
 
         else:
-            for species in self.species:
+            for i, species in enumerate(self.species):
+                if i == len(self.species) - 1:
+                    self.last_iteration = True
                 self._calculate_prefactor(species)
 
                 data_path = [join_path(species, self.loaded_property)]
