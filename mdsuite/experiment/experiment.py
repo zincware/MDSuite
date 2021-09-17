@@ -25,6 +25,8 @@ from mdsuite.database.experiment_database import ExperimentDatabase
 from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
 
+from typing import Union
+
 log = logging.getLogger(__name__)
 
 
@@ -55,7 +57,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             The total number of atoms in the simulation
    """
 
-    def __init__(self, project, experiment_name, storage_path='./', time_step=None, temperature=None, units=None,
+    def __init__(self, project, experiment_name, storage_path='./', time_step=None, temperature=None,
+                 units: Union[str, dict] = None,
                  cluster_mode=False):
         """
         Initialise the experiment class.
@@ -70,6 +73,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
                 Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+        units: Union[str, dict], default = "real"
+            The units to be used in the experiment to convert to SI
         cluster_mode : bool
                 If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
                 for optimal performance on a large computing cluster.
@@ -84,21 +89,18 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # ExperimentDatabase stored properties:
         # ------- #
         # set default values
-        if units is None and self.unit_system is None:
-            units = "real"
         if self.number_of_configurations is None:
             self.number_of_configurations = 0  # Number of configurations in the trajectory.
         # update database (None values are ignored)
         self.temperature = temperature  # Temperature of the experiment.
         self.time_step = time_step  # Timestep chosen for the simulation.
-        self.unit_system = units
 
         # Available properties that aren't set on default
         self.number_of_atoms = None  # Number of atoms in the simulation.
         # ------- #
 
         # Added from trajectory file
-        self.units = self.units_to_si(self.unit_system)  # Units used during the simulation.
+        self.units = self.units_to_si(units)  # Units used during the simulation.
         self.species = None  # Species dictionary.
         self.molecules = {}  # molecules
         self.box_array = None  # Box vectors.
@@ -134,11 +136,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.run_computation = RunComputation(experiment=self)
         self.load_data = RunComputation(experiment=self, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
-
-        # self._start_logging()
-
-        self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / self.name / "simulation_data.yaml"
 
     def __repr__(self):
         return f"exp_{self.name}"
@@ -191,11 +188,16 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         conv_factor (float) -- conversion factor to pass to SI
         """
 
+        if units_system is None:
+            units_system = "real"  # set default here!
+
         if isinstance(units_system, dict):
             return units_system
         else:
             try:
-                units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
+                units = units_dict[units_system]()
+                # executes the function to return the appropriate dictionary.
+                # TODO Why is this a function?!
             except KeyError:
                 raise KeyError(
                     f"The unit '{units_system}' is not implemented."
@@ -427,52 +429,3 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
     #     database.export_csv(group=group, key=key, sub_key=sub_key)
     #
-    # @property
-    # def simulation_data(self):
-    #     """
-    #     Load simulation data from internals.
-    #     If not available try to read them from file
-    #
-    #     Returns
-    #     -------
-    #     dict: A dictionary containing all simulation_data
-    #
-    #     """
-    #     if len(self._simulation_data) == 0:
-    #         try:
-    #             with open(self.simulation_data_file) as f:
-    #                 self._simulation_data = yaml.safe_load(f)
-    #         except FileNotFoundError:
-    #             log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
-    #     return self._simulation_data
-    #
-    # @simulation_data.setter
-    # def simulation_data(self, value: dict):
-    #     """Update simulation data
-    #
-    #     Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
-    #
-    #     Parameters
-    #     ----------
-    #     value: dict
-    #         A dictionary containing the (new) simulation data
-    #
-    #     Returns
-    #     -------
-    #     Updates the internal simulation_data
-    #
-    #     """
-    #     try:
-    #         with open(self.simulation_data_file) as f:
-    #             log.debug("Load simulation data from yaml file")
-    #             simulation_data = yaml.safe_load(f)
-    #             if simulation_data is None:
-    #                 simulation_data = dict()
-    #     except FileNotFoundError:
-    #         simulation_data = {}
-    #     simulation_data.update(value)
-    #     log.debug("Updating yaml file")
-    #     self._simulation_data = simulation_data
-    #
-    #     with open(self.simulation_data_file, "w") as f:
-    #         yaml.safe_dump(simulation_data, f)

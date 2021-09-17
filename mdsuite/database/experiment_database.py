@@ -7,6 +7,9 @@ SPDX-License-Identifier: EPL-2.0
 Copyright Contributors to the Zincware Project.
 
 Description: Module for the experiment database.
+
+This class does contain all properties that are written / read from the database
+
 """
 from __future__ import annotations
 
@@ -15,9 +18,10 @@ import logging
 import mdsuite.database.scheme as db
 from mdsuite.database.scheme import Project, Experiment, ExperimentData, Species, SpeciesData
 from mdsuite.utils.database import get_or_create
+import pandas as pd
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from mdsuite import Project
@@ -142,26 +146,30 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def unit_system(self):
-        """Get the unit_system of the experiment"""
+    def units(self) -> Dict[str, float]:
+        """Get the units of the experiment"""
+        units = {}
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
-            unit_system = ses.query(ExperimentData).filter(ExperimentData.experiment == experiment).filter(
-                ExperimentData.name == "unit_system").first()
-        try:
-            return unit_system.str_value
-        except AttributeError:
-            return None
+            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            for experiment_data in experiment.experiment_data:
+                if experiment_data.name.startswith('unit_system_'):
+                    unit_name = experiment_data.name.split('unit_system_', 1)[1]
+                    # everything after, max 1 split
+                    units[unit_name] = experiment_data.value
 
-    @unit_system.setter
-    def unit_system(self, value):
-        """Set the unit_system of the experiment"""
+        return units
+
+    @units.setter
+    def units(self, value: dict):
+        """Set the units of the experiment"""
         if value is None:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            unit_system: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment, name="unit_system")
-            unit_system.str_value = value
+            for unit in value:
+                unit_entry = get_or_create(ses, ExperimentData, experiment=experiment, name=f"unit_system_{unit}")
+                unit_entry.value = value[unit]
+
             ses.commit()
 
     @property
@@ -435,4 +443,93 @@ class ExperimentDatabase:
             rdf_state: ExperimentData = get_or_create(ses, ExperimentData, experiment=experiment,
                                                       name="radial_distribution_function_state")
             rdf_state.value = value
+            ses.commit()
+
+    @property
+    def simulation_data(self) -> dict:
+        """
+        Load simulation data from internals.
+        If not available try to read them from file
+
+        Returns
+        -------
+        dict: A dictionary containing all simulation_data
+
+        """
+        simulation_data = {}
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            for experiment_data in experiment.experiment_data:
+                if experiment_data.name.startswith('simulation_data_'):
+                    simulation_data_name = experiment_data.name.split('simulation_data_', 1)[1]
+                    simulation_data_name = simulation_data_name.split("_")
+                    no_list = False
+                    if simulation_data_name[-1] == "nolist":  # check if list or single str/float
+                        no_list = True
+                    simulation_data_name = "".join(simulation_data_name[:-1])
+                    # everything after, max 1 split
+                    group_values = simulation_data.get(simulation_data_name, [])
+                    if experiment_data.value is not None:
+                        if no_list:
+                            group_values = experiment_data.value
+                        else:
+                            group_values.append(experiment_data.value)
+                    else:
+                        if no_list:
+                            group_values = experiment_data.str_value
+                        else:
+                            group_values.append(experiment_data.str_value)
+                    simulation_data[simulation_data_name] = group_values
+
+        return simulation_data
+
+    @simulation_data.setter
+    def simulation_data(self, value: dict):
+        """Update simulation data
+
+        Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
+
+        Parameters
+        ----------
+        value: dict
+            A dictionary containing the (new) simulation data
+
+        Returns
+        -------
+        Updates the internal simulation_data
+
+        """
+        if value is None:
+            return
+
+        is_nested = False
+        for entry in value.values():
+            if isinstance(entry, dict):
+                log.warning("Converting nested dict of simulation_data into json_normalized version!")
+                is_nested = True
+        if is_nested:
+            value = pd.json_normalize(value).to_dict(orient='records')[0]
+            log.debug(value)
+
+        with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            log.warning("Converting all values to float or str")
+            for group in value:
+                if isinstance(value[group], list):
+                    for idx, group_value in enumerate(value[group]):
+                        entry = get_or_create(ses, ExperimentData, name=f"simulation_data_{group}_{idx}",
+                                              experiment=experiment)
+                        # TODO consider using a dedicated relationship database instead of two keys in the name?!
+                        if isinstance(group_value, str):
+                            entry.str_value = group_value
+                        else:
+                            entry.value = group_value
+                else:
+                    entry = get_or_create(ses, ExperimentData, name=f"simulation_data_{group}_nolist",
+                                          experiment=experiment)
+                    if isinstance(value[group], str):
+                        entry.str_value = value[group]
+                    else:
+                        entry.value = value[group]
+
             ses.commit()
