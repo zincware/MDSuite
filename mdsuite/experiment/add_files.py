@@ -249,7 +249,7 @@ class ExperimentAddingFiles:
         # self.save_class()
         self.species = species
 
-    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: list = None):
+    def load_matrix(self, identifier: str = None, species: list = None, select_slice: np.s_ = None, path: list = None):
         """
         Load a desired property matrix.
 
