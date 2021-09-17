@@ -304,6 +304,12 @@ class Calculator(CalculatorDatabase):
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
         call the post-op processes
+
+        Parameters
+        ----------
+        species : Union[str, tuple]
+                List or tuple of species fo which this post-operation process
+                is being applied.
         Returns
         -------
 
