@@ -19,6 +19,7 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
+from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 
 from typing import TYPE_CHECKING
 
@@ -31,7 +32,9 @@ log = logging.getLogger(__name__)
 class SpatialDistributionFunction(Calculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
-    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
+    def __init__(
+            self, experiment: Experiment, experiments=None, load_data: bool = False
+    ):
         """Constructor of the SpatialDistributionFunction
 
         Parameters
@@ -48,7 +51,7 @@ class SpatialDistributionFunction(Calculator):
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
-        self.database_group = 'Spatial_Distribution_Function'  # Which database_path group to save the tensor_values in
+        self.database_group = 'Spatial_Distribution_Function'
         self.x_label = r'r ($\AA$)'  # None
         self.y_label = 'g(r)'  # None
         self.analysis_name = 'Spatial_Distribution_Function'
@@ -57,7 +60,8 @@ class SpatialDistributionFunction(Calculator):
         self._dtype = tf.float32
 
     @call
-    def __call__(self, molecules: bool = False, start: int = 1, stop: int = 10, number_of_configurations: int = 5,
+    def __call__(
+            self, molecules: bool = False, start: int = 1, stop: int = 10, number_of_configurations: int = 5,
                  r_min: float = 4.0, r_max: float = 4.5, species: list = None, **kwargs):
         """User Interface to the Spatial Distribution Function
 
@@ -84,10 +88,11 @@ class SpatialDistributionFunction(Calculator):
         self.r_min = r_min
         self.r_max = r_max
 
+        # choose sampled configurations
         self.sample_configurations = np.linspace(start,
                                                  stop,
                                                  number_of_configurations,
-                                                 dtype=np.int)  # choose sampled configurations
+                                                 dtype=np.int)
 
         self.update_user_args()
         self._check_input()
@@ -108,7 +113,9 @@ class SpatialDistributionFunction(Calculator):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
+        data = self.experiment.load_matrix(
+            "Positions", path=path_list, select_slice=np.s_[:, indices]
+        )
         if len(self.species) == 1:
             return tf.cast(data, dtype=self.dtype)
         else:
@@ -126,9 +133,6 @@ class SpatialDistributionFunction(Calculator):
 
         sdf_values = []
 
-        # Using the NLLayer because we do not require the minibatching of the RDF r_ij computation
-        # TODO consider writing a RDF parent class the gives the r_ij matrices and then you can either bin them, compute
-        #   the ADF or the SDF from the distances.
         nllayer = NLLayer()
 
         for idx, sample_configuration in tqdm(enumerate(np.array_split(self.sample_configurations, self.n_batches)),
@@ -153,14 +157,13 @@ class SpatialDistributionFunction(Calculator):
 
         sdf_values = tf.concat(sdf_values, axis=0)
 
-        # TODO Plotting
-        fig = plt.figure()
-        ax = fig.add_subplot(projection='3d')
-        ax.scatter(0, 0, 0, marker="x")
+        self._run_visualization(sdf_values)
 
-        ax.scatter(sdf_values[:, 0], sdf_values[:, 1], sdf_values[:, 2], s=2.5)
-
-        fig.show()
+    def _run_visualization(self, plot_data: tf.Tensor):
+        """
+        Run the visualizer.
+        """
+        visualizer = DataVisualizer3D(data=plot_data, title='test')
 
     # Calculator class methods required by the parent class -- All are empty.
     def _apply_operation(self, data, index):

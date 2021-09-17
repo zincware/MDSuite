@@ -20,10 +20,6 @@ class DataVisualizer3D:
         ----------
         data : np.ndarray
                 data to plot.
-        x_label : str
-                x label as a string.
-        y_label : str
-                y label as a string.
         title : str
                 title of the plot.
         """

@@ -109,13 +109,18 @@ class Project(ProjectDatabase):
         -------
         str:
             A list of all available experiments like "1.) Exp01\n2.) Exp02\n3.) Exp03"
-
         """
         return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
-    def add_experiment(self, experiment: str = None, timestep: float = None, temperature: float = None,
-                       units: str = None, cluster_mode: bool = None, active: bool = True,
-                       data: Union[str, list, dict] = None):
+    def add_experiment(
+            self,
+            experiment: str = None,
+            timestep: float = None,
+            temperature: float = None,
+            units: str = None,
+            cluster_mode: bool = None,
+            active: bool = True,
+            data: Union[str, list, dict] = None):
         """
         Add an experiment to the project
 
