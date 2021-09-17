@@ -81,21 +81,15 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
+    def __init__(self, **kwargs):
         """
         Constructor for the RDF calculator.
 
         Attributes
         ----------
-        experiment :  Experiment
-                Experiment class to call from
-        #TODO Could whoever wrote this fill it in.
-        experiments : dontknow
-                Who knows.
-        load_data: bool, default False
-                Whether RunComputation or LoadData is being called
+        kwargs: see RunComputation class for all the passed arguments
         """
-        super().__init__(experiment, experiments=experiments, load_data=load_data)
+        super().__init__(**kwargs)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
