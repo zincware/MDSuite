@@ -23,6 +23,7 @@ from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator
+import matplotlib.pyplot as plt
 
 log = logging.getLogger(__name__)
 
@@ -81,8 +82,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = None
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
-        self.x_label = r'$\text{Time } (s)$'
-        self.y_label = r'$\text{MSD } (m^{2})$'
+        self.x_label = r'$Time (s)$'
+        self.y_label = r'$MSD (m^{2})$'
         self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
         self.loop_condition = False
         self.optimize = None
@@ -220,6 +221,15 @@ class EinsteinDiffusionCoefficients(Calculator):
                           'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
                           'information': "series"}
             self._update_properties_file(properties)
+
+        if self.plot:
+            print(self.x_label)
+            print(self.y_label)
+            plt.xlabel(rf'{self.x_label}')  # set the x label
+            plt.ylabel(rf'{self.y_label}')  # set the y label
+            plt.plot(self.time, self.msd_array, label=species)
+            plt.savefig(f'msd_{species}.svg', dpi=600)
+            plt.clf()
 
         if self.export:
             self._export_data(name=self._build_table_name(species),

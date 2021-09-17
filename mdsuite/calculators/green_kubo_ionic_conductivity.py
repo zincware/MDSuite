@@ -182,7 +182,7 @@ class GreenKuboIonicConductivity(Calculator):
         if self.plot:
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf,
                      label=fr'{np.mean(result): 0.3E} $\pm$ {np.std(result) / np.sqrt(len(result)): 0.3E}')
-            self._plot_data()
+            plt.savefig(f'jacf_{species}.svg', dpi=600)
 
         if self.save:
             properties = {"Property": self.database_group,

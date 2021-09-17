@@ -717,12 +717,13 @@ class Calculator(metaclass=abc.ABCMeta):
         -------
 
         """
-        visualizer = DataVisualizer2D(self.time,
-                                      self.msd_array,
-                                      self.x_label,
-                                      self.y_label,
-                                      f"{species} Einstein Diffusion plot")
-        visualizer.plot()
+        # visualizer = DataVisualizer2D(self.time,
+        #                               self.msd_array,
+        #                               self.x_label,
+        #                               self.y_label,
+        #                               f"{species} Einstein Diffusion plot")
+        # visualizer.plot()
+        pass
 
     def run_experimental_analysis(self):
         """

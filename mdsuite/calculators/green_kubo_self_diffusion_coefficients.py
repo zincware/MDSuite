@@ -203,6 +203,8 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
             plt.ylabel(rf'{self.y_label}')  # set the y label
             plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf,
                      label=fr"{species}: {np.mean(result): .3E} $\pm$ {np.std(result) / (np.sqrt(len(result))): .3E}")
+            plt.savefig(f'jacf_{species}.svg', dpi=600)
+
 
         if self.save:
             properties = {"Property": self.database_group,

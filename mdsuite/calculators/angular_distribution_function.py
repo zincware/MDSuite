@@ -428,7 +428,7 @@ class AngularDistributionFunction(Calculator, ABC):
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=name)
                 ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-                self._plot_fig(fig, ax, title=name)
+                plt.savefig('adf_plot.pdf', dpi=600)
 
     def run_experimental_analysis(self):
         """
@@ -444,7 +444,6 @@ class AngularDistributionFunction(Calculator, ABC):
         angles = self._build_histograms(sample_configs, species_indices)
         self._compute_adfs(angles, species_indices)
 
-    # Methods required by parent, all are empty.
     def _calculate_prefactor(self, species: str = None):
         """
         calculate the calculator pre-factor.
