@@ -14,13 +14,8 @@ Summary
 The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
 import logging
-import os
-import pickle
-import sys
 from pathlib import Path
-import yaml
-from datetime import datetime
-from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db, calculators
+from mdsuite.calculators.computations_dict import dict_classes_db
 from mdsuite.calculators import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
@@ -83,7 +78,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # Taken upon instantiation
         super().__init__(project=project, experiment_name=experiment_name)
         self.name = experiment_name  # Name of the experiment.
-        self.storage_path = os.path.abspath(storage_path)  # Where to store the tensor_values
+        self.storage_path = Path(project.storage_path, project.name).as_posix()
         self.cluster_mode = cluster_mode  # whether or not the script will run on a cluster
 
         # ExperimentDatabase stored properties:
