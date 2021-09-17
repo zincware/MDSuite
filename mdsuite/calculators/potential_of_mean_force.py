@@ -1,24 +1,17 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
-
-SPDX-License-Identifier: EPL-2.0
-
-Copyright Contributors to the MDSuite Project.
-
 Class for the calculation of the coordinated numbers
 
 Summary
 -------
-The potential of mean-force is a measure of the binding strength between atomic species in a experiment. Mathematically
-    one may write
+The potential of mean-force is a measure of the binding strength between atomic
+species in a experiment. Mathematically one may write.
 
     .. math::
 
         g(r) = e^{-\frac{w^{(2)}(r)}{k_{B}T}}
 
-    Which, due to us having direct access to the radial distribution functions, compute as
+    Which, due to us having direct access to the radial distribution functions,
+    compute as:
 
     .. math::
 
@@ -117,10 +110,19 @@ class PotentialOfMeanForce(Calculator):
                             Decision to save the generated tensor_values arrays.
 
         data_range : int (default=500)
-                            Range over which the property should be evaluated. This is not applicable to the current
-                            analysis as the full rdf will be calculated.
+                            Range over which the property should be evaluated.
+                            This is not applicable to the current analysis as
+                            the full rdf will be calculated.
+        export : bool
+                If true, export the data directly to a csv.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
         """
-        self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+        self.update_user_args(
+            plot=plot, save=save, data_range=data_range, export=export
+        )
         self.data_files = []
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
@@ -238,59 +240,3 @@ class PotentialOfMeanForce(Calculator):
         if self.plot:
             plt.legend()
             plt.show()
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError

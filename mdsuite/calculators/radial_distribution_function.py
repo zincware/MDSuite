@@ -89,6 +89,9 @@ class RadialDistributionFunction(Calculator, ABC):
         ----------
         experiment :  Experiment
                 Experiment class to call from
+        #TODO Could whoever wrote this fill it in.
+        experiments : dontknow
+                Who knows.
         load_data: bool, default False
                 Whether RunComputation or LoadData is being called
         """
@@ -157,15 +160,19 @@ class RadialDistributionFunction(Calculator, ABC):
         data_range: int
             None, must be here for the parent classes to work.
         start: int
-            Starting position in the database. All values before start will be ignored.
+            Starting position in the database. All values before start will be
+            ignored.
         stop: int
-            Stopping position in the database. All values after stop will be ignored.
+            Stopping position in the database. All values after stop will be
+            ignored.
         number_of_configurations: int
-            The number of uniformly sampled configuration between start and stop to be used for the RDF.
+            The number of uniformly sampled configuration between start and
+            stop to be used for the RDF.
         export: bool
             If true, the outcome is immediately exported to a csv file.
         minibatch: int
-            Size of a minibatch over atoms in the batch over configurations. Decrease this value if you run into memory
+            Size of a minibatch over atoms in the batch over configurations.
+            Decrease this value if you run into memory
             issues. Increase this value for better performance.
         molecules: bool
             If true, the molecules will be analyzed rather than the atoms.
@@ -177,8 +184,6 @@ class RadialDistributionFunction(Calculator, ABC):
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
         """
-        # Calculator arguments
-        # RDF arguments
         self.number_of_bins = number_of_bins
         self.cutoff = cutoff
         self.start = start
@@ -704,46 +709,3 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_edges = np.linspace(0.0, self.cutoff, self.number_of_bins)
 
         return _piecewise(np.array(bin_edges)) * bin_width
-
-    # Calculator class methods required by the parent class -- All are empty.
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
-
-    def _post_operation_processes(self, species: str = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        pass
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass

@@ -264,7 +264,6 @@ class Calculator(CalculatorDatabase):
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
 
-    @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
         calculate the calculator pre-factor.
@@ -279,7 +278,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _apply_operation(self, data, index):
         """
         Perform operation on an ensemble.
@@ -294,7 +292,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _apply_averaging_factor(self):
         """
         Apply an averaging factor to the tensor_values.
@@ -304,7 +301,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
         call the post-op processes
@@ -314,7 +310,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _update_output_signatures(self):
         """
         After having run _prepare managers, update the output signatures.
@@ -325,7 +320,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @staticmethod
     def _fit_einstein_curve(data: list):
         """
         Fit operation for Einstein calculations
@@ -383,7 +377,6 @@ class Calculator(CalculatorDatabase):
 
         return [np.mean(fits), np.std(fits)]
 
-    @staticmethod
     def _update_species_type_dict(dictionary: dict,
                                   path_list: list,
                                   dimension: int):
@@ -410,7 +403,6 @@ class Calculator(CalculatorDatabase):
 
         return dictionary
 
-    @staticmethod
     def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
         """
         Build a pandas dataframe with x and y data.
@@ -430,7 +422,6 @@ class Calculator(CalculatorDatabase):
 
         return pd.DataFrame({'x': x, 'y': y})
 
-    @staticmethod
     def _export_data(name: str, data: pd.DataFrame):
         """
         Export data from the analysis database.
@@ -943,8 +934,3 @@ class Calculator(CalculatorDatabase):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
-
-    # @property
-    # def data(self):
-    #     """Return the data that may have previously been generated with the same parameters"""
-    #     return self.experiment.export_property_data(parameters={"Analysis": self.name})

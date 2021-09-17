@@ -104,7 +104,25 @@ class StructureFactor(Calculator):
             self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
 
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
-        # TODO docstrings!
+        """
+        Parameters
+        ----------
+        plot : bool (default=True)
+                            Decision to plot the analysis.
+        save : bool (default=True)
+                            Decision to save the generated tensor_values arrays.
+
+        data_range : int (default=500)
+                            Range over which the property should be evaluated.
+                            This is not applicable to the current analysis as
+                            the full rdf will be calculated.
+        export : bool
+                If true, export the data directly to a csv.
+
+        Returns
+        -------
+        None.
+        """
 
         out = {}
         for experiment in self.experiments:
@@ -320,59 +338,3 @@ class StructureFactor(Calculator):
         plt.plot(self.radii, running_integral, label='running integral')
         plt.legend()
         plt.show()
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError

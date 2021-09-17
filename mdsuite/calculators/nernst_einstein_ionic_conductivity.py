@@ -60,7 +60,18 @@ class NernstEinsteinIonicConductivity(Calculator):
         Parameters
         ----------
         corrected : bool
-                If true, the corrected Nernst Einstein will also be calculated
+                If true, correct the output with the distinct diffusion
+                coefficient.
+        export : bool
+                If true, generate a csv file after the analysis.
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
         """
 
         self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
@@ -285,63 +296,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         """
         Run the analysis
         """
-
         self._run_nernst_einstein()
         if self.corrected:
             self._run_corrected_nernst_einstein()
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError

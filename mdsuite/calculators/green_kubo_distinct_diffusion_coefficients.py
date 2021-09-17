@@ -90,16 +90,27 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
-        Attributes
+        Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
+                if true, plot the output.
         species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+        integration_range : int
+                Range over which to perform the integration.
         """
         self.update_user_args(
             plot=plot,
