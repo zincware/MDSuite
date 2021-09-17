@@ -113,7 +113,38 @@ class EinsteinDiffusionCoefficients(Calculator):
                  tau_values: Union[int, List, Any] = np.s_[:],
                  gpu: bool = False):
 
-        # TODO Docstrings!!
+        """
+
+        Parameters
+        ----------
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        optimize : bool
+                If true, an optimization loop will be run.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        tau_values : Union[int, list, np.s_]
+                Selection of tau values to use in the window sliding.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+
+        Returns
+        -------
+        None
+        """
 
         self.update_user_args(plot=plot,
                               data_range=data_range,
@@ -237,18 +268,3 @@ class EinsteinDiffusionCoefficients(Calculator):
             plt.plot(np.array(self.time) * self.experiment.units['time'],
                      self.msd_array * self.experiment.units['time'],
                      label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
-
-    def _optimized_calculation(self):
-        """
-        Run an range optimized calculation
-        """
-        # Optimize the data_range parameter
-        # for item in self.species:
-        #     while not self.loop_condition:
-        #         tensor_values = self._self_diffusion_coefficients(item, parse=True)
-        #         self._optimize_einstein_data_range(tensor_values=tensor_values)
-        #
-        #     self.loop_condition = False
-        #     result = self._fit_einstein_curve(tensor_values)  # get the final fits
-        #     self._update_properties_file(item='Singular', sub_item=item, tensor_values=result)
-        pass
