@@ -32,7 +32,7 @@ from .run_module import RunModule
 
 from typing import Union
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class Experiment(ExperimentDatabase, ExperimentAddingFiles):

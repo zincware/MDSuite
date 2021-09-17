@@ -18,7 +18,7 @@ from pathlib import Path
 
 from .scheme import Base
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class DatabaseBase:

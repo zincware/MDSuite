@@ -16,7 +16,7 @@ from typing import Union
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class NernstEinsteinIonicConductivity(Calculator):
