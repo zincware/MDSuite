@@ -76,7 +76,7 @@ class ExperimentAddingFiles:
                 pass
             else:
                 log.info('This file has already been read, skipping this now.'
-                         'If this is not desired, please add force=True'
+                         'If this is not desired, please add force=True '
                          'to the command.')
                 return  # End the method.
 

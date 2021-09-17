@@ -12,10 +12,11 @@ from __future__ import annotations
 
 import mdsuite.database.scheme as db
 from mdsuite.utils.database import get_or_create
+from dataclasses import dataclass, field
 
 import logging
 import numpy as np
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Union
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -23,11 +24,20 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+@dataclass
+class Parameters:
+    Property: str
+    Analysis: str
+    data_range: int
+    data: list[dict] = field(default_factory=list)
+    Subject: list[str] = field(default_factory=list)
+
+
 class CalculatorDatabase:
     def __init__(self, experiment):
         self.experiment: Experiment = experiment
 
-    def update_database(self, parameters: dict, delete_duplicate: bool = True):
+    def update_database(self, parameters: Union[dict, Parameters], delete_duplicate: bool = True):
         """
         Add data to the database
 
@@ -42,44 +52,77 @@ class CalculatorDatabase:
         -------
         Updates the sql database
         """
-        # allow subjects and Subject
-        if parameters.get("subjects") is None:
-            try:
-                log.warning("Using depreciated `Subject` \t Please use `subjects` instead.")
-                parameters['subjects'] = parameters['Subject']
-            except KeyError:
-                raise KeyError('Please add the key "subjects" to your calculator')
+        if isinstance(parameters, Parameters):
+            with self.experiment.project.session as ses:
+                experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
+                computation = db.Computation(experiment=experiment, name=parameters.Analysis)
+                ses.add(computation)
 
-        with self.experiment.project.session as ses:
-            experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
-            computation = db.Computation(experiment=experiment)
-            ses.add(computation)
+                computation_property = db.ComputationAttribute(computation=computation, name="Property",
+                                                               str_value=parameters.Property)
+                ses.add(computation_property)
 
-            computation_property = db.ComputationAttribute(computation=computation, name="Property",
-                                                           str_value=parameters['Property'])
-            ses.add(computation_property)
+                computation_analysis = db.ComputationAttribute(computation=computation, name="Analysis",
+                                                               str_value=parameters.Analysis)
+                ses.add(computation_analysis)
 
-            computation_analysis = db.ComputationAttribute(computation=computation, name="Analysis",
-                                                           str_value=parameters['Analysis'])
-            ses.add(computation_analysis)
+                computation_data_range = db.ComputationAttribute(computation=computation, name="data_range",
+                                                                 value=parameters.data_range)
+                ses.add(computation_data_range)
 
-            computation_data_range = db.ComputationAttribute(computation=computation, name="data_range",
-                                                             value=parameters['data_range'])
-            ses.add(computation_data_range)
+                for subject in parameters.Subject:
+                    computation_subject = db.ComputationAttribute(computation=computation, name="subject",
+                                                                  str_value=subject)
+                    ses.add(computation_subject)
 
-            for subject in parameters['subjects']:
-                computation_subject = db.ComputationAttribute(computation=computation, name="subject",
-                                                              str_value=subject)
-                ses.add(computation_subject)
+                # data
 
-            # data
+                for data in parameters.data:
+                    for key, val in data.items():
+                        computation_data = db.ComputationData(computation=computation, value=val, dimension=key)
+                        ses.add(computation_data)
 
-            for data in parameters['data']:
-                for key, val in data.items():
-                    computation_data = db.ComputationData(computation=computation, value=val, dimension=key)
-                    ses.add(computation_data)
+                ses.commit()
+        else:
+            log.warning("Using depreciated dictionary method - Please use dataclass instead.")
+            # allow subjects and Subject
+            if parameters.get("subjects") is None:
+                try:
+                    log.warning("Using depreciated `Subject` \t Please use `subjects` instead.")
+                    parameters['subjects'] = parameters['Subject']
+                except KeyError:
+                    raise KeyError('Please add the key "subjects" to your calculator')
 
-            ses.commit()
+            with self.experiment.project.session as ses:
+                experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
+                computation = db.Computation(experiment=experiment, name=parameters["Analysis"])
+                ses.add(computation)
+
+                computation_property = db.ComputationAttribute(computation=computation, name="Property",
+                                                               str_value=parameters['Property'])
+                ses.add(computation_property)
+
+                computation_analysis = db.ComputationAttribute(computation=computation, name="Analysis",
+                                                               str_value=parameters['Analysis'])
+                ses.add(computation_analysis)
+
+                computation_data_range = db.ComputationAttribute(computation=computation, name="data_range",
+                                                                 value=parameters['data_range'])
+                ses.add(computation_data_range)
+
+                for subject in parameters['subjects']:
+                    computation_subject = db.ComputationAttribute(computation=computation, name="subject",
+                                                                  str_value=subject)
+                    ses.add(computation_subject)
+
+                # data
+
+                for data in parameters['data']:
+                    for key, val in data.items():
+                        computation_data = db.ComputationData(computation=computation, value=val, dimension=key)
+                        ses.add(computation_data)
+
+                ses.commit()
 
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
@@ -115,50 +158,50 @@ class CalculatorDatabase:
     #         ses.query(db.Computation)
     #
     #     return 0
-        #
-        # # if delete_duplicate:
-        # #     self._delete_duplicate_rows(parameters)
-        # # else:
-        # #     if self._check_row_existence(parameters):
-        # #         log.info("Note, an entry with these parameters already exists in the database.")
-        #
-        # log.debug(f'Adding {parameters.get("Property")} to database!')
-        #
-        # with self.experiment.project.session as ses:
-        #     # Create a Data instance to store the value
-        #     # TODO use **parameters instead with parameters.pop
-        #
-        #     try:  # check if it is a list
-        #         data = [Data(**param) for param in parameters['data']]  # param is a dict
-        #     except TypeError:
-        #         try:  # check if it is a dictionary with keys [x, y, z, uncertainty]
-        #             data = [Data(parameters['data'])]
-        #         except TypeError:
-        #             data = [Data(x=parameters['data'])]
-        #
-        #     try:
-        #         subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
-        #     except TypeError:
-        #         subjects = [Subject(subject=parameters['subjects'])]  # param is a string
-        #
-        #     log.debug(f"Subjects are: {subjects}")
-        #
-        #     # Create s SystemProperty instance to store the values
-        #     system_property = SystemProperty(
-        #         property=parameters['Property'],
-        #         analysis=parameters['Analysis'],
-        #         data_range=parameters['data_range'],
-        #         subjects=subjects,
-        #         data=data,
-        #         information=parameters.get("information")
-        #     )
-        #
-        #     log.debug(f"Created: {system_property}")
-        #
-        #     # add to the session
-        #     ses.add(system_property)
-        #
-        #     # commit to the database
-        #     ses.commit()
-        #
-        # log.debug("Values successfully written to database. Closed database session.")
+    #
+    # # if delete_duplicate:
+    # #     self._delete_duplicate_rows(parameters)
+    # # else:
+    # #     if self._check_row_existence(parameters):
+    # #         log.info("Note, an entry with these parameters already exists in the database.")
+    #
+    # log.debug(f'Adding {parameters.get("Property")} to database!')
+    #
+    # with self.experiment.project.session as ses:
+    #     # Create a Data instance to store the value
+    #     # TODO use **parameters instead with parameters.pop
+    #
+    #     try:  # check if it is a list
+    #         data = [Data(**param) for param in parameters['data']]  # param is a dict
+    #     except TypeError:
+    #         try:  # check if it is a dictionary with keys [x, y, z, uncertainty]
+    #             data = [Data(parameters['data'])]
+    #         except TypeError:
+    #             data = [Data(x=parameters['data'])]
+    #
+    #     try:
+    #         subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
+    #     except TypeError:
+    #         subjects = [Subject(subject=parameters['subjects'])]  # param is a string
+    #
+    #     log.debug(f"Subjects are: {subjects}")
+    #
+    #     # Create s SystemProperty instance to store the values
+    #     system_property = SystemProperty(
+    #         property=parameters['Property'],
+    #         analysis=parameters['Analysis'],
+    #         data_range=parameters['data_range'],
+    #         subjects=subjects,
+    #         data=data,
+    #         information=parameters.get("information")
+    #     )
+    #
+    #     log.debug(f"Created: {system_property}")
+    #
+    #     # add to the session
+    #     ses.add(system_property)
+    #
+    #     # commit to the database
+    #     ses.commit()
+    #
+    # log.debug("Values successfully written to database. Closed database session.")
