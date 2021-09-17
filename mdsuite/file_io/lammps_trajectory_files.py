@@ -146,8 +146,7 @@ class LAMMPSTrajectoryFile(TrajectoryFile):
             else:
                 raise NoElementInDump
         except NoElementInDump:
-            print("Insufficient species or type identification available.")
-            sys.exit(1)
+            raise ValueError("Insufficient species or type identification available.")
 
         column_dict_properties = self._get_column_properties(header[8], skip_words=2)  # get properties
 

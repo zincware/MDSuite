@@ -1,0 +1,15 @@
+[run]
+branch = True
+
+[report]
+# Regexes for lines to exclude from consideration
+omit =
+# omit anything in a Temp directory anywhere
+    */Temp/*
+    */AppData/*
+    */CI/*
+
+ignore_errors = True
+
+[html]
+directory = coverage_html_report

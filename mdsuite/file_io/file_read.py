@@ -12,8 +12,12 @@ Parent class for file processing
 Summary
 -------
 """
+from __future__ import annotations
 import abc
-from typing import TextIO
+from typing import TextIO, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 
 class FileProcessor(metaclass=abc.ABCMeta):
@@ -22,20 +26,20 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    obj, experiment : object
+    obj, experiment : Experiment
 
             File object to be opened and read in.
     header_lines : int
             Number of header lines in the file format being read.
     """
 
-    def __init__(self, obj, header_lines, file_path):
+    def __init__(self, obj: Experiment, header_lines, file_path):
         """
         Python constructor
 
         Parameters
         ----------
-        obj : object
+        obj : Experiment
                 Experiment class instance to add to.
 
         header_lines : int

@@ -166,3 +166,4 @@ log.lammps
 *.hdf5
 *.pdf
 ./tutorials/data/trajectory_files
+/coverage_html_report/

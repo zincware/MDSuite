@@ -1,7 +1,7 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html.
 
 SPDX-License-Identifier: EPL-2.0
 
@@ -10,25 +10,22 @@ Copyright Contributors to the MDSuite Project.
 Class for the calculation of the Green-Kubo diffusion coefficients.
 Summary
 -------
-This module contains the code for the Einstein diffusion coefficient class. This class is called by the
-Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-The methods in class can then be called by the Experiment.green_kubo_diffusion_coefficients method and all necessary
-calculations performed.
+This module contains the code for the Einstein diffusion coefficient class.
+This class is called by the Experiment class and instantiated when the user
+calls the Experiment.einstein_diffusion_coefficients method. The methods in
+class can then be called by the Experiment.green_kubo_diffusion_coefficients
+method and all necessary calculations performed.
 """
 from typing import Union
 import numpy as np
-import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
 from scipy import signal
+import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
-
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
 
 
 class GreenKuboDistinctDiffusionCoefficients(Calculator):
@@ -53,10 +50,11 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
     Examples
     --------
-    experiment.run_computation.GreenKuboDistinctDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.GreenKuboDistinctDiffusionCoefficients(data_range=500,
+    plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -65,19 +63,30 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
 
-        self.scale_function = {'linear': {'scale_factor': 5}}
-        self.loaded_property = 'Velocities'  # Property to be loaded for the analysis
+        self.scale_function = {"linear": {"scale_factor": 5}}
+        self.loaded_property = "Velocities"
 
-        self.database_group = 'Diffusion_Coefficients'
-        self.x_label = 'Time $(s)$'
-        self.y_label = 'VACF $(m^{2}/s^{2})$'
-        self.analysis_name = 'Green_Kubo_Distinct_Diffusion_Coefficients'
+        self.database_group = "Diffusion_Coefficients"
+        self.x_label = "Time $(s)$"
+        self.y_label = "VACF $(m^{2}/s^{2})$"
+        self.analysis_name = "Green_Kubo_Distinct_Diffusion_Coefficients"
         self.experimental = True
 
-    def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
-                 correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
+    @call
+    def __call__(
+        self,
+        plot: bool = False,
+        species: list = None,
+        data_range: int = 500,
+        save: bool = True,
+        correlation_time: int = 1,
+        export: bool = False,
+        atom_selection: dict = np.s_[:],
+        gpu: bool = False,
+        integration_range: int = None,
+    ):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -92,8 +101,15 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         save :
                 If true, tensor_values will be saved after the analysis
         """
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            export=export,
+            gpu=gpu,
+        )
 
         self.species = species  # Which species to calculate for
 
@@ -102,17 +118,17 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.vacf = np.zeros(self.data_range)
         self.sigma = []
 
+        if integration_range is None:
+            self.integration_range = self.data_range
+        else:
+            self.integration_range = integration_range
+
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
+        self.combinations = list(
+            itertools.combinations_with_replacement(self.species, 2)
+        )
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """
@@ -128,22 +144,33 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
+        for ensemble in tqdm(
+            range(self.ensemble_loop), ncols=70, desc=str(combination)
+        ):
             self.vacf = np.zeros(self.data_range)
             start = ensemble * self.correlation_time
             stop = start + self.data_range
-            vacf = np.zeros(2*self.data_range - 1)
+            vacf = np.zeros(self.data_range)
             for i in range(len(data[str.encode(data_path[0])])):
-                for j in range(i+1, len(data[str.encode(data_path[1])])):
+                for j in range(i + 1, len(data[str.encode(data_path[1])])):
                     if i == j:
                         continue
                     else:
-                        vacf += sum([signal.correlate(data[str.encode(data_path[0])][i][start:stop, idx],
-                                                      data[str.encode(data_path[1])][j][start:stop, idx],
-                                                      mode="full",
-                                                      method='auto') for idx in range(3)])
-            self.vacf += vacf[int(self.data_range - 1):]  # Update the averaged function
-            self.sigma.append(np.trapz(vacf[int(self.data_range - 1):], x=self.time))
+                        vacf += sum(
+                            [
+                                signal.correlate(
+                                    data[str.encode(data_path[0])][i][start:stop, idx],
+                                    data[str.encode(data_path[1])][j][start:stop, idx],
+                                    mode="full",
+                                    method="auto",
+                                )
+                                for idx in range(3)
+                            ]
+                        )
+            self.vacf += vacf[
+                int(self.data_range - 1):
+            ]  # Update the averaged function
+            self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
     def run_experimental_analysis(self):
         """
@@ -152,18 +179,22 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if type(self.atom_selection) is dict:
             select_atoms = {}
             for item in self.atom_selection:
-                select_atoms[str.encode(join_path(item, "Velocities"))] = self.atom_selection[item]
+                select_atoms[
+                    str.encode(join_path(item, "Velocities"))
+                ] = self.atom_selection[item]
             self.atom_selection = select_atoms
         for combination in self.combinations:
             type_spec = {}
-            data_path = [join_path(item, 'Velocities') for item in combination]
+            data_path = [join_path(item, "Velocities") for item in combination]
             self._prepare_managers(data_path=data_path)
             type_spec = self._update_species_type_dict(type_spec, data_path, 3)
-            type_spec[str.encode('data_size')] = tf.TensorSpec(None, dtype=tf.int16)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(dictionary=True)
-            data_set = tf.data.Dataset.from_generator(batch_generator,
-                                                      args=batch_generator_args,
-                                                      output_signature=type_spec)
+            type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=self.dtype)
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(
+                dictionary=True
+            )
+            data_set = tf.data.Dataset.from_generator(
+                batch_generator, args=batch_generator_args, output_signature=type_spec
+            )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for batch in data_set:
                 self._compute_vacf(batch, data_path, combination)
@@ -186,13 +217,18 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
-                         (len(self.experiment.species[species[1]]['indices']) - 1)
+            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
+                len(self.experiment.species[species[1]]["indices"]) - 1
+            )
         else:
-            atom_scale = len(self.experiment.species[species[0]]['indices']) * \
-                         len(self.experiment.species[species[1]]['indices'])
-        numerator = self.experiment.units['length'] ** 2
-        denominator = 3 * self.experiment.units['time'] * (self.data_range - 1) * atom_scale
+            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
+                self.experiment.species[species[1]]["indices"]
+            )
+        numerator = self.experiment.units["length"] ** 2
+        denominator = (
+            3 * self.experiment.units["time"] * (self.data_range - 1) * atom_scale
+        )
+
         self.prefactor = numerator / denominator
 
     def _apply_operation(self, data, index):
@@ -216,7 +252,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         -------
         averaged copy of the tensor_values
         """
-        self.vacf /= max(abs(self.vacf))
+        pass
 
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
@@ -227,31 +263,51 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": list(species),
-                      "data_range": self.data_range,
-                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result) / (np.sqrt(len(result)))}]
-                      }
+        properties = {
+            "Property": self.database_group,
+            "Analysis": self.analysis_name,
+            "Subject": list(species),
+            "data_range": self.data_range,
+            "data": [
+                {
+                    "x": np.mean(result),
+                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
+                }
+            ],
+        }
         self._update_properties_file(properties)
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.vacf, label=species)
-            plt.savefig(f'{species}.pdf')
+            plt.plot(
+                np.array(self.time) * self.experiment.units["time"],
+                self.vacf,
+                label=species,
+            )
+            plt.vlines(
+                (np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range
+                ],
+                min(self.vacf),
+                max(self.vacf),
+            )
+            plt.savefig(f"{species}.pdf")
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": list(species),
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.vacf)],
-                          'information': "series"
-                          }
+            properties = {
+                "Property": self.database_group,
+                "Analysis": self.analysis_name,
+                "Subject": list(species),
+                "data_range": self.data_range,
+                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.vacf)],
+                "information": "series",
+            }
             self._update_properties_file(properties)
 
         if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.vacf))
+            self._export_data(
+                name=self._build_table_name(species),
+                data=self._build_pandas_dataframe(self.time, self.vacf),
+            )
 
     def _update_output_signatures(self):
         """

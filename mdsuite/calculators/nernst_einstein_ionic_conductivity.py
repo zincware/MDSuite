@@ -13,7 +13,7 @@ import logging
 import sys
 import operator
 from typing import Union
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 log = logging.getLogger(__file__)
@@ -33,7 +33,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Standard constructor
 
@@ -42,11 +42,16 @@ class NernstEinsteinIonicConductivity(Calculator):
         experiment : Experiment
                 Experiment class from which to read
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.post_generation = True
 
-        self.database_group = "Ionic_Conductivity"
+        # Properties
+        self._truth_table = None
 
+        self.database_group = "Ionic_Conductivity"
+        self.analysis_name = "Nernst_Einstein_Ionic_Conductivity"
+
+    @call
     def __call__(self, corrected: bool = False, plot: bool = False, data_range: int = 1,
                  export: bool = False, species: list = None, save: bool = True):
         """
@@ -57,22 +62,15 @@ class NernstEinsteinIonicConductivity(Calculator):
         corrected : bool
                 If true, the corrected Nernst Einstein will also be calculated
         """
+
         self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
         self.data = self._load_data()  # tensor_values to be read in
-        self.truth_table = self._build_truth_table()  # build truth table for analysis
 
         if species is None:
             self.species = list(self.experiment.species)
         else:
             self.species = species
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
 
     def _load_data(self):
         """
@@ -87,7 +85,8 @@ class NernstEinsteinIonicConductivity(Calculator):
         test = self.experiment.export_property_data({'property': 'Diffusion_Coefficients'})
         return test
 
-    def _build_truth_table(self):
+    @property
+    def truth_table(self):
         """
         Builds a truth table to communicate which tensor_values is available to the analysis.
 
@@ -96,18 +95,21 @@ class NernstEinsteinIonicConductivity(Calculator):
         truth_table : list
                 A truth table communication which tensor_values is available for the analysis.
         """
-        log.warning('No support for different data ranges! This method always picks the first entry in the database!')
-        case_1 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
-        case_2 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
-        case_3 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Einstein_Self_Diffusion_Coefficients"})
-        case_4 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
-                                                       "analysis": "Einstein_Distinct_Diffusion_Coefficients"})
-        truth_table = [list(map(operator.not_, [not case_1, not case_2])),
-                       list(map(operator.not_, [not case_3, not case_4]))]
-        return truth_table
+        if self._truth_table is None:
+            log.warning(
+                'No support for different data ranges! This method always picks the first entry in the database!')
+            case_1 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Green_Kubo_Self_Diffusion_Coefficients"})
+            case_2 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Green_Kubo_Distinct_Diffusion_Coefficients"})
+            case_3 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Einstein_Self_Diffusion_Coefficients"})
+            case_4 = self.experiment.export_property_data({'property': 'Diffusion_Coefficients',
+                                                           "analysis": "Einstein_Distinct_Diffusion_Coefficients"})
+            truth_table = [list(map(operator.not_, [not case_1, not case_2])),
+                           list(map(operator.not_, [not case_3, not case_4]))]
+            self._truth_table = truth_table
+        return self._truth_table
 
     def _nernst_einstein(self, diffusion_information: list):
         """
@@ -126,15 +128,15 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-            (self.experiment.volume * (self.experiment.units['length'] ** 3))
+                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
         uncertainty = 0.0
         for item in diffusion_information:
             log.debug(f"Analysing: {item}")
-            diffusion_coefficient = item.data[0].x
-            diffusion_uncertainty = item.data[0].uncertainty
+            diffusion_coefficient = item.data_dict[0].x
+            diffusion_uncertainty = item.data_dict[0].uncertainty
             species = item.subjects[0].subject
             charge_term = self.experiment.species[species]['charge'][0] ** 2
             mass_fraction_term = len(self.experiment.species[species]['indices']) / self.experiment.number_of_atoms
@@ -163,7 +165,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
         denominator = boltzmann_constant * self.experiment.temperature * \
-            (self.experiment.volume * (self.experiment.units['length'] ** 3))
+                      (self.experiment.volume * (self.experiment.units['length'] ** 3))
         prefactor = numerator / denominator
 
         conductivity = 0.0
@@ -182,10 +184,10 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_uncertainty = item['uncertainty']
             constituents = item['Subject'].split("_")
             charge_term = self.experiment.species[constituents[0]]['charge'][0] * \
-                self.experiment.species[constituents[1]]['charge'][0]
+                          self.experiment.species[constituents[1]]['charge'][0]
             mass_fraction_term = (len(
                 self.experiment.species[constituents[0]]['indices']) / self.experiment.number_of_atoms) * \
-                (len(self.experiment.species[constituents[1]][
+                                 (len(self.experiment.species[constituents[1]][
                                           'indices']) / self.experiment.number_of_atoms)
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
             uncertainty += diffusion_uncertainty * charge_term * mass_fraction_term
@@ -229,8 +231,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
         if not any(ne_table):
-            print("There is no values to analyse, please run a diffusion calculation to proceed")
-            sys.exit(1)
+            ValueError("There is no values to analyse, please run a diffusion calculation to proceed")
 
     def _run_corrected_nernst_einstein(self):
         """

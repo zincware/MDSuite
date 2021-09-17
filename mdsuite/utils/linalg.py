@@ -57,3 +57,126 @@ def get_angles(r_ij_mat, indices, acos=True):
     r_ik = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1))
 
     return angle_between(r_ij, r_ik, acos), tf.linalg.norm(r_ij, axis=-1) * tf.linalg.norm(r_ik, axis=-1)
+
+
+@tf.function(experimental_relax_shapes=True)
+def apply_minimum_image(r_ij, box_array):
+    """
+
+    Parameters
+    ----------
+    r_ij: tf.Tensor
+        an r_ij matrix of size (batches, atoms, 3)
+    box_array: tf.Tensor
+        a box array (3,)
+
+    Returns
+    -------
+
+    """
+    return r_ij - tf.math.rint(r_ij / box_array) * box_array
+
+
+def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
+    """Calculate the indices of a slice of the triu values
+
+    Parameters
+    ----------
+    n_atoms: total number of atoms in the system
+    m_atoms: size of the slice (horizontal)
+    idx: start index of slize
+
+    Returns
+    -------
+    tf.Tensor
+
+    """
+    bool_mat = tf.ones((m_atoms, n_atoms), dtype=tf.bool)
+    bool_vector = ~tf.linalg.band_part(bool_mat, -1, idx)  # rename!
+
+    indices = tf.where(bool_vector)
+    indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
+    indices = tf.transpose(indices)
+    return indices
+
+
+def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
+    """
+    Enforce a cutoff on a tensor
+
+    Parameters
+    ----------
+    tensor : tf.Tensor
+    cutoff : flaot
+    """
+
+    cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
+
+    return tf.boolean_mask(tensor, cutoff_mask)
+
+
+def cartesian_to_spherical_coordinates(point_cartesian,
+                                       name="cartesian_to_spherical_coordinates"
+                                       ):
+    """Function to transform Cartesian coordinates to spherical coordinates.
+    This function assumes a right handed coordinate system with `z` pointing up.
+    When `x` and `y` are both `0`, the function outputs `0` for `phi`. Note that
+    the function is not smooth when `x = y = 0`.
+    Note:
+      In the following, A1 to An are optional batch dimensions.
+    Args:
+      point_cartesian: A tensor of shape `[A1, ..., An, 3]`. In the last
+        dimension, the data follows the `x`, `y`, `z` order.
+      name: A name for this op. Defaults to "cartesian_to_spherical_coordinates".
+    Returns:
+      A tensor of shape `[A1, ..., An, 3]`. The last dimensions contains
+      (`r`,`theta`,`phi`), where `r` is the sphere radius, `theta` is the polar
+      angle and `phi` is the azimuthal angle. Returns `NaN` gradient if x = y = 0.
+
+    References
+    ----------
+    tensorflow-graphics package
+
+    """
+    with tf.name_scope(name):
+        point_cartesian = tf.convert_to_tensor(value=point_cartesian)
+
+        x, y, z = tf.unstack(point_cartesian, axis=-1)
+        radius = tf.norm(tensor=point_cartesian, axis=-1)
+        theta = tf.acos(
+            tf.clip_by_value(tf.math.divide_no_nan(z, radius), -1., 1.))
+        phi = tf.atan2(y, x)
+        return tf.stack((radius, theta, phi), axis=-1)
+
+
+def spherical_to_cartesian_coordinates(point_spherical,
+                                       name="spherical_to_cartesian_coordinates"
+                                      ):
+  """Function to transform Cartesian coordinates to spherical coordinates.
+  Note:
+    In the following, A1 to An are optional batch dimensions.
+  Args:
+    point_spherical: A tensor of shape `[A1, ..., An, 3]`. The last dimension
+      contains r, theta, and phi that respectively correspond to the radius,
+      polar angle and azimuthal angle; r must be non-negative.
+    name: A name for this op. Defaults to "spherical_to_cartesian_coordinates".
+  Raises:
+    tf.errors.InvalidArgumentError: If r, theta or phi contains out of range
+    data.
+  Returns:
+    A tensor of shape `[A1, ..., An, 3]`, where the last dimension contains the
+    cartesian coordinates in x,y,z order.
+
+    References
+    ----------
+    tensorflow-graphics package
+  """
+  with tf.name_scope(name):
+    point_spherical = tf.convert_to_tensor(value=point_spherical)
+
+    r, theta, phi = tf.unstack(point_spherical, axis=-1)
+    tmp = r * tf.sin(theta)
+    x = tmp * tf.cos(phi)
+    y = tmp * tf.sin(phi)
+    z = r * tf.cos(theta)
+    return tf.stack((x, y, z), axis=-1)

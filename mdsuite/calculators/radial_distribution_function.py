@@ -18,6 +18,7 @@ the Experiment class and instantiated when the user calls the Experiment.radial_
 The methods in class can then be called by the Experiment.radial_distribution_function method and all necessary
 calculations performed.
 """
+from __future__ import annotations
 import logging
 from abc import ABC
 from typing import Union
@@ -31,10 +32,16 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import split_array
+from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 
 from timeit import default_timer as timer
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite import Experiment
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -74,16 +81,18 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
         """
         Constructor for the RDF calculator.
 
         Attributes
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
+        load_data: bool, default False
+                Whether RunComputation or LoadData is being called
         """
-        super().__init__(experiment)
+        super().__init__(experiment, experiments=experiments, load_data=load_data)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
@@ -92,6 +101,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.y_label = 'g(r)'
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
+
+        self._dtype = tf.float32
 
         # Arguments set by the user in __call__
         self.number_of_bins = None
@@ -109,6 +120,10 @@ class RadialDistributionFunction(Calculator, ABC):
         self.key_list = None
         self.rdf = None
 
+        self.correct_minibatch_batching = None
+        # split the minibatches into equal sized chunks to use maximum computing and memory resources
+
+    @call
     def __call__(self,
                  plot=True,
                  number_of_bins=None,
@@ -163,12 +178,6 @@ class RadialDistributionFunction(Calculator, ABC):
                     If true, tf.function is used in the calculation.
         """
         # Calculator arguments
-        self.update_user_args(plot=plot,
-                              save=save,
-                              data_range=data_range,
-                              export=export,
-                              gpu=gpu)
-
         # RDF arguments
         self.number_of_bins = number_of_bins
         self.cutoff = cutoff
@@ -179,19 +188,26 @@ class RadialDistributionFunction(Calculator, ABC):
         self.minibatch = minibatch
         self.species = species
 
+        self.update_user_args(plot=plot,
+                              save=save,
+                              data_range=data_range,
+                              export=export,
+                              gpu=gpu)
+
         # kwarg parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
         self.override_n_batches = kwargs.get('batches')
+        self.tqdm_limit = kwargs.pop('tqdm', 10)
+        # if there are more batches than in that limit it will show the batch tqdm, otherwise
+        # it will show multiple minibatch tqdms
 
         # Initial checks and initialization.
         self._check_input()
         self._initialize_rdf_parameters()
 
-        # Perform analysis and save.
-        out = self.run_analysis()
-        self.experiment.save_class()
+        # # Perform analysis and save.
+        # return self.run_analysis()
 
-        return out
 
     def _initialize_rdf_parameters(self):
         """
@@ -244,7 +260,354 @@ class RadialDistributionFunction(Calculator, ABC):
         if self.molecules:
             self.species = list(self.experiment.molecules)
 
-    def _get_ideal_gas_probability(self) -> float:
+        if self.gpu:
+            self.correct_minibatch_batching = 100
+            # 100 seems to be a good value for most systems
+
+    def _load_positions(self, indices: list) -> tf.Tensor:
+        """
+        Load the positions matrix
+
+        This function is here to optimize calculation speed
+
+        Parameters
+        ----------
+        indices : list
+                List of indices to take from the database_path
+        Returns
+        -------
+        loaded_data : tf.Tensor
+                tf.Tensor of tensor_values loaded from the hdf5 database_path
+        """
+        path_list = [join_path(species, "Positions") for species in self.species]
+        data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
+        if len(self.species) == 1:
+            return tf.cast(data, dtype=self.dtype)
+        else:
+            return tf.cast(tf.concat(data, axis=0), dtype=self.dtype)
+
+    def _get_species_names(self, species_tuple: tuple) -> str:
+        """ Get the correct names of the species being studied
+
+        Parameters
+        ----------
+        species_tuple : tuple
+                The species tuple i.e (1, 2) corresponding to the rdf being calculated
+
+        Returns
+        -------
+        names : str
+                Prefix for the saved file
+        """
+
+        return f"{self.species[species_tuple[0]]}_{self.species[species_tuple[1]]}"
+
+    def _calculate_prefactor(self, species: Union[str, tuple] = None):
+        """
+        Calculate the relevant prefactor for the analysis
+
+        Parameters
+        ----------
+        species : str
+                The species tuple of the RDF being studied, e.g. Na_Na
+        """
+
+        species_scale_factor = 1
+        species_split = species.split("_")
+        if species_split[0] == species_split[1]:
+            species_scale_factor = 2
+
+        if self.molecules:
+            # Density of all atoms / total volume
+            rho = len(self.experiment.molecules[species_split[1]]['indices']) / self.experiment.volume
+            numerator = species_scale_factor
+            denominator = self.number_of_configurations * rho * self.ideal_correction * \
+                          len(self.experiment.molecules[species_split[0]]['indices'])
+        else:
+            # Density of all atoms / total volume
+            rho = len(self.experiment.species[species_split[1]]['indices']) / self.experiment.volume
+            numerator = species_scale_factor
+            denominator = self.number_of_configurations * rho * self.ideal_correction * \
+                          len(self.experiment.species[species_split[0]]['indices'])
+        prefactor = numerator / denominator
+
+        return prefactor
+
+    def _calculate_radial_distribution_functions(self):
+        """
+        Take the calculated histograms and apply the correct pre-factor to them to get the correct RDF.
+        Returns
+        -------
+        Updates the class state
+        """
+        for names in self.key_list:
+            prefactor = self._calculate_prefactor(names)  # calculate the prefactor
+
+            self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
+
+            if self.plot:
+                fig, ax = plt.subplots()
+                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
+                self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
+
+            self.data_range = self.number_of_configurations
+            if self.save:
+                data = [{"x": x, "y": y} for x, y in
+                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
+                log.debug("Writing RDF to database!")
+                self._update_properties_file({
+                    "Property": "RDF",  # TODO this should be dynamic
+                    "Analysis": self.analysis_name,
+                    "subjects": names.split("_"),
+                    "data_range": self.data_range,
+                    "data": data
+                })
+            if self.export:
+                self._export_data(name=self._build_table_name(names),
+                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
+                                                                    self.rdf.get(names)))
+
+        self.experiment.radial_distribution_function_state = True  # update the state
+
+    def _correct_batch_properties(self):
+        """
+        We must fix the batch size parameters set by the parent class.
+
+        Returns
+        -------
+        Updates the parent class.
+        """
+        if self.batch_size > self.number_of_configurations:
+            self.batch_size = self.number_of_configurations
+            self.n_batches = 1
+        else:
+            self.n_batches = int(self.number_of_configurations / self.batch_size)
+
+        if self.override_n_batches is not None:
+            self.n_batches = self.override_n_batches
+
+    def mini_calculate_histograms(self):
+        """Do the minibatch calculation"""
+
+        def combine_dictionaries(dict_a, dict_b):
+            """Combine two dictionaries in a tf.function call"""
+            out = dict()
+            for key in dict_a:
+                out[key] = dict_a[key] + dict_b[key]
+            return out
+
+        def run_minibatch_loop():
+            """Run a minibatch loop"""
+            minibatch_start = tf.constant(0)
+            stop = tf.constant(0)
+            rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
+
+            if self.correct_minibatch_batching is not None:
+                # per_atoms_ds with shape (configurations, 3)
+                corrected_ds = per_atoms_ds.batch(int(len(per_atoms_ds) / self.correct_minibatch_batching))
+                # math.stackexchange.com/questions/107269/how-do-you-split-a-90-45-45-triangle-into-equal-area-strips
+                for jdx, corrected_per_atoms_ds in tqdm(enumerate(corrected_ds), ncols=70, disable=not batch_tqm,
+                                                        total=self.correct_minibatch_batching,
+                                                        desc=f"Mini batch {idx + 1}/{self.n_batches}"):
+                    pre_factor = np.sqrt(jdx + 1)
+                    new_ds = tf.data.Dataset.from_tensor_slices(corrected_per_atoms_ds)
+                    new_ds = new_ds.batch(int(pre_factor * self.minibatch))
+                    log.debug(f'batch size: {int(pre_factor * self.minibatch)} ({self.minibatch} * {pre_factor})')
+                    for atoms in new_ds:
+                        atoms_per_batch, batch_size, _ = tf.shape(atoms)
+                        stop += atoms_per_batch
+                        start_time = timer()
+                        indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
+                        log.debug(f'Calculating indices took {timer() - start_time} s')
+
+                        start_time = timer()
+                        d_ij = self.get_dij(indices, positions_tensor, atoms,
+                                            tf.cast(self.experiment.box_array, dtype=self.dtype))
+                        exec_time = timer() - start_time
+                        atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+                        atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
+                        log.debug(f'Computing d_ij took {exec_time} s '
+                                  f'({atom_pairs_per_second:.1f} million atom pairs / s)')
+
+                        start_time = timer()
+                        minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
+                        log.debug(f'Computing species values took {timer() - start_time} s')
+
+                        start_time = timer()
+                        rdf = combine_dictionaries(rdf, minibatch_rdf)
+                        log.debug(f'Updating dictionaries took {timer() - start_time} s')
+
+                        minibatch_start = stop
+
+                return rdf
+
+            else:
+                for atoms in tqdm(per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE), ncols=70,
+                                  disable=not batch_tqm, desc=f"Running mini batch loop {idx + 1} / {self.n_batches}"):
+                    # I assume this code can be removed, because the corrected version is almost always better
+                    # If one still wants to use the uncorrected version, we could make that an option, but
+                    # I don't see why. The only downside of the other method is, that a new dataset is created
+                    # every loop which can be cause a slow down, but I don't think it causes memory issues.
+                    atoms_per_batch, batch_size, _ = tf.shape(atoms)
+                    stop += atoms_per_batch
+                    start_time = timer()
+                    indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
+                    log.debug(f'Calculating indices took {timer() - start_time} s')
+
+                    start_time = timer()
+                    d_ij = self.get_dij(indices, positions_tensor, atoms,
+                                        tf.cast(self.experiment.box_array, dtype=self.dtype))
+                    exec_time = timer() - start_time
+                    atom_pairs_per_second = tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+                    atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
+                    log.debug(f'Computing d_ij took {exec_time} s '
+                              f'({atom_pairs_per_second:.1f} million atom pairs / s)')
+
+                    start_time = timer()
+                    minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
+                    log.debug(f'Computing species values took {timer() - start_time} s')
+
+                    start_time = timer()
+                    rdf = combine_dictionaries(rdf, minibatch_rdf)
+                    log.debug(f'Updating dictionaries took {timer() - start_time} s')
+
+                    minibatch_start = stop
+                return rdf
+
+        execution_time = 0
+
+        batch_tqm = self.tqdm_limit > self.n_batches
+
+        for idx, sample_configuration in tqdm(enumerate(np.array_split(self.sample_configurations, self.n_batches)),
+                                              ncols=70, disable=batch_tqm):
+            log.debug('Loading Data')
+
+            positions_tensor = self._load_positions(sample_configuration)
+            log.debug('Data loaded - creating dataset')
+            per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
+            # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
+
+            n_atoms = tf.shape(positions_tensor)[0]
+            log.debug('Starting calculation')
+            start = timer()
+            _rdf = run_minibatch_loop()
+
+            for key in self.rdf:
+                self.rdf[key] += _rdf[key]
+
+            execution_time += timer() - start
+            log.debug('Calculation done')
+
+        self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
+        log.debug(f"RDF execution time: {execution_time} s")
+
+    def run_experimental_analysis(self):
+        """
+        Perform the rdf analysis
+        """
+        log.info('Starting RDF Calculation')
+        self._correct_batch_properties()
+
+        log.debug(f"Using minibatching with batch size: {self.minibatch}")
+        self.mini_calculate_histograms()
+
+        self._calculate_radial_distribution_functions()
+
+    def compute_species_values(self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor):
+        """
+        Compute species-wise histograms
+
+        Parameters
+        ----------
+        indices: indices of the d_ij distances in the shape (x, 2)
+        start_batch: starts from 0 and increments by atoms_per_batch every batch
+        d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu computation
+
+        Returns
+        -------
+
+        """
+        rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
+        indices = tf.transpose(indices)
+
+        particles_list = self.particles_list
+
+        for tuples in itertools.combinations_with_replacement(self.index_list, 2):
+            names = self._get_species_names(tuples)
+            start_ = tf.concat(
+                [sum(particles_list[:tuples[0]]) - start_batch, sum(particles_list[:tuples[1]])],
+                axis=0
+            )
+            stop_ = start_ + tf.constant([particles_list[tuples[0]], particles_list[tuples[1]]])
+            rdf[names] = self.bin_minibatch(start_, stop_, indices, d_ij,
+                                            tf.cast(self.bin_range, dtype=self.dtype),
+                                            tf.cast(self.number_of_bins, dtype=tf.int32),
+                                            tf.cast(self.cutoff, dtype=self.dtype))
+        return rdf
+
+    @staticmethod
+    @tf.function(experimental_relax_shapes=True)
+    def bin_minibatch(start, stop, indices, d_ij, bin_range, number_of_bins, cutoff) -> tf.Tensor:
+        """Compute the minibatch histogram"""
+
+        # select the indices that are within the boundaries of the current species / molecule
+        mask_1 = (indices[:, 0] > start[0]) & (indices[:, 0] < stop[0])
+        mask_2 = (indices[:, 1] > start[1]) & (indices[:, 1] < stop[1])
+
+        values_species = tf.boolean_mask(d_ij, mask_1 & mask_2, axis=0)
+        values = apply_system_cutoff(values_species, cutoff)
+        bin_data = tf.histogram_fixed_width(
+            values=values,
+            value_range=bin_range,
+            nbins=number_of_bins
+        )
+
+        return bin_data
+
+    @staticmethod
+    @tf.function(experimental_relax_shapes=True)
+    def get_dij(indices, positions_tensor, atoms, box_array):
+        """Compute the distance matrix for the minibatch"""
+        start_time = timer()
+        log.debug(f'Calculating indices took {timer() - start_time} s')
+
+        # apply the mask to this, to only get the triu values and don't compute anything twice
+        start_time = timer()
+        _positions = tf.gather(positions_tensor, indices[1], axis=0)
+        log.debug(f'Gathering positions_tensor took {timer() - start_time} s')
+
+        # for atoms_per_batch > 1, flatten the array according to the positions
+        start_time = timer()
+        atoms_position = tf.gather(atoms, indices[0], axis=0)
+        log.debug(f'Gathering atoms took {timer() - start_time} s')
+
+        start_time = timer()
+        r_ij = _positions - atoms_position
+        log.debug(f'Computing r_ij took {timer() - start_time} s')
+
+        # apply minimum image convention
+        start_time = timer()
+        if box_array is not None:
+            r_ij = apply_minimum_image(r_ij, box_array)
+        log.debug(f'Applying minimum image convention took {timer() - start_time} s')
+
+        start_time = timer()
+        d_ij = tf.linalg.norm(r_ij, axis=-1)
+        log.debug(f'Computing d_ij took {timer() - start_time} s')
+
+        return d_ij
+
+    @property
+    def particles_list(self):
+        if self.molecules:
+            particles_list = [len(self.experiment.molecules[item]['indices']) for item in self.experiment.molecules]
+        else:
+            particles_list = [len(self.experiment.species[item]['indices']) for item in self.experiment.species]
+
+        return particles_list
+
+    @property
+    def ideal_correction(self) -> float:
         """
         Get the correct ideal gas term
 
@@ -257,6 +620,7 @@ class RadialDistributionFunction(Calculator, ABC):
                 Correct ideal gas term for the RDF prefactor
         """
 
+        # TODO make it a property
         def _spherical_symmetry(data: np.array) -> np.array:
             """
             Operation to perform for full spherical symmetry
@@ -340,345 +704,6 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_edges = np.linspace(0.0, self.cutoff, self.number_of_bins)
 
         return _piecewise(np.array(bin_edges)) * bin_width
-
-    def _load_positions(self, indices: list) -> tf.Tensor:
-        """
-        Load the positions matrix
-
-        This function is here to optimize calculation speed
-
-        Parameters
-        ----------
-        indices : list
-                List of indices to take from the database_path
-        Returns
-        -------
-        loaded_data : tf.Tensor
-                tf.Tensor of tensor_values loaded from the hdf5 database_path
-        """
-        path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix("Positions", path=path_list, select_slice=np.s_[:, indices])
-        if len(self.species) == 1:
-            return data
-        else:
-            return tf.concat(data, axis=0)
-
-    def _get_species_names(self, species_tuple: tuple) -> str:
-        """ Get the correct names of the species being studied
-
-        Parameters
-        ----------
-        species_tuple : tuple
-                The species tuple i.e (1, 2) corresponding to the rdf being calculated
-
-        Returns
-        -------
-        names : str
-                Prefix for the saved file
-        """
-
-        return f"{self.species[species_tuple[0]]}_{self.species[species_tuple[1]]}"
-
-    @staticmethod
-    def _apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
-        """
-        Enforce a cutoff on a tensor
-
-        Parameters
-        ----------
-        tensor : tf.Tensor
-        cutoff : flaot
-        """
-
-        cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
-
-        return tf.boolean_mask(tensor, cutoff_mask)
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        Calculate the relevant prefactor for the analysis
-
-        Parameters
-        ----------
-        species : str
-                The species tuple of the RDF being studied, e.g. Na_Na
-        """
-
-        species_scale_factor = 1
-        species_split = species.split("_")
-        if species_split[0] == species_split[1]:
-            species_scale_factor = 2
-
-        if self.molecules:
-            # Density of all atoms / total volume
-            rho = len(self.experiment.molecules[species_split[1]]['indices']) / self.experiment.volume
-            ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
-            numerator = species_scale_factor
-            denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.molecules[species_split[0]]['indices'])
-        else:
-            # Density of all atoms / total volume
-            rho = len(self.experiment.species[species_split[1]]['indices']) / self.experiment.volume
-            ideal_correction = self._get_ideal_gas_probability()  # get the ideal gas value
-            numerator = species_scale_factor
-            denominator = self.number_of_configurations * rho * ideal_correction * \
-                          len(self.experiment.species[species_split[0]]['indices'])
-        prefactor = numerator / denominator
-
-        return prefactor
-
-    def _calculate_radial_distribution_functions(self):
-        """
-        Take the calculated histograms and apply the correct pre-factor to them to get the correct RDF.
-        Returns
-        -------
-        Updates the class state
-        """
-        for names in self.key_list:
-            prefactor = self._calculate_prefactor(names)  # calculate the prefactor
-
-            self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
-
-            if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
-                self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
-
-            self.data_range = self.number_of_configurations
-            if self.save:
-                data = [{"x": x, "y": y} for x, y in
-                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
-                log.debug("Writing RDF to database!")
-                self._update_properties_file({
-                    "Property": "RDF",
-                    "Analysis": self.analysis_name,
-                    "subjects": names.split("_"),
-                    "data_range": self.data_range,
-                    "data": data
-                })
-            if self.export:
-                self._export_data(name=self._build_table_name(names),
-                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                    self.rdf.get(names)))
-
-        self.experiment.radial_distribution_function_state = True  # update the state
-
-    def _correct_batch_properties(self):
-        """
-        We must fix the batch size parameters set by the parent class.
-
-        Returns
-        -------
-        Updates the parent class.
-        """
-        if self.batch_size > self.number_of_configurations:
-            self.batch_size = self.number_of_configurations
-            self.n_batches = 1
-        else:
-            self.n_batches = int(self.number_of_configurations / self.batch_size)
-
-        if self.override_n_batches is not None:
-            self.n_batches = self.override_n_batches
-
-    def get_partial_triu_indices(self, n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
-        """Calculate the indices of a slice of the triu values
-
-        Parameters
-        ----------
-        n_atoms: total number of atoms in the system
-        m_atoms: size of the slice (horizontal)
-        idx: start index of slize
-
-        Returns
-        -------
-        tf.Tensor
-
-        """
-        bool_mat = tf.ones((m_atoms, n_atoms), dtype=tf.bool)
-        bool_vector = ~tf.linalg.band_part(bool_mat, -1, idx)  # rename!
-
-        indices = tf.where(bool_vector)
-        indices = tf.cast(indices, dtype=tf.int32)  # is this large enough?!
-        indices = tf.transpose(indices)
-        return indices
-
-    def mini_get_pair_indices(self, indices, n_atoms, atoms_per_batch, start, index_list, len_elements):
-        """Similar to the pair indices, compute the mini pair indices
-
-        Parameters
-        ----------
-        indices
-        n_atoms: int number of atoms
-        atoms_per_batch: int number of atoms in the batch
-        start: start value of the slice of the batch
-        index_list: list of the atoms, e.g. [0, 1, 2] for a three species system
-        len_elements: list, length of the elements in the list, e.g. [50, 50, 100]
-
-        Returns
-        -------
-
-        tf.Tensor, str
-
-        """
-        indices = tf.transpose(indices)
-        background = tf.tensor_scatter_nd_update(tf.fill((atoms_per_batch, n_atoms), -1),
-                                                 indices,
-                                                 tf.range(tf.shape(indices)[0]))
-
-        output = []
-
-        for tuples in itertools.combinations_with_replacement(index_list, 2):
-            row_slice = (sum(len_elements[:tuples[0]]) - start, sum(len_elements[:tuples[0] + 1]) - start)
-            col_slice = (sum(len_elements[:tuples[1]]), sum(len_elements[:tuples[1] + 1]))
-            names = self._get_species_names(tuples)
-            indices = background[slice(*row_slice), slice(*col_slice)]
-
-            output.append([indices[indices != -1], names])
-
-        return output
-
-    def mini_calculate_histograms(self):
-        """Do the minibatch calculation"""
-
-        def tf_function(func):
-            """Enable/Disbale tf.function based on self.use_tf_function"""
-            if not self.use_tf_function:  # no use of decorator
-                return func
-
-            @tf.function
-            def tf_func(*args, **kwargs):
-                """tf function."""
-                return func(*args, **kwargs)
-
-            return tf_func
-
-        @tf_function
-        def compute_species_values(indices, atoms_per_batch, start, d_ij):
-            """
-            Compute species-wise histograms
-
-            Parameters
-            ----------
-            indices
-            atoms_per_batch
-            start
-            d_ij
-
-            Returns
-            -------
-
-            """
-            rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
-
-            if self.molecules:
-                particles_list = [len(self.experiment.molecules[item]['indices']) for item in self.experiment.molecules]
-            else:
-                particles_list = [len(self.experiment.species[item]['indices']) for item in self.experiment.species]
-
-            for species_indices, key in self.mini_get_pair_indices(indices, n_atoms,
-                                                                   atoms_per_batch, start,
-                                                                   self.index_list, particles_list):
-                # iterate over the permutations between the species
-                distance_between_species = tf.gather(d_ij, species_indices)
-                distance_between_species = self._apply_system_cutoff(distance_between_species, self.cutoff)
-                bin_data = tf.histogram_fixed_width(distance_between_species, self.bin_range, self.number_of_bins)
-                rdf[key] = bin_data
-
-            return rdf
-
-        @tf_function
-        def combine_dictionaries(dict_a, dict_b):
-            """Combine two dictionaries in a tf.function call"""
-            out = dict()
-            for key in dict_a:
-                out[key] = dict_a[key] + dict_b[key]
-            return out
-
-        @tf_function
-        def run_minibatch_loop():
-            """Run a minibatch loop"""
-            start = 0
-            stop = 0
-            rdf = {name: tf.zeros(self.number_of_bins, dtype=tf.int32) for name in self.key_list}
-
-            for atoms in per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE):
-
-                atoms_per_batch = tf.shape(atoms)[0]
-                stop += atoms_per_batch
-                start_time = timer()
-                indices = self.get_partial_triu_indices(n_atoms, atoms_per_batch, start)
-                log.debug(f'Calculating indices took {timer() - start_time} s')
-
-                # apply the mask to this, to only get the triu values and don't compute anything twice
-                start_time = timer()
-                _positions = tf.gather(positions_tensor, indices[1], axis=0)
-                log.debug(f'Gathering positions_tensor took {timer() - start_time} s')
-
-                # for atoms_per_batch > 1, flatten the array according to the positions
-                start_time = timer()
-                atoms_position = tf.gather(atoms, indices[0], axis=0)
-                log.debug(f'Gathering atoms took {timer() - start_time} s')
-
-                start_time = timer()
-                r_ij = _positions - atoms_position
-                log.debug(f'Computing r_ij took {timer() - start_time} s')
-
-                # apply minimum image convention
-                start_time = timer()
-                if self.experiment.box_array is not None:
-                    r_ij -= tf.math.rint(r_ij / self.experiment.box_array) * self.experiment.box_array
-                log.debug(f'Applying minimum image convention took {timer() - start_time} s')
-
-                start_time = timer()
-                d_ij = tf.linalg.norm(r_ij, axis=-1)
-                log.debug(f'Computing d_ij took {timer() - start_time} s')
-
-                start_time = timer()
-                _rdf = compute_species_values(indices, atoms_per_batch, start, d_ij)
-                log.debug(f'Computing species values took {timer() - start_time} s')
-
-                start_time = timer()
-                rdf = combine_dictionaries(rdf, _rdf)
-                log.debug(f'Updating dictionaries took {timer() - start_time} s')
-
-                start = stop
-            return rdf
-
-        execution_time = 0
-
-        for i in tqdm(np.array_split(self.sample_configurations, self.n_batches), ncols=70):
-            log.debug('Loading Data')
-
-            positions_tensor = self._load_positions(i)
-            log.debug('Data loaded - creating dataset')
-            per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
-            # create dataset of atoms from shape (n_atoms, n_timesteps, 3)
-
-            n_atoms = tf.shape(positions_tensor)[0]
-            log.debug('Starting calculation')
-            start = timer()
-            _rdf = run_minibatch_loop()
-
-            for key in self.rdf:
-                self.rdf[key] += _rdf[key]
-
-            execution_time += timer() - start
-            log.debug('Calculation done')
-
-        self.rdf.update({key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()})
-        log.debug(f"RDF execution time: {execution_time} s")
-
-    def run_experimental_analysis(self):
-        """
-        Perform the rdf analysis
-        """
-        log.info('Starting RDF Calculation')
-        self._correct_batch_properties()
-
-        log.debug(f"Using minibatching with batch size: {self.minibatch}")
-        self.mini_calculate_histograms()
-
-        self._calculate_radial_distribution_functions()
 
     # Calculator class methods required by the parent class -- All are empty.
     def _apply_operation(self, data, index):

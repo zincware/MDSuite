@@ -300,8 +300,35 @@ def apply_savgol_filter(data: list, order: int = 2, window_length: int = 17) -> 
     return savgol_filter(data, window_length, order)
 
 
-def golden_section_search(data: np.array, a: float, b: float) -> tuple:
-    """ Perform a golden-section search for function minimums
+def closest_point(data: np.ndarray, value: float):
+    """
+    Find the value in the array closes to the value provided.
+
+    Parameters
+    ----------
+    data : float
+            Array to search.
+    value : np.ndarray
+            Value to look for.
+
+    Returns
+    -------
+
+    """
+    return min(data, key=lambda x: abs(x - value))
+
+
+def golden_section_search(data: np.array,
+                          a: float,
+                          b: float,
+                          tol: float = 1e-5,
+                          h: float = None,
+                          c: float = None,
+                          d: float = None,
+                          fc: float = None,
+                          fd: float = None) -> tuple:
+    """
+    Perform a golden-section search for function minimums
 
     The Golden-section search algorithm is one of the best min-finding algorithms available and is here used to
     the minimums of functions during analysis. For example, in the evaluation of coordination numbers the minimum
@@ -330,40 +357,24 @@ def golden_section_search(data: np.array, a: float, b: float) -> tuple:
     phi_a = 1 / golden_ratio
     phi_b = 1 / (golden_ratio ** 2)
 
-    # Get the initial range and calculate the maximum number of steps to be performed.
-    h = a - b
-    number_of_steps = int(np.ceil(np.log(1e-5 / h)) / np.log(phi_a))
+    (a, b) = (min(a, b), max(a, b))  # check for a simple error
 
-    # get the minimum jump in radii
-    c = min(data[0], key=lambda x: abs(x - a + phi_b * h))
-    d = min(data[0], key=lambda x: abs(x - a + phi_a * h))
-
-    # Calculate the function values at this point
-    fc = data[1][np.where(data[0] == c)]
-    fd = data[1][np.where(data[0] == d)]
-
-    # Perform the search
-    for k in range(number_of_steps - 1):
-        # Check for the smaller range and update the current interval.
-        if fc < fd:
-            b = d
-            d = c
-            fd = fc
-            h = phi_a * h
-            c = min(data[0], key=lambda x: abs(x - a + phi_b * h))
-            fc = data[1][np.where(data[0] == c)]
-        else:
-            a = c
-            c = d
-            fc = fd
-            h = phi_a * h
-            d = min(data[0], key=lambda x: abs(x - a + phi_a * h))
-            fd = data[1][np.where(data[0] == d)]
-
+    if h is None:
+        h = b - a
+    if h <= tol:
+        return a, b
+    if c is None:
+        c = closest_point(data[0], a + phi_b * h)
+    if d is None:
+        d = closest_point(data[0], a + phi_a * h)
+    if fc is None:
+        fc = data[1][np.where(data[0] == c)]
+    if fd is None:
+        fd = data[1][np.where(data[0] == d)]
     if fc < fd:
-        return a, d
+        return golden_section_search(data, a, d, tol, h * phi_a, c=None, fc=None, d=c, fd=fc)
     else:
-        return c, b
+        return golden_section_search(data, c, b, tol, h * phi_a, c=d, fc=fd, d=None, fd=None)
 
 
 def round_down(a: int, b: int) -> int:
@@ -441,3 +452,16 @@ def find_item(obj, key):
             item = find_item(v, key)
             if item is not None:
                 return item
+
+
+class DotDict(dict):
+    """dot.notation access to dictionary attributes
+
+    References
+    ----------
+    https://stackoverflow.com/questions/2352181/how-to-use-a-dot-to-access-members-of-dictionary
+    """
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+    __dir__ = dict.keys

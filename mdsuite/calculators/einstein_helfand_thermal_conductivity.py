@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -49,7 +49,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
     experiment.run_computation.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -60,7 +60,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 5}}
 
         self.loaded_property = 'Integrated_Heat_Current'  # Property to be loaded for the analysis
@@ -75,6 +75,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         self.prefactor: float
 
+    @call
     def __call__(self, plot=True, data_range=500, save=True, correlation_time=1,
                  export: bool = False, gpu: bool = False):
         """
@@ -95,12 +96,6 @@ class EinsteinHelfandThermalConductivity(Calculator):
                               export=export, gpu=gpu)
 
         self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
 
     def _update_output_signatures(self):
         """

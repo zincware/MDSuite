@@ -23,7 +23,7 @@ from tqdm import tqdm
 import tensorflow as tf
 import itertools
 import matplotlib.pyplot as plt
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
@@ -58,7 +58,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     experiment.run_computation.EinsteinDistinctDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
@@ -67,7 +67,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         experiment :  object
                 Experiment class to call from
         """
-        super().__init__(experiment)
+        super().__init__(**kwargs)
 
         self.scale_function = {'linear': {'scale_factor': 10}}
         self.loaded_property = 'Unwrapped_Positions'  # Property to be loaded for the analysis
@@ -80,11 +80,9 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         self.msd_array = np.zeros(self.data_range)  # define empty msd array
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
+        self.combinations = []
 
-        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
-
+    @call
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
         """
@@ -100,7 +98,12 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
                 Number of configurations to use in each ensemble
         save :
                 If true, tensor_values will be saved after the analysis
+
         """
+        if self.species is None:
+            self.species = list(self.experiment.species)
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
+
         self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
                               atom_selection=atom_selection, export=export, gpu=gpu)
 
@@ -111,11 +114,6 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             self.species = list(self.experiment.species)
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
-
-        out = self.run_analysis()
-        self.experiment.save_class()
-
-        return out
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """

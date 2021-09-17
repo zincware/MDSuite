@@ -16,16 +16,20 @@ Experiment class and instantiated when the user calls the Experiment.einstein_di
 The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
 calculations performed.
 """
+from __future__ import annotations
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
-import matplotlib.pyplot as plt
+from mdsuite.calculators.calculator import Calculator, call
 
-log = logging.getLogger(__name__)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -45,7 +49,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Attributes
     ----------
-    experiment :  object
+    experiment :  Experiment
             Experiment class to call from
     species : list
             Which species to perform the analysis on
@@ -67,23 +71,27 @@ class EinsteinDiffusionCoefficients(Calculator):
     experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Parameters
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
+        experiments :  Experiment
+                Experiment classes to call from
+        load_data :  bool
+                whether to load data or not
         """
 
-        super().__init__(experiment)
+        super().__init__(**kwargs)
         self.scale_function = {'linear': {'scale_factor': 150}}
         self.loaded_property = 'Unwrapped_Positions'
         self.species = None
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
-        self.x_label = r'$Time (s)$'
-        self.y_label = r'$MSD (m^{2})$'
+        self.x_label = 'Time (s)'
+        self.y_label = 'MSD (m$^2$)'
         self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
         self.loop_condition = False
         self.optimize = None
@@ -92,6 +100,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = list()
         log.info('starting Einstein Diffusion Computation')
 
+    @call
     def __call__(self, plot: bool = True,
                  species: list = None,
                  data_range: int = 100,
@@ -103,6 +112,8 @@ class EinsteinDiffusionCoefficients(Calculator):
                  molecules: bool = False,
                  tau_values: Union[int, List, Any] = np.s_[:],
                  gpu: bool = False):
+
+        # TODO Docstrings!!
 
         self.update_user_args(plot=plot,
                               data_range=data_range,
@@ -116,19 +127,13 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.molecules = molecules
         self.optimize = optimize
         # attributes based on user args
-        self.msd_array = np.zeros(self.data_resolution)
+        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
         if species is None:
             if molecules:
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
-
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
 
     def _update_output_signatures(self):
         """
@@ -222,20 +227,16 @@ class EinsteinDiffusionCoefficients(Calculator):
                           'information': "series"}
             self._update_properties_file(properties)
 
+        if self.export:
+            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
+                                                                                                      self.msd_array))
+
         if self.plot:
-            print(self.x_label)
-            print(self.y_label)
             plt.xlabel(rf'{self.x_label}')  # set the x label
             plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(self.time, self.msd_array, label=species)
-            plt.savefig(f'msd_{species}.svg', dpi=600)
-            plt.clf()
-
-        if self.export:
-            self._export_data(name=self._build_table_name(species),
-                              data=self._build_pandas_dataframe(self.time,
-                                                                self.msd_array))
-
+            plt.plot(np.array(self.time) * self.experiment.units['time'],
+                     self.msd_array * self.experiment.units['time'],
+                     label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
 
     def _optimized_calculation(self):
         """

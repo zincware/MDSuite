@@ -9,6 +9,7 @@ Copyright Contributors to the MDSuite Project.
 
 Parent class for MDSuite transformations
 """
+from __future__ import annotations
 import time
 from typing import Union
 import os
@@ -18,6 +19,10 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 switcher_transformations = {
     'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
@@ -51,7 +56,7 @@ class Transformations:
             memory manager for the computation.
     """
 
-    def __init__(self, experiment: object):
+    def __init__(self, experiment: Experiment):
         """
         Constructor for the experiment class
 
@@ -61,7 +66,8 @@ class Transformations:
                 Experiment class object to update
         """
         self.experiment = experiment
-        self.database = Database(name=os.path.join(self.experiment.database_path, "database.hdf5"),
+        self.database = Database(name=os.path.join(self.experiment.database_path,
+                                                   "database.hdf5"),
                                  architecture='simulation')
         self.batch_size: int
         self.n_batches: int
@@ -76,8 +82,9 @@ class Transformations:
 
     def _run_dataset_check(self, path: str):
         """
-        Check to see if the database dataset already exists. If it does, the transformation should extend the dataset
-        and add data to the end of it rather than try to add data.
+        Check to see if the database dataset already exists. If it does, the
+        transformation should extend the dataset and add data to the end of
+        it rather than try to add data.
 
         Parameters
         ----------
@@ -86,7 +93,8 @@ class Transformations:
         Returns
         -------
         outcome : bool
-                If True, the dataset already exists and should be extended. If False, a new dataset should be built.
+                If True, the dataset already exists and should be extended.
+                If False, a new dataset should be built.
         """
         return self.database.check_existence(path)
 
@@ -139,7 +147,8 @@ class Transformations:
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(argument, lambda: "Data not in database and can not be generated.")
+            choice = switcher.get(argument,
+                                  lambda: "Data not in database and can not be generated.")
             return choice
 
         transformation = _string_to_function(dependency)
@@ -158,7 +167,10 @@ class Transformations:
         else:
             return 'UnwrapCoordinates'
 
-    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+    def _update_type_dict(self,
+                          dictionary: dict,
+                          path_list: list,
+                          dimension: int):
         """
         Update a type spec dictionary.
 
@@ -176,11 +188,17 @@ class Transformations:
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None, None, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None,
+                                                                None,
+                                                                dimension),
+                                                         dtype=tf.float64)
 
         return dictionary
 
-    def _update_species_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+    def _update_species_type_dict(self,
+                                  dictionary: dict,
+                                  path_list: list,
+                                  dimension: int):
         """
         Update a type spec dictionary for a species input.
 
@@ -200,7 +218,10 @@ class Transformations:
         for item in path_list:
             species = item.split('/')[0]
             n_atoms = len(self.experiment.species[species]['indices'])
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms, None, dimension), dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms,
+                                                                None,
+                                                                dimension),
+                                                         dtype=tf.float64)
 
         return dictionary
 
@@ -214,8 +235,13 @@ class Transformations:
         """
         return int(self.remainder > 0)
 
-    def _save_coordinates(self, data: Union[tf.Tensor, np.array], index: int, batch_size: int, data_structure: dict,
-                          system_tensor: bool = True, tensor: bool = False):
+    def _save_coordinates(self,
+                          data: Union[tf.Tensor, np.array],
+                          index: int,
+                          batch_size: int,
+                          data_structure: dict,
+                          system_tensor: bool = True,
+                          tensor: bool = False):
         """
         Save the tensor_values into the database_path
 
@@ -231,8 +257,11 @@ class Transformations:
                                    system_tensor=system_tensor,
                                    tensor=tensor)
         except OSError:
-            # This is used because in Windows and in WSL we got the error that the file
-            # was still open while it should already be closed. So, we wait, and we add again.
+            """
+            This is used because in Windows and in WSL we got the error that 
+            the file was still open while it should already be closed. So, we 
+            wait, and we add again.
+            """
             time.sleep(0.5)
             self.database.add_data(data=data,
                                    structure=data_structure,
@@ -248,7 +277,8 @@ class Transformations:
         Parameters
         ----------
         data_path : list
-                List of tensor_values paths to load from the hdf5 database_path.
+                List of tensor_values paths to load from the hdf5
+                database_path.
 
         Returns
         -------

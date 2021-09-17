@@ -11,10 +11,11 @@ Atomic transformation to unwrap the simulation coordinates.
 
 Summary
 -------
-When performing analysis on the dynamics of a experiment, it often becomes necessary to reverse the effects of periodic
-boundary conditions and track atoms across the box edges. This method uses the box-jump algorithm, wherein particle
-positions jumps of more than a half of the box are counted as a crossing of the boundary, to allow the particles to
-propagate on into space.
+When performing analysis on the dynamics of a experiment, it often becomes
+necessary to reverse the effects of periodic boundary conditions and track
+atoms across the box edges. This method uses the box-jump algorithm, wherein
+particle positions jumps of more than a half of the box are counted as a crossing
+of the boundary, to allow the particles to propagate on into space.
 """
 import numpy as np
 from tqdm import tqdm
@@ -30,19 +31,25 @@ class CoordinateUnwrapper(Transformations):
     Attributes
     ----------
     experiment : object
-            The experiment class from which tensor_values will be read and in which it will be saved.
+            The experiment class from which tensor_values will be read and in
+             which it will be saved.
 
     species : list
             species of atoms to unwrap.
 
     center_box : bool
-            Decision whether or not to center the positions in the box before performing the unwrapping. The default
-            value is set to True as this is most common in simulations.
+            Decision whether or not to center the positions in the box before
+             performing the unwrapping. The default value is set to True as
+             this is most common in simulations.
     scale_function : dict
-            A dictionary referencing the memory/time scaling function of the transformation.
+            A dictionary referencing the memory/time scaling function of the
+            transformation.
     """
 
-    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
+    def __init__(self,
+                 experiment: object,
+                 species: list = None,
+                 center_box: bool = True):
         """
         Constructor for the Ionic current calculator.
 
@@ -72,11 +79,11 @@ class CoordinateUnwrapper(Transformations):
 
         """
         # collect machine properties and determine batch size
-        path = join_path(species, 'Unwrapped_Positions')  # name of the new database_path
+        path = join_path(species, 'Unwrapped_Positions')
         dataset_structure = {path: (len(self.experiment.species[species]['indices']),
                                     self.experiment.number_of_configurations,
                                     3)}
-        self.database.add_dataset(dataset_structure)  # add a new dataset to the database_path
+        self.database.add_dataset(dataset_structure)
         data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2]}}
 
         return data_structure
@@ -103,14 +110,19 @@ class CoordinateUnwrapper(Transformations):
         Cumulative image mask.
         """
         distance_tensor = self._calculate_difference_tensor(data)  # get the distance tensor
-        # Find all distance greater than half a box length and set them to integers.
-        mask = tf.cast(tf.cast(tf.greater_equal(abs(distance_tensor), np.array(self.experiment.box_array) / 2),
-                               dtype=tf.int16), dtype=tf.float64)
+        mask = tf.cast(tf.cast(tf.greater_equal(abs(distance_tensor),
+                                                np.array(self.experiment.box_array) / 2),
+                               dtype=tf.int16),
+                       dtype=tf.float64)
 
         mask = tf.multiply(tf.sign(distance_tensor), mask)  # get the correct image sign
 
-        mask = tf.map_fn(lambda x: tf.concat(([[0, 0, 0]], x), axis=0), tf.math.cumsum(mask, axis=1), dtype=tf.float64)
-        correction = tf.cast(tf.repeat(tf.expand_dims(current_state, 1), mask.shape[1], 1), dtype=tf.float64)
+        mask = tf.map_fn(lambda x: tf.concat(([[0, 0, 0]], x), axis=0),
+                         tf.math.cumsum(mask, axis=1),
+                         dtype=tf.float64)
+        correction = tf.cast(tf.repeat(tf.expand_dims(current_state, 1),
+                                       mask.shape[1], 1),
+                             dtype=tf.float64)
         corrected_mask = tf.add(mask, correction)
 
         return corrected_mask
@@ -123,11 +135,15 @@ class CoordinateUnwrapper(Transformations):
         -------
         Unwrapped coordinate positions.
         """
-        scaled_mask = mask * tf.convert_to_tensor(self.experiment.box_array, dtype=tf.float64)  # get the scaled mask
+        scaled_mask = mask * tf.convert_to_tensor(self.experiment.box_array,
+                                                  dtype=tf.float64)
 
         return data - scaled_mask  # apply the scaling
 
-    def _transformation(self, data: np.array, state: tf.Tensor, last_conf: tf.Tensor = None):
+    def _transformation(self,
+                        data: np.array,
+                        state: tf.Tensor,
+                        last_conf: tf.Tensor = None):
         """
         Perform the unwrapping transformation on the data.
 
@@ -165,10 +181,14 @@ class CoordinateUnwrapper(Transformations):
                                                   args=batch_generator_args,
                                                   output_signature=type_spec)
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        state = tf.zeros(shape=(len(self.experiment.species[species]['indices']), 3))
-        last_conf = tf.zeros(shape=(len(self.experiment.species[species]['indices']), 3))
+        state = tf.zeros(shape=(len(self.experiment.species[species]['indices']),
+                                3))
+        last_conf = tf.zeros(shape=(len(self.experiment.species[species]['indices']),
+                                    3))
         loop_correction = self._remainder_to_binary()
-        for index, x in tqdm(enumerate(data_set), ncols=70, desc=f"{species} unwrapping",
+        for index, x in tqdm(enumerate(data_set),
+                             ncols=70,
+                             desc=f"{species} unwrapping",
                              total=self.n_batches+loop_correction):
             if index == 0:
                 data, state, last_conf = self._transformation(np.array(x[str.encode(join_path(species, 'Positions'))]),
