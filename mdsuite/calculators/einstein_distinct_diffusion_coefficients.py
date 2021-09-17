@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -86,20 +85,33 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
     def __call__(self, plot: bool = False, species: list = None, data_range: int = 500, save: bool = True,
                  correlation_time: int = 1, export: bool = False, atom_selection: dict = np.s_[:], gpu: bool = False):
         """
-        Constructor for the Green Kubo diffusion coefficients class.
-
-        Attributes
+        Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
+                if true, plot the output.
         species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+
+        Returns
+        -------
+        None
 
         """
+
         if self.species is None:
             self.species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))

@@ -56,6 +56,10 @@ class RunComputation:
         ----------
         experiment: Experiment
             Experiment to run the computations for
+        experiments: List[Experiment]
+            A list of experiments passed by running the computation from the project class
+        load_data: bool, default=False
+            Do not run the computation but load the data and return a dictionary
         """
         self.experiment = experiment
         self.experiments = experiments

@@ -87,20 +87,23 @@ class GreenKuboIonicConductivity(Calculator):
     ):
         """
 
-        Attributes
+        Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
-
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+        integration_range : int
+                Range over which integration should be performed.
         """
 
         # update experiment class

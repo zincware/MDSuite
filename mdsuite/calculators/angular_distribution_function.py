@@ -99,7 +99,8 @@ class AngularDistributionFunction(Calculator, ABC):
         self.y_label = 'ADF /a.u.'
 
     @call
-    def __call__(self, batch_size: int = 1,
+    def __call__(self,
+                 batch_size: int = 1,
                  n_minibatches: int = 50,
                  n_confs: int = 5,
                  r_cut: int = 6.0,
@@ -132,18 +133,30 @@ class AngularDistributionFunction(Calculator, ABC):
         bins: int
             bins for the ADF
         use_tf_function: bool, default False
-            activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
-            may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
-            so this might only be useful for a larger number of batches.
+            activate the tf.function decorator for the minibatches. Can speed
+            up the calculation significantly, but may lead to excessive use of
+            memory! During the first batch, this function will be traced.
+            Tracing is slow, so this might only be useful for a larger number
+            of batches.
         species : list
             A list of species to use.
         norm_power: int
-            The power of the normalization factor applied to the ADF histogram. If set to zero no distance normalization
-            will be applied.
+            The power of the normalization factor applied to the ADF histogram.
+            If set to zero no distance normalization will be applied.
+        export : bool
+                If true, generate a csv file after the analysis is complete.
+        molecules : bool
+                if true, perform the anlaysis on molecules.
+        gpu : bool
+                if true, scale the memory requirements to that of the biggest
+                GPU on the machine.
+        plot : bool
+                If true, plot the result of the analysis.
 
         Notes
         -----
-        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
+        # TODO _n_batches is used instead of n_batches because the memory
+        management is not yet implemented correctly
 
         """
         # Parse the parent class arguments.
@@ -433,7 +446,7 @@ class AngularDistributionFunction(Calculator, ABC):
                 fig, ax = plt.subplots()
                 ax.plot(bin_range_to_angles, hist, label=name)
                 ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-                plt.savefig('adf_plot.pdf', dpi=600)
+                self._plot_fig(fig, ax, title=name)
 
     def run_experimental_analysis(self):
         """
@@ -448,59 +461,3 @@ class AngularDistributionFunction(Calculator, ABC):
         sample_configs, species_indices = self._prepare_data_structure()
         angles = self._build_histograms(sample_configs, species_indices)
         self._compute_adfs(angles, species_indices)
-
-    def _calculate_prefactor(self, species: str = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
-
-    def _post_operation_processes(self, species: str = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        pass
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass

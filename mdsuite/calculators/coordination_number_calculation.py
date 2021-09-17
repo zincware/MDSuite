@@ -95,8 +95,30 @@ class CoordinationNumbers(Calculator):
     @call
     def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
                  savgol_order: int = 2, savgol_window_length: int = 17):
+        """
 
-        # TODO docstrings
+        Parameters
+        ----------
+        plot : bool (default=True)
+                            Decision to plot the analysis.
+        save : bool (default=True)
+                            Decision to save the generated tensor_values arrays.
+
+        data_range : int (default=500)
+                            Range over which the property should be evaluated.
+                            This is not applicable to the current analysis as
+                            the full rdf will be calculated.
+        export : bool
+                If true, export the data directly to a csv.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
+
+        Returns
+        -------
+        None.
+        """
 
         # Calculate the rdf if it has not been done already
         if self.experiment.radial_distribution_function_state is False:
@@ -266,59 +288,3 @@ class CoordinationNumbers(Calculator):
             if self.export:
                 self._export_data(name=self._build_table_name(self.species_tuple),
                                   data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
