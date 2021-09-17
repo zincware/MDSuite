@@ -83,7 +83,7 @@ class Project(ProjectDatabase):
         if name is None:
             self.name = f"MDSuite_Project"
         else:
-            self.name = f"MDSuite_Project_{name}"
+            self.name = name
         self.storage_path = storage_path
 
         # Properties
