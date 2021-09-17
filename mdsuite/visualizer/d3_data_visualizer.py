@@ -26,6 +26,9 @@ class DataVisualizer3D:
         self.data =data
         self.title = title
 
+        self.point_cloud = o3d.geometry.PointCloud()
+        self.point_cloud.points = o3d.utility.Vector3dVector(self.data)
+
     def plot(self):
         """
         Plot the data.
@@ -34,4 +37,4 @@ class DataVisualizer3D:
         -------
 
         """
-        o3d.visualization.draw_geometries([self.data])
+        o3d.visualization.draw_geometries([self.point_cloud])

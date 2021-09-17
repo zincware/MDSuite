@@ -100,7 +100,8 @@ class MolecularMap(Transformations):
         Parameters
         ----------
         species_dict : dict
-                Dictionary of species information along with number of species present in the system.
+                Dictionary of species information along with number of species
+                present in the system.
         Returns
         -------
         mass : float

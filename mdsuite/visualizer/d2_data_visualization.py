@@ -10,6 +10,7 @@ Description: Visualize a simulation.
 """
 import numpy as np
 import plotly.graph_objects as go
+from bokeh.plotting import figure, show
 
 
 class DataVisualizer2D:
@@ -60,20 +61,7 @@ class DataVisualizer2D:
         -------
 
         """
-        fig = go.Figure(go.Scatter(
-            mode='lines+markers',
-            y=self.data[:, 1],
-            x=self.data[:, 0]),
-        layout_title_text=self.title)
-
-        fig.update_xaxes(
-            title_text=self.x_label,
-            title_font={"size": 10},
-            title_standoff=10)
-
-        fig.update_yaxes(
-            title_text=self.y_label,
-            title_standoff=10)
-
-        fig.show()
+        fig = figure(
+            title=self.title, x_axis_label=self.x_label, y_axis_label=self.y_label
+        )
 

@@ -163,7 +163,8 @@ class SpatialDistributionFunction(Calculator):
         """
         Run the visualizer.
         """
-        visualizer = DataVisualizer3D(data=plot_data, title='test')
+        visualizer = DataVisualizer3D(data=plot_data.numpy(), title='test')
+        visualizer.plot()
 
     # Calculator class methods required by the parent class -- All are empty.
     def _apply_operation(self, data, index):
