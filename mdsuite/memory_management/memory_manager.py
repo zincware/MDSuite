@@ -19,7 +19,7 @@ import sys
 from typing import Tuple
 import tensorflow as tf
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class MemoryManager:

@@ -81,3 +81,20 @@ def test_add_file_from_dict(traj_files, tmp_path):
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
+
+
+def test_multiple_experiments(tmp_path):
+    """Test the paths within the experiment classes"""
+    os.chdir(tmp_path)
+
+    project = mds.Project()
+
+    project.add_experiment("Test01")
+    project.add_experiment("Test02")
+
+    project_loaded = mds.Project()
+
+    assert project.experiments.Test01.experiment_path == project_loaded.experiments.Test01.experiment_path
+    assert project.experiments.Test02.experiment_path == project_loaded.experiments.Test02.experiment_path
+
+
