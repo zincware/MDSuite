@@ -429,18 +429,13 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            self.selected_species = [_species[0] for _species in species]
+
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
             if self.save or self.export:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": [_species[0] for _species in species],
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
-                              }
-                self._update_properties_file(properties, delete_duplicate=False)
-                log.warning("Delete duplicates is not supported for calculators "
-                            "that involve more then 3 species!")
+                data = [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)]
+                self.save_to_db(data)
 
             if self.plot:
                 fig, ax = plt.subplots()

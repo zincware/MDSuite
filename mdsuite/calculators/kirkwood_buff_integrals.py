@@ -71,7 +71,6 @@ class KirkwoodBuffIntegral(Calculator):
         self.data_files = []
         self.rdf = None
         self.radii = None
-        self.species_tuple = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
         self.x_label = r"r ($\AA$)"
@@ -130,7 +129,7 @@ class KirkwoodBuffIntegral(Calculator):
         """
 
         for data in self._get_rdf_data():  # Loop over all existing RDFs
-            self.species_tuple = "_".join(data.subjects)
+            self.selected_species = data.subjects
             self.data_range = data.data_range
 
             self._load_rdf_from_file(data)  # load the tensor_values from it
@@ -140,24 +139,21 @@ class KirkwoodBuffIntegral(Calculator):
             # Plot if required
             if self.plot:
                 plt.plot(
-                    self.radii[1:], self.kb_integral, label=f"{self.species_tuple}"
+                    self.radii[1:],
+                    self.kb_integral,
+                    label="_".join(self.selected_species),
                 )
-                self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
+                self._plot_data(
+                    title=f"{self.analysis_name}_{'_'.join(self.selected_species)}"
+                )
 
             if self.save or self.export:
                 data = [
                     {"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)
                 ]
                 log.debug(f"Writing {self.analysis_name} to database!")
-                self._update_properties_file(
-                    {
-                        "Property": self.system_property,
-                        "Analysis": self.analysis_name,
-                        "subjects": self.species_tuple.split("_"),
-                        "data_range": self.data_range,
-                        "data": data,
-                    }
-                )
+
+                self.save_to_db(data)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """

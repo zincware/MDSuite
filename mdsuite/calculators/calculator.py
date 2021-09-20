@@ -23,6 +23,7 @@ import sys
 import matplotlib.figure
 import matplotlib.pyplot as plt
 from matplotlib.axes._subplots import Axes
+from mdsuite.database.calculator_database import Parameters
 from pathlib import Path
 import tensorflow as tf
 import pandas as pd
@@ -189,7 +190,8 @@ class Calculator(CalculatorDatabase):
         self.scale_function = None
         self.batch_output_signature = None
         self.ensemble_output_signature = None
-        self.species = None
+        self.species = None  # all species
+        self.selected_species = None  # the selected species to peform the calculation on
         self.database_group = None
         self.analysis_name = None
         self.tau_values = None
@@ -947,6 +949,30 @@ class Calculator(CalculatorDatabase):
             pass
         else:
             return self.perform_computation()
+
+    def save_to_db(self, data: List[dict], subjects: list = None):
+        """Save calculation results to the database
+
+        Parameters
+        ----------
+        data: List[dict]
+            A list of dictionaries containing the keys and values of the respective data.
+            E.g. [{x: 5}, {x: 7}, {x: 11}, {val: 15, uncert: 0.12}]
+        subjects: list
+            A list of the species that are associated with the results.
+            Note: selected_species should be preferred over passing the subjects argument.
+        """
+        if subjects is None:
+            subjects = self.selected_species
+
+        params = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=data,
+            Subject=subjects)
+
+        self.update_database(params)
 
     @property
     def dtype(self):

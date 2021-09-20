@@ -73,7 +73,7 @@ def test_pomf_project(traj_files, true_values, tmp_path):
 
     data_dict = project.load.PotentialOfMeanForce()["NaCl"][0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict['pomf'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
 
 
@@ -88,5 +88,5 @@ def test_pomf_experiment(traj_files, true_values, tmp_path):
 
     data_dict = project.experiments['NaCl'].load.PotentialOfMeanForce()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict['pomf'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

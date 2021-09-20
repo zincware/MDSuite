@@ -340,6 +340,8 @@ class RadialDistributionFunction(Calculator, ABC):
         Updates the class state
         """
         for names in self.key_list:
+            self.selected_species = names.split("_")
+            # TODO use selected_species instead of names, it is more clear!
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
 
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
@@ -355,14 +357,7 @@ class RadialDistributionFunction(Calculator, ABC):
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
 
-                params = Parameters(
-                    Property=self.database_group,
-                    Analysis=self.analysis_name,
-                    data_range=self.data_range,
-                    data=data,
-                    Subject=names.split("_"))
-
-                self.update_database(params)
+                self.save_to_db(data)
             if self.export:
                 self._export_data(name=self._build_table_name(names),
                                   data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),

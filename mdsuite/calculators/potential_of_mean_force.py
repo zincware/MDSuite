@@ -58,7 +58,7 @@ class PotentialOfMeanForce(Calculator):
                         rdf tensor_values being studied.
     radii = None : list
                         radii tensor_values corresponding to the rdf.
-    species_tuple : list
+    selected_species : list
                         A list of species combinations being studied.
 
     See Also
@@ -87,7 +87,6 @@ class PotentialOfMeanForce(Calculator):
         self.file_to_study = None
         self.rdf = None
         self.radii = None
-        self.species_tuple = None
         self.pomf = None
         self.indices = None
         self.database_group = 'Potential_Of_Mean_Force'
@@ -184,22 +183,13 @@ class PotentialOfMeanForce(Calculator):
         pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]]) / np.sqrt(2)
 
-        # Update the experiment class
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": self.species_tuple.split('_'),
-                      "data_range": self.data_range,
-                      'data': [{'x': pomf_value, 'uncertainty': pomf_error}]
-                      }
-        self._update_properties_file(properties)
-
         return pomf_value, pomf_error
 
     def _plot_fits(self, data: list):
         """
         Plot the predicted minimum value before parsing the other tensor_values for plotting
         """
-        plt.plot(self.radii, self.pomf, label=fr'{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
+        plt.plot(self.radii, self.pomf, label=fr'{"_".join(self.selected_species)}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
         plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
     def run_post_generation_analysis(self):
@@ -211,31 +201,28 @@ class PotentialOfMeanForce(Calculator):
 
         for data in self._get_rdf_data():
             self.file_to_study = data  # Set the correct tensor_values file in the class
-            self.species_tuple = "_".join(data.subjects)
+            self.selected_species = data.subjects
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load up the tensor_values
             log.debug(f'rdf: {self.rdf} \t radii: {self.radii}')
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
-            _data = self._get_pomf_value()  # Determine the min values of the function and update experiment
+            pomf_value, pomf_error = self._get_pomf_value()  # Determine the min values of the function and update experiment
 
             # Update the experiment class
 
+            data = [{'pomf': pomf_value, 'uncertainty': pomf_error}]
+
             if self.save:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": self.species_tuple.split('_'),
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)],
-                              'information': 'series'
-                              }
-                self._update_properties_file(properties)
+                data += [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)]
+
+            self.save_to_db(data)
 
             if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
+                self._export_data(name=self._build_table_name("_".join(self.selected_species)),
                                   data=self._build_pandas_dataframe(self.radii, self.pomf))
 
             if self.plot:
-                self._plot_fits(_data)
+                self._plot_fits([pomf_value, pomf_error])
 
         if self.plot:
             plt.legend()
