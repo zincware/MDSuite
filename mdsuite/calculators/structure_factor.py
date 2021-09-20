@@ -11,20 +11,17 @@ Class for the calculation of the total structure factor for X-rays using the Fab
  """
 import logging
 import numpy as np
-import os
 import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 import matplotlib.pyplot as plt
-from typing import Union
 from tqdm import tqdm
 
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
-from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
+
 
 plt.rcParams['figure.facecolor'] = 'white'
 

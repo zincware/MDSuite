@@ -14,10 +14,8 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.exceptions import ElementMassAssignedZero
-from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.utils.meta_functions import join_path
 
-from io import UnsupportedOperation
 from tqdm import tqdm
 from pathlib import Path
 import pubchempy as pcp
@@ -207,13 +205,6 @@ class ExperimentAddingFiles:
                                   flux=flux,
                                   n_atoms=self.number_of_atoms,
                                   sort=sort)
-
-        # analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
-        # analysis_database.build_database()
-        property_database = PropertiesDatabase(name=Path(self.database_path, "property_database").as_posix())
-        property_database.build_database()
-
-        # self.save_class()  # Update the class state
 
     def build_species_dictionary(self):
         """
