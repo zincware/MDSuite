@@ -16,7 +16,6 @@ import numpy as np
 from mdsuite.utils.meta_functions import join_path
 import open3d as o3d
 import open3d.visualization.gui as gui
-import open3d.visualization.rendering as rendering
 
 
 class SimulationVisualizer:
@@ -116,7 +115,7 @@ class SimulationVisualizer:
         Return a mesh object coloured by element.
         """
         mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
-                                                       resolution=5)
+                                                       resolution=40)
         mesh.compute_vertex_normals()
         mesh.translate(location)
         mesh.paint_uniform_color(colour)
