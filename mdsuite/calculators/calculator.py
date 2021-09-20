@@ -332,7 +332,7 @@ class Calculator(CalculatorDatabase):
         -------
 
         """
-        raise NotImplementedError
+        pass
 
     @staticmethod
     def _fit_einstein_curve(data: list):
