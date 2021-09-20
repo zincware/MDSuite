@@ -46,7 +46,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
+    experiment.run.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
     def __init__(self, **kwargs):

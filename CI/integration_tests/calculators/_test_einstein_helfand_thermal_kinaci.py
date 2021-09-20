@@ -70,9 +70,9 @@ def test_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.EinsteinHelfandThermalKinaci(plot=False)
+    project.run.EinsteinHelfandThermalKinaci(plot=False)
 
-    data_dict = project.load_data.EinsteinHelfandThermalKinaci()[0].data_dict
+    data_dict = project.load.EinsteinHelfandThermalKinaci()[0].data_dict
 
     data = Path(
         r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\einstein_helfand_thermal_kinaci.json')
@@ -90,9 +90,9 @@ def test_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.EinsteinHelfandThermalKinaci(plot=False)
+    project.experiments['NaCl'].run.EinsteinHelfandThermalKinaci(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.EinsteinHelfandThermalKinaci()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.EinsteinHelfandThermalKinaci()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

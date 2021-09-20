@@ -127,9 +127,10 @@ class CalculatorDatabase:
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""
+        # TODO replace with exp.load.RDF()
         with self.experiment.project.session as ses:
             computations = ses.query(db.Computation).filter(
-                db.Computation.computation_attributes.any(str_value="RDF", name="Property")
+                db.Computation.computation_attributes.any(str_value="Radial_Distribution_Function", name="Property")
             ).all()
 
             for computation in computations:
