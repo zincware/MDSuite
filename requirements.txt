@@ -22,3 +22,5 @@ pandas
 IPython
 pandoc
 tensorflow_probability
+open3d
+bokeh
