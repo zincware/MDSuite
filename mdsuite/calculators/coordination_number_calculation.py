@@ -22,7 +22,7 @@ from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class CoordinationNumbers(Calculator):

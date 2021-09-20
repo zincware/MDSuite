@@ -43,7 +43,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 def call(func):

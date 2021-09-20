@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Dict, List
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class Project(ProjectDatabase):
@@ -114,7 +114,7 @@ class Project(ProjectDatabase):
         return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
     def add_experiment(self, experiment: str = None, timestep: float = None, temperature: float = None,
-                       units: str = None, cluster_mode: bool = None, active: bool = True,
+                       units: Union[str, dict] = None, cluster_mode: bool = None, active: bool = True,
                        data: Union[str, list, dict] = None):
         """
         Add an experiment to the project
