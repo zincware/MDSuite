@@ -60,4 +60,8 @@ class DataVisualizer3D:
         -------
 
         """
-        self.vis.draw_geometries([self.point_cloud])
+        #self.vis.draw_geometries([self.point_cloud])
+        self.vis.add_geometry("Points", self.point_cloud)
+
+        self.vis.reset_camera_to_default()
+        self.app.run()

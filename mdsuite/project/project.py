@@ -17,23 +17,16 @@ compare the results of the analysis on that experiment.
 """
 from __future__ import annotations
 import logging
-import os
-import pickle
 from datetime import datetime
 from pathlib import Path
 from typing import Union
-import shutil
-from mdsuite.experiment import Experiment
-from mdsuite.utils.meta_functions import DotDict, simple_file_read, find_item
+from mdsuite.utils.meta_functions import DotDict
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
-from dataclasses import make_dataclass
+from mdsuite.experiment import Experiment
 
 from typing import TYPE_CHECKING, Dict, List
-
-if TYPE_CHECKING:
-    from mdsuite.experiment import Experiment
 
 log = logging.getLogger(__name__)
 
@@ -42,9 +35,11 @@ class Project(ProjectDatabase):
     """
     Class for the main container of all experiments.
 
-    The Project class acts as the encompassing class for analysis with MDSuite. It contains all method required to add
-    and analyze new experiments. These experiments may then be compared with one another quickly. The state of the class
-    is saved and updated after each operation in order to retain the most current state of the analysis.
+    The Project class acts as the encompassing class for analysis with MDSuite.
+    It contains all method required to add and analyze new experiments. These
+    experiments may then be compared with one another quickly. The state of the
+    class is saved and updated after each operation in order to retain the
+    most current state of the analysis.
 
     Attributes
     ----------
@@ -55,9 +50,9 @@ class Project(ProjectDatabase):
             A short description of the project
 
     storage_path : str
-            Where to store the tensor_values and databases. This may not simply be the current directory if the
-            databases are expected to be quite large.
-
+            Where to store the tensor_values and databases. This may not simply
+            be the current directory if the databases are expected to be
+            quite large.
     experiments : dict
             A dict of class objects. Class objects are instances of the experiment class for different
             experiments.
@@ -67,17 +62,18 @@ class Project(ProjectDatabase):
         """
         Project class constructor
 
-        The constructor will check to see if the project already exists, if so, it will load the state of each of the
-        classes so that they can be used again. If the project is new, the constructor will build the necessary file
-        structure for the project.
+        The constructor will check to see if the project already exists, if so,
+        it will load the state of each of the classes so that they can be used
+        again. If the project is new, the constructor will build the necessary
+        file structure for the project.
 
         Parameters
         ----------
         name : str
                 The name of the project.
         storage_path : str
-                Where to store the tensor_values and databases. This should be a place with sufficient storage space
-                for the full analysis.
+                Where to store the tensor_values and databases. This should be
+                a place with sufficient storage space for the full analysis.
         """
         super().__init__()
         if name is None:
@@ -122,7 +118,8 @@ class Project(ProjectDatabase):
         Parameters
         ----------
         data:
-            data that should be added to the experiment. If dict, {file:<file>, format:<format>}
+            data that should be added to the experiment. If dict,
+            {file:<file>, format:<format>}
         active: bool, default = True
                 Activate the experiment when added
         cluster_mode : bool
@@ -132,7 +129,8 @@ class Project(ProjectDatabase):
         timestep : float
                 Timestep used during the simulation.
         temperature : float
-                Temperature the simulation was performed at and is to be used in calculation.
+                Temperature the simulation was performed at and is to be used
+                in calculation.
         units : str
                 LAMMPS units used
         """
@@ -197,11 +195,12 @@ class Project(ProjectDatabase):
 
         Parameters
         ----------
-        names: Name or list of names of experiments that should be instantiated and loaded into self.experiments
+        names: Name or list of names of experiments that should be instantiated
+               and loaded into self.experiments.
 
         Returns
         -------
-
+        Updates the class state.
         """
 
         if isinstance(names, str):
@@ -215,7 +214,8 @@ class Project(ProjectDatabase):
 
         Parameters
         ----------
-        names: Name or list of names of experiments that should be instantiated and loaded into self.experiments
+        names: Name or list of names of experiments that should be instantiated
+               and loaded into self.experiments
 
         Returns
         -------
@@ -230,16 +230,19 @@ class Project(ProjectDatabase):
 
     def add_data(self, data_sets: dict, file_format='lammps_traj'):
         """
-        Add data to an experiment. This is a method so that parallelization is possible amongst data addition to
-        different experiments at the same time.
+        Add data to an experiment. This is a method so that parallelization is
+        possible amongst data addition to different experiments at the same
+        time.
 
         Parameters
         ----------
         data_sets: dict
-            Dictionary containing the name of the experiment as key and the data path as value
+            Dictionary containing the name of the experiment as key and the
+            data path as value
         file_format: dict or str
-            Dictionary containing the name of the experiment as key and the file_format as value.
-            Alternativly only a string of the file_format if all files have the same format.
+            Dictionary containing the name of the experiment as key and the
+            file_format as value. Alternativly only a string of the
+            file_format if all files have the same format.
 
         Returns
         -------
@@ -278,7 +281,9 @@ class Project(ProjectDatabase):
             if called, return List[db.Computation]
 
         """
-        return RunComputation(experiments=[x for x in self.experiments.values()], load_data=True)
+        return RunComputation(
+            experiments=[x for x in self.experiments.values()], load_data=True
+        )
 
     # def get_results(self, key_to_find):
     #     """

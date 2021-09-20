@@ -386,6 +386,7 @@ class Calculator(CalculatorDatabase):
 
         return [np.mean(fits), np.std(fits)]
 
+    @staticmethod
     def _update_species_type_dict(dictionary: dict,
                                   path_list: list,
                                   dimension: int):
@@ -412,6 +413,7 @@ class Calculator(CalculatorDatabase):
 
         return dictionary
 
+    @staticmethod
     def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
         """
         Build a pandas dataframe with x and y data.

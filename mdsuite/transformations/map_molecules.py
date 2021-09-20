@@ -244,7 +244,8 @@ class MolecularMap(Transformations):
         Returns
         -------
         group_dict : dict
-                A dictionary of atoms and indices that specify that indices of this species is in a molecule.
+                A dictionary of atoms and indices that specify that indices of
+                this species is in a molecule.
         """
         indices_dict = {}
         lengths = []
@@ -277,5 +278,7 @@ class MolecularMap(Transformations):
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
-        self.experiment.perform_transformation('WrapCoordinates', species=[item for item in self.molecules])
+        self.experiment.perform_transformation(
+            'WrapCoordinates', species=[item for item in self.molecules]
+        )
         self.experiment.save_class()

@@ -256,12 +256,11 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
                 min(self.vacf),
                 max(self.vacf),
             )
-            plt.plot(
-                np.array(self.time) * self.experiment.units["time"],
-                self.vacf,
-                label=fr"{species}: {np.mean(result): .3E} $\pm$ "
-                fr"{np.std(result) / (np.sqrt(len(result))): .3E}",
-            )
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.vacf,
+                title=fr"{species}: {np.mean(result): .3E} $\pm$ "
+                fr"{np.std(result) / (np.sqrt(len(result))): .3E}")
 
         if self.save:
             properties = {

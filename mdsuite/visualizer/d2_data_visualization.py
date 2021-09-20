@@ -76,7 +76,6 @@ class DataVisualizer2D:
             title=title, x_axis_label=x_label, y_axis_label=y_label
         )
         fig.line(x_data, y_data)
-
         fig.add_tools(HoverTool())
 
         return fig
