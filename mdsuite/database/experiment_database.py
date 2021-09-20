@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 
 import mdsuite.database.scheme as db
-from mdsuite.database.scheme import Project, Experiment, ExperimentAttribute, Species, SpeciesData
+from mdsuite.database.scheme import Project, Experiment, ExperimentAttribute
 from mdsuite.utils.database import get_or_create
 import pandas as pd
 
@@ -118,7 +118,8 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            temperature: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment, name="temperature")
+            temperature: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
+                                                             name="temperature")
             temperature.value = value
             ses.commit()
 
@@ -141,7 +142,8 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            time_step: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment, name="time_step")
+            time_step: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
+                                                           name="time_step")
             time_step.value = value
             ses.commit()
 
@@ -177,7 +179,8 @@ class ExperimentDatabase:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_configurations = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
+            number_of_configurations = ses.query(ExperimentAttribute).filter(
+                ExperimentAttribute.experiment == experiment).filter(
                 ExperimentAttribute.name == "number_of_configurations").first()
         try:
             return int(number_of_configurations.value)
@@ -191,7 +194,8 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_configurations: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
+            number_of_configurations: ExperimentAttribute = get_or_create(ses, ExperimentAttribute,
+                                                                          experiment=experiment,
                                                                           name="number_of_configurations")
             number_of_configurations.value = value
             ses.commit()
@@ -201,7 +205,8 @@ class ExperimentDatabase:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_atoms = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
+            number_of_atoms = ses.query(ExperimentAttribute).filter(
+                ExperimentAttribute.experiment == experiment).filter(
                 ExperimentAttribute.name == "number_of_atoms").first()
         try:
             return int(number_of_atoms.value)
@@ -239,7 +244,8 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            sample_rate: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment, name="sample_rate")
+            sample_rate: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
+                                                             name="sample_rate")
             sample_rate.value = value
             ses.commit()
 
@@ -293,19 +299,11 @@ class ExperimentDatabase:
 
     @property
     def species(self):
-        species_dict = {}
+        """Get species
+        """
         with self.project.session as ses:
             experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
-            for species in experiment.species:
-                species_dict.update({
-                    species.name: {
-                        "indices": species.indices,
-                        "mass": species.mass,
-                        "charge": species.charge,
-                        "particle_density": species.particle_density,
-                        "molar_fraction": species.molar_fraction
-                    }
-                })
+            species_dict = experiment.species
 
         return species_dict
 
@@ -326,25 +324,35 @@ class ExperimentDatabase:
         if value is None:
             return
         with self.project.session as ses:
+            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
             for species_name in value:
-                experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
-                species = get_or_create(ses, Species, name=species_name, experiment=experiment)
+                species = ses.query(db.ExperimentAttribute).filter(
+                    db.ExperimentAttribute.name == "species").join(
+                    db.ExperimentAttribute.experiment_attribute_lists).filter(
+                    db.ExperimentAttributeList.name == species_name).first()
+
+                if species is None:
+                    log.debug(f"Creating new species db entry for {species_name}.")
+                    species = db.ExperimentAttribute(experiment=experiment, name="species")
+                    db_species_name = db.ExperimentAttributeList(experiment_attribute=species, name="name",
+                                                                 str_value=species_name)
+                    ses.add(species)
+                    ses.add(db_species_name)
+
                 for species_attr, species_values in value[species_name].items():
                     try:
-                        for idx, species_value in enumerate(species_values):
-                            _ = get_or_create(
-                                ses, SpeciesData,
-                                name=species_attr, species=species, value=species_value
-                            )
+                        for species_value in species_values:
+                            x = db.ExperimentAttributeList(experiment_attribute=species, name=species_attr,
+                                                           value=species_value)
+                            ses.add(x)
+
                     except TypeError:
                         # e.g., float or int values that are not iterable
                         if species_values is not None:
                             log.warning(f"Updating {species_attr} with {species_values}")
-                            _ = get_or_create(
-                                ses, SpeciesData,
-                                name=species_attr, species=species, value=species_values
-                            )
-
+                            x = db.ExperimentAttributeList(experiment_attribute=species, name=species_attr,
+                                                           value=species_values)
+                            ses.add(x)
             ses.commit()
 
     @property

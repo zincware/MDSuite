@@ -95,6 +95,7 @@ def call(func):
                     {"Analysis": self.analysis_name, "experiment": self.experiment.name}
                 )
             else:
+                self.prepare_db_entry()
                 out[self.experiment.name] = self.run_analysis()
 
         if return_dict:

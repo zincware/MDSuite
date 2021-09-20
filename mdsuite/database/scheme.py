@@ -12,6 +12,9 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.exc import DetachedInstanceError
+from dataclasses import dataclass, field, asdict
+
+from typing import List
 
 import numpy as np
 
@@ -46,7 +49,7 @@ class Experiment(Base):
                                          back_populates='experiment')
 
     computations = relationship("Computation")
-    species = relationship("Species")
+    # species = relationship("Species")
 
     def __repr__(self):
         """
@@ -59,8 +62,16 @@ class Experiment(Base):
         """
         return f"{self.id}: {self.name}"
 
+    @property
+    def species(self):
+        species_dict = {}
+        for experiment_attribute in self.experiment_attributes:
+            if experiment_attribute.name == "species":
+                species_dict.update(experiment_attribute.species_data)
 
-# TODO consider renaming ExperimentAttributes in accordance to ComputationAttributes
+        return species_dict
+
+
 class ExperimentAttribute(Base):
     """
     Class for the experiment data table.
@@ -88,76 +99,139 @@ class ExperimentAttribute(Base):
     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates='experiment_attributes')
 
+    experiment_attribute_lists = relationship(
+        "ExperimentAttributeList",  # Name of the related class
+        cascade='all, delete',
+        back_populates='experiment_attribute'  # Attribute of the related class/relationship
+    )
+
     def __repr__(self):
         if self.value is not None:
             return f"{self.value}"
         elif self.str_value is not None:
             return self.str_value
         else:
-            return None
-
-
-class Species(Base):
-    __tablename__ = 'species'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-
-    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
-    experiment = relationship("Experiment", back_populates='species')
-
-    species_data = relationship("SpeciesData")
+            return f"{self.name}"
 
     @property
-    def indices(self) -> list:
-        indices = []
-        for species_data in self.species_data:
-            if species_data.name == "indices":
-                indices.append(int(species_data.value))
-        return indices
-
-    @property
-    def mass(self) -> list:
-        mass = []
-        for species_data in self.species_data:
-            if species_data.name == "mass":
-                mass.append(species_data.value)
-        return mass
-
-    @property
-    def charge(self) -> list:
-        charge = []
-        for species_data in self.species_data:
-            if species_data.name == "charge":
-                charge.append(species_data.value)
-        return charge
-
-    @property
-    def particle_density(self) -> float:
-        for species_data in self.species_data:
-            if species_data.name == "particle_density":
-                return species_data.value
-        return None
-
-    @property
-    def molar_fraction(self) -> float:
-        for species_data in self.species_data:
-            if species_data.name == "molar_fraction":
-                return species_data.value
-        return None
+    def species_data(self) -> dict:
+        """If the object is of type species, get the species information
 
 
-#      TODO consider adding species data as a function here!
+        Returns
+        -------
+
+        A dictionary of type {name: {indices: [...], {mass: ...}}
+        """
+
+        if self.name != "species":
+            raise ValueError(f"Object with name {self.name} does not have species_data!")
+
+        @dataclass
+        class SpeciesAttributes:
+            """All attributes a species object has
+
+            This is required to distinguish between iterables and non-iterables
+            """
+            indices: List[int] = field(default_factory=list)
+            mass: list = field(default_factory=list)
+            charge: list = field(default_factory=list)
+            particle_density: float = None
+            molar_fraction: float = None
+
+        species_dict = asdict(SpeciesAttributes())
+        name = None
+
+        for species_data in self.experiment_attribute_lists:
+            if species_data.name in species_dict:
+                if isinstance(species_dict[species_data.name], list):
+                    if species_data.name == "indices":
+                        species_dict[species_data.name].append(int(species_data.value))
+                    else:
+                        species_dict[species_data.name].append(species_data.value)
+                else:
+                    species_data[species_data.name] = species_data.value
+            elif species_data.name == "name":
+                name = species_data.str_value
+
+        return {name: species_dict}
 
 
-class SpeciesData(Base):
-    __tablename__ = 'species_data'
+class ExperimentAttributeList(Base):
+    """Store lists of data for ExperimentAttributes"""
+
+    __tablename__ = 'experiment_attribute_lists'
+
     id = Column(Integer, primary_key=True)
     name = Column(String)
     value = Column(Float, nullable=True)
     str_value = Column(String, nullable=True)
 
-    species_id = Column(Integer, ForeignKey('species.id', ondelete="CASCADE"))
-    species = relationship("Species", back_populates='species_data')
+    experiment_attribute_id = Column(Integer, ForeignKey('experiment_attributes.id', ondelete="CASCADE"))
+    experiment_attribute = relationship("ExperimentAttribute", back_populates='experiment_attribute_lists')
+
+
+# class Species(Base):
+#     __tablename__ = 'species'
+#     id = Column(Integer, primary_key=True)
+#     name = Column(String)
+#
+#     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
+#     experiment = relationship("Experiment", back_populates='species')
+#
+#     species_data = relationship("SpeciesData")
+#
+#     @property
+#     def indices(self) -> list:
+#         indices = []
+#         for species_data in self.species_data:
+#             if species_data.name == "indices":
+#                 indices.append(int(species_data.value))
+#         return indices
+#
+#     @property
+#     def mass(self) -> list:
+#         mass = []
+#         for species_data in self.species_data:
+#             if species_data.name == "mass":
+#                 mass.append(species_data.value)
+#         return mass
+#
+#     @property
+#     def charge(self) -> list:
+#         charge = []
+#         for species_data in self.species_data:
+#             if species_data.name == "charge":
+#                 charge.append(species_data.value)
+#         return charge
+#
+#     @property
+#     def particle_density(self) -> float:
+#         for species_data in self.species_data:
+#             if species_data.name == "particle_density":
+#                 return species_data.value
+#         return None
+#
+#     @property
+#     def molar_fraction(self) -> float:
+#         for species_data in self.species_data:
+#             if species_data.name == "molar_fraction":
+#                 return species_data.value
+#         return None
+#
+#
+# #      TODO consider adding species data as a function here!
+#
+#
+# class SpeciesData(Base):
+#     __tablename__ = 'species_data'
+#     id = Column(Integer, primary_key=True)
+#     name = Column(String)
+#     value = Column(Float, nullable=True)
+#     str_value = Column(String, nullable=True)
+#
+#     species_id = Column(Integer, ForeignKey('species.id', ondelete="CASCADE"))
+#     species = relationship("Species", back_populates='species_data')
 
 
 class Computation(Base):

@@ -36,6 +36,47 @@ class Parameters:
 class CalculatorDatabase:
     def __init__(self, experiment):
         self.experiment: Experiment = experiment
+        self.db_computation: db.Computation = None
+        self.database_group = None
+        self.analysis_name = None
+
+        # List of computation attributes that will be added to the database when it is written
+        self.db_computation_attributes = []
+
+    def prepare_db_entry(self):
+        """Prepare a database entry based on the attributes defined in the init"""
+        with self.experiment.project.session as ses:
+            experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
+
+        self.db_computation = db.Computation(experiment=experiment)
+        self.db_computation.name = self.analysis_name
+
+    def update_db_entry_with_args(self, **kwargs):
+        """Update the database entry with the given user args/kwargs
+
+        Parameters
+        ----------
+        kwargs: all arguments that are passed to the call method and should be stored in the database
+
+
+        Notes
+        -----
+        This does require kwargs, args do not work!
+
+        """
+        for key, val in kwargs.items():
+            setattr(self, key, val)
+
+            computation_attribute = db.ComputationAttribute(
+                computation=self.db_computation,
+                name=key,
+                str_value=str(val)
+            )
+
+            self.db_computation_attributes.append(computation_attribute)
+
+    def save_db_data(self, data):
+        pass
 
     def update_database(self, parameters: Union[dict, Parameters], delete_duplicate: bool = True):
         """
@@ -145,64 +186,3 @@ class CalculatorDatabase:
 
         self.radii = np.array(computation.data_dict['x']).astype(float)[1:]
         self.rdf = np.array(computation.data_dict['y']).astype(float)[1:]
-
-    # @property
-    # def data(self) -> np.ndarray:
-    #     """
-    #
-    #     Returns
-    #     -------
-    #     object that contains `
-    #
-    #     """
-    #     with self.experiment.project.session as ses:
-    #         ses.query(db.Computation)
-    #
-    #     return 0
-    #
-    # # if delete_duplicate:
-    # #     self._delete_duplicate_rows(parameters)
-    # # else:
-    # #     if self._check_row_existence(parameters):
-    # #         log.info("Note, an entry with these parameters already exists in the database.")
-    #
-    # log.debug(f'Adding {parameters.get("Property")} to database!')
-    #
-    # with self.experiment.project.session as ses:
-    #     # Create a Data instance to store the value
-    #     # TODO use **parameters instead with parameters.pop
-    #
-    #     try:  # check if it is a list
-    #         data = [Data(**param) for param in parameters['data']]  # param is a dict
-    #     except TypeError:
-    #         try:  # check if it is a dictionary with keys [x, y, z, uncertainty]
-    #             data = [Data(parameters['data'])]
-    #         except TypeError:
-    #             data = [Data(x=parameters['data'])]
-    #
-    #     try:
-    #         subjects = [Subject(subject=param) for param in parameters['subjects']]  # param is a string
-    #     except TypeError:
-    #         subjects = [Subject(subject=parameters['subjects'])]  # param is a string
-    #
-    #     log.debug(f"Subjects are: {subjects}")
-    #
-    #     # Create s SystemProperty instance to store the values
-    #     system_property = SystemProperty(
-    #         property=parameters['Property'],
-    #         analysis=parameters['Analysis'],
-    #         data_range=parameters['data_range'],
-    #         subjects=subjects,
-    #         data=data,
-    #         information=parameters.get("information")
-    #     )
-    #
-    #     log.debug(f"Created: {system_property}")
-    #
-    #     # add to the session
-    #     ses.add(system_property)
-    #
-    #     # commit to the database
-    #     ses.commit()
-    #
-    # log.debug("Values successfully written to database. Closed database session.")
