@@ -38,6 +38,8 @@ from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
+import functools
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -64,6 +66,7 @@ def call(func):
 
     """
 
+    @functools.wraps(func)
     def inner(self, *args, **kwargs):
         """Manage the call method
 
