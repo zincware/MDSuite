@@ -68,9 +68,9 @@ def test_rdf_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
 
-    data_dict = project.load_data.RadialDistributionFunction()[0].data_dict
+    data_dict = project.load.RadialDistributionFunction()["NaCl"][0].data_dict
 
     data_dict['x'][data_dict['x'] is None] = 0
     data_dict['y'][data_dict['y'] is None] = 0
@@ -88,9 +88,9 @@ def test_rdf_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.experiments['NaCl'].run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.RadialDistributionFunction()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.RadialDistributionFunction()[0].data_dict
 
     data_dict['x'][data_dict['x'] is None] = 0
     data_dict['y'][data_dict['y'] is None] = 0

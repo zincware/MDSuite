@@ -68,10 +68,10 @@ def test_cn_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    # project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.run_computation.CoordinationNumbers(plot=False)
+    # project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.run.CoordinationNumbers(plot=False)
 
-    data_dict = project.load_data.CoordinationNumbers(plot=False)[0].data_dict
+    data_dict = project.load.CoordinationNumbers(plot=False)["NaCl"][0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
@@ -84,9 +84,9 @@ def test_cn_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.CoordinationNumbers(plot=False)
+    project.experiments['NaCl'].run.CoordinationNumbers(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.CoordinationNumbers(plot=False)[0].data_dict
+    data_dict = project.experiments['NaCl'].load.CoordinationNumbers(plot=False)[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])

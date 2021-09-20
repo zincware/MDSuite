@@ -167,6 +167,7 @@ class Computation(Base):
     __tablename__ = 'computations'
 
     id = Column(Integer, primary_key=True)
+    name = Column(String, default="Computation")
 
     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
     experiment = relationship("Experiment")
@@ -187,7 +188,7 @@ class Computation(Base):
         information : str
                 Experiment number and name as an fstring
         """
-        return f"{self.experiment_id}: Computation {self.id}"
+        return f"Exp{self.experiment_id}_{self.name}_{self.id}"
 
     @property
     def data_dict(self) -> dict:

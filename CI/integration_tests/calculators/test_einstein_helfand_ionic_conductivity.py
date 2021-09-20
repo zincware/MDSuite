@@ -74,9 +74,9 @@ def test_ehic_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.EinsteinHelfandIonicConductivity(plot=False)
+    project.run.EinsteinHelfandIonicConductivity(plot=False)
 
-    data_dict = project.load_data.EinsteinHelfandIonicConductivity()[0].data_dict
+    data_dict = project.load.EinsteinHelfandIonicConductivity()["NaCl"][0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=-5)
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'], decimal=-5)
@@ -93,9 +93,9 @@ def test_ehic_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.EinsteinHelfandIonicConductivity(plot=False)
+    project.experiments['NaCl'].run.EinsteinHelfandIonicConductivity(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.EinsteinHelfandIonicConductivity()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.EinsteinHelfandIonicConductivity()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=-5)
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'], decimal=-5)

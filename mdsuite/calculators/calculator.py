@@ -75,8 +75,13 @@ def call(func):
         Returns
         -------
         data:
-            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
+            A dictionary of shape {name: data} when called from the project class
+            A list of [data] when called directly from the experiment class
         """
+        # This is only true, when called via project.experiments.Exp.run_computation,
+        #  otherwise the experiment will be None
+        return_dict = self.experiment is None
+
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
@@ -88,7 +93,7 @@ def call(func):
             else:
                 out[self.experiment.name] = self.run_analysis()
 
-        if len(self.experiments) > 1:
+        if return_dict:
             return out
         else:
             return out[self.experiment.name]

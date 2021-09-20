@@ -33,6 +33,7 @@ import itertools
 from mdsuite.utils.meta_functions import join_path
 
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 
@@ -207,7 +208,6 @@ class RadialDistributionFunction(Calculator, ABC):
         # # Perform analysis and save.
         # return self.run_analysis()
 
-
     def _initialize_rdf_parameters(self):
         """
         Initialize the RDF parameters.
@@ -354,13 +354,15 @@ class RadialDistributionFunction(Calculator, ABC):
                 data = [{"x": x, "y": y} for x, y in
                         zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
                 log.debug("Writing RDF to database!")
-                self._update_properties_file({
-                    "Property": "RDF",  # TODO this should be dynamic
-                    "Analysis": self.analysis_name,
-                    "subjects": names.split("_"),
-                    "data_range": self.data_range,
-                    "data": data
-                })
+
+                params = Parameters(
+                    Property=self.database_group,
+                    Analysis=self.analysis_name,
+                    data_range=self.data_range,
+                    data=data,
+                    Subject=names.split("_"))
+
+                self.update_database(params)
             if self.export:
                 self._export_data(name=self._build_table_name(names),
                                   data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
