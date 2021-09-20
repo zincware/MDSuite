@@ -18,12 +18,13 @@ class can then be called by the Experiment.green_kubo_thermal_conductivity
  method and all necessary calculations performed.
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 import tensorflow_probability as tfp
+from mdsuite.database.calculator_database import Parameters
+from bokeh.models import Span
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -81,7 +82,6 @@ class GreenKuboThermalConductivity(Calculator):
         data_range=500,
         save=True,
         correlation_time: int = 1,
-        export: bool = False,
         gpu: bool = False,
         integration_range: int = None,
     ):
@@ -111,7 +111,6 @@ class GreenKuboThermalConductivity(Calculator):
             data_range=data_range,
             save=save,
             correlation_time=correlation_time,
-            export=export,
             gpu=gpu,
         )
 
@@ -211,43 +210,32 @@ class GreenKuboThermalConductivity(Calculator):
 
         """
         result = self.prefactor * np.array(self.sigma)
-        properties = {
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "Subject": ["System"],
-            "data_range": self.data_range,
-            "data": [
-                {
-                    "x": np.mean(result),
-                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
-                }
-            ],
-        }
-        self._update_properties_file(properties)
+
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[{'thermal_conductivity': result[0],
+                   'uncertainty': result[1]}],
+            Subject=["System"]
+        )
+        data = properties.data
+        data += [{'time': x, 'acf': y} for x, y in
+                 zip(self.time, self.jacf)]
+        properties.data = data
+        self.update_database(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units["time"], self.jacf)
-            plt.vlines(
-                (np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range
-                ],
-                min(self.jacf),
-                max(self.jacf),
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range - 1],
+                dimension='height',
+                line_dash='dashed'
             )
-            self._plot_data()
-        if self.save:
-            properties = {
-                "Property": self.database_group,
-                "Analysis": self.analysis_name,
-                "Subject": ["System"],
-                "data_range": self.data_range,
-                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.jacf)],
-                "information": "series",
-            }
-            self._update_properties_file(properties)
-        if self.export:
-            self._export_data(
-                name=self._build_table_name("System"),
-                data=self._build_pandas_dataframe(self.time, self.jacf),
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.jacf.numpy(),
+                title=f"{result[0]} +- {result[1]}",
+                layouts=[span]
             )

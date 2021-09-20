@@ -22,7 +22,7 @@ from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
 from .green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from .green_kubo_distinct_diffusion_coefficients import GreenKuboDistinctDiffusionCoefficients
 from .green_kubo_ionic_conductivity import GreenKuboIonicConductivity
-from .green_kubo_self_diffusion_coefficients import GreenKuboSelfDiffusionCoefficients
+from .green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from .green_kubo_thermal_conductivity import GreenKuboThermalConductivity
 from .green_kubo_viscosity import GreenKuboViscosity
 from .kirkwood_buff_integrals import KirkwoodBuffIntegral
@@ -40,7 +40,8 @@ if TYPE_CHECKING:
 __all__ = ['Calculator', 'AngularDistributionFunction', 'CoordinationNumbers', 'EinsteinDiffusionCoefficients',
            'EinsteinDistinctDiffusionCoefficients', 'EinsteinHelfandIonicConductivity',
            'EinsteinHelfandThermalConductivity', 'EinsteinHelfandThermalKinaci', 'GreenKuboViscosityFlux',
-           'GreenKuboDistinctDiffusionCoefficients', 'GreenKuboIonicConductivity', 'GreenKuboSelfDiffusionCoefficients',
+           'GreenKuboDistinctDiffusionCoefficients', 'GreenKuboIonicConductivity',
+           'GreenKuboDiffusionCoefficients',
            'GreenKuboThermalConductivity', 'GreenKuboViscosity', 'KirkwoodBuffIntegral',
            'NernstEinsteinIonicConductivity', 'PotentialOfMeanForce', 'RadialDistributionFunction', 'StructureFactor',
            'SpatialDistributionFunction']
@@ -112,9 +113,9 @@ class RunComputation:
         return GreenKuboIonicConductivity(**self.kwargs)
 
     @property
-    def GreenKuboSelfDiffusionCoefficients(self):
+    def GreenKuboDiffusionCoefficients(self):
         """Calculator Property"""
-        return GreenKuboSelfDiffusionCoefficients(**self.kwargs)
+        return GreenKuboDiffusionCoefficients(**self.kwargs)
 
     @property
     def GreenKuboThermalConductivity(self):

@@ -13,8 +13,7 @@ from bokeh.plotting import figure, show
 from bokeh.layouts import gridplot
 from bokeh.io import output_notebook, output_file
 from bokeh.models import HoverTool
-
-from typing import Union
+from typing import Union, List
 
 
 class DataVisualizer2D:
@@ -50,7 +49,8 @@ class DataVisualizer2D:
             y_data: Union[list, np.ndarray],
             x_label: str,
             y_label: str,
-            title: str
+            title: str,
+            layouts: List= None
     ) -> figure:
         """
         Generate a plot.
@@ -73,10 +73,13 @@ class DataVisualizer2D:
                 A bokeh figure object.
         """
         fig = figure(
-            title=title, x_axis_label=x_label, y_axis_label=y_label
+            x_axis_label=x_label, y_axis_label=y_label
         )
-        fig.line(x_data, y_data)
+        fig.line(x_data, y_data, legend_label=title)
         fig.add_tools(HoverTool())
+        if layouts is not None:
+            for item in layouts:
+                fig.add_layout(item)
 
         return fig
 

@@ -19,6 +19,8 @@ import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.calculator_database import Parameters
+
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -69,9 +71,9 @@ class EinsteinHelfandThermalKinaci(Calculator):
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Thermal_Conductivity_Kinaci'
+        self.x_label = '$$Time (s)$$'
+        self.y_label = '$$MSD (m^2/s)$$'
+        self.analysis_name = 'Einstein Helfand Thermal Conductivity Kinaci'
 
         self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in
 
@@ -168,29 +170,23 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
+
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[
+                {'thermal_conductivity': result[0], 'uncertainty': result[1]}],
+            Subject=["System"]
+        )
+        data = properties.data
+        data += [{'time': x, 'msd': y} for x, y in
+                 zip(self.time, self.msd_array)]
+        properties.data = data
+        self.update_database(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array)
-            self._plot_data()
-
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.msd_array))
+            self.run_visualization(x_data=np.array(self.time) * self.experiment.units['time'],
+                                   y_data=self.msd_array * self.experiment.units['time'],
+                                   title=f"{result[0]} +- {result[1]}")

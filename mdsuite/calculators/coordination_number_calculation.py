@@ -14,13 +14,13 @@ Summary
 """
 import logging
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
-from typing import Union
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
+from bokeh.models import BoxAnnotation
 
 log = logging.getLogger(__name__)
 
@@ -242,31 +242,14 @@ class CoordinationNumbers(Calculator):
 
         return first_shell, first_shell_error
 
-    def _plot_coordination_shells(self, data: tuple):
-        """
-        Plot the calculated coordination numbers on top of the rdfs
-        """
-
-        fig, ax1 = plt.subplots()  # define the plot
-        ax1.plot(self.radii, self.rdf, label=fr"{self.species_tuple}: {data[0]:.3f} $\pm$ {data[1]:.3f} ")
-        ax1.set_ylabel('RDF')  # set the y_axis label on the LHS
-        ax2 = ax1.twinx()  # split the axis
-        ax2.set_ylabel('CN')  # set the RHS y axis label
-        # plot the CN as a continuous function
-        ax2.plot(self.radii[1:], np.array(self.integral_data), 'r')  # , markersize=1, label=f"{self.species_tuple} CN")
-        # Plot the first and second shell values as a small window.
-        ax1.axvspan(self.radii[self.indices[0][0]] - 0.01, self.radii[self.indices[0][1]] + 0.01, color='g')
-        ax1.axvspan(self.radii[self.indices[1][0]] - 0.01, self.radii[self.indices[1][1]] + 0.01, color='b')
-        ax1.set_xlabel(r'r ($\AA$)')  # set the x-axis label
-        ax1.legend()
-        plt.show()
-
     def run_post_generation_analysis(self):
         """
         Calculate the coordination numbers and perform error analysis
         """
-
-        for data in self._get_rdf_data():  # Loop over all existing RDFs
+        calculations = self._get_rdf_data()
+        for i, data in enumerate(calculations):  # Loop over all existing RDFs
+            if i == len(calculations) - 1:
+                self.last_iteration = True
             log.debug(f"Computing coordination numbers for {data.subjects}")
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load the tensor_values from it
@@ -277,14 +260,36 @@ class CoordinationNumbers(Calculator):
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
             _data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
+
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=[{'coordination_number': _data[0],
+                       'uncertainty': _data[1]}],
+                Subject=[self.species_tuple]
+            )
+            data = properties.data
+            data += [{'r': x, 'cn': y} for x, y in
+                     zip(self.radii[1:], self.integral_data)]
+            properties.data = data
+            self.update_database(properties)
+
             # Plot the tensor_values if required
             if self.plot:
-                self._plot_coordination_shells(_data)
-
-            # TODO what to save?
-            if self.save:
-                self._save_data(name=self._build_table_name(self.species_tuple),
-                                data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
-            if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
-                                  data=self._build_pandas_dataframe(self.radii[1:], self.integral_data))
+                model_1 = BoxAnnotation(
+                    left=self.radii[self.indices[0][0]],
+                    right=self.radii[self.indices[0][1]],
+                    fill_alpha=0.1,
+                    fill_color='red')
+                model_2 = BoxAnnotation(
+                    left=self.radii[self.indices[1][0]],
+                    right=self.radii[self.indices[1][1]],
+                    fill_alpha=0.1,
+                    fill_color='red')
+                self.run_visualization(
+                    x_data=self.radii[1:],
+                    y_data=np.array(self.integral_data),
+                    title=fr'{self.species_tuple}: {_data[0]: 0.3E} +- {_data[1]: 0.3E}',
+                    layouts=[model_1, model_2]
+                )

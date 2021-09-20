@@ -131,7 +131,7 @@ class Calculator(CalculatorDatabase):
 
     def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, plot: bool = True,
                  save: bool = True, data_range: int = 500,
-                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False,
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], gpu: bool = False,
                  load_data: bool = False):
         """
         Constructor for the calculator class.
@@ -152,8 +152,6 @@ class Calculator(CalculatorDatabase):
                 Correlation time to use in the analysis.
         atom_selection : np.s_
                 Atoms to perform the analysis on.
-        export : bool
-                If true, analysis results are exported to a csv file.
         gpu : bool
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
@@ -170,7 +168,6 @@ class Calculator(CalculatorDatabase):
         self.data_range = data_range
         self.plot = plot
         self.save = save
-        self.export = export
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
         self.database = None
@@ -211,8 +208,6 @@ class Calculator(CalculatorDatabase):
         self.y_label: str
         self.analysis_name: str
         self.plot_array = []
-        self.last_iteration = False
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
 
         self.database_group = None
         self.analysis_name = None
@@ -227,7 +222,6 @@ class Calculator(CalculatorDatabase):
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
                          tau_values: Union[int, List, Any] = np.s_[:],
-                         export: bool = True,
                          gpu: bool = False,
                          *args,
                          **kwargs):
@@ -247,8 +241,6 @@ class Calculator(CalculatorDatabase):
                 Correlation time to use in the analysis.
         atom_selection : object
                 Atoms to perform the analysis on.
-        export : bool
-                If true, analysis results are exported to a csv file.
         gpu : bool
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
@@ -265,14 +257,17 @@ class Calculator(CalculatorDatabase):
         self.data_range = data_range
         self.plot = plot
         self.save = save
-        self.export = export
         self.gpu = gpu
         self.tau_values = tau_values
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
+        self.last_iteration = self.system_property
+
 
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
+
+        self.plotter = DataVisualizer2D(title=self.analysis_name)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -441,26 +436,6 @@ class Calculator(CalculatorDatabase):
 
         return pd.DataFrame({'x': x, 'y': y})
 
-    @staticmethod
-    def _export_data(name: str, data: pd.DataFrame):
-        """
-        Export data from the analysis database.
-
-        Parameters
-        ----------
-        name : str
-                name of the tensor_values to save. Usually this is just the
-                analysis name. In the case of species specific analysis,
-                this will be further appended to include the name of the
-                species.
-        data : pd.DataFrame
-                Data to be saved.
-        Returns
-        -------
-        Saves a csv file to disc.
-        """
-        data.to_csv(name)
-
     def _msd_operation(self, ensemble: tf.Tensor, square: bool = True):
         """
         Perform a simple msd operation.
@@ -576,37 +551,25 @@ class Calculator(CalculatorDatabase):
         """
         return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
 
-    def _save_data(self, name: str, data: pd.DataFrame):
-        """
-        Save tensor_values to the save tensor_values directory
-
-        Parameters
-        ----------
-        name : str
-                name of the tensor_values to save. Usually this is just the
-                analysis name. In the case of species specific analysis,
-                this will be further appended to include the name of the
-                species.
-        data : pd.DataFrame
-                Data to be saved.
-        """
-        # database = AnalysisDatabase(
-        #     name=os.path.join(self.experiment.database_path,
-        #                       "analysis_database"))
-        # database.add_data(name=name, data_frame=data)
-
     def run_visualization(
-            self, x_data, y_data, title: str
+            self, x_data, y_data, title: str, layouts: object = None
     ):
         """
         Run a visualization session on the data.
+
+        Parameters
+        ----------
+        x_data
+        y_data
+        title
+        span
 
         Returns
         -------
 
         """
         self.plot_array.append(self.plotter.construct_plot(
-            x_data=x_data, y_data=y_data, title=title, x_label=self.x_label, y_label=self.y_label
+            x_data=x_data, y_data=y_data, title=title, x_label=self.x_label, y_label=self.y_label, layouts=layouts
         ))
 
         if self.last_iteration:
@@ -700,13 +663,6 @@ class Calculator(CalculatorDatabase):
         """
         log.warning("Using depreciated method `_update_properties_file` \t Please use `update_database` instead.")
         self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
-        #
-        #
-        #
-        # database = PropertiesDatabase(
-        #     name=os.path.join(self.experiment.database_path,
-        #                       'property_database'))
-        # database.add_data(parameters, delete_duplicate)
 
     def _resolve_dependencies(self, dependency):
         """
@@ -872,10 +828,6 @@ class Calculator(CalculatorDatabase):
 
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
-
-            if self.plot:
-                plt.legend()
-                plt.show()
 
     def run_experimental_analysis(self):
         """

@@ -22,8 +22,8 @@ from tqdm import tqdm
 import tensorflow as tf
 import itertools
 from scipy import signal
-import tensorflow_probability as tfp
-import matplotlib.pyplot as plt
+from bokeh.models import Span
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
@@ -194,7 +194,9 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                     str.encode(join_path(item, "Velocities"))
                 ] = self.atom_selection[item]
             self.atom_selection = select_atoms
-        for combination in self.combinations:
+        for i, combination in enumerate(self.combinations):
+            if i == len(self.combinations) - 1:
+                self.last_iteration = True
             type_spec = {}
             data_path = [join_path(item, "Velocities") for item in combination]
             self._prepare_managers(data_path=data_path)
@@ -274,50 +276,34 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "Subject": list(species),
-            "data_range": self.data_range,
-            "data": [
-                {
-                    "x": np.mean(result),
-                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
-                }
-            ],
-        }
-        self._update_properties_file(properties)
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[{'diffusion_coefficient': np.mean(result),
+                   'uncertainty': np.std(result) / (np.sqrt(len(result)))}],
+            Subject=list(species)
+            )
+
+        data = properties.data
+        data += [{'time': x, 'acf': y} for x, y in
+                 zip(self.time, self.vacf)]
+        properties.data = data
+        self.update_database(properties)
+
         # Update the plot if required
         if self.plot:
-            plt.plot(
-                np.array(self.time) * self.experiment.units["time"],
-                self.vacf,
-                label=species,
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range - 1],
+                dimension='height',
+                line_dash='dashed'
             )
-            plt.vlines(
-                (np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range
-                ],
-                min(self.vacf),
-                max(self.vacf),
-            )
-            plt.savefig(f"{species}.pdf")
-
-        if self.save:
-            properties = {
-                "Property": self.database_group,
-                "Analysis": self.analysis_name,
-                "Subject": list(species),
-                "data_range": self.data_range,
-                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.vacf)],
-                "information": "series",
-            }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(
-                name=self._build_table_name(species),
-                data=self._build_pandas_dataframe(self.time, self.vacf),
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.vacf.numpy(),
+                title=f"{species}: {np.mean(result): .3E} +- {np.std(result) / (np.sqrt(len(result))): .3E}",
+                layouts=[span]
             )
 
     def _update_output_signatures(self):

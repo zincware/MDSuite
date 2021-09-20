@@ -20,7 +20,7 @@ from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHe
 from mdsuite.calculators.einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
 from mdsuite.calculators.green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from mdsuite.calculators.green_kubo_ionic_conductivity import GreenKuboIonicConductivity
-from mdsuite.calculators.green_kubo_self_diffusion_coefficients import GreenKuboSelfDiffusionCoefficients
+from mdsuite.calculators.green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from mdsuite.calculators.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
 from mdsuite.calculators.green_kubo_viscosity import GreenKuboViscosity
 from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
@@ -46,7 +46,7 @@ dict_classes_db = {
     'viscosity': {}
 }
 
-calculators = [EinsteinDiffusionCoefficients, EinsteinDistinctDiffusionCoefficients, GreenKuboSelfDiffusionCoefficients,
+calculators = [EinsteinDiffusionCoefficients, EinsteinDistinctDiffusionCoefficients, GreenKuboDiffusionCoefficients,
                GreenKuboDistinctDiffusionCoefficients, GreenKuboIonicConductivity, EinsteinHelfandIonicConductivity,
                RadialDistributionFunction, CoordinationNumbers, PotentialOfMeanForce, KirkwoodBuffIntegral,
                GreenKuboThermalConductivity, StructureFactor, EinsteinHelfandThermalConductivity,

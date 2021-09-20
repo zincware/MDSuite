@@ -16,7 +16,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-import matplotlib.pyplot as plt
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
@@ -109,7 +109,6 @@ class AngularDistributionFunction(Calculator, ABC):
                  bins: int = 500,
                  species: list = None,
                  use_tf_function: bool = False,
-                 export: bool = False,
                  molecules: bool = False,
                  gpu: bool = False,
                  plot: bool = True,
@@ -143,8 +142,6 @@ class AngularDistributionFunction(Calculator, ABC):
         norm_power: int
             The power of the normalization factor applied to the ADF histogram.
             If set to zero no distance normalization will be applied.
-        export : bool
-                If true, generate a csv file after the analysis is complete.
         molecules : bool
                 if true, perform the anlaysis on molecules.
         gpu : bool
@@ -160,7 +157,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         # Parse the parent class arguments.
-        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
+        self.update_user_args(data_range=1, gpu=gpu, plot=plot)
 
         # Parse the user arguments.
         self.use_tf_function = use_tf_function
@@ -421,7 +418,9 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
         Updates the class, the SQL database, and plots values if required.
         """
-        for species in itertools.combinations_with_replacement(species_indices, 3):
+        for i, species in enumerate(itertools.combinations_with_replacement(species_indices, 3)):
+            if i == len(itertools.combinations_with_replacement(species_indices, 3)) - 1:
+                self.last_iteration = True
             name = f"{species[0][0]}-{species[1][0]}-{species[2][0]}"
             hist = angles.get(name)
 
@@ -431,22 +430,22 @@ class AngularDistributionFunction(Calculator, ABC):
 
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
-            if self.save or self.export:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": [_species[0] for _species in species],
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
-                              }
-                self._update_properties_file(properties, delete_duplicate=False)
-                log.warning("Delete duplicates is not supported for calculators "
-                            "that involve more then 3 species!")
+
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=[{'angle': x, 'adf': y} for x, y in zip(bin_range_to_angles, hist)],
+                Subject=[_species[0] for _species in species]
+            )
+            self.update_database(properties)
 
             if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(bin_range_to_angles, hist, label=name)
-                ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-                self._plot_fig(fig, ax, title=name)
+                self.run_visualization(
+                    x_data=bin_range_to_angles,
+                    y_data=hist,
+                    title=f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f} degrees ",
+                )
 
     def run_experimental_analysis(self):
         """

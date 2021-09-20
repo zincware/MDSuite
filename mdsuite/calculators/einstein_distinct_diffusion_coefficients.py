@@ -22,7 +22,7 @@ import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
-import matplotlib.pyplot as plt
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
@@ -163,7 +163,9 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             for item in self.atom_selection:
                 select_atoms[str.encode(join_path(item, "Unwrapped_Positions"))] = self.atom_selection[item]
             self.atom_selection = select_atoms
-        for combination in self.combinations:
+        for i, combination in enumerate(self.combinations):
+            if i == len(self.combinations) - 1:
+                self.last_iteration = True
             type_spec = {}
             self._calculate_prefactor(combination)
             data_path = [join_path(item, 'Unwrapped_Positions') for item in combination]
@@ -234,41 +236,39 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         """
         if np.sign(self.msd_array[-1]) == -1:
             result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": list(species),
-                          "data_range": self.data_range,
-                          'data': [{'x': -1 * result[0], 'uncertainty': result[1]}]
-                          }
-            self._update_properties_file(properties)
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=[{'diffusion_coefficient': -1*result[0],
+                       'uncertainty': result[1]}],
+                Subject=list(species)
+            )
         else:
             result = self._fit_einstein_curve([self.time, self.msd_array])
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": list(species),
-                          "data_range": self.data_range,
-                          'data': [{'x': result[0], 'uncertainty': result[1]}]
-                          }
-            self._update_properties_file(properties)
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=[{'diffusion_coefficient': result[0],
+                       'uncertainty': result[1]}],
+                Subject=list(species)
+            )
 
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": list(species),
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
+        data = properties.data
+        data += [{'time': x, 'msd': y} for x, y in
+                 zip(self.time, self.msd_array)]
+        properties.data = data
+
+        self.update_database(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array, label=species)
-            plt.show()
-
-        if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.msd_array * self.experiment.units['time'],
+                title=species,
+            )
 
     def _update_output_signatures(self):
         """
