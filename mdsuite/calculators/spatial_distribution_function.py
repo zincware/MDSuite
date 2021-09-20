@@ -61,9 +61,11 @@ class SpatialDistributionFunction(Calculator):
 
     @call
     def __call__(
-            self, molecules: bool = False, start: int = 1, stop: int = 10, number_of_configurations: int = 5,
-                 r_min: float = 4.0, r_max: float = 4.5, species: list = None, **kwargs):
-        """User Interface to the Spatial Distribution Function
+            self, molecules: bool = False, start: int = 1, stop: int = 10,
+            number_of_configurations: int = 5, r_min: float = 4.0,
+            r_max: float = 4.5, species: list = None, **kwargs):
+        """
+        User Interface to the Spatial Distribution Function
 
         Parameters
         ----------
@@ -130,21 +132,22 @@ class SpatialDistributionFunction(Calculator):
         """Run the computation"""
 
         # Iterate over batches
-
         sdf_values = []
 
         nllayer = NLLayer()
 
-        for idx, sample_configuration in tqdm(enumerate(np.array_split(self.sample_configurations, self.n_batches)),
-                                              ncols=70):
+        for idx, sample_configuration in tqdm(
+                enumerate(np.array_split(self.sample_configurations, self.n_batches)), ncols=70
+        ):
             positions_tensor = self._load_positions(sample_configuration)
 
             # make it (configurations, n_atoms, 3)
             positions_tensor = tf.transpose(positions_tensor, perm=(1, 0, 2))
             cell = tf.linalg.set_diag(tf.zeros((3, 3)), self.experiment.box_array, )
             cell = tf.repeat(cell[None], positions_tensor.shape[0], axis=0)
-            # TODO slice r_ij that only the selected species distances are still available, e.g. for species1 != species2
-            #  maybe use a dictionary in the end
+            # TODO slice r_ij that only the selected species distances are
+            #  still available, e.g. for species1 != species2 maybe use a
+            #  dictionary in the end
 
             r_ij = nllayer({"positions": positions_tensor, "cell": cell})
 
@@ -165,46 +168,3 @@ class SpatialDistributionFunction(Calculator):
         """
         visualizer = DataVisualizer3D(data=plot_data.numpy(), title='test')
         visualizer.plot()
-
-    # Calculator class methods required by the parent class -- All are empty.
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
-
-    def _post_operation_processes(self, species: str = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        pass
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass
