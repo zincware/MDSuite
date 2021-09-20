@@ -41,9 +41,9 @@ class Experiment(Base):
     project_id = Column(Integer, ForeignKey('projects.id', ondelete="CASCADE"))
     project = relationship("Project")
 
-    experiment_data = relationship("ExperimentData",
-                                   cascade='all, delete',
-                                   back_populates='experiment')
+    experiment_attributes = relationship("ExperimentAttribute",
+                                         cascade='all, delete',
+                                         back_populates='experiment')
 
     computations = relationship("Computation")
     species = relationship("Species")
@@ -61,7 +61,7 @@ class Experiment(Base):
 
 
 # TODO consider renaming ExperimentAttributes in accordance to ComputationAttributes
-class ExperimentData(Base):
+class ExperimentAttribute(Base):
     """
     Class for the experiment data table.
 
@@ -78,7 +78,7 @@ class ExperimentData(Base):
     str_value : str
             String value of the property.
     """
-    __tablename__ = 'experiment_data'
+    __tablename__ = 'experiment_attributes'
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -86,7 +86,7 @@ class ExperimentData(Base):
     str_value = Column(String, nullable=True)
 
     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
-    experiment = relationship("Experiment", back_populates='experiment_data')
+    experiment = relationship("Experiment", back_populates='experiment_attributes')
 
     def __repr__(self):
         if self.value is not None:
@@ -224,6 +224,13 @@ class Computation(Base):
             if comp_attr.name == "subject":
                 subjects.append(comp_attr.str_value)
         return subjects
+
+
+# class ComputationSpecies(Base):
+#     """Class for species in the middle between computations and computation data"""
+#     __tablename__ = "computation_species"
+#     id = Column(Integer, primary_key=True)
+#     species = ...
 
 
 class ComputationAttribute(Base):
