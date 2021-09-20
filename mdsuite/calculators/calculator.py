@@ -334,6 +334,7 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
+    @staticmethod
     def _fit_einstein_curve(data: list):
         """
         Fit operation for Einstein calculations
@@ -391,6 +392,7 @@ class Calculator(CalculatorDatabase):
 
         return [np.mean(fits), np.std(fits)]
 
+    @staticmethod
     def _update_species_type_dict(dictionary: dict,
                                   path_list: list,
                                   dimension: int):
@@ -417,6 +419,7 @@ class Calculator(CalculatorDatabase):
 
         return dictionary
 
+    @staticmethod
     def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
         """
         Build a pandas dataframe with x and y data.
@@ -436,6 +439,7 @@ class Calculator(CalculatorDatabase):
 
         return pd.DataFrame({'x': x, 'y': y})
 
+    @staticmethod
     def _export_data(name: str, data: pd.DataFrame):
         """
         Export data from the analysis database.
