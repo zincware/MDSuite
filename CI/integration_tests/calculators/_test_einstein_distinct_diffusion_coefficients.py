@@ -69,9 +69,9 @@ def test_eddc_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.EinsteinDistinctDiffusionCoefficients(plot=False, data_range=300, correlation_time=1)
+    project.run.EinsteinDistinctDiffusionCoefficients(plot=False, data_range=300, correlation_time=1)
 
-    data_dict = project.load_data.EinsteinDistinctDiffusionCoefficients()[0].data_dict
+    data_dict = project.load.EinsteinDistinctDiffusionCoefficients()[0].data_dict
 
     data = Path(
         r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\einstein_distinct_diffusion_coefficients.json')
@@ -88,10 +88,10 @@ def test_eddc_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.EinsteinDiffusionCoefficients(plot=False, data_range=300,
+    project.experiments['NaCl'].run.EinsteinDiffusionCoefficients(plot=False, data_range=300,
                                                                               correlation_time=1)
 
-    data_dict = project.experiments['NaCl'].load_data.EinsteinDiffusionCoefficients()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.EinsteinDiffusionCoefficients()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

@@ -131,11 +131,30 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # Check if the experiment exists and load if it does.
         self._load_or_build()
 
-        # Run Computations
-        # self.run_computation = RunModule(self, dict_classes_computations)
-        self.run_computation = RunComputation(experiment=self)
-        self.load_data = RunComputation(experiment=self, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
+
+    @property
+    def run(self) -> RunComputation:
+        """Method to access the available calculators
+
+        Returns
+        -------
+        RunComputation:
+            class that has all available calculators as properties
+        """
+        return RunComputation(experiment=self)
+
+    @property
+    def load(self) -> RunComputation:
+        """Method to access the available calculators results
+
+        Returns
+        -------
+        RunComputation:
+            if called, return List[db.Computation]
+
+        """
+        return RunComputation(experiment=self, load_data=True)
 
     def __repr__(self):
         return f"exp_{self.name}"

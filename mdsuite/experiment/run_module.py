@@ -44,7 +44,7 @@ class RunModule:
     def __getattribute__(self, item):
         """Call via function
         You can call the computation via a function and autocompletion
-        >>> self.run_computation.EinsteinDiffusionCoefficients(plot=True)
+        >>> self.run.EinsteinDiffusionCoefficients(plot=True)
 
         Returns
             Instantiated calculator class with added experiment that can be called.

@@ -25,6 +25,7 @@ from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.calculator_database import Parameters
 
 from typing import TYPE_CHECKING
 
@@ -241,22 +242,20 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": [species],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[{'x': result[0], 'uncertainty': result[1]}],
+            Subject=[species]
+        )
 
         if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": [species],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"}
-            self._update_properties_file(properties)
+            data = properties.data
+            data += [{'time': x, 'msd': y} for x, y in zip(self.time, self.msd_array)]
+            properties.data = data
+
+        self.update_database(properties)
 
         if self.export:
             self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,

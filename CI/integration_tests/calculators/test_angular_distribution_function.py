@@ -68,9 +68,9 @@ def test_adf_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.AngularDistributionFunction(plot=False)
+    project.run.AngularDistributionFunction(plot=False)
 
-    data_dict = project.load_data.AngularDistributionFunction()[0].data_dict
+    data_dict = project.load.AngularDistributionFunction()["NaCl"][0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
     np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)
@@ -82,9 +82,9 @@ def test_adf_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.AngularDistributionFunction(plot=False)
+    project.experiments['NaCl'].run.AngularDistributionFunction(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.AngularDistributionFunction()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.AngularDistributionFunction()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=2)
     np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=2)

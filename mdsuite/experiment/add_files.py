@@ -76,7 +76,7 @@ class ExperimentAddingFiles:
                 pass
             else:
                 log.info('This file has already been read, skipping this now.'
-                         'If this is not desired, please add force=True'
+                         'If this is not desired, please add force=True '
                          'to the command.')
                 return  # End the method.
 
@@ -249,7 +249,7 @@ class ExperimentAddingFiles:
         # self.save_class()
         self.species = species
 
-    def load_matrix(self, identifier: str = None, species: dict = None, select_slice: np.s_ = None, path: list = None):
+    def load_matrix(self, identifier: str = None, species: list = None, select_slice: np.s_ = None, path: list = None):
         """
         Load a desired property matrix.
 

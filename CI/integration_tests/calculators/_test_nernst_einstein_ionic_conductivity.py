@@ -70,9 +70,9 @@ def test_neic_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.NernstEinsteinIonicConductivity(plot=False)
+    project.run.NernstEinsteinIonicConductivity(plot=False)
 
-    data_dict = project.load_data.NernstEinsteinIonicConductivity()[0].data_dict
+    data_dict = project.load.NernstEinsteinIonicConductivity()[0].data_dict
 
     data = Path(
         r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\nernst_einstein_ionic_conductivity.json')
@@ -90,9 +90,9 @@ def test_neic_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.NernstEinsteinIonicConductivity(plot=False)
+    project.experiments['NaCl'].run.NernstEinsteinIonicConductivity(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.NernstEinsteinIonicConductivity()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.NernstEinsteinIonicConductivity()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

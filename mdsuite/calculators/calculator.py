@@ -34,6 +34,8 @@ from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
 
+import functools
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -60,6 +62,7 @@ def call(func):
 
     """
 
+    @functools.wraps(func)
     def inner(self, *args, **kwargs):
         """Manage the call method
 
@@ -71,8 +74,13 @@ def call(func):
         Returns
         -------
         data:
-            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
+            A dictionary of shape {name: data} when called from the project class
+            A list of [data] when called directly from the experiment class
         """
+        # This is only true, when called via project.experiments.Exp.run_computation,
+        #  otherwise the experiment will be None
+        return_dict = self.experiment is None
+
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
@@ -84,7 +92,7 @@ def call(func):
             else:
                 out[self.experiment.name] = self.run_analysis()
 
-        if len(self.experiments) > 1:
+        if return_dict:
             return out
         else:
             return out[self.experiment.name]
@@ -326,7 +334,7 @@ class Calculator(CalculatorDatabase):
         -------
 
         """
-        raise NotImplementedError
+        pass
 
     @staticmethod
     def _fit_einstein_curve(data: list):
@@ -433,6 +441,7 @@ class Calculator(CalculatorDatabase):
 
         return pd.DataFrame({'x': x, 'y': y})
 
+    @staticmethod
     def _export_data(name: str, data: pd.DataFrame):
         """
         Export data from the analysis database.

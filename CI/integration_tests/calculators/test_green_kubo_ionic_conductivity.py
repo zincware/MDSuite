@@ -70,9 +70,9 @@ def test_gkic_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.GreenKuboIonicConductivity(plot=False)
+    project.run.GreenKuboIonicConductivity(plot=False)
 
-    data_dict = project.load_data.GreenKuboIonicConductivity()[0].data_dict
+    data_dict = project.load.GreenKuboIonicConductivity()["NaCl"][0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
@@ -85,9 +85,9 @@ def test_gkic_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run_computation.GreenKuboIonicConductivity(plot=False)
+    project.experiments['NaCl'].run.GreenKuboIonicConductivity(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.GreenKuboIonicConductivity()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.GreenKuboIonicConductivity()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
