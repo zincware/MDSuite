@@ -47,11 +47,13 @@ class MolecularMap(Transformations):
         experiment : object
                 Experiment object to work within.
         molecules : dict
-                Molecule dictionary to use as reference. e.g, the input for emim-PF6 ionic liquid would be.
+                Molecule dictionary to use as reference. e.g, the input for
+                emim-PF6 ionic liquid would be.
 
                 .. code-block::
 
-                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20}, 'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
+                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
 
         """
         super().__init__(experiment)
@@ -126,7 +128,9 @@ class MolecularMap(Transformations):
             mol = MolecularGraph(self.experiment,
                                  from_configuration=True,
                                  species=self.reference_molecules[item]['species'])
-            self.adjacency_graphs[item]['graph'] = mol.build_configuration_graph(cutoff=self.molecules[item]['cutoff'])
+            self.adjacency_graphs[item]['graph'] = mol.build_configuration_graph(
+                cutoff=self.molecules[item]['cutoff']
+            )
 
     def _get_molecule_indices(self):
         """
@@ -137,10 +141,16 @@ class MolecularMap(Transformations):
         Nothing.
         """
         for item in self.adjacency_graphs:
+            try:
+                amount = self.molecules[item]['amount']
+            except ValueError:
+                amount = None
             mol = MolecularGraph(self.experiment,
                                  from_configuration=True,
                                  species=self.reference_molecules[item]['species'])
-            self.adjacency_graphs[item]['molecules'] = mol.reduce_graphs(self.adjacency_graphs[item]['graph'])
+            self.adjacency_graphs[item]['molecules'] = mol.reduce_graphs(
+                self.adjacency_graphs[item]['graph'], n_molecules=amount
+            )
 
     def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int) -> dict:
         """
@@ -205,7 +215,9 @@ class MolecularMap(Transformations):
         for item in self.molecules:
             species = self.reference_molecules[item]['species']
             mass_factor = self._prepare_mass_array(species)
-            data_structure = self._prepare_database_entry(item, len(self.adjacency_graphs[item]['molecules']))
+            data_structure = self._prepare_database_entry(
+                item, len(self.adjacency_graphs[item]['molecules'])
+            )
             path_list = [join_path(s, 'Unwrapped_Positions') for s in species]
             self._prepare_monitors(data_path=path_list)
             scaling_factor = self.reference_molecules[item]['mass']

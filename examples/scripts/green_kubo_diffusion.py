@@ -60,7 +60,7 @@ def run_example():
     )
     project.run.CoordinationNumbers(plot=True)
     project.run.PotentialOfMeanForce(plot=True)
-    #project.experiments.NaCl_GK.run_visualization()
+    project.experiments.NaCl_GK.run_visualization()
     print("Tutorial complete....... Files being deleted now.")
 
 
