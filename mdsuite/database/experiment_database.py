@@ -339,17 +339,17 @@ class ExperimentDatabase:
                 for species_attr, species_values in value[species_name].items():
                     try:
                         for species_value in species_values:
-                            x = db.ExperimentAttributeList(experiment_attribute=species, name=species_attr,
-                                                           value=species_value)
-                            ses.add(x)
+                            get_or_create(ses, db.ExperimentAttributeList,
+                                          experiment_attribute=species, name=species_attr,
+                                          value=species_value)
 
                     except TypeError:
                         # e.g., float or int values that are not iterable
                         if species_values is not None:
                             log.warning(f"Updating {species_attr} with {species_values}")
-                            x = db.ExperimentAttributeList(experiment_attribute=species, name=species_attr,
-                                                           value=species_values)
-                            ses.add(x)
+                            get_or_create(ses, db.ExperimentAttributeList,
+                                          experiment_attribute=species, name=species_attr,
+                                          value=species_value)
             ses.commit()
 
     @property
