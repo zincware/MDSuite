@@ -29,6 +29,7 @@ from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from dataclasses import make_dataclass
+from tempfile import TemporaryDirectory
 
 from typing import TYPE_CHECKING, Dict, List
 
@@ -63,7 +64,7 @@ class Project(ProjectDatabase):
             experiments.
     """
 
-    def __init__(self, name: str = None, storage_path: str = "./", description: str = None):
+    def __init__(self, name: str = None, storage_path: str = "./", description: str = None, tutorial: bool = False):
         """
         Project class constructor
 
@@ -78,8 +79,16 @@ class Project(ProjectDatabase):
         storage_path : str
                 Where to store the tensor_values and databases. This should be a place with sufficient storage space
                 for the full analysis.
+        tutorial: bool
+                Tutorial mode with uses temporary directory and example data
         """
         super().__init__()
+
+        if tutorial:
+            name = "MDSuite_Tutorial_Project"
+            self.temp_dir = TemporaryDirectory()
+            storage_path = self.temp_dir.name
+
         if name is None:
             self.name = f"MDSuite_Project"
         else:
@@ -101,6 +110,9 @@ class Project(ProjectDatabase):
 
         # Database Properties
         self.description = description
+
+        if tutorial:
+            self.load_tutorial_data()
 
     def __str__(self):
         """
@@ -418,3 +430,27 @@ class Project(ProjectDatabase):
         active_experiment = {key: val for key, val in self._experiments.items() if val.active}
 
         return DotDict(active_experiment)
+
+    def load_tutorial_data(self):
+        """Download example data and create a new experiment"""
+        import urllib.request
+        import gzip
+
+        base_url = 'https://github.com/zincware/ExampleData/raw/main/NaCl_gk_i_q.lammpstraj'
+
+        download_target = Path(self.temp_dir.name) / 'NaCl_gk_i_q.lammpstraj.gz'
+
+        filename, headers = urllib.request.urlretrieve(f'{base_url}.gz',
+                                                       filename=download_target)
+
+        target = Path(self.temp_dir.name) / 'NaCl_gk_i_q.lammpstraj'
+
+        with gzip.open(filename, 'rb') as f_in:
+            with open(target, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        self.add_experiment("NaCl", data=target.as_posix(), temperature=1400, timestep=0.002)
+
+    def remove_tutorial_data(self):
+        """Remove the tutorial data"""
+        self.temp_dir.cleanup()
