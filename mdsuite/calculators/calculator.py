@@ -195,8 +195,10 @@ class Calculator(CalculatorDatabase):
         self.scale_function = None
         self.batch_output_signature = None
         self.ensemble_output_signature = None
-        self.species = None  # all species
-        self.selected_species = None  # the selected species to peform the calculation on
+        self.species = None
+        # all species that are used in the calculation
+        self.selected_species = None
+        # the selected species which the current calculation iteration is performed on
         self.database_group = None
         self.analysis_name = None
         self.tau_values = None

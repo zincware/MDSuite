@@ -35,7 +35,12 @@ class Parameters:
 
 
 class CalculatorDatabase:
+    """Database Interactions of the calculator class
+
+    This class handles the interaction of the calculator with the project database
+    """
     def __init__(self, experiment):
+        """Constructor for the calculator database"""
         self.experiment: Experiment = experiment
         self.db_computation: db.Computation = None
         self.database_group = None

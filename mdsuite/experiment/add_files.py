@@ -30,6 +30,7 @@ class ExperimentAddingFiles:
     """Parent class that handles the file additions"""
 
     def __init__(self):
+        """Constructor of the ExperimentAddingFiles class"""
         self.database_path: str = ""
         self.memory_requirements = None
         self.number_of_configurations = None

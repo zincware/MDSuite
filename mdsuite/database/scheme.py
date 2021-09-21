@@ -179,9 +179,7 @@ class ExperimentAttributeList(Base):
 
 
 class Computation(Base):
-    """
-    Class for the computation table.
-    """
+    """Class for the computation table."""
     __tablename__ = 'computations'
 
     id = Column(Integer, primary_key=True)
@@ -313,6 +311,7 @@ class ComputationData(Base):
 
 
 class ComputationSpecies(Base):
+    """Species associated with computation data"""
     __tablename__ = 'computation_species'
 
     id = Column(Integer, primary_key=True)
