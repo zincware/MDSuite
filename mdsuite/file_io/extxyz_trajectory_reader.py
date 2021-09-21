@@ -12,12 +12,15 @@ Module for reading extxyz trajectory files
 Summary
 -------
 """
+import logging
 from typing import Union, List, Dict, Tuple
 import numpy as np
 from mdsuite.file_io.trajectory_files import TrajectoryFile
 from mdsuite.utils.meta_functions import get_dimensionality
 from mdsuite.utils.meta_functions import line_counter
 from mdsuite.utils.meta_functions import optimize_batch_size
+
+log = logging.getLogger(__name__)
 
 var_names = {
     "Positions": 'pos',
@@ -290,6 +293,7 @@ class EXTXYZFileReader(TrajectoryFile):
         species_summary, box, property_groups, line_length = self._get_species_information(number_of_atoms)
 
         if update_class:
+            log.debug("Updating class")
             self.experiment.batch_size = batch_size
             self.experiment.dimensions = get_dimensionality(box)
             self.experiment.box_array = box

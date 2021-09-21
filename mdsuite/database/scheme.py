@@ -8,6 +8,8 @@ Copyright Contributors to the Zincware Project.
 
 Description: Collection of all used SQLAlchemy Database schemes
 """
+import logging
+
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
@@ -15,6 +17,8 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from dataclasses import dataclass, field, asdict
 
 from typing import List
+
+log = logging.getLogger(__name__)
 
 import numpy as np
 
@@ -49,6 +53,7 @@ class Experiment(Base):
                                          back_populates='experiment')
 
     computations = relationship("Computation")
+
     # species = relationship("Species")
 
     def __repr__(self):
@@ -64,6 +69,14 @@ class Experiment(Base):
 
     @property
     def species(self):
+        """Get the species information
+
+        Returns
+        -------
+
+        dict:
+            A species dict of type {Li: {indices: [1, 2, 3], ...}, ...}
+        """
         species_dict = {}
         for experiment_attribute in self.experiment_attributes:
             if experiment_attribute.name == "species":
@@ -123,7 +136,7 @@ class ExperimentAttribute(Base):
 
         A dictionary of type {name: {indices: [...], {mass: ...}}
         """
-
+        log.debug("Accessing species data")
         if self.name != "species":
             raise ValueError(f"Object with name {self.name} does not have species_data!")
 
@@ -140,7 +153,6 @@ class ExperimentAttribute(Base):
             molar_fraction: float = None
 
         species_dict = asdict(SpeciesAttributes())
-        name = None
 
         for species_data in self.experiment_attribute_lists:
             if species_data.name in species_dict:
@@ -151,10 +163,8 @@ class ExperimentAttribute(Base):
                         species_dict[species_data.name].append(species_data.value)
                 else:
                     species_data[species_data.name] = species_data.value
-            elif species_data.name == "name":
-                name = species_data.str_value
 
-        return {name: species_dict}
+        return {self.str_value: species_dict}
 
 
 class ExperimentAttributeList(Base):
@@ -169,69 +179,6 @@ class ExperimentAttributeList(Base):
 
     experiment_attribute_id = Column(Integer, ForeignKey('experiment_attributes.id', ondelete="CASCADE"))
     experiment_attribute = relationship("ExperimentAttribute", back_populates='experiment_attribute_lists')
-
-
-# class Species(Base):
-#     __tablename__ = 'species'
-#     id = Column(Integer, primary_key=True)
-#     name = Column(String)
-#
-#     experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
-#     experiment = relationship("Experiment", back_populates='species')
-#
-#     species_data = relationship("SpeciesData")
-#
-#     @property
-#     def indices(self) -> list:
-#         indices = []
-#         for species_data in self.species_data:
-#             if species_data.name == "indices":
-#                 indices.append(int(species_data.value))
-#         return indices
-#
-#     @property
-#     def mass(self) -> list:
-#         mass = []
-#         for species_data in self.species_data:
-#             if species_data.name == "mass":
-#                 mass.append(species_data.value)
-#         return mass
-#
-#     @property
-#     def charge(self) -> list:
-#         charge = []
-#         for species_data in self.species_data:
-#             if species_data.name == "charge":
-#                 charge.append(species_data.value)
-#         return charge
-#
-#     @property
-#     def particle_density(self) -> float:
-#         for species_data in self.species_data:
-#             if species_data.name == "particle_density":
-#                 return species_data.value
-#         return None
-#
-#     @property
-#     def molar_fraction(self) -> float:
-#         for species_data in self.species_data:
-#             if species_data.name == "molar_fraction":
-#                 return species_data.value
-#         return None
-#
-#
-# #      TODO consider adding species data as a function here!
-#
-#
-# class SpeciesData(Base):
-#     __tablename__ = 'species_data'
-#     id = Column(Integer, primary_key=True)
-#     name = Column(String)
-#     value = Column(Float, nullable=True)
-#     str_value = Column(String, nullable=True)
-#
-#     species_id = Column(Integer, ForeignKey('species.id', ondelete="CASCADE"))
-#     species = relationship("Species", back_populates='species_data')
 
 
 class Computation(Base):
@@ -298,13 +245,6 @@ class Computation(Base):
             if comp_attr.name == "subject":
                 subjects.append(comp_attr.str_value)
         return subjects
-
-
-# class ComputationSpecies(Base):
-#     """Class for species in the middle between computations and computation data"""
-#     __tablename__ = "computation_species"
-#     id = Column(Integer, primary_key=True)
-#     species = ...
 
 
 class ComputationAttribute(Base):

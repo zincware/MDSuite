@@ -89,12 +89,18 @@ def call(func):
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
-            func(self, *args, **kwargs)
-            if self.load_data:
+            data = func(self, *args, **kwargs)
+            if data is not None:
+                # Experiment already performed, so we are returning the data here!
+                out[self.experiment.name] = data
+            elif self.load_data:
+                # exp.load / project.load was used
+                # TODO do not use exp.export_property_data but rather a method in the calc db!
                 out[self.experiment.name] = self.experiment.export_property_data(
                     {"Analysis": self.analysis_name, "experiment": self.experiment.name}
                 )
             else:
+                # new calculation will be performed
                 self.prepare_db_entry()
                 out[self.experiment.name] = self.run_analysis()
                 self.save_db_data()

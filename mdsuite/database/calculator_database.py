@@ -13,6 +13,7 @@ from __future__ import annotations
 import mdsuite.database.scheme as db
 from mdsuite.utils.database import get_or_create
 from dataclasses import dataclass, field
+from sqlalchemy import and_
 
 import logging
 import numpy as np
@@ -39,6 +40,7 @@ class CalculatorDatabase:
         self.db_computation: db.Computation = None
         self.database_group = None
         self.analysis_name = None
+        self.load_data = None
 
         # List of computation attributes that will be added to the database when it is written
         self.db_computation_attributes = []
@@ -46,7 +48,11 @@ class CalculatorDatabase:
     def prepare_db_entry(self):
         """Prepare a database entry based on the attributes defined in the init"""
         with self.experiment.project.session as ses:
-            experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
+            experiment = (
+                ses.query(db.Experiment)
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
+            )
 
         self.db_computation = db.Computation(experiment=experiment)
         self.db_computation.name = self.analysis_name
@@ -64,26 +70,66 @@ class CalculatorDatabase:
         This does require kwargs, args do not work!
 
         """
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-            computation_attribute = db.ComputationAttribute(
-                computation=self.db_computation,
-                name=key,
-                str_value=str(val)
+        with self.experiment.project.session as ses:
+            experiment = (
+                ses.query(db.Experiment)
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
+            )
+            computations = ses.query(db.Computation).filter(
+                db.Computation.experiment == experiment,
+                db.Computation.name == self.analysis_name,
             )
 
-            self.db_computation_attributes.append(computation_attribute)
+            for key, val in kwargs.items():
+                computations = computations.filter(
+                    db.Computation.computation_attributes.any(
+                        and_(
+                            db.ComputationAttribute.name == key,
+                            db.ComputationAttribute.str_value == str(val),
+                        )
+                    )
+                )
+            computations = computations.all()
+            for computation in computations:
+                _ = computation.data_dict
+
+        if len(computations) > 0:
+            log.warning("Calculation already performed! Loading it up")
+            if len(computations) > 1:
+                log.warning("Something went wrong! Found more than one computation with the given arguments!")
+            return computations[0]  # it should only be one value
+        else:
+            for key, val in kwargs.items():
+                setattr(self, key, val)
+
+                computation_attribute = db.ComputationAttribute(
+                    name=key, str_value=str(val)
+                )
+
+                self.db_computation_attributes.append(computation_attribute)
 
     def save_db_data(self, data=None):
         with self.experiment.project.session as ses:
             ses.add(self.db_computation)
             for val in self.db_computation_attributes:
+                # I need to set the relation inside the session, otherwise it does not work.
+                val.computation = self.db_computation
                 ses.add(val)
+
+            # TODO collect data and only here push it to the db
+            # for x in data:
+            #     for key, val in x.items():
+            #         computation_data = db.ComputationData(
+            #             computation=self.db_computation, value=val, dimension=key
+            #         )
+            #         ses.add(computation_data)
 
             ses.commit()
 
-    def update_database(self, parameters: Union[dict, Parameters], delete_duplicate: bool = True):
+    def update_database(
+        self, parameters: Union[dict, Parameters], delete_duplicate: bool = True
+    ):
         """
         Add data to the database
 
@@ -100,72 +146,112 @@ class CalculatorDatabase:
         """
         if isinstance(parameters, Parameters):
             with self.experiment.project.session as ses:
-                experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
-                computation = db.Computation(experiment=experiment, name=parameters.Analysis)
+                experiment = (
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
+                )
+                computation = db.Computation(
+                    experiment=experiment, name=parameters.Analysis
+                )
                 ses.add(computation)
 
-                computation_property = db.ComputationAttribute(computation=computation, name="Property",
-                                                               str_value=parameters.Property)
+                computation_property = db.ComputationAttribute(
+                    computation=computation,
+                    name="Property",
+                    str_value=parameters.Property,
+                )
                 ses.add(computation_property)
 
-                computation_analysis = db.ComputationAttribute(computation=computation, name="Analysis",
-                                                               str_value=parameters.Analysis)
+                computation_analysis = db.ComputationAttribute(
+                    computation=computation,
+                    name="Analysis",
+                    str_value=parameters.Analysis,
+                )
                 ses.add(computation_analysis)
 
-                computation_data_range = db.ComputationAttribute(computation=computation, name="data_range",
-                                                                 value=parameters.data_range)
+                computation_data_range = db.ComputationAttribute(
+                    computation=computation,
+                    name="data_range",
+                    value=parameters.data_range,
+                )
                 ses.add(computation_data_range)
 
                 for subject in parameters.Subject:
-                    computation_subject = db.ComputationAttribute(computation=computation, name="subject",
-                                                                  str_value=subject)
+                    computation_subject = db.ComputationAttribute(
+                        computation=computation, name="subject", str_value=subject
+                    )
                     ses.add(computation_subject)
 
                 # data
 
                 for data in parameters.data:
                     for key, val in data.items():
-                        computation_data = db.ComputationData(computation=computation, value=val, dimension=key)
+                        computation_data = db.ComputationData(
+                            computation=computation, value=val, dimension=key
+                        )
                         ses.add(computation_data)
 
                 ses.commit()
         else:
-            log.warning("Using depreciated dictionary method - Please use dataclass instead.")
+            log.warning(
+                "Using depreciated dictionary method - Please use dataclass instead."
+            )
             # allow subjects and Subject
             if parameters.get("subjects") is None:
                 try:
-                    log.warning("Using depreciated `Subject` \t Please use `subjects` instead.")
-                    parameters['subjects'] = parameters['Subject']
+                    log.warning(
+                        "Using depreciated `Subject` \t Please use `subjects` instead."
+                    )
+                    parameters["subjects"] = parameters["Subject"]
                 except KeyError:
                     raise KeyError('Please add the key "subjects" to your calculator')
 
             with self.experiment.project.session as ses:
-                experiment = ses.query(db.Experiment).filter(db.Experiment.name == self.experiment.name).first()
-                computation = db.Computation(experiment=experiment, name=parameters["Analysis"])
+                experiment = (
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
+                )
+                computation = db.Computation(
+                    experiment=experiment, name=parameters["Analysis"]
+                )
                 ses.add(computation)
 
-                computation_property = db.ComputationAttribute(computation=computation, name="Property",
-                                                               str_value=parameters['Property'])
+                computation_property = db.ComputationAttribute(
+                    computation=computation,
+                    name="Property",
+                    str_value=parameters["Property"],
+                )
                 ses.add(computation_property)
 
-                computation_analysis = db.ComputationAttribute(computation=computation, name="Analysis",
-                                                               str_value=parameters['Analysis'])
+                computation_analysis = db.ComputationAttribute(
+                    computation=computation,
+                    name="Analysis",
+                    str_value=parameters["Analysis"],
+                )
                 ses.add(computation_analysis)
 
-                computation_data_range = db.ComputationAttribute(computation=computation, name="data_range",
-                                                                 value=parameters['data_range'])
+                computation_data_range = db.ComputationAttribute(
+                    computation=computation,
+                    name="data_range",
+                    value=parameters["data_range"],
+                )
                 ses.add(computation_data_range)
 
-                for subject in parameters['subjects']:
-                    computation_subject = db.ComputationAttribute(computation=computation, name="subject",
-                                                                  str_value=subject)
+                for subject in parameters["subjects"]:
+                    computation_subject = db.ComputationAttribute(
+                        computation=computation, name="subject", str_value=subject
+                    )
                     ses.add(computation_subject)
 
                 # data
 
-                for data in parameters['data']:
+                for data in parameters["data"]:
                     for key, val in data.items():
-                        computation_data = db.ComputationData(computation=computation, value=val, dimension=key)
+                        computation_data = db.ComputationData(
+                            computation=computation, value=val, dimension=key
+                        )
                         ses.add(computation_data)
 
                 ses.commit()
@@ -175,9 +261,15 @@ class CalculatorDatabase:
         """Fill the data_files list with filenames of the rdf tensor_values"""
         # TODO replace with exp.load.RDF()
         with self.experiment.project.session as ses:
-            computations = ses.query(db.Computation).filter(
-                db.Computation.computation_attributes.any(str_value="Radial_Distribution_Function", name="Property")
-            ).all()
+            computations = (
+                ses.query(db.Computation)
+                .filter(
+                    db.Computation.computation_attributes.any(
+                        str_value="Radial_Distribution_Function", name="Property"
+                    )
+                )
+                .all()
+            )
 
             for computation in computations:
                 _ = computation.data_dict
@@ -189,5 +281,5 @@ class CalculatorDatabase:
     def _load_rdf_from_file(self, computation: db.Computation):
         """Load the raw rdf tensor_values from a directory"""
 
-        self.radii = np.array(computation.data_dict['x']).astype(float)[1:]
-        self.rdf = np.array(computation.data_dict['y']).astype(float)[1:]
+        self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
+        self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]

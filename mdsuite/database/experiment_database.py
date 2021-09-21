@@ -327,17 +327,14 @@ class ExperimentDatabase:
             experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
             for species_name in value:
                 species = ses.query(db.ExperimentAttribute).filter(
-                    db.ExperimentAttribute.name == "species").join(
-                    db.ExperimentAttribute.experiment_attribute_lists).filter(
-                    db.ExperimentAttributeList.name == species_name).first()
+                    db.ExperimentAttribute.name == "species",
+                    db.ExperimentAttribute.str_value == species_name
+                ).first()
 
                 if species is None:
                     log.debug(f"Creating new species db entry for {species_name}.")
-                    species = db.ExperimentAttribute(experiment=experiment, name="species")
-                    db_species_name = db.ExperimentAttributeList(experiment_attribute=species, name="name",
-                                                                 str_value=species_name)
+                    species = db.ExperimentAttribute(experiment=experiment, name="species", str_value=species_name)
                     ses.add(species)
-                    ses.add(db_species_name)
 
                 for species_attr, species_values in value[species_name].items():
                     try:
