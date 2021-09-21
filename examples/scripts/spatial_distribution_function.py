@@ -1,7 +1,6 @@
 import mdsuite as mds
 from mdsuite.transformations.map_molecules import MolecularMap
-import numpy as np
-import matplotlib.pyplot as plt
+
 
 if __name__ == '__main__':
 
@@ -15,8 +14,6 @@ if __name__ == '__main__':
         cluster_mode=False
     )
 
-    print(project.experiments.bmim_bf4.number_of_configurations)
-
     # #project.experiments.bmim_bf4.perform_transformation("UnwrapCoordinates")
     # mapper = MolecularMap(
     #     project.experiments.bmim_bf4,
@@ -26,10 +23,11 @@ if __name__ == '__main__':
     #               }
     # )
     # mapper.run_transformation()
-    # project.experiments.bmim_bf4.perform_transformation('WrapCoordinates')
     project.run_computation.SpatialDistributionFunction(species=['bmim-7', 'bf4-7'],
                                                         r_min=1.0,
                                                         r_max=3.0,
                                                         number_of_configurations=5,
                                                         start=0,
                                                         stop=40)
+
+    project.experiments.bmim_bf4.run_visualization()

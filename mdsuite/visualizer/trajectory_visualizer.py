@@ -101,11 +101,6 @@ class SimulationVisualizer:
         -------
         Will update the class state if necessary.
         """
-        if self.molecules:
-            self.species = list(self.experiment.molecules)
-        if self.species is None:
-            self.species = list(self.experiment.species)
-
         self.data = {}
         for item in self.species:
             self.data[item] = {}
@@ -115,7 +110,7 @@ class SimulationVisualizer:
         Return a mesh object coloured by element.
         """
         mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
-                                                       resolution=40)
+                                                       resolution=10)
         mesh.compute_vertex_normals()
         mesh.translate(location)
         mesh.paint_uniform_color(colour)
