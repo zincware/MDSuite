@@ -16,7 +16,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-import matplotlib.pyplot as plt
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
@@ -95,8 +95,8 @@ class AngularDistributionFunction(Calculator, ABC):
 
         self.analysis_name = "Angular_Distribution_Function"
         self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'Angle ($\theta$)'
-        self.y_label = 'ADF /a.u.'
+        self.x_label = r'$$\text{Angle} / \theta $$'
+        self.y_label = r'$$\text{ADF} / a.u.$$'
 
     @call
     def __call__(self,
@@ -109,7 +109,6 @@ class AngularDistributionFunction(Calculator, ABC):
                  bins: int = 500,
                  species: list = None,
                  use_tf_function: bool = False,
-                 export: bool = False,
                  molecules: bool = False,
                  gpu: bool = False,
                  plot: bool = True,
@@ -143,8 +142,6 @@ class AngularDistributionFunction(Calculator, ABC):
         norm_power: int
             The power of the normalization factor applied to the ADF histogram.
             If set to zero no distance normalization will be applied.
-        export : bool
-                If true, generate a csv file after the analysis is complete.
         molecules : bool
                 if true, perform the anlaysis on molecules.
         gpu : bool
@@ -160,7 +157,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         # Parse the parent class arguments.
-        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
+        self.update_user_args(data_range=1, gpu=gpu, plot=plot)
 
         # Parse the user arguments.
         self.use_tf_function = use_tf_function
@@ -433,15 +430,15 @@ class AngularDistributionFunction(Calculator, ABC):
 
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
-            if self.save or self.export:
-                data = [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)]
-                self.save_to_db(data)
+            data = [{'angle': x, 'adf': y} for x, y in zip(bin_range_to_angles, hist)]
+            self.save_to_db(data)
 
             if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(bin_range_to_angles, hist, label=name)
-                ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-                self._plot_fig(fig, ax, title=name)
+                self.run_visualization(
+                    x_data=bin_range_to_angles,
+                    y_data=hist,
+                    title=f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f} degrees ",
+                )
 
     def run_experimental_analysis(self):
         """

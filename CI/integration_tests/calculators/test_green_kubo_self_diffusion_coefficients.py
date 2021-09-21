@@ -66,10 +66,11 @@ def test_gksd_project(traj_files, true_values, tmp_path):
     """Test the green_kubo_self_diffusion called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
-    project.run.GreenKuboSelfDiffusionCoefficients(plot=False)
-
+    project.run.GreenKuboSelfDiffusionCoefficients(plot=True)
     data_dict = project.load.GreenKuboSelfDiffusionCoefficients()["NaCl"][0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])

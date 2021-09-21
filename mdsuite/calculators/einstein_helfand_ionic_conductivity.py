@@ -16,12 +16,13 @@ Experiment.einstein_helfand_ionic_conductivity method. The methods in class can 
 Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
+from mdsuite.database.calculator_database import Parameters
+
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -72,9 +73,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.system_property = True
 
         self.database_group = 'Ionic_Conductivity'  # Which database_path group to save the tensor_values in
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Ionic_Conductivity'
+        self.x_label = r'$$\text{Time} / s$$'
+        self.y_label = r'$$\text{MSD} / m^2/s$$'
+        self.analysis_name = 'Einstein Helfand Ionic Conductivity'
         self.prefactor: float
 
     @call
@@ -167,31 +168,24 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
+
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[
+                {'ionic_conductivity': result[0], 'uncertainty': result[1]}],
+            Subject=["System"]
+        )
+        data = properties.data
+        data += [{'time': x, 'msd': y} for x, y in
+                 zip(self.time, self.msd_array)]
+        properties.data = data
+        self.update_database(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
-                     label=fr'{result[0]:.3E} $\pm$ '
-                           f'{result[1]:.3E}')
-            self._plot_data()
-
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.msd_array))
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.msd_array * self.experiment.units['time'],
+                title=f'{result[0]:.3E} +- {result[1]:.3E}')
