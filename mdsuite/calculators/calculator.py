@@ -262,7 +262,6 @@ class Calculator(CalculatorDatabase):
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
-
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
 
@@ -774,25 +773,16 @@ class Calculator(CalculatorDatabase):
 
             self._apply_averaging_factor()
             self._post_operation_processes()
-            if self.plot:
-                self.plotter.grid_show(self.plot_array)
 
         elif self.experimental:
             data_path = [join_path(species,
                                    self.loaded_property) for species
                          in self.experiment.species]
             self._prepare_managers(data_path)
-            output = self.run_experimental_analysis()
-
-            if self.plot:
-                self.plotter.grid_show(self.plot_array)
-
-            return output
+            self.run_experimental_analysis()
 
         elif self.post_generation:
             self.run_post_generation_analysis()
-            if self.plot:
-                self.plotter.grid_show(self.plot_array)
 
         else:
             for species in self.species:
@@ -829,8 +819,9 @@ class Calculator(CalculatorDatabase):
 
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
-            if self.plot:
-                self.plotter.grid_show(self.plot_array)
+
+        if self.plot:
+            self.plotter.grid_show(self.plot_array)
 
     def run_experimental_analysis(self):
         """
