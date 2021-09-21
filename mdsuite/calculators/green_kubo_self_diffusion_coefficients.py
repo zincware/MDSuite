@@ -65,8 +65,8 @@ class GreenKuboDiffusionCoefficients(Calculator):
         self.scale_function = {"linear": {"scale_factor": 150}}
 
         self.database_group = "Diffusion_Coefficients"
-        self.x_label = "$$Time (s)$$"
-        self.y_label = "$$VACF (m^{2}/s^{2})$$"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
 
     @call

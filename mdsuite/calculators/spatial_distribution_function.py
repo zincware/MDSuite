@@ -52,8 +52,8 @@ class SpatialDistributionFunction(Calculator):
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
         self.database_group = 'Spatial_Distribution_Function'
-        self.x_label = r'r ($\AA$)'  # None
-        self.y_label = 'g(r)'  # None
+        self.x_label = r'$$\text{r} /  \AA$$'  # None
+        self.y_label = r'$$\text{g(r)}$$'  # None
         self.analysis_name = 'Spatial_Distribution_Function'
         self.experimental = True
 

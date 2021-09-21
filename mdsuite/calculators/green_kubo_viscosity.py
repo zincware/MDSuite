@@ -62,8 +62,8 @@ class GreenKuboViscosity(Calculator):
         self.database_group = "Viscosity"
         self.system_property = True
 
-        self.x_label = "Time (s)"
-        self.y_label = r"SACF ($C^{2}\cdot m^{2}/s^{2}$)"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"\text{SACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Viscosity"
         self.prefactor: float
 

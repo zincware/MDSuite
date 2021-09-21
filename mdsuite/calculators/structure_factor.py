@@ -87,8 +87,8 @@ class StructureFactor(Calculator):
         self.post_generation = True
 
         self.database_group = 'structure_factor'
-        self.x_label = r'Q ($\AA ^{-1}$)'
-        self.y_label = r'S(Q)'
+        self.x_label = r'$$\text{Q} / \AA ^{-1}$$'
+        self.y_label = r'$$\text{S(Q)}$$'
         self.analysis_name = 'total_structure_factor'
 
         self.rho = None

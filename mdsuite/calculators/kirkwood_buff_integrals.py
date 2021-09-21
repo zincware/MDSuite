@@ -73,8 +73,8 @@ class KirkwoodBuffIntegral(Calculator):
         self.species_tuple = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
-        self.x_label = r"r ($\AA$)"
-        self.y_label = r"$G(\mathbf{r})$"
+        self.x_label = r"$$ \text{r} / \AA$$"
+        self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
 
         self.post_generation = True

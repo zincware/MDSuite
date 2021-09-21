@@ -95,8 +95,8 @@ class AngularDistributionFunction(Calculator, ABC):
 
         self.analysis_name = "Angular_Distribution_Function"
         self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'Angle ($\theta$)'
-        self.y_label = 'ADF /a.u.'
+        self.x_label = r'$$\text{Angle} / \theta $$'
+        self.y_label = r'$$\text{ADF} / a.u.$$'
 
     @call
     def __call__(self,

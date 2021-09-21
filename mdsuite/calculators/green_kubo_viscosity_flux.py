@@ -68,8 +68,8 @@ class GreenKuboViscosityFlux(Calculator):
 
         self.database_group = 'Viscosity'  # Which database_path group to save the tensor_values in
         self.analysis_name = 'Viscosity_Flux'
-        self.x_label = 'Time (s)'
-        self.y_label = 'JACF ($C^{2}\\cdot m^{2}/s^{2}$)'
+        self.x_label = r'$$\text{Time} / s$$'
+        self.y_label = r'$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$'
 
         self.prefactor: float
         self.jacf = np.zeros(self.data_range)

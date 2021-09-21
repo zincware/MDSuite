@@ -71,8 +71,8 @@ class EinsteinHelfandThermalKinaci(Calculator):
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.x_label = '$$Time (s)$$'
-        self.y_label = '$$MSD (m^2/s)$$'
+        self.x_label = r'$$\text{Time} / s)$$'
+        self.y_label = r'$$\text{MSD} / m^2/s$$'
         self.analysis_name = 'Einstein Helfand Thermal Conductivity Kinaci'
 
         self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in

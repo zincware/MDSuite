@@ -71,8 +71,8 @@ class GreenKuboThermalConductivity(Calculator):
         self.database_group = "Thermal_Conductivity"
         self.system_property = True
 
-        self.x_label = "Time (s)"
-        self.y_label = r"JACF ($C^{2}\cdot m^{2}/s^{2}$)"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Thermal_Conductivity"
 
     @call

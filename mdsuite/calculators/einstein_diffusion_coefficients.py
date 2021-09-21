@@ -90,8 +90,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = None
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
-        self.x_label = '$$Time (s)$$'
-        self.y_label = '$$MSD (m^{2})$$'
+        self.x_label = r'$$ \text{Time} / s$$'
+        self.y_label = r'$$ \text{MSD} / m^{2}$$'
         self.analysis_name = 'Einstein Self-Diffusion Coefficients'
         self.loop_condition = False
         self.optimize = None

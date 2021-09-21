@@ -70,8 +70,8 @@ class GreenKuboIonicConductivity(Calculator):
         self.system_property = True
 
         self.database_group = "Ionic_Conductivity"
-        self.x_label = "Time (s)"
-        self.y_label = r"JACF ($C^{2}\cdot m^{2}/s^{2}$)"
+        self.x_label = r"$$\text{Time} / s"
+        self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
         self.prefactor: float

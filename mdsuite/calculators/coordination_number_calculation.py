@@ -88,7 +88,7 @@ class CoordinationNumbers(Calculator):
         self.post_generation = True
 
         self.database_group = 'Coordination_Numbers'
-        self.x_label = r'r ($\AA$)'
+        self.x_label = r'$$\text{r} / \AA$$'
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
 

@@ -69,8 +69,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.loaded_property = "Velocities"
 
         self.database_group = "Diffusion_Coefficients"
-        self.x_label = "Time $(s)$"
-        self.y_label = "VACF $(m^{2}/s^{2})$"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"\text{VACF}  / m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Distinct_Diffusion_Coefficients"
         self.experimental = True
 

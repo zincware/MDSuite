@@ -73,8 +73,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.system_property = True
 
         self.database_group = 'Ionic_Conductivity'  # Which database_path group to save the tensor_values in
-        self.x_label = '$$Time (s)$$'
-        self.y_label = '$$MSD (m^2/s)$$'
+        self.x_label = r'$$\text{Time} / s$$'
+        self.y_label = r'$$\text{MSD} / m^2/s$$'
         self.analysis_name = 'Einstein Helfand Ionic Conductivity'
         self.prefactor: float
 

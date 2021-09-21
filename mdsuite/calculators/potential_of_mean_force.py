@@ -95,8 +95,8 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = None
         self.indices = None
         self.database_group = 'Potential_Of_Mean_Force'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = r'$w^{(2)}(r)$'
+        self.x_label = r'$$\text{r| /  \AA$$'
+        self.y_label = r'$$w^{(2)}(r)$$'
         self.analysis_name = 'Potential_of_Mean_Force'
         self.post_generation = True
 
@@ -190,15 +190,6 @@ class PotentialOfMeanForce(Calculator):
         # Calculate the value and error of the potential of mean-force
         pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]]) / np.sqrt(2)
-
-        # Update the experiment class
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": self.species_tuple.split('_'),
-                      "data_range": self.data_range,
-                      'data': [{'x': pomf_value, 'uncertainty': pomf_error}]
-                      }
-        self._update_properties_file(properties)
 
         return pomf_value, pomf_error
 
