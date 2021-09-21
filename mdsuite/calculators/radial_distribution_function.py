@@ -94,8 +94,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
         self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
-        self.x_label = r'$$\text{r} \AA$$'
-        self.y_label = '$$\text{g(r)}$$'
+        self.x_label = r'$$r / \AA$$'
+        self.y_label = r'$$g(r)$$'
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
 
