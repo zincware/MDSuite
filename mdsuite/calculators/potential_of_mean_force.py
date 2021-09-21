@@ -20,13 +20,13 @@ species in a experiment. Mathematically one may write.
 import logging
 import numpy as np
 from scipy.signal import find_peaks
-import matplotlib.pyplot as plt
-from typing import Union
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
+from bokeh.models import BoxAnnotation
 
 log = logging.getLogger(__name__)
 
@@ -35,23 +35,27 @@ class PotentialOfMeanForce(Calculator):
     """
     Class for the calculation of the potential of mean-force
 
-    The potential of mean-force is a measure of the binding strength between atomic species in a experiment.
+    The potential of mean-force is a measure of the binding strength between
+    atomic species in a experiment.
 
     Attributes
     ----------
     experiment : class object
                         Class object of the experiment.
     data_range : int (default=500)
-                        Range over which the property should be evaluated. This is not applicable to the current
-                        analysis as the full rdf will be calculated.
+                        Range over which the property should be evaluated.
+                        This is not applicable to the current analysis as the
+                        full rdf will be calculated.
     x_label : str
                         How to label the x axis of the saved plot.
     y_label : str
                         How to label the y axis of the saved plot.
     analysis_name : str
-                        Name of the analysis. used in saving of the tensor_values and figure.
+                        Name of the analysis. used in saving of the
+                        tensor_values and figure.
     file_to_study : str
-                        The tensor_values file corresponding to the rdf being studied.
+                        The tensor_values file corresponding to the rdf being
+                        studied.
     data_files : list
                         list of files to be analyzed.
     rdf = None : list
@@ -91,8 +95,8 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = None
         self.indices = None
         self.database_group = 'Potential_Of_Mean_Force'
-        self.x_label = r'r ($\AA$)'
-        self.y_label = r'$w^{(2)}(r)$'
+        self.x_label = r'$$\text{r| /  \AA$$'
+        self.y_label = r'$$w^{(2)}(r)$$'
         self.analysis_name = 'Potential_of_Mean_Force'
         self.post_generation = True
 
@@ -144,9 +148,12 @@ class PotentialOfMeanForce(Calculator):
         """
         Calculate the maximums of the rdf
         """
-        filtered_data = apply_savgol_filter(self.pomf, order=self.savgol_order, window_length=self.savgol_window_length)
+        filtered_data = apply_savgol_filter(
+            self.pomf, order=self.savgol_order,
+            window_length=self.savgol_window_length)
 
-        peaks = find_peaks(filtered_data)[0]  # Find the maximums in the filtered dataset
+        # Find the maximums in the filtered dataset
+        peaks = find_peaks(filtered_data)[0]
 
         return [peaks[0], peaks[1]]
 
@@ -154,8 +161,8 @@ class PotentialOfMeanForce(Calculator):
         """
         Find the minimum of the pomf function
 
-        This function calls an implementation of the Golden-section search algorithm to determine the minimum of the
-        potential of mean-force function.
+        This function calls an implementation of the Golden-section search
+        algorithm to determine the minimum of the potential of mean-force function.
 
         Returns
         -------
@@ -184,23 +191,7 @@ class PotentialOfMeanForce(Calculator):
         pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
         pomf_error = np.std([self.pomf[self.indices[0]], self.pomf[self.indices[1]]]) / np.sqrt(2)
 
-        # Update the experiment class
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": self.species_tuple.split('_'),
-                      "data_range": self.data_range,
-                      'data': [{'x': pomf_value, 'uncertainty': pomf_error}]
-                      }
-        self._update_properties_file(properties)
-
         return pomf_value, pomf_error
-
-    def _plot_fits(self, data: list):
-        """
-        Plot the predicted minimum value before parsing the other tensor_values for plotting
-        """
-        plt.plot(self.radii, self.pomf, label=fr'{self.species_tuple}: {data[0]: 0.3E} $\pm$ {data[1]: 0.3E}')
-        plt.axvspan(self.radii[self.indices[0]], self.radii[self.indices[1]], color='y', alpha=0.5, lw=0)
 
     def run_post_generation_analysis(self):
         """
@@ -208,8 +199,8 @@ class PotentialOfMeanForce(Calculator):
         """
 
         # fill the tensor_values array with tensor_values
-
-        for data in self._get_rdf_data():
+        calculations = self._get_rdf_data()
+        for data in calculations:
             self.file_to_study = data  # Set the correct tensor_values file in the class
             self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range
@@ -218,25 +209,30 @@ class PotentialOfMeanForce(Calculator):
             self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
             _data = self._get_pomf_value()  # Determine the min values of the function and update experiment
 
-            # Update the experiment class
-
-            if self.save:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": self.species_tuple.split('_'),
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(self.radii, self.pomf)],
-                              'information': 'series'
-                              }
-                self._update_properties_file(properties)
-
-            if self.export:
-                self._export_data(name=self._build_table_name(self.species_tuple),
-                                  data=self._build_pandas_dataframe(self.radii, self.pomf))
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=[{'min_pomf': _data[0],
+                       'uncertainty': _data[1]}],
+                Subject=[self.species_tuple]
+            )
+            data = properties.data
+            data += [{'r': x, 'pomf': y} for x, y in
+                     zip(self.radii, self.pomf)]
+            properties.data = data
+            self.update_database(properties)
 
             if self.plot:
-                self._plot_fits(_data)
+                model = BoxAnnotation(
+                    left=self.radii[self.indices[0]],
+                    right=self.radii[self.indices[1]],
+                    fill_alpha=0.1,
+                    fill_color='red')
+                self.run_visualization(
+                    x_data=self.radii,
+                    y_data=self.pomf,
+                    title=fr'{self.species_tuple}: {_data[0]: 0.3E} +- {_data[1]: 0.3E}',
+                    layouts=[model]
+                )
 
-        if self.plot:
-            plt.legend()
-            plt.show()

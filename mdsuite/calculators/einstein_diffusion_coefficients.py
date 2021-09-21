@@ -18,7 +18,6 @@ calculations performed.
 """
 from __future__ import annotations
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 from typing import Union, Any, List
@@ -91,9 +90,9 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = None
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$)'
-        self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
+        self.x_label = r'$$ \text{Time} / s$$'
+        self.y_label = r'$$ \text{MSD} / m^{2}$$'
+        self.analysis_name = 'Einstein Self-Diffusion Coefficients'
         self.loop_condition = False
         self.optimize = None
         self.msd_array = None  # define empty msd array
@@ -246,24 +245,16 @@ class EinsteinDiffusionCoefficients(Calculator):
             Property=self.database_group,
             Analysis=self.analysis_name,
             data_range=self.data_range,
-            data=[{'x': result[0], 'uncertainty': result[1]}],
+            data=[{'diffusion_coefficient': result[0], 'uncertainty': result[1]}],
             Subject=[species]
         )
-
-        if self.save:
-            data = properties.data
-            data += [{'time': x, 'msd': y} for x, y in zip(self.time, self.msd_array)]
-            properties.data = data
+        data = properties.data
+        data += [{'time': x, 'msd': y} for x, y in zip(self.time, self.msd_array)]
+        properties.data = data
 
         self.update_database(properties)
 
-        if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
-
         if self.plot:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'],
-                     self.msd_array * self.experiment.units['time'],
-                     label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
+            self.run_visualization(x_data=np.array(self.time) * self.experiment.units['time'],
+                                   y_data=self.msd_array * self.experiment.units['time'],
+                                   title=f"{species}: {result[0]: 0.3E} +- {result[1]: 0.3E}")

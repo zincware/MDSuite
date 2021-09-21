@@ -15,12 +15,12 @@ The experiment class is the main class involved in characterizing and analyzing 
 """
 import logging
 from pathlib import Path
-from mdsuite.calculators.computations_dict import dict_classes_db
 from mdsuite.calculators import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.units import units_dict
 from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
 from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
@@ -122,8 +122,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
-
-        self._results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}  # TODO I think this can be removed. - Not until all calcs are under tf Dataset
@@ -243,29 +241,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     def save_class(self):
         log.warning("Using depreciated method `save_class`!")
 
-    # def map_elements(self, mapping: dict = None):
-    #     """
-    #     Map numerical keys to element names in the Experiment class and database_path.
-    #
-    #     Returns
-    #     -------
-    #     Updates the class
-    #     """
-    #
-    #     if mapping is None:
-    #         log.info("Must provide a mapping")
-    #         return
-    #
-    #     # rename keys in species dictionary
-    #     for item in mapping:
-    #         self.species[mapping[item]] = self.species.pop(item)
-    #
-    #     # rename database_path groups
-    #     db_object = Database(name=os.path.join(self.database_path, "database_path.hdf5"))
-    #     db_object.change_key_names(mapping)
-    #
-    #     self.save_class()  # update the class state
-    #
     def perform_transformation(self, transformation_name, **kwargs):
         """
         Perform a transformation on the experiment.
@@ -292,6 +267,65 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
         transformation_run = transformation(self, **kwargs)
         transformation_run.run_transformation()  # perform the transformation
+
+    def run_visualization(
+            self,
+            species: list = None,
+            molecules: bool = False,
+            unwrapped: bool = False,
+            starting_configuration: int = None):
+        """
+        Perform a trajectory visualization.
+
+        Parameters
+        ----------
+        species : list
+                A list of species of molecules to study.
+        molecules : bool
+                If true, molecule groups will be used.
+        unwrapped : bool
+                If true, unwrapped coordinates will be visualized.
+        starting_configuration : int
+                Starting configuration for the visualizer.
+
+        Returns
+        -------
+        Displays a visualization app.
+        """
+        if molecules:
+            if species is None:
+                species = list(self.species)
+        if species is None:
+            species = list(self.species)
+
+        visualizer = SimulationVisualizer(
+            self, species=species, molecules=molecules, unwrapped=unwrapped,
+            number_of_configurations=self.number_of_configurations)
+        visualizer.run_app(starting_configuration=starting_configuration)
+
+    # def map_elements(self, mapping: dict = None):
+    #     """
+    #     Map numerical keys to element names in the Experiment class and database_path.
+    #
+    #     Returns
+    #     -------
+    #     Updates the class
+    #     """
+    #
+    #     if mapping is None:
+    #         log.info("Must provide a mapping")
+    #         return
+    #
+    #     # rename keys in species dictionary
+    #     for item in mapping:
+    #         self.species[mapping[item]] = self.species.pop(item)
+    #
+    #     # rename database_path groups
+    #     db_object = Database(name=os.path.join(self.database_path, "database_path.hdf5"))
+    #     db_object.change_key_names(mapping)
+    #
+    #     self.save_class()  # update the class state
+    #
 
     #
     # def print_class_attributes(self):

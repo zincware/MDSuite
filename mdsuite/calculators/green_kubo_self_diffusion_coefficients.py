@@ -15,14 +15,15 @@ calls the Experiment.einstein_diffusion_coefficients method. The methods in
 class can then be called by the Experiment.green_kubo_diffusion_coefficients
 method and all necessary calculations performed.
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow_probability as tfp
 import tensorflow as tf
+from bokeh.models import Span
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.calculator_database import Parameters
 
 
-class GreenKuboSelfDiffusionCoefficients(Calculator):
+class GreenKuboDiffusionCoefficients(Calculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
     Attributes
@@ -64,9 +65,9 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         self.scale_function = {"linear": {"scale_factor": 150}}
 
         self.database_group = "Diffusion_Coefficients"
-        self.x_label = "Time $(s)$"
-        self.y_label = "VACF $(m^{2}/s^{2})$"
-        self.analysis_name = "Green_Kubo_Self_Diffusion_Coefficients"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
+        self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
 
     @call
     def __call__(
@@ -231,51 +232,30 @@ class GreenKuboSelfDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "Subject": [species],
-            "data_range": self.data_range,
-            "data": [
-                {
-                    "x": np.mean(result),
-                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
-                }
-            ],
-        }
-        self._update_properties_file(properties)
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[{'diffusion_coefficient': result[0],
+                   'uncertainty': result[1]}],
+            Subject=[species]
+        )
+        data = properties.data
+        data += [{'time': x, 'acf': y} for x, y in
+                 zip(self.time, self.vacf)]
+        properties.data = data
+        self.update_database(properties)
 
         # Update the plot if required
         if self.plot:
-            plt.xlabel(rf"{self.x_label}")
-            plt.ylabel(rf"{self.y_label}")
-            plt.vlines(
-                (np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range
-                ],
-                min(self.vacf),
-                max(self.vacf),
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[self.integration_range - 1],
+                dimension='height',
+                line_dash='dashed'
             )
-            plt.plot(
-                np.array(self.time) * self.experiment.units["time"],
-                self.vacf,
-                label=fr"{species}: {np.mean(result): .3E} $\pm$ "
-                fr"{np.std(result) / (np.sqrt(len(result))): .3E}",
-            )
-
-        if self.save:
-            properties = {
-                "Property": self.database_group,
-                "Analysis": self.analysis_name,
-                "Subject": [species],
-                "data_range": self.data_range,
-                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.vacf)],
-                "information": "series",
-            }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(
-                name=self._build_table_name(species),
-                data=self._build_pandas_dataframe(self.time, self.vacf),
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.vacf.numpy(),
+                title=f"{species}: {np.mean(result): .3E} +- {np.std(result) / (np.sqrt(len(result))): .3E}",
+                layouts=[span]
             )

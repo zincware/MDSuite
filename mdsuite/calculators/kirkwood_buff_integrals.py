@@ -11,8 +11,7 @@ Class for the calculation of the coordinated numbers
 """
 import logging
 import numpy as np
-import matplotlib.pyplot as plt
-from typing import Union
+from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 
@@ -74,8 +73,8 @@ class KirkwoodBuffIntegral(Calculator):
         self.species_tuple = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
-        self.x_label = r"r ($\AA$)"
-        self.y_label = r"$G(\mathbf{r})$"
+        self.x_label = r"$$ \text{r} / \AA$$"
+        self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
 
         self.post_generation = True
@@ -128,89 +127,31 @@ class KirkwoodBuffIntegral(Calculator):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-
-        for data in self._get_rdf_data():  # Loop over all existing RDFs
+        calculations = self._get_rdf_data()
+        for data in calculations:  # Loop over all existing RDFs
             self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range
-
             self._load_rdf_from_file(data)  # load the tensor_values from it
-
             self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
+
+            data = [
+                {"r": x, "kb_integral": y} for x, y in
+                zip(self.radii[1:], self.kb_integral)
+            ]
+            log.debug(f"Writing {self.analysis_name} to database!")
+            properties = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=data,
+                Subject=[self.species_tuple]
+            )
+            self.update_database(properties)
 
             # Plot if required
             if self.plot:
-                plt.plot(
-                    self.radii[1:], self.kb_integral, label=f"{self.species_tuple}"
+                self.run_visualization(
+                    x_data=self.radii[1:],
+                    y_data=self.kb_integral,
+                    title=f"{self.species_tuple}",
                 )
-                self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
-
-            if self.save or self.export:
-                data = [
-                    {"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)
-                ]
-                log.debug(f"Writing {self.analysis_name} to database!")
-                self._update_properties_file(
-                    {
-                        "Property": self.system_property,
-                        "Analysis": self.analysis_name,
-                        "subjects": self.species_tuple.split("_"),
-                        "data_range": self.data_range,
-                        "data": data,
-                    }
-                )
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError

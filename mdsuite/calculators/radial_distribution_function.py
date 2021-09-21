@@ -23,7 +23,6 @@ import logging
 from abc import ABC
 from typing import Union
 import numpy as np
-import matplotlib.pyplot as plt
 import warnings
 
 # Import user packages
@@ -95,8 +94,8 @@ class RadialDistributionFunction(Calculator, ABC):
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
         self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
-        self.x_label = r'r ($\AA$)'
-        self.y_label = 'g(r)'
+        self.x_label = r'$$r / \AA$$'
+        self.y_label = r'$$g(r)$$'
         self.analysis_name = 'Radial_Distribution_Function'
         self.experimental = True
 
@@ -131,7 +130,6 @@ class RadialDistributionFunction(Calculator, ABC):
                  start=0,
                  stop=None,
                  number_of_configurations=500,
-                 export: bool = False,
                  minibatch: int = -1,
                  species: list = None,
                  molecules: bool = False,
@@ -163,8 +161,6 @@ class RadialDistributionFunction(Calculator, ABC):
         number_of_configurations: int
             The number of uniformly sampled configuration between start and
             stop to be used for the RDF.
-        export: bool
-            If true, the outcome is immediately exported to a csv file.
         minibatch: int
             Size of a minibatch over atoms in the batch over configurations.
             Decrease this value if you run into memory
@@ -191,7 +187,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.update_user_args(plot=plot,
                               save=save,
                               data_range=data_range,
-                              export=export,
                               gpu=gpu)
 
         # kwarg parsing
@@ -343,30 +338,27 @@ class RadialDistributionFunction(Calculator, ABC):
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
 
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
-
-            if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
-                self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
+            log.debug("Writing RDF to database!")
 
             self.data_range = self.number_of_configurations
-            if self.save:
-                data = [{"x": x, "y": y} for x, y in
-                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
-                log.debug("Writing RDF to database!")
+            data = [{"x": x, "y": y} for x, y in
+                    zip(np.linspace(0.0, self.cutoff, self.number_of_bins),
+                        self.rdf.get(names))]
+            params = Parameters(
+                Property=self.database_group,
+                Analysis=self.analysis_name,
+                data_range=self.data_range,
+                data=data,
+                Subject=names.split("_"))
 
-                params = Parameters(
-                    Property=self.database_group,
-                    Analysis=self.analysis_name,
-                    data_range=self.data_range,
-                    data=data,
-                    Subject=names.split("_"))
+            self.update_database(params)
 
-                self.update_database(params)
-            if self.export:
-                self._export_data(name=self._build_table_name(names),
-                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                    self.rdf.get(names)))
+            if self.plot:
+                self.run_visualization(
+                    x_data=np.linspace(0.0, self.cutoff, self.number_of_bins),
+                    y_data=self.rdf.get(names),
+                    title=f"{names}",
+                )
 
         self.experiment.radial_distribution_function_state = True  # update the state
 

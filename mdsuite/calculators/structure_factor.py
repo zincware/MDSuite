@@ -11,22 +11,15 @@ Class for the calculation of the total structure factor for X-rays using the Fab
  """
 import logging
 import numpy as np
-import os
 import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
-import matplotlib.pyplot as plt
-from typing import Union
+from mdsuite.database.calculator_database import Parameters
 from tqdm import tqdm
-
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
-from mdsuite.database.property_database import PropertiesDatabase
-from mdsuite.database.database_scheme import SystemProperty
-
-plt.rcParams['figure.facecolor'] = 'white'
 
 log = logging.getLogger(__name__)
 
@@ -94,8 +87,8 @@ class StructureFactor(Calculator):
         self.post_generation = True
 
         self.database_group = 'structure_factor'
-        self.x_label = r'Q ($\AA ^{-1}$)'
-        self.y_label = r'S(Q)'
+        self.x_label = r'$$\text{Q} / \AA ^{-1}$$'
+        self.y_label = r'$$\text{S(Q)}$$'
         self.analysis_name = 'total_structure_factor'
 
         self.rho = None
@@ -160,7 +153,8 @@ class StructureFactor(Calculator):
 
     def atomic_form_factors(self, scattering_scalar):
         """
-        Calculates the atomic form factors for all elements in the species dictionary and returns it
+        Calculates the atomic form factors for all elements in the species
+        dictionary and returns it
         """
         atomic_form_di = {}
         for el in list(self.experiment.species):
@@ -185,8 +179,8 @@ class StructureFactor(Calculator):
 
     def molar_fractions(self):
         """
-        Calculates the molar fractions for all elements in the species dictionary and add it to the species
-        dictionary
+        Calculates the molar fractions for all elements in the species
+        dictionary and add it to the species dictionary
         """
         species = dict(self.experiment.species)
 
@@ -199,8 +193,8 @@ class StructureFactor(Calculator):
     def species_densities(self):
         """Calculates the particle densities
 
-        Calculates the particle densities for all the species in the species dictionary and add it to the species
-        dictionary
+        Calculates the particle densities for all the species in the species
+        dictionary and add it to the species dictionary
         """
         log.warning("Updating particle_density")
         species = dict(self.experiment.species)
@@ -259,7 +253,8 @@ class StructureFactor(Calculator):
 
     def total_structure_factor(self, scattering_scalar):
         """
-        Calculates the total structure factor by summing the products of weight_factor * partial_structure_factor
+        Calculates the total structure factor by summing the products of
+        weight_factor * partial_structure_factor
         """
         self.atomic_form_factors(scattering_scalar)
         total_struc_fac = 0
@@ -281,60 +276,31 @@ class StructureFactor(Calculator):
 
     def run_post_generation_analysis(self):
         """
-        Calculates the total structure factor for all the different Q-values of the Q_arr
-        (magnitude of the scattering vector)
+        Calculates the total structure factor for all the different Q-values
+        of the Q_arr (magnitude of the scattering vector)
         """
-        test = False
-        if test:
-            self.run_test()
-        else:
-            self._get_rdf_data()
-            self.molar_fractions()
-            self.species_densities()
-            total_structure_factor_li = []
-            for counter, scattering_scalar in tqdm(enumerate(self.Q_arr), total=len(self.Q_arr),
-                                                   desc="Structure factor calculation"):
-                total_structure_factor_li.append(self.total_structure_factor(scattering_scalar))
-
-            total_structure_factor_li = np.array(total_structure_factor_li)
-            if self.plot:
-                plt.plot(self.Q_arr, total_structure_factor_li, label='total structure factor')
-                plt.xlabel(rf'{self.x_label}')  # set the x label
-                plt.ylabel(rf'{self.y_label}')  # set the y label
-                plt.show()
-
-            if self.save:
-                self._save_data(name=self._build_table_name("System"),
-                                data=self._build_pandas_dataframe(self.Q_arr, total_structure_factor_li))
-            if self.export:
-                self._export_data(name=self._build_table_name("System"),
-                                  data=self._build_pandas_dataframe(self.Q_arr, total_structure_factor_li))
-
-    def run_test(self):
-        """
-        A function that can be used to test the correctness of the structure_factor class
-        """
-        print('\nStarting structure factor test \n')
-
         self._get_rdf_data()
         self.molar_fractions()
         self.species_densities()
-        print('rho ', self.rho)
-        form_facs = self.atomic_form_factors(10)
-        print('Q: 10,', ' form factors: ', form_facs)
-        avg_atom_f_factor = self.average_atomic_form_factor(10)
-        print('Q: 10', 'average atomic form factor: ', avg_atom_f_factor)
+        total_structure_factor_li = []
+        for counter, scattering_scalar in tqdm(enumerate(self.Q_arr), total=len(self.Q_arr),
+                                               desc="Structure factor calculation"):
+            total_structure_factor_li.append(self.total_structure_factor(scattering_scalar))
+        total_structure_factor_li = np.array(total_structure_factor_li)
 
-        scattering_scalar = 0.5
-        self.file_to_study = self._get_rdf_data()[2]
-        print(self.file_to_study)
-        self._load_rdf_from_file()
-        s_12, running_integral, integral = self.partial_structure_factor(scattering_scalar)
-        print('partial structure factor', s_12)
-        print('integral: ', integral)
-        print('weight', self.weight_factor(scattering_scalar))
-        plt.figure()
-        plt.plot(self.radii, self.rdf, label='rdf')
-        plt.plot(self.radii, running_integral, label='running integral')
-        plt.legend()
-        plt.show()
+        properties = Parameters(
+            Property=self.database_group,
+            Analysis=self.analysis_name,
+            data_range=self.data_range,
+            data=[{'q': x, 's(q)': y} for x, y in
+                 zip(self.Q_arr, total_structure_factor_li)],
+            Subject=["System"]
+        )
+        self.update_database(properties)
+
+        if self.plot:
+            self.run_visualization(
+                x_data=self.Q_arr,
+                y_data=total_structure_factor_li,
+                title=f"total structure factor",
+            )

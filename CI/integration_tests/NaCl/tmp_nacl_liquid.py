@@ -19,6 +19,7 @@ import shutil
 
 # TODO run in temporary directory!
 
+
 class TestLiquidNaCl(unittest.TestCase):
     """
     Perform an integration test on liquid NaCl.

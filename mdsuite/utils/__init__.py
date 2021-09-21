@@ -9,3 +9,7 @@ Copyright Contributors to the MDSuite Project.
 
 Python __init__ file for the utils package
 """
+
+from .config import config
+
+__all__ = ["config"]
