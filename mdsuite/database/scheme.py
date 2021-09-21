@@ -13,14 +13,11 @@ import logging
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm.exc import DetachedInstanceError
 from dataclasses import dataclass, field, asdict
 
 from typing import List
 
 log = logging.getLogger(__name__)
-
-import numpy as np
 
 Base = declarative_base()
 
@@ -217,18 +214,40 @@ class Computation(Base):
 
         Returns
         -------
-        data_dict: dict
-            A dictionary of the type {x: [1, 2, 3], y: [5, 6, 7], ...}
-            where the keys are defined by computation_data.dimension
+        species_dict: dict
+            A dictionary of the type
+            {
+                Li:
+                    {
+                        a: 1.2,
+                        uncert: 0.1,
+                        time: [1, 2, 3, ],
+                        msd: [0.1, 0.3, 0.7]
+                    },
+                Cl:
+                    {
+                        a: 1.2,
+                        uncert: 0.1,
+                        time: [1, 2, 3, ],
+                        msd: [0.1, 0.3, 0.7]
+                    },
+            }
+            where the keys are defined by species (multiple species are joined by "_") and the dimension argument
+            of the computation_data
 
         """
-        data_dict = {}
+        species_dict = {}
         for data in self.computation_data:
+            species_key = "_".join([x.name for x in data.computation_species])
+            data_dict = species_dict.get(species_key, {})
+
             data_list = data_dict.get(data.dimension, [])
             data_list.append(data.value)
             data_dict[data.dimension] = data_list
 
-        return data_dict
+            species_dict[species_key] = data_dict
+
+        return species_dict
 
     @property
     def data_range(self) -> int:
@@ -283,5 +302,21 @@ class ComputationData(Base):
     computation_id = Column(Integer, ForeignKey('computations.id', ondelete="CASCADE"))
     computation = relationship("Computation", back_populates='computation_data')
 
+    computation_species = relationship(
+        "ComputationSpecies",  # Name of the related class
+        cascade='all, delete',
+        back_populates='computation_data'  # Attribute of the related class/relationship
+    )
+
     def __repr__(self):
         return f"{self.id}: {self.value} ({self.uncertainty}) - {self.dimension}"
+
+
+class ComputationSpecies(Base):
+    __tablename__ = 'computation_species'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+
+    computation_data_id = Column(Integer, ForeignKey('computation_data.id', ondelete="CASCADE"))
+    computation_data = relationship("ComputationData", back_populates='computation_species')

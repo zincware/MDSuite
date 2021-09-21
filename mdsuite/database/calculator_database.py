@@ -42,6 +42,8 @@ class CalculatorDatabase:
         self.analysis_name = None
         self.load_data = None
 
+        self._computation_data = []
+
         # List of computation attributes that will be added to the database when it is written
         self.db_computation_attributes = []
 
@@ -50,8 +52,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                .filter(db.Experiment.name == self.experiment.name)
-                .first()
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
             )
 
         self.db_computation = db.Computation(experiment=experiment)
@@ -73,8 +75,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                .filter(db.Experiment.name == self.experiment.name)
-                .first()
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
             )
             computations = ses.query(db.Computation).filter(
                 db.Computation.experiment == experiment,
@@ -91,11 +93,12 @@ class CalculatorDatabase:
                     )
                 )
             computations = computations.all()
+            if len(computations) > 0:
+                log.warning("Calculation already performed! Loading it up")
             for computation in computations:
                 _ = computation.data_dict
 
         if len(computations) > 0:
-            log.warning("Calculation already performed! Loading it up")
             if len(computations) > 1:
                 log.warning("Something went wrong! Found more than one computation with the given arguments!")
             return computations[0]  # it should only be one value
@@ -117,18 +120,23 @@ class CalculatorDatabase:
                 val.computation = self.db_computation
                 ses.add(val)
 
-            # TODO collect data and only here push it to the db
-            # for x in data:
-            #     for key, val in x.items():
-            #         computation_data = db.ComputationData(
-            #             computation=self.db_computation, value=val, dimension=key
-            #         )
-            #         ses.add(computation_data)
+            for data_obj in self._computation_data:
+                for data in data_obj.data:
+                    for key, val in data.items():
+                        computation_data = db.ComputationData(
+                            computation=self.db_computation, value=val, dimension=key
+                        )
+                        ses.add(computation_data)
+                        for subject in data_obj.Subject:
+                            computation_subject = db.ComputationSpecies(
+                                computation_data=computation_data, name=subject
+                            )
+                            ses.add(computation_subject)
 
             ses.commit()
 
     def update_database(
-        self, parameters: Union[dict, Parameters], delete_duplicate: bool = True
+            self, parameters: Union[dict, Parameters], delete_duplicate: bool = True
     ):
         """
         Add data to the database
@@ -145,11 +153,16 @@ class CalculatorDatabase:
         Updates the sql database
         """
         if isinstance(parameters, Parameters):
+            self._computation_data.append(parameters)
+
+        return
+
+        if isinstance(parameters, Parameters):
             with self.experiment.project.session as ses:
                 experiment = (
                     ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                        .filter(db.Experiment.name == self.experiment.name)
+                        .first()
                 )
                 computation = db.Computation(
                     experiment=experiment, name=parameters.Analysis
@@ -210,8 +223,8 @@ class CalculatorDatabase:
             with self.experiment.project.session as ses:
                 experiment = (
                     ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                        .filter(db.Experiment.name == self.experiment.name)
+                        .first()
                 )
                 computation = db.Computation(
                     experiment=experiment, name=parameters["Analysis"]
@@ -263,12 +276,12 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             computations = (
                 ses.query(db.Computation)
-                .filter(
+                    .filter(
                     db.Computation.computation_attributes.any(
                         str_value="Radial_Distribution_Function", name="Property"
                     )
                 )
-                .all()
+                    .all()
             )
 
             for computation in computations:

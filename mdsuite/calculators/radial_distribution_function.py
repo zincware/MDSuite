@@ -188,6 +188,16 @@ class RadialDistributionFunction(Calculator, ABC):
         self.minibatch = minibatch
         self.species = species
 
+        data = self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            number_of_bins=number_of_bins,
+            number_of_configurations=number_of_configurations,
+            start=start,
+            stop=stop
+        )
+        if data is not None:
+            return data
+
         self.update_user_args(plot=plot,
                               save=save,
                               data_range=data_range,
