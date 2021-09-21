@@ -18,7 +18,6 @@ from mdsuite.utils.meta_functions import join_path
 from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
-import matplotlib.pyplot as plt
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 
 from typing import TYPE_CHECKING
