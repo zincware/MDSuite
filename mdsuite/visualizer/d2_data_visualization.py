@@ -14,20 +14,12 @@ from bokeh.layouts import gridplot
 from bokeh.io import output_notebook, output_file
 from bokeh.models import HoverTool
 from typing import Union, List
+from mdsuite.utils import config
 
 
 class DataVisualizer2D:
     """
     Visualizer for two-dimensional data.
-
-    Attributes
-    ----------
-    data : np.ndarray
-            Zipped numpy array.
-    x_label : str
-                x label as a string.
-    y_label : str
-            y label as a string.
     """
 
     def __init__(self, title: str):
@@ -39,9 +31,10 @@ class DataVisualizer2D:
         title : str
                 title of the plot.
         """
-        output_notebook()
-        output_file(f"{title}.html", title=title)
-        pass
+        if config.jupyter:
+            output_notebook()
+        else:
+            output_file(f"{title}.html", title=title)
 
     def construct_plot(
             self,
@@ -96,5 +89,5 @@ class DataVisualizer2D:
         -------
 
         """
-        grid = gridplot(figures, ncols=3)
+        grid = gridplot(figures, ncols=3, sizing_mode='scale_both')
         show(grid)

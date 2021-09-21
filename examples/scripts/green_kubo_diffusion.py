@@ -60,6 +60,7 @@ def run_example():
     )
     project.run.CoordinationNumbers(plot=True)
     project.run.PotentialOfMeanForce(plot=True)
+    print("Tutorial complete....... Files being deleted now.")
 
 
 if __name__ == '__main__':

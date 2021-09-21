@@ -27,7 +27,7 @@ import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
 from mdsuite.utils import config
 
-from typing import TYPE_CHECKING, Dict, List
+from typing import Dict
 
 log = logging.getLogger(__name__)
 
