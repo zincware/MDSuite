@@ -25,6 +25,7 @@ from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
+from mdsuite.utils import config
 
 from typing import TYPE_CHECKING, Dict, List
 
@@ -81,6 +82,11 @@ class Project(ProjectDatabase):
         else:
             self.name = name
         self.storage_path = storage_path
+
+        if config.jupyter:
+            log.warning("Using Jupyter")
+        else:
+            log.warning("Not using Jupyter")
 
         # Properties
         self._experiments = {}
