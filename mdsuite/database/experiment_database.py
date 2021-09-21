@@ -300,6 +300,12 @@ class ExperimentDatabase:
     @property
     def species(self):
         """Get species
+
+        Returns
+        -------
+
+        dict:
+            A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
         """
         with self.project.session as ses:
             experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
@@ -428,7 +434,14 @@ class ExperimentDatabase:
 
     @property
     def radial_distribution_function_state(self) -> bool:
-        """Get the radial_distribution_function_state of the experiment"""
+        """Get the radial_distribution_function_state of the experiment
+
+        Returns
+        -------
+        bool:
+            the state of the RDF
+        # TODO this method could potentially be replaced by a quick query of the database
+        """
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
             rdf_state = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
