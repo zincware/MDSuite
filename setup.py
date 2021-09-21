@@ -1,12 +1,8 @@
+"""
+Setup.py module for the MDSuite package.
+"""
 import setuptools
 from os import path
-
-from setuptools.command.develop import develop
-from setuptools.command.install import install
-import subprocess
-import sys
-
-
 
 here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'requirements.txt')) as requirements_file:
@@ -37,7 +33,4 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.7',
     install_requires=requirements,
-    # force install of the newest h5py after the dependencies are installed
-    # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
-    # TODO remove if tensorflow supports h5py > 3
 )

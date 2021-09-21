@@ -15,7 +15,6 @@ The experiment class is the main class involved in characterizing and analyzing 
 """
 import logging
 from pathlib import Path
-from mdsuite.calculators.computations_dict import dict_classes_db
 from mdsuite.calculators import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
@@ -122,8 +121,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # self.radial_distribution_function_state = False  # Set true if this has been calculated
         self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
         self.structure_factor_state = False
-
-        self._results = list(dict_classes_db.keys())
 
         # Memory properties
         self.memory_requirements = {}  # TODO I think this can be removed. - Not until all calcs are under tf Dataset

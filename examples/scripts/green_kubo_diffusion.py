@@ -10,6 +10,7 @@ import urllib.request
 import shutil
 import gzip
 import os
+import tempfile
 
 
 def load_data():
@@ -61,29 +62,13 @@ def run_example():
     project.run.PotentialOfMeanForce(plot=True)
 
 
-def clean_directory():
-    """
-    Clean the directory of generated files.
-    
-    Returns
-    -------
-    Empties the directory of added files.
-    """
-    os.remove('NaCl_gk_i_q.lammpstraj')
-    os.remove('NaCl_gk_i_q.lammpstraj.gz')
-    os.remove('Coordination_Numbers.html')
-    os.remove('Potential_of_Mean_Force.html')
-    os.remove('Radial_Distribution_Function.html')
-    os.remove('Einstein Helfand Ionic Conductivity.html')
-    os.remove('Einstein Self-Diffusion Coefficients.html')
-    os.remove('Green Kubo Self-Diffusion Coefficients.html')
-    shutil.rmtree('GK_Diffusion_Example')
-
-
 if __name__ == '__main__':
     """
     Run the example.
     """
+    temp_dir = tempfile.TemporaryDirectory()
+    os.chdir(temp_dir.name)
     load_data()  # load the data.
     run_example()  # run the example.
-    clean_directory()  # clear the directory
+    os.chdir('..')
+    temp_dir.cleanup()
