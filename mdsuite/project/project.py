@@ -83,11 +83,6 @@ class Project(ProjectDatabase):
             self.name = name
         self.storage_path = storage_path
 
-        if config.jupyter:
-            log.warning("Using Jupyter")
-        else:
-            log.warning("Not using Jupyter")
-
         # Properties
         self._experiments = {}
 

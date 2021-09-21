@@ -88,7 +88,7 @@ class CoordinationNumbers(Calculator):
         self.post_generation = True
 
         self.database_group = 'Coordination_Numbers'
-        self.x_label = r'$$\text{r} / \AA$$'
+        self.x_label = r'$$\text{r}$$'
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
 
@@ -219,26 +219,6 @@ class CoordinationNumbers(Calculator):
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
 
-        # Mean values
-        self._update_properties_file({
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "subjects": self.species_tuple.split("_"),
-            "data_range": self.data_range,
-            "data": [{"x": idx, "y": shell, "uncertainty": uncertainty} for idx, shell, uncertainty in
-                     [[1, first_shell, first_shell_error], [2, second_shell, second_shell_error]]]
-        })
-
-        # actual data
-        data = [{"x": x, "y": y} for x, y in zip(self.radii[1:], self.integral_data)]
-        self._update_properties_file({
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "subjects": self.species_tuple.split("_"),
-            "data_range": self.data_range,
-            "data": data,
-            "information": "series"
-        })
 
         return first_shell, first_shell_error
 
