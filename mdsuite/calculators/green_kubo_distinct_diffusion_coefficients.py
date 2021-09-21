@@ -194,9 +194,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                     str.encode(join_path(item, "Velocities"))
                 ] = self.atom_selection[item]
             self.atom_selection = select_atoms
-        for i, combination in enumerate(self.combinations):
-            if i == len(self.combinations) - 1:
-                self.last_iteration = True
+        for combination in self.combinations:
             type_spec = {}
             data_path = [join_path(item, "Velocities") for item in combination]
             self._prepare_managers(data_path=data_path)

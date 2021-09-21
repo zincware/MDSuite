@@ -334,9 +334,7 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
         Updates the class state
         """
-        for i, names in enumerate(self.key_list):
-            if i == len(self.key_list) - 1:
-                self.last_iteration = True
+        for names in self.key_list:
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
 
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor

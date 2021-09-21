@@ -163,9 +163,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
             for item in self.atom_selection:
                 select_atoms[str.encode(join_path(item, "Unwrapped_Positions"))] = self.atom_selection[item]
             self.atom_selection = select_atoms
-        for i, combination in enumerate(self.combinations):
-            if i == len(self.combinations) - 1:
-                self.last_iteration = True
+        for combination in self.combinations:
             type_spec = {}
             self._calculate_prefactor(combination)
             data_path = [join_path(item, 'Unwrapped_Positions') for item in combination]

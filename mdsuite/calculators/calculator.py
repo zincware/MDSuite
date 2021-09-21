@@ -261,7 +261,6 @@ class Calculator(CalculatorDatabase):
         self.tau_values = tau_values
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
-        self.last_iteration = self.system_property
 
 
         # attributes based on user args
@@ -572,9 +571,6 @@ class Calculator(CalculatorDatabase):
             x_data=x_data, y_data=y_data, title=title, x_label=self.x_label, y_label=self.y_label, layouts=layouts
         ))
 
-        if self.last_iteration:
-            self.plotter.grid_show(self.plot_array)
-
     def _check_input(self):
         """
         Look for user input that would kill the analysis
@@ -778,6 +774,8 @@ class Calculator(CalculatorDatabase):
 
             self._apply_averaging_factor()
             self._post_operation_processes()
+            if self.plot:
+                self.plotter.grid_show(self.plot_array)
 
         elif self.experimental:
             data_path = [join_path(species,
@@ -786,15 +784,18 @@ class Calculator(CalculatorDatabase):
             self._prepare_managers(data_path)
             output = self.run_experimental_analysis()
 
+            if self.plot:
+                self.plotter.grid_show(self.plot_array)
+
             return output
 
         elif self.post_generation:
             self.run_post_generation_analysis()
+            if self.plot:
+                self.plotter.grid_show(self.plot_array)
 
         else:
-            for i, species in enumerate(self.species):
-                if i == len(self.species) - 1:
-                    self.last_iteration = True
+            for species in self.species:
                 self._calculate_prefactor(species)
 
                 data_path = [join_path(species, self.loaded_property)]
@@ -828,6 +829,8 @@ class Calculator(CalculatorDatabase):
 
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
+            if self.plot:
+                self.plotter.grid_show(self.plot_array)
 
     def run_experimental_analysis(self):
         """

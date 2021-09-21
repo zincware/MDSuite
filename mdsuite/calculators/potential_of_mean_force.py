@@ -200,9 +200,7 @@ class PotentialOfMeanForce(Calculator):
 
         # fill the tensor_values array with tensor_values
         calculations = self._get_rdf_data()
-        for i, data in enumerate(calculations):
-            if i == len(calculations) - 1:
-                self.last_iteration = True
+        for data in calculations:
             self.file_to_study = data  # Set the correct tensor_values file in the class
             self.species_tuple = "_".join(data.subjects)
             self.data_range = data.data_range

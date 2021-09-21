@@ -418,9 +418,7 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
         Updates the class, the SQL database, and plots values if required.
         """
-        for i, species in enumerate(itertools.combinations_with_replacement(species_indices, 3)):
-            if i == len(itertools.combinations_with_replacement(species_indices, 3)) - 1:
-                self.last_iteration = True
+        for species in itertools.combinations_with_replacement(species_indices, 3):
             name = f"{species[0][0]}-{species[1][0]}-{species[2][0]}"
             hist = angles.get(name)
 

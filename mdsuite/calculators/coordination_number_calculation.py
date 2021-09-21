@@ -247,9 +247,7 @@ class CoordinationNumbers(Calculator):
         Calculate the coordination numbers and perform error analysis
         """
         calculations = self._get_rdf_data()
-        for i, data in enumerate(calculations):  # Loop over all existing RDFs
-            if i == len(calculations) - 1:
-                self.last_iteration = True
+        for data in calculations:  # Loop over all existing RDFs
             log.debug(f"Computing coordination numbers for {data.subjects}")
             self.data_range = data.data_range
             self._load_rdf_from_file(data)  # load the tensor_values from it
