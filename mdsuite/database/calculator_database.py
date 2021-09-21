@@ -51,7 +51,7 @@ class CalculatorDatabase:
         self.db_computation = db.Computation(experiment=experiment)
         self.db_computation.name = self.analysis_name
 
-    def update_db_entry_with_args(self, **kwargs):
+    def update_db_entry_with_kwargs(self, **kwargs):
         """Update the database entry with the given user args/kwargs
 
         Parameters
@@ -75,8 +75,13 @@ class CalculatorDatabase:
 
             self.db_computation_attributes.append(computation_attribute)
 
-    def save_db_data(self, data):
-        pass
+    def save_db_data(self, data=None):
+        with self.experiment.project.session as ses:
+            ses.add(self.db_computation)
+            for val in self.db_computation_attributes:
+                ses.add(val)
+
+            ses.commit()
 
     def update_database(self, parameters: Union[dict, Parameters], delete_duplicate: bool = True):
         """

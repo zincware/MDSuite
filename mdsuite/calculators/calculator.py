@@ -97,6 +97,7 @@ def call(func):
             else:
                 self.prepare_db_entry()
                 out[self.experiment.name] = self.run_analysis()
+                self.save_db_data()
 
         if return_dict:
             return out

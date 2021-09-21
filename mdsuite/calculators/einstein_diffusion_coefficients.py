@@ -147,6 +147,13 @@ class EinsteinDiffusionCoefficients(Calculator):
         None
         """
 
+        self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+        )
+
         self.update_user_args(plot=plot,
                               data_range=data_range,
                               save=save,
