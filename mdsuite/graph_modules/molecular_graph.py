@@ -164,6 +164,11 @@ class MolecularGraph:
         ----------
         adjacency_matrix : tf.Tensor
                 Adjacency tensor to reduce.
+        n_molecules : int
+                Number of molecules that should be found after the reduction.
+                If a number is passed here and the reduced number if not equal
+                to the argument, the kernel is exited by a raised error. If
+                nothing is passed, no checks are performed.
         """
         molecules = {}
         for i in tqdm(range(len(adjacency_matrix)), desc="Building molecules"):
