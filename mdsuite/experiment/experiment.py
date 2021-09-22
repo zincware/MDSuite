@@ -366,19 +366,21 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #         self.species[new_name] = self.species[old_name]  # update dict
     #         del self.species[old_name]  # remove old entry
     #
-    # def set_charge(self, element: str, charge: float):
-    #     """
-    #     Set the charge/s of an element
-    #
-    #     Parameters
-    #     ----------
-    #     element : str
-    #             Name of the element whose charge you want to change
-    #     charge : list
-    #             New charge/s of the element
-    #     """
-    #     self.species[element]['charge'] = [charge]  # update entry
-    #     self.save_class()
+    def set_charge(self, element: str, charge: float):
+        """
+        Set the charge/s of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose charge you want to change
+        charge : list
+                New charge/s of the element
+        """
+
+        species = self.species
+        species[element]['charge'] = [charge]  # update entry
+        self.species = species
     #
     # def set_mass(self, element: str, mass: float):
     #     """

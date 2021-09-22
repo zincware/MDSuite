@@ -106,9 +106,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             temperature = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "temperature")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "temperature")
+                    .first()
             )
         try:
             return temperature.value
@@ -135,9 +135,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             time_step = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "time_step")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "time_step")
+                    .first()
             )
         try:
             return time_step.value
@@ -198,9 +198,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             number_of_configurations = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "number_of_configurations")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "number_of_configurations")
+                    .first()
             )
         try:
             return int(number_of_configurations.value)
@@ -230,9 +230,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             number_of_atoms = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "number_of_atoms")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "number_of_atoms")
+                    .first()
             )
         try:
             return int(number_of_atoms.value)
@@ -259,9 +259,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             sample_rate = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "sample_rate")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "sample_rate")
+                    .first()
             )
         try:
             return sample_rate.value
@@ -288,9 +288,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             volume = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "volume")
-                .first()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "volume")
+                    .first()
             )
         try:
             return volume.value
@@ -317,9 +317,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             box_arrays = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name.startswith("box_array"))
-                .all()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name.startswith("box_array"))
+                    .all()
             )
 
             box_array = [box_side.value for box_side in box_arrays]
@@ -381,14 +381,16 @@ class ExperimentDatabase:
             experiment = (
                 ses.query(Experiment).filter(Experiment.name == self.name).first()
             )
+            # TODO make this a property of experiment so you can do experiment.species = ...
+            #  maybe also do this for all the others ?
             for species_name in value:
                 species = (
                     ses.query(db.ExperimentAttribute)
-                    .filter(
+                        .filter(
                         db.ExperimentAttribute.name == "species",
                         db.ExperimentAttribute.str_value == species_name,
                     )
-                    .first()
+                        .first()
                 )
 
                 if species is None:
@@ -399,29 +401,35 @@ class ExperimentDatabase:
                     ses.add(species)
 
                 for species_attr, species_values in value[species_name].items():
-                    try:
-                        for species_value in species_values:
-                            get_or_create(
-                                ses,
-                                db.ExperimentAttributeList,
-                                experiment_attribute=species,
-                                name=species_attr,
-                                value=species_value,
-                            )
+                    if species_attr == "charge":
+                        charge = get_or_create(ses, db.ExperimentAttributeList, experiment_attribute=species,
+                                               name=species_attr)
+                        charge.value = species_values[0]
+                        log.warning("Overwriting charge - lists are currently not supported!")
+                    else:
+                        try:
+                            for species_value in species_values:
+                                get_or_create(
+                                    ses,
+                                    db.ExperimentAttributeList,
+                                    experiment_attribute=species,
+                                    name=species_attr,
+                                    value=species_value,
+                                )
 
-                    except TypeError:
-                        # e.g., float or int values that are not iterable
-                        if species_values is not None:
-                            log.warning(
-                                f"Updating {species_attr} with {species_values}"
-                            )
-                            get_or_create(
-                                ses,
-                                db.ExperimentAttributeList,
-                                experiment_attribute=species,
-                                name=species_attr,
-                                value=species_value,
-                            )
+                        except TypeError:
+                            # e.g., float or int values that are not iterable
+                            if species_values is not None:
+                                log.warning(
+                                    f"Updating {species_attr} with {species_values}"
+                                )
+                                get_or_create(
+                                    ses,
+                                    db.ExperimentAttributeList,
+                                    experiment_attribute=species,
+                                    name=species_attr,
+                                    value=species_value,
+                                )
             ses.commit()
 
     @property
@@ -485,9 +493,9 @@ class ExperimentDatabase:
             )
             read_files = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == "read_file")
-                .all()
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(ExperimentAttribute.name == "read_file")
+                    .all()
             )
             read_files = [Path(file.str_value) for file in read_files]
         return read_files
@@ -535,11 +543,11 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             rdf_state = (
                 ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(
+                    .filter(ExperimentAttribute.experiment == experiment)
+                    .filter(
                     ExperimentAttribute.name == "radial_distribution_function_state"
                 )
-                .first()
+                    .first()
             )
         try:
             return rdf_state.value
@@ -586,7 +594,7 @@ class ExperimentDatabase:
                     simulation_data_name = simulation_data_name.split("_")
                     no_list = False
                     if (
-                        simulation_data_name[-1] == "nolist"
+                            simulation_data_name[-1] == "nolist"
                     ):  # check if list or single str/float
                         no_list = True
                     simulation_data_name = "_".join(simulation_data_name[:-1])
@@ -681,9 +689,9 @@ class ExperimentDatabase:
             )
             version = (
                 ses.query(db.ExperimentAttribute)
-                .filter(db.ExperimentAttribute.experiment == experiment)
-                .filter(db.ExperimentAttribute.name == "version")
-                .first()
+                    .filter(db.ExperimentAttribute.experiment == experiment)
+                    .filter(db.ExperimentAttribute.name == "version")
+                    .first()
             )
 
         if version is None:
