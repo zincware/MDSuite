@@ -272,6 +272,7 @@ class PotentialOfMeanForce(Calculator):
             self.update_database(properties)
 
     def plot_data(self, data):
+        """Plot the POMF"""
         log.debug("Start plotting the POMF.")
         self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selectected_species, val in data.items():
