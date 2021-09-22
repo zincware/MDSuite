@@ -31,6 +31,7 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import split_array
@@ -97,6 +98,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'$$r / \AA$$'
         self.y_label = r'$$g(r)$$'
         self.analysis_name = 'Radial_Distribution_Function'
+        self.result_series_keys = ["a", "b"]
         self.experimental = True
 
         self._dtype = tf.float32
@@ -184,16 +186,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.minibatch = minibatch
         self.species = species
 
-        data = self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            number_of_bins=number_of_bins,
-            number_of_configurations=number_of_configurations,
-            start=start,
-            stop=stop
-        )
-        if data is not None:
-            return data
-
         self.update_user_args(plot=plot,
                               save=save,
                               data_range=data_range,
@@ -210,8 +202,15 @@ class RadialDistributionFunction(Calculator, ABC):
         self._check_input()
         self._initialize_rdf_parameters()
 
-        # # Perform analysis and save.
-        # return self.run_analysis()
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            number_of_bins=number_of_bins,
+            number_of_configurations=number_of_configurations,
+            start=start,
+            stop=stop,
+            molecules=molecules,
+            species=species
+        )
 
     def _initialize_rdf_parameters(self):
         """
@@ -353,7 +352,7 @@ class RadialDistributionFunction(Calculator, ABC):
             log.debug("Writing RDF to database!")
 
             self.data_range = self.number_of_configurations
-            data = [{"x": x, "y": y} for x, y in
+            data = [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
                     zip(np.linspace(0.0, self.cutoff, self.number_of_bins),
                         self.rdf.get(names))]
             params = Parameters(
@@ -366,13 +365,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
             self.update_database(params)
 
-            if self.plot:
-                self.run_visualization(
-                    x_data=np.linspace(0.0, self.cutoff, self.number_of_bins),
-                    y_data=self.rdf.get(names),
-                    title=f"{names}",
-                )
-
+        # TODO remove rdf_state
         self.experiment.radial_distribution_function_state = True  # update the state
 
     def _correct_batch_properties(self):
@@ -710,3 +703,17 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_edges = np.linspace(0.0, self.cutoff, self.number_of_bins)
 
         return _piecewise(np.array(bin_edges)) * bin_width
+
+
+    def plot_data(self, data):
+        """Plot the RDF data"""
+        self.plotter = DataVisualizer2D(title=self.analysis_name)
+        for selectected_species, val in data.items():
+            # TODO fix units!
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]),
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=selectected_species,
+            )
+        self.plotter.grid_show(self.plot_array)
+

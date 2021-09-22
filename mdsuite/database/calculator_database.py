@@ -76,6 +76,11 @@ class CalculatorDatabase:
         -----
         This does require kwargs, args do not work!
 
+        Returns
+        -------
+        db.Computation:
+            Either a db.Computation object if the calculation was already performed or None
+
         """
         with self.experiment.project.session as ses:
             experiment = (
@@ -114,7 +119,7 @@ class CalculatorDatabase:
 
             computations = computations.all()
             if len(computations) > 0:
-                log.warning("Calculation already performed! Loading it up")
+                log.debug("Calculation already performed! Loading it up")
             # loading data_dict to avoid DetachedInstance errors
             # this can take some time, depending on the size of the data
             for computation in computations:

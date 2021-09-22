@@ -103,6 +103,7 @@ def call(func):
                 )
             else:
                 # Calculation already performed
+                log.info("Calculation already performed! Loading it up")
                 pass
 
             out[self.experiment.name] = data
