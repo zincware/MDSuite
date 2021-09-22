@@ -92,6 +92,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.database_group = 'Diffusion_Coefficients'
         self.x_label = r'$$ \text{Time} / s$$'
         self.y_label = r'$$ \text{MSD} / m^{2}$$'
+        self.result_keys = ['diffusion_coefficient', 'uncertainty']
+        self.result_series_keys = ['time', 'msd']
         self.analysis_name = 'Einstein Self-Diffusion Coefficients'
         self.loop_condition = False
         self.optimize = None
@@ -145,14 +147,6 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         None
         """
-
-        data = self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            correlation_time=correlation_time
-        )
-        if data is not None:
-            return data
-
         self.update_user_args(plot=plot,
                               data_range=data_range,
                               save=save,
@@ -161,6 +155,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                               tau_values=tau_values,
                               export=export,
                               gpu=gpu)
+
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
@@ -172,6 +167,11 @@ class EinsteinDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
 
     def _update_output_signatures(self):
         """
@@ -252,16 +252,12 @@ class EinsteinDiffusionCoefficients(Calculator):
             Property=self.database_group,
             Analysis=self.analysis_name,
             data_range=self.data_range,
-            data=[{'diffusion_coefficient': result[0], 'uncertainty': result[1]}],
+            data=[{self.result_keys[0]: result[0], self.result_keys[1]: result[1]}],
             Subject=[species]
         )
         data = properties.data
-        data += [{'time': x, 'msd': y} for x, y in zip(self.time, self.msd_array)]
+        data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
+                 zip(self.time, self.msd_array)]
         properties.data = data
 
         self.update_database(properties)
-
-        if self.plot:
-            self.run_visualization(x_data=np.array(self.time) * self.experiment.units['time'],
-                                   y_data=self.msd_array * self.experiment.units['time'],
-                                   title=f"{species}: {result[0]: 0.3E} +- {result[1]: 0.3E}")

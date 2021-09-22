@@ -92,6 +92,8 @@ def call(func):
                 out[self.experiment.name] = data
             elif self.load_data:
                 # exp.load / project.load was used
+                # TODO this method is not used atm and also does not work because
+                #  export_property_data does not work any more - tests required!
                 # TODO do not use exp.export_property_data but rather a method in the calc db!
                 out[self.experiment.name] = self.experiment.export_property_data(
                     {"Analysis": self.analysis_name, "experiment": self.experiment.name}
@@ -101,6 +103,11 @@ def call(func):
                 self.prepare_db_entry()
                 out[self.experiment.name] = self.run_analysis()
                 self.save_db_data()
+
+            if self.plot:
+                # TODO this loading should not be required, because exp.run should always return this data!
+                data = func(self, *args, **kwargs)
+                self.plot_data(data.data_dict)
 
         if return_dict:
             return out
@@ -204,6 +211,11 @@ class Calculator(CalculatorDatabase):
         self.tau_values = None
         self.time = None
         self.data_resolution = None
+        self.plotter = None
+        # e.g. [diffusion_coefficient, uncertainty]
+        self.result_keys = None
+        # e.g., [time, msd]
+        self.result_series_keys = None
 
         # Set during operation or by child class
         self.batch_size: int
@@ -277,8 +289,6 @@ class Calculator(CalculatorDatabase):
 
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
-
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -833,9 +843,6 @@ class Calculator(CalculatorDatabase):
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
 
-        if self.plot:
-            self.plotter.grid_show(self.plot_array)
-
     def run_experimental_analysis(self):
         """
         For experimental methods
@@ -894,3 +901,20 @@ class Calculator(CalculatorDatabase):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
+
+    def plot_data(self, data):
+        """Plot the data coming from the database
+
+        Parameters
+        ----------
+        data: db.Compution.data_dict associated with the current project
+        """
+        self.plotter = DataVisualizer2D(title=self.analysis_name)
+        for selectected_species, val in data.items():
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                y_data=np.array(val[self.result_series_keys[1]]) * self.experiment.units['time'],
+                title=f"{selectected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}"
+            )
+
+        self.plotter.grid_show(self.plot_array)
