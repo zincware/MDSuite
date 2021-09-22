@@ -87,9 +87,12 @@ def call(func):
         for experiment in self.experiments:
             self.experiment = experiment
             data = func(self, *args, **kwargs)
-            if data is not None:
-                # Experiment already performed, so we are returning the data here!
-                out[self.experiment.name] = data
+            if data is None:
+                # new calculation will be performed
+                self.prepare_db_entry()
+                self.run_analysis()
+                self.save_db_data()
+                data = func(self, *args, **kwargs)
             elif self.load_data:
                 # exp.load / project.load was used
                 # TODO this method is not used atm and also does not work because
@@ -99,14 +102,12 @@ def call(func):
                     {"Analysis": self.analysis_name, "experiment": self.experiment.name}
                 )
             else:
-                # new calculation will be performed
-                self.prepare_db_entry()
-                out[self.experiment.name] = self.run_analysis()
-                self.save_db_data()
+                # Calculation already performed
+                pass
+
+            out[self.experiment.name] = data
 
             if self.plot:
-                # TODO this loading should not be required, because exp.run should always return this data!
-                data = func(self, *args, **kwargs)
                 self.plot_data(data.data_dict)
 
         if return_dict:

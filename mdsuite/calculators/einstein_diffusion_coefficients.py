@@ -170,7 +170,11 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         return self.update_db_entry_with_kwargs(
             data_range=data_range,
-            correlation_time=correlation_time
+            correlation_time=correlation_time,
+            molecules=molecules,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            species=species
         )
 
     def _update_output_signatures(self):

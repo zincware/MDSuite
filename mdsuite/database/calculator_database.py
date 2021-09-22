@@ -126,8 +126,6 @@ class CalculatorDatabase:
             return computations[0]  # it should only be one value
         else:
             for key, val in kwargs.items():
-                setattr(self, key, val)
-
                 computation_attribute = db.ComputationAttribute(
                     name=key, str_value=str(val)
                 )
