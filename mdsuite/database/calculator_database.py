@@ -83,11 +83,14 @@ class CalculatorDatabase:
                     .filter(db.Experiment.name == self.experiment.name)
                     .first()
             )
+
+            #  filter the correct experiment
             computations = ses.query(db.Computation).filter(
                 db.Computation.experiment == experiment,
                 db.Computation.name == self.analysis_name,
             )
 
+            # filter the passed arguments and only run, if they changed
             for key, val in kwargs.items():
                 computations = computations.filter(
                     db.Computation.computation_attributes.any(
@@ -97,9 +100,23 @@ class CalculatorDatabase:
                         )
                     )
                 )
+
+            # filter the version of the experiment, e.g. run new computation
+            # if the experiment version has changed
+            computations = computations.filter(
+                db.Computation.computation_attributes.any(
+                    and_(
+                        db.ComputationAttribute.name == "version",
+                        db.ComputationAttribute.value == self.experiment.version
+                    )
+                )
+            )
+
             computations = computations.all()
             if len(computations) > 0:
                 log.warning("Calculation already performed! Loading it up")
+            # loading data_dict to avoid DetachedInstance errors
+            # this can take some time, depending on the size of the data
             for computation in computations:
                 _ = computation.data_dict
 
@@ -116,6 +133,11 @@ class CalculatorDatabase:
                 )
 
                 self.db_computation_attributes.append(computation_attribute)
+
+            # save the current experiment version in the ComputationAttributes
+            experiment_version = db.ComputationAttribute(name="version", value=self.experiment.version)
+            self.db_computation_attributes.append(experiment_version)
+
 
     def save_db_data(self, data=None):
         with self.experiment.project.session as ses:
