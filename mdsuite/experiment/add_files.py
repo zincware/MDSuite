@@ -39,6 +39,7 @@ class ExperimentAddingFiles:
         self.species = None
         self.property_groups = None
         self.read_files = None
+        self.version = None
 
     def add_data(self,
                  trajectory_file: str = None,
@@ -104,6 +105,8 @@ class ExperimentAddingFiles:
                                      rename_cols=rename_cols,
                                      flux=flux,
                                      sort=sort)
+
+        self.version += 1
 
         self.build_species_dictionary()
         self.memory_requirements = database.get_memory_information()

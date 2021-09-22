@@ -49,20 +49,20 @@ class ExperimentDatabase:
                 A list of rows represented as dictionaries.
         """
         with self.project.session as ses:
-            subjects = parameters.pop('subjects', None)
-            experiment = parameters.pop('experiment', None)
+            subjects = parameters.pop("subjects", None)
+            experiment = parameters.pop("experiment", None)
 
             query = ses.query(db.Computation)
             for key, val in parameters.items():
                 if isinstance(val, str):
                     query = query.filter(
                         db.Computation.computation_attributes.any(name=key),
-                        db.Computation.computation_attributes.any(str_value=val)
+                        db.Computation.computation_attributes.any(str_value=val),
                     )
                 else:
                     query = query.filter(
                         db.Computation.computation_attributes.any(name=key),
-                        db.Computation.computation_attributes.any(value=val)
+                        db.Computation.computation_attributes.any(value=val),
                     )
             if experiment is not None:
                 query = query.filter(db.Computation.experiment.has(name=experiment))
@@ -104,8 +104,12 @@ class ExperimentDatabase:
         """Get the temperature of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            temperature = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "temperature").first()
+            temperature = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "temperature")
+                .first()
+            )
         try:
             return temperature.value
         except AttributeError:
@@ -118,8 +122,9 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            temperature: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
-                                                             name="temperature")
+            temperature: ExperimentAttribute = get_or_create(
+                ses, ExperimentAttribute, experiment=experiment, name="temperature"
+            )
             temperature.value = value
             ses.commit()
 
@@ -128,8 +133,12 @@ class ExperimentDatabase:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            time_step = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "time_step").first()
+            time_step = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "time_step")
+                .first()
+            )
         try:
             return time_step.value
         except AttributeError:
@@ -142,8 +151,9 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            time_step: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
-                                                           name="time_step")
+            time_step: ExperimentAttribute = get_or_create(
+                ses, ExperimentAttribute, experiment=experiment, name="time_step"
+            )
             time_step.value = value
             ses.commit()
 
@@ -152,10 +162,12 @@ class ExperimentDatabase:
         """Get the units of the experiment"""
         units = {}
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             for experiment_data in experiment.experiment_attributes:
-                if experiment_data.name.startswith('unit_system_'):
-                    unit_name = experiment_data.name.split('unit_system_', 1)[1]
+                if experiment_data.name.startswith("unit_system_"):
+                    unit_name = experiment_data.name.split("unit_system_", 1)[1]
                     # everything after, max 1 split
                     units[unit_name] = experiment_data.value
 
@@ -169,7 +181,12 @@ class ExperimentDatabase:
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
             for unit in value:
-                unit_entry = get_or_create(ses, ExperimentAttribute, experiment=experiment, name=f"unit_system_{unit}")
+                unit_entry = get_or_create(
+                    ses,
+                    ExperimentAttribute,
+                    experiment=experiment,
+                    name=f"unit_system_{unit}",
+                )
                 unit_entry.value = value[unit]
 
             ses.commit()
@@ -179,9 +196,12 @@ class ExperimentDatabase:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_configurations = ses.query(ExperimentAttribute).filter(
-                ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "number_of_configurations").first()
+            number_of_configurations = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "number_of_configurations")
+                .first()
+            )
         try:
             return int(number_of_configurations.value)
         except AttributeError:
@@ -194,9 +214,12 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_configurations: ExperimentAttribute = get_or_create(ses, ExperimentAttribute,
-                                                                          experiment=experiment,
-                                                                          name="number_of_configurations")
+            number_of_configurations: ExperimentAttribute = get_or_create(
+                ses,
+                ExperimentAttribute,
+                experiment=experiment,
+                name="number_of_configurations",
+            )
             number_of_configurations.value = value
             ses.commit()
 
@@ -205,9 +228,12 @@ class ExperimentDatabase:
         """Get the time_step of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_atoms = ses.query(ExperimentAttribute).filter(
-                ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "number_of_atoms").first()
+            number_of_atoms = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "number_of_atoms")
+                .first()
+            )
         try:
             return int(number_of_atoms.value)
         except AttributeError:
@@ -220,8 +246,9 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            number_of_atoms: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
-                                                                 name="number_of_atoms")
+            number_of_atoms: ExperimentAttribute = get_or_create(
+                ses, ExperimentAttribute, experiment=experiment, name="number_of_atoms"
+            )
             number_of_atoms.value = value
             ses.commit()
 
@@ -230,8 +257,12 @@ class ExperimentDatabase:
         """Get the sample_rate of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            sample_rate = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "sample_rate").first()
+            sample_rate = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "sample_rate")
+                .first()
+            )
         try:
             return sample_rate.value
         except AttributeError:
@@ -244,8 +275,9 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            sample_rate: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
-                                                             name="sample_rate")
+            sample_rate: ExperimentAttribute = get_or_create(
+                ses, ExperimentAttribute, experiment=experiment, name="sample_rate"
+            )
             sample_rate.value = value
             ses.commit()
 
@@ -254,8 +286,12 @@ class ExperimentDatabase:
         """Get the volume of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            volume = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "volume").first()
+            volume = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "volume")
+                .first()
+            )
         try:
             return volume.value
         except AttributeError:
@@ -268,7 +304,9 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            volume: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment, name="volume")
+            volume: ExperimentAttribute = get_or_create(
+                ses, ExperimentAttribute, experiment=experiment, name="volume"
+            )
             volume.value = value
             ses.commit()
 
@@ -277,8 +315,12 @@ class ExperimentDatabase:
         """Get the sample_rate of the experiment"""
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            box_arrays = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name.startswith("box_array")).all()
+            box_arrays = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name.startswith("box_array"))
+                .all()
+            )
 
             box_array = [box_side.value for box_side in box_arrays]
 
@@ -293,7 +335,11 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             for idx, box_length in enumerate(value):
                 sample_rate: ExperimentAttribute = get_or_create(
-                    ses, ExperimentAttribute, experiment=experiment, name=f"box_array_{idx}")
+                    ses,
+                    ExperimentAttribute,
+                    experiment=experiment,
+                    name=f"box_array_{idx}",
+                )
                 sample_rate.value = box_length
             ses.commit()
 
@@ -308,7 +354,9 @@ class ExperimentDatabase:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
         """
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             species_dict = experiment.species
 
         return species_dict
@@ -330,32 +378,50 @@ class ExperimentDatabase:
         if value is None:
             return
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             for species_name in value:
-                species = ses.query(db.ExperimentAttribute).filter(
-                    db.ExperimentAttribute.name == "species",
-                    db.ExperimentAttribute.str_value == species_name
-                ).first()
+                species = (
+                    ses.query(db.ExperimentAttribute)
+                    .filter(
+                        db.ExperimentAttribute.name == "species",
+                        db.ExperimentAttribute.str_value == species_name,
+                    )
+                    .first()
+                )
 
                 if species is None:
                     log.debug(f"Creating new species db entry for {species_name}.")
-                    species = db.ExperimentAttribute(experiment=experiment, name="species", str_value=species_name)
+                    species = db.ExperimentAttribute(
+                        experiment=experiment, name="species", str_value=species_name
+                    )
                     ses.add(species)
 
                 for species_attr, species_values in value[species_name].items():
                     try:
                         for species_value in species_values:
-                            get_or_create(ses, db.ExperimentAttributeList,
-                                          experiment_attribute=species, name=species_attr,
-                                          value=species_value)
+                            get_or_create(
+                                ses,
+                                db.ExperimentAttributeList,
+                                experiment_attribute=species,
+                                name=species_attr,
+                                value=species_value,
+                            )
 
                     except TypeError:
                         # e.g., float or int values that are not iterable
                         if species_values is not None:
-                            log.warning(f"Updating {species_attr} with {species_values}")
-                            get_or_create(ses, db.ExperimentAttributeList,
-                                          experiment_attribute=species, name=species_attr,
-                                          value=species_value)
+                            log.warning(
+                                f"Updating {species_attr} with {species_values}"
+                            )
+                            get_or_create(
+                                ses,
+                                db.ExperimentAttributeList,
+                                experiment_attribute=species,
+                                name=species_attr,
+                                value=species_value,
+                            )
             ses.commit()
 
     @property
@@ -369,10 +435,12 @@ class ExperimentDatabase:
         """
         property_groups = {}
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             for experiment_data in experiment.experiment_attributes:
-                if experiment_data.name.startswith('property_group_'):
-                    property_group = experiment_data.name.split('property_group_', 1)[1]
+                if experiment_data.name.startswith("property_group_"):
+                    property_group = experiment_data.name.split("property_group_", 1)[1]
                     # everything after, max 1 split
                     group_values = property_groups.get(property_group, [])
                     group_values.append(int(experiment_data.value))
@@ -386,11 +454,18 @@ class ExperimentDatabase:
         if value is None:
             return
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             for group in value:
                 for group_value in value[group]:
-                    get_or_create(ses, ExperimentAttribute, name=f"property_group_{group}", value=group_value,
-                                  experiment=experiment)
+                    get_or_create(
+                        ses,
+                        ExperimentAttribute,
+                        name=f"property_group_{group}",
+                        value=group_value,
+                        experiment=experiment,
+                    )
 
             ses.commit()
 
@@ -405,9 +480,15 @@ class ExperimentDatabase:
 
         """
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
-            read_files = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "read_file").all()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
+            read_files = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == "read_file")
+                .all()
+            )
             read_files = [Path(file.str_value) for file in read_files]
         return read_files
 
@@ -428,8 +509,16 @@ class ExperimentDatabase:
         if isinstance(value, Path):
             value = value.as_posix()
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
-            get_or_create(ses, ExperimentAttribute, name="read_file", str_value=value, experiment=experiment)
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
+            get_or_create(
+                ses,
+                ExperimentAttribute,
+                name="read_file",
+                str_value=value,
+                experiment=experiment,
+            )
             ses.commit()
 
     @property
@@ -444,8 +533,14 @@ class ExperimentDatabase:
         """
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            rdf_state = ses.query(ExperimentAttribute).filter(ExperimentAttribute.experiment == experiment).filter(
-                ExperimentAttribute.name == "radial_distribution_function_state").first()
+            rdf_state = (
+                ses.query(ExperimentAttribute)
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(
+                    ExperimentAttribute.name == "radial_distribution_function_state"
+                )
+                .first()
+            )
         try:
             return rdf_state.value
         except AttributeError:
@@ -458,8 +553,12 @@ class ExperimentDatabase:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            rdf_state: ExperimentAttribute = get_or_create(ses, ExperimentAttribute, experiment=experiment,
-                                                           name="radial_distribution_function_state")
+            rdf_state: ExperimentAttribute = get_or_create(
+                ses,
+                ExperimentAttribute,
+                experiment=experiment,
+                name="radial_distribution_function_state",
+            )
             rdf_state.value = value
             ses.commit()
 
@@ -476,13 +575,19 @@ class ExperimentDatabase:
         """
         simulation_data = {}
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             for experiment_data in experiment.experiment_attributes:
-                if experiment_data.name.startswith('simulation_data_'):
-                    simulation_data_name = experiment_data.name.split('simulation_data_', 1)[1]
+                if experiment_data.name.startswith("simulation_data_"):
+                    simulation_data_name = experiment_data.name.split(
+                        "simulation_data_", 1
+                    )[1]
                     simulation_data_name = simulation_data_name.split("_")
                     no_list = False
-                    if simulation_data_name[-1] == "nolist":  # check if list or single str/float
+                    if (
+                        simulation_data_name[-1] == "nolist"
+                    ):  # check if list or single str/float
                         no_list = True
                     simulation_data_name = "_".join(simulation_data_name[:-1])
                     # everything after, max 1 split
@@ -523,31 +628,83 @@ class ExperimentDatabase:
         is_nested = False
         for entry in value.values():
             if isinstance(entry, dict):
-                log.warning("Converting nested dict of simulation_data into json_normalized version!")
+                log.warning(
+                    "Converting nested dict of simulation_data into json_normalized version!"
+                )
                 is_nested = True
         if is_nested:
-            value = pd.json_normalize(value).to_dict(orient='records')[0]
+            value = pd.json_normalize(value).to_dict(orient="records")[0]
             log.debug(value)
 
         with self.project.session as ses:
-            experiment = ses.query(Experiment).filter(Experiment.name == self.name).first()
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
             log.warning("Converting all values to float or str")
             for group in value:
                 if isinstance(value[group], list):
                     for idx, group_value in enumerate(value[group]):
-                        entry = get_or_create(ses, ExperimentAttribute, name=f"simulation_data_{group}_{idx}",
-                                              experiment=experiment)
+                        entry = get_or_create(
+                            ses,
+                            ExperimentAttribute,
+                            name=f"simulation_data_{group}_{idx}",
+                            experiment=experiment,
+                        )
                         # TODO consider using a dedicated relationship database instead of two keys in the name?!
                         if isinstance(group_value, str):
                             entry.str_value = group_value
                         else:
                             entry.value = group_value
                 else:
-                    entry = get_or_create(ses, ExperimentAttribute, name=f"simulation_data_{group}_nolist",
-                                          experiment=experiment)
+                    entry = get_or_create(
+                        ses,
+                        ExperimentAttribute,
+                        name=f"simulation_data_{group}_nolist",
+                        experiment=experiment,
+                    )
                     if isinstance(value[group], str):
                         entry.str_value = value[group]
                     else:
                         entry.value = value[group]
 
+            ses.commit()
+
+    @property
+    def version(self) -> int:
+        """Get the version of the experiment
+
+        Versioning starts at 0 and can be increased by +1 for every added file
+        """
+        with self.project.session as ses:
+            experiment = (
+                ses.query(Experiment).filter(Experiment.name == self.name).first()
+            )
+            version = (
+                ses.query(db.ExperimentAttribute)
+                .filter(db.ExperimentAttribute.experiment == experiment)
+                .filter(db.ExperimentAttribute.name == "version")
+                .first()
+            )
+
+        if version is None:
+            return 0
+        return int(version.value)
+
+    @version.setter
+    def version(self, value: int):
+        """Update the version of the experiment
+
+        Can be used to differentiate between different experiment versions in calculations
+        """
+        if value is None:
+            return
+        with self.project.session as ses:
+            experiment = get_or_create(ses, Experiment, name=self.name)
+            version = get_or_create(
+                ses,
+                ExperimentAttribute,
+                experiment=experiment,
+                name="version",
+            )
+            version.value = value
             ses.commit()
