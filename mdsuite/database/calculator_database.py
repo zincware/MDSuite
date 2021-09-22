@@ -124,6 +124,7 @@ class CalculatorDatabase:
             # this can take some time, depending on the size of the data
             for computation in computations:
                 _ = computation.data_dict
+                _ = computation.data_range
 
         if len(computations) > 0:
             if len(computations) > 1:
@@ -143,6 +144,10 @@ class CalculatorDatabase:
 
 
     def save_db_data(self, data=None):
+        """Save all the collected computationattributes and computation data to the database
+
+        This will be run after the computation was successful.
+        """
         with self.experiment.project.session as ses:
             ses.add(self.db_computation)
             for val in self.db_computation_attributes:
@@ -299,6 +304,8 @@ class CalculatorDatabase:
 
                 ses.commit()
 
+
+##### REMOVE ######
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""
@@ -326,3 +333,4 @@ class CalculatorDatabase:
 
         self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
         self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
+#####################

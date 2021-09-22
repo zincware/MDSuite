@@ -98,7 +98,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self.x_label = r'$$r / \AA$$'
         self.y_label = r'$$g(r)$$'
         self.analysis_name = 'Radial_Distribution_Function'
-        self.result_series_keys = ["a", "b"]
+        self.result_series_keys = ["x", "y"]
         self.experimental = True
 
         self._dtype = tf.float32
@@ -203,7 +203,7 @@ class RadialDistributionFunction(Calculator, ABC):
         self._initialize_rdf_parameters()
 
         return self.update_db_entry_with_kwargs(
-            data_range=data_range,
+            data_range=self.data_range,
             number_of_bins=number_of_bins,
             number_of_configurations=number_of_configurations,
             start=start,
