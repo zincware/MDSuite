@@ -170,7 +170,29 @@ class MolecularGraph:
                 to the argument, the kernel is exited by a raised error. If
                 nothing is passed, no checks are performed.
         """
+
+        def check_a_in_b(a, b):
+            """Check if any value of a is in b
+
+            Parameters
+            ----------
+            a: tf.Tensor
+            b: tf.Tensor
+
+            Returns
+            -------
+            bool
+
+            """
+            x = tf.unstack(a)
+            for x1 in x:
+                if tf.reduce_any(b == x1):
+                    return True
+            return False
+
+
         molecules = {}
+        # TODO speed up
         for i in tqdm(range(len(adjacency_matrix)), desc="Building molecules"):
             indices = tf.where(adjacency_matrix[i])
             indices = tf.reshape(indices, (len(indices)))
@@ -180,7 +202,7 @@ class MolecularGraph:
             else:
                 molecule = None
                 for mol in molecules:
-                    if any(x in molecules[mol] for x in indices):
+                    if check_a_in_b(indices, molecules[mol]):
                         molecule = mol
                         molecules[mol] = tf.concat([molecules[mol], indices],
                                                    0)
