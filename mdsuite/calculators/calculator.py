@@ -47,10 +47,11 @@ log = logging.getLogger(__name__)
 def call(func):
     """Decorator for the calculator call method
 
-    This decorator provides a unified approach for handling run_computation and load_data for a single or multiple
-    experiments.
-    It handles the `run_computation()` method, iterates over experiments and loads data if requested!
-    Therefore, the __call__ method does not and can not return any values anymore!
+    This decorator provides a unified approach for handling run_computation and
+    load_data for a single or multiple experiments.
+    It handles the `run_computation()` method, iterates over experiments and
+    loads data if requested! Therefore, the __call__ method does not and can
+    not return any values anymore!
 
     Parameters
     ----------

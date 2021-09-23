@@ -156,7 +156,7 @@ class MolecularGraph:
         return self._apply_system_cutoff(distance_matrix, cutoff)
 
     @staticmethod
-    def reduce_graphs(adjacency_matrix: tf.Tensor):
+    def reduce_graphs(adjacency_matrix: tf.Tensor, n_molecules: int = None):
         """
         Reduce an adjacency matrix into a linear combination of sub-matrices.
 
@@ -164,6 +164,11 @@ class MolecularGraph:
         ----------
         adjacency_matrix : tf.Tensor
                 Adjacency tensor to reduce.
+        n_molecules : int
+                Number of molecules that should be found after the reduction.
+                If a number is passed here and the reduced number if not equal
+                to the argument, the kernel is exited by a raised error. If
+                nothing is passed, no checks are performed.
         """
         molecules = {}
         for i in tqdm(range(len(adjacency_matrix)), desc="Building molecules"):
@@ -197,4 +202,12 @@ class MolecularGraph:
         for item in del_list:
             molecules.pop(item)
 
-        return molecules
+        if n_molecules is None:
+            return molecules
+        else:
+            if len(molecules) != n_molecules:
+                raise ValueError("Expected number of molecules does not "
+                                 "match the amount computed, please adjust"
+                                 "parameters.")
+            else:
+                return molecules
