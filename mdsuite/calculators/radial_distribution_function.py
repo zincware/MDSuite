@@ -43,6 +43,8 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
+    from mdsuite.database.scheme import Computation
+
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -136,7 +138,7 @@ class RadialDistributionFunction(Calculator, ABC):
                  species: list = None,
                  molecules: bool = False,
                  gpu: bool = False,
-                 **kwargs):
+                 **kwargs) -> Computation:
         """
         Compute the RDF with the given user parameters
 
