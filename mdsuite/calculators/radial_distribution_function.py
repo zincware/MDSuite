@@ -710,12 +710,12 @@ class RadialDistributionFunction(Calculator, ABC):
     def plot_data(self, data):
         """Plot the RDF data"""
         self.plotter = DataVisualizer2D(title=self.analysis_name)
-        for selectected_species, val in data.items():
+        for selected_species, val in data.items():
             # TODO fix units!
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=selectected_species,
+                title=selected_species,
             )
         self.plotter.grid_show(self.plot_array)
 

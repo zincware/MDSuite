@@ -68,8 +68,7 @@ def test_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    computation = project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    computation = project.run.RadialDistributionFunction(number_of_configurations=-1)
 
     data_dict = computation["NaCl"].data_dict["Na_Na"]
 
@@ -90,8 +89,6 @@ def test_experiment(traj_files, true_values, tmp_path):
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
-
-    project.experiments['NaCl'].run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
 
     computation = project.experiments['NaCl'].run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
 

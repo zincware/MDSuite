@@ -14,6 +14,8 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from dataclasses import dataclass, field, asdict
+from tqdm import tqdm
+from mdsuite.utils import config
 
 from typing import List
 
@@ -235,7 +237,7 @@ class Computation(Base):
 
         """
         species_dict = {}
-        for data in self.computation_data:
+        for data in tqdm(self.computation_data, ncols=70, desc=f"Loading {self.name} data", disable=not config.db_tqdm):
             species_key = "_".join([x.name for x in data.computation_species])
             data_dict = species_dict.get(species_key, {})
 

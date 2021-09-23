@@ -34,6 +34,9 @@ class ExperimentDatabase:
         self.project = project
         self.name = experiment_name
 
+        # Property cache
+        self._species = None
+
     def export_property_data(self, parameters: dict) -> List[db.Computation]:
         """
         Export property data from the SQL database.
@@ -353,13 +356,14 @@ class ExperimentDatabase:
         dict:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
         """
-        with self.project.session as ses:
-            experiment = (
-                ses.query(Experiment).filter(Experiment.name == self.name).first()
-            )
-            species_dict = experiment.species
+        if self._species is None:
+            with self.project.session as ses:
+                experiment = (
+                    ses.query(Experiment).filter(Experiment.name == self.name).first()
+                )
+                self._species = experiment.species
 
-        return species_dict
+        return self._species
 
     @species.setter
     def species(self, value):
@@ -377,6 +381,7 @@ class ExperimentDatabase:
         """
         if value is None:
             return
+        self._species = None
         with self.project.session as ses:
             experiment = (
                 ses.query(Experiment).filter(Experiment.name == self.name).first()
@@ -389,6 +394,7 @@ class ExperimentDatabase:
                         .filter(
                         db.ExperimentAttribute.name == "species",
                         db.ExperimentAttribute.str_value == species_name,
+                        db.ExperimentAttribute.experiment == experiment
                     )
                         .first()
                 )

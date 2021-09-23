@@ -62,7 +62,7 @@ def true_values() -> dict:
     return json.loads(data.read_bytes())
 
 
-def test_gksd_project(traj_files, true_values, tmp_path):
+def test_project(traj_files, true_values, tmp_path):
     """Test the green_kubo_self_diffusion called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
@@ -70,22 +70,24 @@ def test_gksd_project(traj_files, true_values, tmp_path):
         "NaCl", data=traj_files[0], timestep=0.002, temperature=1400
     )
 
-    project.run.GreenKuboSelfDiffusionCoefficients(plot=True)
-    data_dict = project.load.GreenKuboSelfDiffusionCoefficients()["NaCl"][0].data_dict
+    computation = project.run.GreenKuboDiffusionCoefficients(plot=True)
+    keys = project.run.GreenKuboDiffusionCoefficients.result_keys
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    data_dict = computation["NaCl"].data_dict['Na']
+
+    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['uncertainty'])
 
 
-def test_gksd_experiment(traj_files, true_values, tmp_path):
-    """Test the green_kubo_self_diffusion called from the experiment class"""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
-
-    project.experiments['NaCl'].run.GreenKuboSelfDiffusionCoefficients(plot=False)
-
-    data_dict = project.experiments['NaCl'].load.GreenKuboSelfDiffusionCoefficients()[0].data_dict
-
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+# def test_gksd_experiment(traj_files, true_values, tmp_path):
+#     """Test the green_kubo_self_diffusion called from the experiment class"""
+#     os.chdir(tmp_path)
+#     project = mds.Project()
+#     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+#
+#     project.experiments['NaCl'].run.GreenKuboSelfDiffusionCoefficients(plot=False)
+#
+#     data_dict = project.experiments['NaCl'].load.GreenKuboSelfDiffusionCoefficients()[0].data_dict
+#
+#     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
+#     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

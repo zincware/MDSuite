@@ -24,6 +24,8 @@ from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.calculator_database import Parameters
 from bokeh.models import Span
+from mdsuite.database.scheme import Computation
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 
 class GreenKuboIonicConductivity(Calculator):
@@ -74,19 +76,22 @@ class GreenKuboIonicConductivity(Calculator):
         self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
+        self.result_keys = ['ionic_conductivity', 'uncertainty']
+        self.result_series_keys = ['time', 'acf']
+
         self.prefactor: float
 
     @call
     def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        save=True,
-        correlation_time=1,
-        export: bool = False,
-        gpu: bool = False,
-        integration_range: int = None,
-    ):
+            self,
+            plot=True,
+            data_range=500,
+            save=True,
+            correlation_time=1,
+            export: bool = False,
+            gpu: bool = False,
+            integration_range: int = None,
+    ) -> Computation:
         """
 
         Parameters
@@ -125,6 +130,11 @@ class GreenKuboIonicConductivity(Calculator):
         else:
             self.integration_range = integration_range
 
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
+
     def _update_output_signatures(self):
         """
         Update the output signature for the IC.
@@ -155,13 +165,13 @@ class GreenKuboIonicConductivity(Calculator):
         # Calculate the prefactor
         numerator = (elementary_charge ** 2) * (self.experiment.units["length"] ** 2)
         denominator = (
-            3
-            * boltzmann_constant
-            * self.experiment.temperature
-            * self.experiment.volume
-            * (self.experiment.units["length"] ** 3)
-            * self.data_range
-            * self.experiment.units["time"]
+                3
+                * boltzmann_constant
+                * self.experiment.temperature
+                * self.experiment.volume
+                * (self.experiment.units["length"] ** 3)
+                * self.data_range
+                * self.experiment.units["time"]
         )
         self.prefactor = numerator / denominator
 
@@ -210,27 +220,30 @@ class GreenKuboIonicConductivity(Calculator):
             Property=self.database_group,
             Analysis=self.analysis_name,
             data_range=self.data_range,
-            data=[{'ionic_conductivity': result[0],
-                   'uncertainty': result[1]}],
+            data=[{self.result_keys[0]: np.mean(result),
+                   self.result_keys[1]: np.std(result) / np.sqrt(len(result))}],
             Subject=["System"]
         )
         data = properties.data
-        data += [{'time': x, 'acf': y} for x, y in
+        data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
                  zip(self.time, self.jacf)]
         properties.data = data
         self.update_database(properties)
 
-        # Update the plot if required
-        if self.plot:
+    def plot_data(self, data):
+        """Plot the data"""
+        self.plotter = DataVisualizer2D(title=self.analysis_name)
+        for selected_species, val in data.items():
             span = Span(
-                location=(np.array(self.time) * self.experiment.units["time"])[
+                location=(np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"])[
                     self.integration_range - 1],
                 dimension='height',
                 line_dash='dashed'
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
-                y_data=self.jacf.numpy(),
-                title=f"{np.mean(result): 0.3E} +- {np.std(result) / np.sqrt(len(result)): 0.3E}",
+                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=f"{val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
                 layouts=[span]
             )
+        self.plotter.grid_show(self.plot_array)

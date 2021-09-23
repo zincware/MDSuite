@@ -16,6 +16,7 @@ class Config:
     """Collection of MDSuite configurations"""
     jupyter: bool = False
     GPU: bool = False
+    db_tqdm: bool = True # Show a loading bar when reading data from the database
 
 
 config = Config()

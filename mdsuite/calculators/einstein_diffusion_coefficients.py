@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
+    from mdsuite.database.scheme import Computation
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -113,7 +114,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                  export: bool = False,
                  molecules: bool = False,
                  tau_values: Union[int, List, Any] = np.s_[:],
-                 gpu: bool = False):
+                 gpu: bool = False) -> Computation:
 
         """
 

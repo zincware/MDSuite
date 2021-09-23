@@ -86,11 +86,13 @@ def call(func):
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
+            self.clean_cache()
             data = func(self, *args, **kwargs)
             if data is None:
                 # new calculation will be performed
                 self.prepare_db_entry()
                 self.run_analysis()
+                # TODO make this method return the database objects, so they don't have to be read again
                 self.save_db_data()
                 data = func(self, *args, **kwargs)
             elif self.load_data:
@@ -103,7 +105,6 @@ def call(func):
                 )
             else:
                 # Calculation already performed
-                log.info("Calculation already performed! Loading it up")
                 pass
 
             out[self.experiment.name] = data

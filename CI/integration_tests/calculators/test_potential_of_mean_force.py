@@ -62,31 +62,31 @@ def true_values() -> dict:
     return json.loads(data.read_bytes())
 
 
-def test_pomf_project(traj_files, true_values, tmp_path):
+def test_project(traj_files, true_values, tmp_path):
     """Test the pomf called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.run.PotentialOfMeanForce(plot=False)
+    computation = project.run.PotentialOfMeanForce()
+    keys = project.run.PotentialOfMeanForce.result_keys
 
-    data_dict = project.load.PotentialOfMeanForce()["NaCl"][0].data_dict
+    data_dict = computation["NaCl"].data_dict["Na_Na"]
 
-    np.testing.assert_array_almost_equal(data_dict['pomf'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['uncertainty'])
 
 
-def test_pomf_experiment(traj_files, true_values, tmp_path):
+def test_experiment(traj_files, true_values, tmp_path):
     """Test the pomf called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.experiments['NaCl'].run.PotentialOfMeanForce(plot=False)
+    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)
+    keys = project.run.PotentialOfMeanForce.result_keys
 
-    data_dict = project.experiments['NaCl'].load.PotentialOfMeanForce()[0].data_dict
+    data_dict = computation.data_dict["Na_Na"]
 
-    np.testing.assert_array_almost_equal(data_dict['pomf'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'])
+    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['uncertainty'])

@@ -28,6 +28,7 @@ from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
 from bokeh.models import BoxAnnotation
 from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
+from mdsuite.database.scheme import Computation
 
 
 log = logging.getLogger(__name__)
@@ -114,7 +115,7 @@ class PotentialOfMeanForce(Calculator):
         export: bool = False,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
-    ):
+    ) -> Computation:
         """
         Python constructor for the class
 
@@ -275,7 +276,7 @@ class PotentialOfMeanForce(Calculator):
         """Plot the POMF"""
         log.debug("Start plotting the POMF.")
         self.plotter = DataVisualizer2D(title=self.analysis_name)
-        for selectected_species, val in data.items():
+        for selected_species, val in data.items():
             model = BoxAnnotation(
                 left=val[self.result_keys[2]][0],
                 right=val[self.result_keys[3]][0],
@@ -285,7 +286,7 @@ class PotentialOfMeanForce(Calculator):
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
-                title=fr"{selectected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
+                title=fr"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
                 layouts=[model],
             )
 
