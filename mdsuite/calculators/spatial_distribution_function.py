@@ -32,7 +32,7 @@ class SpatialDistributionFunction(Calculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
     def __init__(
-            self, experiment: Experiment, experiments=None, load_data: bool = False
+        self, experiment: Experiment, experiments=None, load_data: bool = False
     ):
         """Constructor of the SpatialDistributionFunction
 
@@ -48,21 +48,28 @@ class SpatialDistributionFunction(Calculator):
         """
         super().__init__(experiment, experiments=experiments, load_data=load_data)
 
-        self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
-        self.loaded_property = 'Positions'
-        self.database_group = 'Spatial_Distribution_Function'
-        self.x_label = r'$$\text{r} /  \AA$$'  # None
-        self.y_label = r'$$\text{g(r)}$$'  # None
-        self.analysis_name = 'Spatial_Distribution_Function'
+        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
+        self.loaded_property = "Positions"
+        self.database_group = "Spatial_Distribution_Function"
+        self.x_label = r"$$\text{r} /  \AA$$"  # None
+        self.y_label = r"$$\text{g(r)}$$"  # None
+        self.analysis_name = "Spatial_Distribution_Function"
         self.experimental = True
 
         self._dtype = tf.float32
 
     @call
     def __call__(
-            self, molecules: bool = False, start: int = 1, stop: int = 10,
-            number_of_configurations: int = 5, r_min: float = 4.0,
-            r_max: float = 4.5, species: list = None, **kwargs):
+        self,
+        molecules: bool = False,
+        start: int = 1,
+        stop: int = 10,
+        number_of_configurations: int = 5,
+        r_min: float = 4.0,
+        r_max: float = 4.5,
+        species: list = None,
+        **kwargs,
+    ):
         """
         User Interface to the Spatial Distribution Function
 
@@ -90,15 +97,14 @@ class SpatialDistributionFunction(Calculator):
         self.r_max = r_max
 
         # choose sampled configurations
-        self.sample_configurations = np.linspace(start,
-                                                 stop,
-                                                 number_of_configurations,
-                                                 dtype=np.int)
+        self.sample_configurations = np.linspace(
+            start, stop, number_of_configurations, dtype=np.int
+        )
 
         self.update_user_args()
         self._check_input()
 
-    def _load_positions(self, indices: list) -> tf.Tensor:
+    def _load_positions(self, indices: list, species: str) -> tf.Tensor:
         """
         Load the positions matrix
 
@@ -108,12 +114,17 @@ class SpatialDistributionFunction(Calculator):
         ----------
         indices : list
                 List of indices to take from the database_path
+        species: str
+                The species to load the positions from
         Returns
         -------
         loaded_data : tf.Tensor
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
-        path_list = [join_path(species, "Positions") for species in self.species]
+        # path_list = [join_path(species, "Positions") for species in self.species]
+
+        path_list = [join_path(species, "Positions")]
+
         data = self.experiment.load_matrix(
             "Positions", path=path_list, select_slice=np.s_[:, indices]
         )
@@ -136,25 +147,42 @@ class SpatialDistributionFunction(Calculator):
         nllayer = NLLayer()
 
         for idx, sample_configuration in tqdm(
-                enumerate(np.array_split(self.sample_configurations, self.n_batches)), ncols=70
+            enumerate(np.array_split(self.sample_configurations, self.n_batches)),
+            ncols=70,
         ):
-            positions_tensor = self._load_positions(sample_configuration)
+            positions_tensor = []
+            species_length = []
+            for species in self.species:
+                positions_tensor.append(
+                    self._load_positions(sample_configuration, species)
+                )
+                species_length.append(len(positions_tensor[-1]))
+                log.debug(f"Got {species_length[-1]} ions of {species}")
+
+            positions_tensor = tf.concat(positions_tensor, axis=0)
 
             # make it (configurations, n_atoms, 3)
             positions_tensor = tf.transpose(positions_tensor, perm=(1, 0, 2))
-            cell = tf.linalg.set_diag(tf.zeros((3, 3)), self.experiment.box_array, )
+            cell = tf.linalg.set_diag(tf.zeros((3, 3)), self.experiment.box_array)
             cell = tf.repeat(cell[None], positions_tensor.shape[0], axis=0)
-            # TODO slice r_ij that only the selected species distances are
-            #  still available, e.g. for species1 != species2 maybe use a
-            #  dictionary in the end
 
             r_ij = nllayer({"positions": positions_tensor, "cell": cell})
 
-            d_ij = tf.linalg.norm(r_ij, axis=-1)
+            d_ij = tf.linalg.norm(r_ij, axis=-1)  # shape (b, i, j)
             # apply minimal and maximal distance and remove the diagonal elements of 0
-            mask = (d_ij > self.r_min) & (d_ij < self.r_max) & (d_ij != 0)
-            r_ij_cut = r_ij[mask]
+            mask = (d_ij > self.r_min) & (d_ij < self.r_max)  # & (d_ij != 0)
 
+            # Slicing the mask to the area where only the distances i!=j occur.
+            # There are two such areas, so I am slicing them twice
+            # could also mirror them
+            mask_ = mask[:, species_length[0] :, : species_length[1]]
+            r_ij_cut = r_ij[:, species_length[0] :, : species_length[1], :]
+            r_ij_cut = r_ij_cut[mask_]
+            sdf_values.append(r_ij_cut)
+            # and the other half (only effective if species[0] != species[1])
+            mask_ = mask[:, : species_length[0], species_length[1] :]
+            r_ij_cut = r_ij[:, : species_length[0], species_length[1] :, :]
+            r_ij_cut = r_ij_cut[mask_]
             sdf_values.append(r_ij_cut)
 
         sdf_values = tf.concat(sdf_values, axis=0)
@@ -165,5 +193,5 @@ class SpatialDistributionFunction(Calculator):
         """
         Run the visualizer.
         """
-        visualizer = DataVisualizer3D(data=plot_data.numpy(), title='test')
+        visualizer = DataVisualizer3D(data=plot_data.numpy(), title="test")
         visualizer.plot()
