@@ -16,12 +16,17 @@ from sqlalchemy.orm import relationship
 from dataclasses import dataclass, field, asdict
 from tqdm import tqdm
 from mdsuite.utils import config
+from .types import MutableDict, JSONEncodedDict
 
 from typing import List
 
 log = logging.getLogger(__name__)
 
 Base = declarative_base()
+
+
+# TODO consider using lazy = True instead of querying data_dict!
+# TODO consider serializing some of the computation data
 
 
 class Project(Base):
@@ -53,7 +58,7 @@ class Experiment(Base):
 
     computations = relationship("Computation")
 
-    # species = relationship("Species")
+    species = relationship("ExperimentSpecies")
 
     def __repr__(self):
         """
@@ -66,22 +71,22 @@ class Experiment(Base):
         """
         return f"{self.id}: {self.name}"
 
-    @property
-    def species(self):
-        """Get the species information
-
-        Returns
-        -------
-
-        dict:
-            A species dict of type {Li: {indices: [1, 2, 3], ...}, ...}
-        """
-        species_dict = {}
-        for experiment_attribute in self.experiment_attributes:
-            if experiment_attribute.name == "species":
-                species_dict.update(experiment_attribute.species_data)
-
-        return species_dict
+    # @property
+    # def species(self):
+    #     """Get the species information
+    #
+    #     Returns
+    #     -------
+    #
+    #     dict:
+    #         A species dict of type {Li: {indices: [1, 2, 3], ...}, ...}
+    #     """
+    #     species_dict = {}
+    #     for experiment_attribute in self.experiment_attributes:
+    #         if experiment_attribute.name == "species":
+    #             species_dict.update(experiment_attribute.species_data)
+    #
+    #     return species_dict
 
 
 class ExperimentAttribute(Base):
@@ -178,6 +183,22 @@ class ExperimentAttributeList(Base):
 
     experiment_attribute_id = Column(Integer, ForeignKey('experiment_attributes.id', ondelete="CASCADE"))
     experiment_attribute = relationship("ExperimentAttribute", back_populates='experiment_attribute_lists')
+
+
+class ExperimentSpecies(Base):
+    """Table for storing species information
+
+    This table is used to store species and molecule information that can be related to a specific experiment
+
+    """
+    __tablename__ = 'experiment_species'
+    id = Column(Integer, primary_key=True)
+
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
+    name = Column(String)
+
+    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
+    experiment = relationship("Experiment", back_populates='experiment_species')
 
 
 class Computation(Base):

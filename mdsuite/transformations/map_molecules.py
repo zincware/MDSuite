@@ -208,6 +208,7 @@ class MolecularMap(Transformations):
             data_structure = self._prepare_database_entry(item, len(self.adjacency_graphs[item]['molecules']))
             path_list = [join_path(s, 'Unwrapped_Positions') for s in species]
             self._prepare_monitors(data_path=path_list)
+            # TODO for #338
             scaling_factor = self.reference_molecules[item]['mass']
             self.experiment.molecules[item] = {}
             self.experiment.molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
