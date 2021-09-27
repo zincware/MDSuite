@@ -91,17 +91,10 @@ def call(func):
                 # new calculation will be performed
                 self.prepare_db_entry()
                 self.run_analysis()
-                # TODO make this method return the database objects, so they don't have to be read again
                 self.save_db_data()
                 data = func(self, *args, **kwargs)
             elif self.load_data:
-                # exp.load / project.load was used
-                # TODO this method is not used atm and also does not work because
-                #  export_property_data does not work any more - tests required!
-                # TODO do not use exp.export_property_data but rather a method in the calc db!
-                out[self.experiment.name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name, "experiment": self.experiment.name}
-                )
+                raise NotImplementedError("Please user <exp/proj>.run.<method> instead of load!")
             else:
                 # Calculation already performed
                 pass

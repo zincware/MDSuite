@@ -142,17 +142,17 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         """
         return RunComputation(experiment=self)
 
-    @property
-    def load(self) -> RunComputation:
-        """Method to access the available calculators results
-
-        Returns
-        -------
-        RunComputation:
-            if called, return List[db.Computation]
-
-        """
-        return RunComputation(experiment=self, load_data=True)
+    # @property
+    # def load(self) -> RunComputation:
+    #     """Method to access the available calculators results
+    #
+    #     Returns
+    #     -------
+    #     RunComputation:
+    #         if called, return List[db.Computation]
+    #
+    #     """
+    #     return RunComputation(experiment=self, load_data=True)
 
     def __repr__(self):
         return f"exp_{self.name}"
