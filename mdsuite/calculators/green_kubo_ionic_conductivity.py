@@ -223,11 +223,10 @@ class GreenKuboIonicConductivity(Calculator):
             self.result_series_keys[1]: self.jacf.numpy().tolist()
         }
 
-        self.queue_data(data=data,  subjects=['System'])
+        self.queue_data(data=data, subjects=['System'])
 
     def plot_data(self, data):
         """Plot the data"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             span = Span(
                 location=(np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"])[
@@ -241,4 +240,3 @@ class GreenKuboIonicConductivity(Calculator):
                 title=f"{val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[span]
             )
-        self.plotter.grid_show(self.plot_array)

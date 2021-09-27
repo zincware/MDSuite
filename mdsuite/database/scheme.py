@@ -24,13 +24,20 @@ log = logging.getLogger(__name__)
 
 Base = declarative_base()
 
+
 # TODO consider using lazy = True instead of querying data_dict!
 # TODO consider serializing some of the computation data
 
-association_table = Table('association', Base.metadata,
-                          Column('computation_results_id', ForeignKey('computation_results.id'), primary_key=True),
-                          Column('experiment_species_id', ForeignKey('experiment_species.id'), primary_key=True)
-                          )
+class SpeciesAssociation(Base):
+    """Connection between Computations and Experiment Species"""
+    __tablename__ = "species_association"
+    computation_results_id = Column(ForeignKey('computation_results.id'), primary_key=True)
+    experiment_species_id = Column(ForeignKey('experiment_species.id'), primary_key=True)
+
+    count = Column(Integer, default=1) # how often a species occurs, e.g. Na - Na - Cl ADF would be 2, 1
+
+    computation_result = relationship("ComputationResult", back_populates="species")
+    species = relationship("ExperimentSpecies", back_populates="computation_result")
 
 
 class Project(Base):
@@ -216,10 +223,7 @@ class ExperimentSpecies(Base):
     experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates="species")
 
-    computation_results = relationship(
-        "ComputationResult",
-        secondary=association_table,
-        back_populates="species")
+    computation_result = relationship("SpeciesAssociation", back_populates="species")
 
     def __repr__(self):
         return f"{self.name}_obj"
@@ -288,28 +292,15 @@ class Computation(Base):
         species_dict = {}
         for result in self.computation_results:
             result: ComputationResult
-            species_keys = "_".join([x.name for x in result.species])
+            species_keys_list = []
+            for species_associate in result.species:
+                species_associate: SpeciesAssociation
+                species_keys_list += species_associate.count * [species_associate.species.name]
+            species_keys = "_".join(species_keys_list)
+            # iterating over associates
             species_dict[species_keys] = result.data
 
         return species_dict
-
-        # species_dict = {}
-        # for data in tqdm(
-        #         self.computation_data,
-        #         ncols=70,
-        #         desc=f"Loading {self.name} data",
-        #         disable=not config.db_tqdm,
-        # ):
-        #     species_key = "_".join([x.name for x in data.computation_species])
-        #     data_dict = species_dict.get(species_key, {})
-        #
-        #     data_list = data_dict.get(data.dimension, [])
-        #     data_list.append(data.value)
-        #     data_dict[data.dimension] = data_list
-        #
-        #     species_dict[species_key] = data_dict
-        #
-        # return species_dict
 
     @property
     def data_range(self) -> int:
@@ -408,7 +399,4 @@ class ComputationResult(Base):
     computation = relationship("Computation", back_populates="computation_results")
 
     # Many <-> Many
-    species = relationship(
-        "ExperimentSpecies",
-        secondary=association_table,
-        back_populates="computation_results")
+    species = relationship("SpeciesAssociation", back_populates="computation_result")

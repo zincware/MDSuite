@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import mdsuite.database.scheme as db
 from mdsuite.utils.database import get_or_create
+from collections import Counter
 from dataclasses import dataclass, field
 from sqlalchemy import and_
 
@@ -184,10 +185,18 @@ class CalculatorDatabase:
                 # TODO consider renaming species to e.g., subjects, because species here can also be molecules
                 data_obj: ComputationResults
                 computation_result = db.ComputationResult(computation=self.db_computation, data=data_obj.data)
-                species = ses.query(db.ExperimentSpecies).filter(db.ExperimentSpecies.name.in_(data_obj.subjects)).all()
-                # in case of e.g. `System` species will be None
-                if species is not None:
-                    computation_result.species = species
+                species_list = []
+                for species in data_obj.subjects:
+                    # this will collect duplicates that can be counted later, otherwise I would use .in_
+                    species_list.append(
+                        ses.query(db.ExperimentSpecies).filter(db.ExperimentSpecies.name == species).first()
+                    )
+                # in case of e.g. `System` species will be [None], wich is then removed
+                species_list = [x for x in species_list if x is not None]
+                for species, count in Counter(species_list).items():
+                    associate = db.SpeciesAssociation(count=count)
+                    associate.species = species
+                    computation_result.species.append(associate)
 
                 ses.add(computation_result)
 
