@@ -52,39 +52,7 @@ class ExperimentDatabase:
         output : list
                 A list of rows represented as dictionaries.
         """
-        with self.project.session as ses:
-            subjects = parameters.pop("subjects", None)
-            experiment = parameters.pop("experiment", None)
-
-            query = ses.query(db.Computation)
-            for key, val in parameters.items():
-                if isinstance(val, str):
-                    query = query.filter(
-                        db.Computation.computation_attributes.any(name=key),
-                        db.Computation.computation_attributes.any(str_value=val),
-                    )
-                else:
-                    query = query.filter(
-                        db.Computation.computation_attributes.any(name=key),
-                        db.Computation.computation_attributes.any(value=val),
-                    )
-            if experiment is not None:
-                query = query.filter(db.Computation.experiment.has(name=experiment))
-            computations_all_subjects = query.all()
-
-            # Filter out subjects, this is easier to do this way around than via SQL statements (feel free to rewrite!)
-            computations = []
-            if subjects is not None:
-                for x in computations_all_subjects:
-                    if set(x.subjects).issubset(subjects):
-                        computations.append(x)
-            else:
-                computations = computations_all_subjects
-
-            for computation in computations:
-                _ = computation.data_dict
-
-        return computations
+        raise DeprecationWarning("This function has been removed and replaced by queue_database")
 
     @property
     def active(self):

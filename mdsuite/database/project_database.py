@@ -71,28 +71,3 @@ class ProjectDatabase(DatabaseBase):
             project = get_or_create(ses, Project, id=self.project_id)
             project.description = value
             ses.commit()
-
-        # self.name = name
-        #
-        # self._experiment_id = None
-    #
-    # @property
-    # def experiment(self) -> Experiment:
-    #     """Write an entry for the Experiment the database
-    #
-    #     Returns
-    #     -------
-    #
-    #     Experiment instance queried from the database
-    #
-    #     """
-    #     if self._experiment_id is None:
-    #         experiment = Experiment(name=self.name)
-    #         with self.session as ses:
-    #             ses.add(experiment)
-    #             ses.commit()
-    #             self._experiment_id = experiment.id
-    #
-    #     with self.session as ses:
-    #         experiment = ses.query(Experiment).get(self._experiment_id)
-    #     return experiment
