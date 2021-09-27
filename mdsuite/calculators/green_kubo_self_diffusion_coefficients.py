@@ -77,7 +77,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
     @call
     def __call__(
             self,
-            plot: bool = False,
+            plot: bool = True,
             species: list = None,
             data_range: int = 500,
             save: bool = True,
@@ -244,23 +244,17 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{self.result_keys[0]: np.mean(result),
-                   self.result_keys[1]: np.std(result) / np.sqrt(len(result))}],
-            Subject=[species]
-        )
-        data = properties.data
-        data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                 zip(self.time, self.vacf)]
-        properties.data = data
-        self.update_database(properties)
+        data = {
+            self.result_keys[0]: np.mean(result).tolist(),
+            self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.vacf.numpy().tolist()
+        }
+
+        self.queue_data(data=data, subjects=[species])
 
     def plot_data(self, data):
         """Plot the data"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             span = Span(
                 location=(np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"])[
@@ -271,7 +265,6 @@ class GreenKuboDiffusionCoefficients(Calculator):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
+                title=f"{val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[span]
             )
-        self.plotter.grid_show(self.plot_array)

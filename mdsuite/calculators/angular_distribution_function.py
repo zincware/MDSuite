@@ -444,9 +444,13 @@ class AngularDistributionFunction(Calculator, ABC):
 
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
-            data = [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                    zip(bin_range_to_angles, hist)]
-            self.save_to_db(data)
+
+            data = {
+                self.result_series_keys[0]: bin_range_to_angles.tolist(),
+                self.result_series_keys[1]: hist.numpy().tolist()
+            }
+
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def run_experimental_analysis(self):
         """
@@ -464,7 +468,6 @@ class AngularDistributionFunction(Calculator, ABC):
 
     def plot_data(self, data):
         """Plot data"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             bin_range_to_angles = np.linspace(self.bin_range[0] * (180 / 3.14159),
                                               self.bin_range[1] * (180 / 3.14159),
@@ -475,4 +478,3 @@ class AngularDistributionFunction(Calculator, ABC):
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=f"{selected_species} - Max: {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees ",
             )
-        self.plotter.grid_show(self.plot_array)

@@ -30,15 +30,20 @@ class Parameters:
     Property: str
     Analysis: str
     data_range: int
-    data: list[dict] = field(default_factory=list)
+    data: dict = field(default_factory=dict)
     Subject: list[str] = field(default_factory=list)
 
+@dataclass
+class ComputationResults:
+    data: dict = field(default_factory=dict)
+    subjects: dict = field(default_factory=list)
 
 class CalculatorDatabase:
     """Database Interactions of the calculator class
 
     This class handles the interaction of the calculator with the project database
     """
+
     def __init__(self, experiment):
         """Constructor for the calculator database"""
         self.experiment: Experiment = experiment
@@ -47,7 +52,8 @@ class CalculatorDatabase:
         self.analysis_name = None
         self.load_data = None
 
-        self._computation_data = []
+        self._computation_data = []  # To be depreciated!
+        self._queued_data = []
 
         # List of computation attributes that will be added to the database when it is written
         self.db_computation_attributes = []
@@ -55,6 +61,7 @@ class CalculatorDatabase:
     def clean_cache(self):
         """Clean the lists of computed data"""
         self._computation_data = []
+        self._queued_data = []
         self.db_computation_attributes = []
 
     def prepare_db_entry(self):
@@ -147,7 +154,6 @@ class CalculatorDatabase:
             experiment_version = db.ComputationAttribute(name="version", value=self.experiment.version)
             self.db_computation_attributes.append(experiment_version)
 
-
     def save_db_data(self, data=None):
         """Save all the collected computationattributes and computation data to the database
 
@@ -161,6 +167,7 @@ class CalculatorDatabase:
                 ses.add(val)
 
             for data_obj in self._computation_data:
+                log.warning("Depreciated computation data method")
                 for data in data_obj.data:
                     for key, val in data.items():
                         computation_data = db.ComputationData(
@@ -173,7 +180,24 @@ class CalculatorDatabase:
                             )
                             ses.add(computation_subject)
 
+            for data_obj in self._queued_data:
+                # TODO consider renaming species to e.g., subjects, because species here can also be molecules
+                data_obj: ComputationResults
+                computation_result = db.ComputationResult(computation=self.db_computation, data=data_obj.data)
+                species = ses.query(db.ExperimentSpecies).filter(db.ExperimentSpecies.name.in_(data_obj.subjects)).all()
+                # in case of e.g. `System` species will be None
+                if species is not None:
+                    computation_result.species = species
+
+                ses.add(computation_result)
+
             ses.commit()
+
+    def queue_data(self, data, subjects):
+        """Queue data to be stored in the database"""
+        self._queued_data.append(
+            ComputationResults(data=data, subjects=subjects)
+        )
 
     def update_database(
             self, parameters: Union[dict, Parameters], delete_duplicate: bool = True
@@ -309,8 +333,7 @@ class CalculatorDatabase:
 
                 ses.commit()
 
-
-##### REMOVE ######
+    ##### REMOVE ######
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""

@@ -216,19 +216,14 @@ class GreenKuboIonicConductivity(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{self.result_keys[0]: np.mean(result),
-                   self.result_keys[1]: np.std(result) / np.sqrt(len(result))}],
-            Subject=["System"]
-        )
-        data = properties.data
-        data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                 zip(self.time, self.jacf)]
-        properties.data = data
-        self.update_database(properties)
+        data = {
+            self.result_keys[0]: np.mean(result).tolist(),
+            self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.jacf.numpy().tolist()
+        }
+
+        self.queue_data(data=data,  subjects=['System'])
 
     def plot_data(self, data):
         """Plot the data"""
@@ -243,7 +238,7 @@ class GreenKuboIonicConductivity(Calculator):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
+                title=f"{val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[span]
             )
         self.plotter.grid_show(self.plot_array)

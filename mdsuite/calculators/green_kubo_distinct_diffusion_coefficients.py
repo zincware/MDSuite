@@ -274,20 +274,14 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'diffusion_coefficient': np.mean(result),
-                   'uncertainty': np.std(result) / (np.sqrt(len(result)))}],
-            Subject=list(species)
-            )
+        data = {
+            'diffusion_coefficient': np.mean(result).tolist(),
+            'uncertainty': (np.std(result) / (np.sqrt(len(result)))).tolist(),
+            'time': self.time.tolist(),
+            'acf': self.vacf.tolist()
+        }
 
-        data = properties.data
-        data += [{'time': x, 'acf': y} for x, y in
-                 zip(self.time, self.vacf)]
-        properties.data = data
-        self.update_database(properties)
+        self.queue_data(data=data, subjects=list(species))
 
         # Update the plot if required
         if self.plot:

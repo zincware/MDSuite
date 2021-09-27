@@ -30,7 +30,6 @@ from bokeh.models import BoxAnnotation
 from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.database.scheme import Computation
 
-
 log = logging.getLogger(__name__)
 
 
@@ -108,13 +107,13 @@ class PotentialOfMeanForce(Calculator):
 
     @call
     def __call__(
-        self,
-        plot=True,
-        save=True,
-        data_range=1,
-        export: bool = False,
-        savgol_order: int = 2,
-        savgol_window_length: int = 17,
+            self,
+            plot=True,
+            save=True,
+            data_range=1,
+            export: bool = False,
+            savgol_order: int = 2,
+            savgol_window_length: int = 17,
     ) -> Computation:
         """
         Python constructor for the class
@@ -162,7 +161,7 @@ class PotentialOfMeanForce(Calculator):
         """
 
         self.pomf = (
-            -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
+                -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
         )
 
     def _get_max_values(self):
@@ -249,28 +248,16 @@ class PotentialOfMeanForce(Calculator):
                 self._get_pomf_value()
             )  # Determine the min values of the function and update experiment
 
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[
-                    {self.result_keys[0]: pomf_value, self.result_keys[1]: pomf_error}
-                ],
-                Subject=self.selected_species,
-            )
-            data = properties.data
-            data += [
-                {self.result_series_keys[0]: x, self.result_series_keys[1]: y}
-                for x, y in zip(self.radii, self.pomf)
-            ]
-            data += [
-                {
-                    self.result_keys[2]: self.radii[self.indices[0]],
-                    self.result_keys[3]: self.radii[self.indices[1]],
-                }
-            ]
-            properties.data = data
-            self.update_database(properties)
+            data = {
+                self.result_keys[0]: pomf_value.tolist(),
+                self.result_keys[1]: pomf_error.tolist(),
+                self.result_keys[2]: self.radii[self.indices[0]],
+                self.result_keys[3]: self.radii[self.indices[1]],
+                self.result_series_keys[0]: self.radii.tolist(),
+                self.result_series_keys[1]: self.pomf.tolist()
+            }
+
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def plot_data(self, data):
         """Plot the POMF"""
@@ -278,15 +265,15 @@ class PotentialOfMeanForce(Calculator):
         self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             model = BoxAnnotation(
-                left=val[self.result_keys[2]][0],
-                right=val[self.result_keys[3]][0],
+                left=val[self.result_keys[2]],
+                right=val[self.result_keys[3]],
                 fill_alpha=0.1,
                 fill_color="red",
             )
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
-                title=fr"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}",
+                title=fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[model],
             )
 

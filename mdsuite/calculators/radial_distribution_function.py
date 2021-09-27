@@ -45,7 +45,6 @@ if TYPE_CHECKING:
     from mdsuite import Experiment
     from mdsuite.database.scheme import Computation
 
-
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -354,18 +353,12 @@ class RadialDistributionFunction(Calculator, ABC):
             log.debug("Writing RDF to database!")
 
             self.data_range = self.number_of_configurations
-            data = [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                    zip(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                        self.rdf.get(names))]
-            params = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=data,
-                Subject=self.selected_species
-            )
+            data = {
+                self.result_series_keys[0]: np.linspace(0.0, self.cutoff, self.number_of_bins).tolist(),
+                self.result_series_keys[1]: self.rdf.get(names).tolist()
+            }
 
-            self.update_database(params)
+            self.queue_data(data=data, subjects=self.selected_species)
 
         # TODO remove rdf_state
         self.experiment.radial_distribution_function_state = True  # update the state
@@ -706,10 +699,8 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return _piecewise(np.array(bin_edges)) * bin_width
 
-
     def plot_data(self, data):
         """Plot the RDF data"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             # TODO fix units!
             self.run_visualization(
@@ -717,5 +708,3 @@ class RadialDistributionFunction(Calculator, ABC):
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=selected_species,
             )
-        self.plotter.grid_show(self.plot_array)
-

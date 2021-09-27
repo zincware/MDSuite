@@ -142,27 +142,18 @@ class KirkwoodBuffIntegral(Calculator):
             self.rdf = np.array(vals["y"]).astype(float)[1:]
             self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
 
-            data = [
-                {self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                zip(self.radii[1:], self.kb_integral)
-            ]
-            log.debug(f"Writing {self.analysis_name} to database!")
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=data,
-                Subject=self.selected_species
-            )
-            self.update_database(properties)
+            data = {
+                self.result_series_keys[0]: self.radii[1:].tolist(),
+                self.result_series_keys[1]: self.kb_integral
+            }
+
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def plot_data(self, data):
         """Plot the data"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
                 title=selected_species,
             )
-        self.plotter.grid_show(self.plot_array)

@@ -419,8 +419,9 @@ class ExperimentDatabase:
                 molecule = get_or_create(
                     ses,
                     db.ExperimentSpecies,
-                    name=f"MOLECULE:{molecule_name}",
+                    name=molecule_name,
                     experiment=experiment,
+                    molecule=True
                 )
                 molecule.data = molecule_data
             ses.commit()

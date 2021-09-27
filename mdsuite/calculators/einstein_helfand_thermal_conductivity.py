@@ -172,18 +172,13 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'thermal_conductivity': result[0], 'uncertainty': result[1]}],
-            Subject=["System"]
-        )
-        data = properties.data
-        data += [{'time': x, 'msd': y} for x, y in
-                 zip(self.time, self.msd_array)]
-        properties.data = data
-        self.update_database(properties)
+        data = {
+            'thermal_conductivity': result[0],
+            'uncertainty': result[1],
+            'time': self.time.tolist(),
+            'msd': self.msd_array.tolist()
+        }
+        self.queue_data(data=data, subjects=['System'])
 
         # Update the plot if required
         if self.plot:

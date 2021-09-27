@@ -22,7 +22,6 @@ from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
 
-
 plt.rcParams['figure.facecolor'] = 'white'
 
 log = logging.getLogger(__name__)
@@ -292,15 +291,12 @@ class StructureFactor(Calculator):
             total_structure_factor_li.append(self.total_structure_factor(scattering_scalar))
         total_structure_factor_li = np.array(total_structure_factor_li)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'q': x, 's(q)': y} for x, y in
-                 zip(self.Q_arr, total_structure_factor_li)],
-            Subject=["System"]
-        )
-        self.update_database(properties)
+        data = {
+            'q': self.Q_arr.tolist(),
+            's(q)': total_structure_factor_li.tolist()
+        }
+
+        self.queue_data(data=data, subjects=['System'])
 
         if self.plot:
             self.run_visualization(

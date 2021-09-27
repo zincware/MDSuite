@@ -11,7 +11,7 @@ Description: Collection of all used SQLAlchemy Database schemes
 import logging
 
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table
 from sqlalchemy.orm import relationship
 from dataclasses import dataclass, field, asdict
 from tqdm import tqdm
@@ -24,9 +24,13 @@ log = logging.getLogger(__name__)
 
 Base = declarative_base()
 
-
 # TODO consider using lazy = True instead of querying data_dict!
 # TODO consider serializing some of the computation data
+
+association_table = Table('association', Base.metadata,
+                          Column('computation_results_id', ForeignKey('computation_results.id'), primary_key=True),
+                          Column('experiment_species_id', ForeignKey('experiment_species.id'), primary_key=True)
+                          )
 
 
 class Project(Base):
@@ -76,7 +80,7 @@ class Experiment(Base):
         """Get the species information for the experiment"""
         species_dict = {}
         for species in self.species:
-            if species.name.startswith("MOLECULE:"):
+            if species.molecule:
                 continue
             species: ExperimentSpecies
             species_dict[species.name] = species.data
@@ -87,9 +91,9 @@ class Experiment(Base):
         """Get the molecules information for the experiment"""
         molecule_dict = {}
         for molecule in self.species:
-            if molecule.name.startswith("MOLECULE:"):
+            if molecule.molecule:
                 molecule: ExperimentSpecies
-                molecule_name = molecule.name.split(":", 1)[1]
+                molecule_name = molecule.name
                 molecule_dict[molecule_name] = molecule.data
 
         return molecule_dict
@@ -207,9 +211,18 @@ class ExperimentSpecies(Base):
 
     name = Column(String)
     data = Column(MutableDict.as_mutable(JSONEncodedDict))
+    molecule = Column(Boolean, default=False)
 
     experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates="species")
+
+    computation_results = relationship(
+        "ComputationResult",
+        secondary=association_table,
+        back_populates="species")
+
+    def __repr__(self):
+        return f"{self.name}_obj"
 
 
 class Computation(Base):
@@ -228,6 +241,9 @@ class Computation(Base):
     )
     computation_data = relationship(
         "ComputationData", cascade="all, delete", back_populates="computation"
+    )
+    computation_results = relationship(
+        "ComputationResult", cascade="all, delete", back_populates="computation", lazy=True
     )
 
     def __repr__(self):
@@ -270,22 +286,30 @@ class Computation(Base):
 
         """
         species_dict = {}
-        for data in tqdm(
-            self.computation_data,
-            ncols=70,
-            desc=f"Loading {self.name} data",
-            disable=not config.db_tqdm,
-        ):
-            species_key = "_".join([x.name for x in data.computation_species])
-            data_dict = species_dict.get(species_key, {})
-
-            data_list = data_dict.get(data.dimension, [])
-            data_list.append(data.value)
-            data_dict[data.dimension] = data_list
-
-            species_dict[species_key] = data_dict
+        for result in self.computation_results:
+            result: ComputationResult
+            species_keys = "_".join([x.name for x in result.species])
+            species_dict[species_keys] = result.data
 
         return species_dict
+
+        # species_dict = {}
+        # for data in tqdm(
+        #         self.computation_data,
+        #         ncols=70,
+        #         desc=f"Loading {self.name} data",
+        #         disable=not config.db_tqdm,
+        # ):
+        #     species_key = "_".join([x.name for x in data.computation_species])
+        #     data_dict = species_dict.get(species_key, {})
+        #
+        #     data_list = data_dict.get(data.dimension, [])
+        #     data_list.append(data.value)
+        #     data_dict[data.dimension] = data_list
+        #
+        #     species_dict[species_key] = data_dict
+        #
+        # return species_dict
 
     @property
     def data_range(self) -> int:
@@ -366,3 +390,25 @@ class ComputationSpecies(Base):
     computation_data = relationship(
         "ComputationData", back_populates="computation_species"
     )
+
+
+class ComputationResult(Base):
+    """
+    raw computation data of a calculation.
+    """
+
+    __tablename__ = "computation_results"
+
+    id = Column(Integer, primary_key=True)
+
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
+
+    # Relation data
+    computation_id = Column(Integer, ForeignKey("computations.id", ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates="computation_results")
+
+    # Many <-> Many
+    species = relationship(
+        "ExperimentSpecies",
+        secondary=association_table,
+        back_populates="computation_results")

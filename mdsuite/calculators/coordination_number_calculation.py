@@ -23,7 +23,6 @@ from mdsuite.utils.meta_functions import apply_savgol_filter
 from bokeh.models import BoxAnnotation
 from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
-
 log = logging.getLogger(__name__)
 
 
@@ -224,6 +223,7 @@ class CoordinationNumbers(Calculator):
         first_shell_error = np.std([self.integral_data[self.indices[0][0]],
                                     self.integral_data[self.indices[0][1]]]) / np.sqrt(2)
 
+        # TODO what about second shell?!
         second_shell = np.mean([self.integral_data[self.indices[1][0]],
                                 self.integral_data[self.indices[1][1]]]) - first_shell
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
@@ -250,49 +250,36 @@ class CoordinationNumbers(Calculator):
             self._find_minimums()  # get the minimums of the rdf being studied
             _data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
 
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[{self.result_keys[0]: _data[0],
-                       self.result_keys[1]: _data[1]}],
-                Subject=[self.species_tuple]  # not sure about that one
-            )
-            data = properties.data
-            data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                     zip(self.radii[1:], self.integral_data)]
-
-            data += [{
+            data = {
+                self.result_keys[0]: _data[0],
+                self.result_keys[1]: _data[1],
                 self.result_keys[2]: self.radii[self.indices[0][0]],
                 self.result_keys[3]: self.radii[self.indices[0][1]],
                 self.result_keys[4]: self.radii[self.indices[1][0]],
-                self.result_keys[5]: self.radii[self.indices[1][1]]
-            }]
+                self.result_keys[5]: self.radii[self.indices[1][1]],
+                self.result_series_keys[0]: self.radii[1:].tolist(),
+                self.result_series_keys[1]: self.integral_data.tolist()
+            }
 
-            properties.data = data
-            self.update_database(properties)
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def plot_data(self, data):
         """Plot the CN"""
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
-
         # Plot the tensor_values if required
         for selected_species, val in data.items():
             model_1 = BoxAnnotation(
-                left=val[self.result_keys[2]][0],
-                right=val[self.result_keys[3]][0],
+                left=val[self.result_keys[2]],
+                right=val[self.result_keys[3]],
                 fill_alpha=0.1,
                 fill_color='red')
             model_2 = BoxAnnotation(
-                left=val[self.result_keys[4]][0],
-                right=val[self.result_keys[5]][0],
+                left=val[self.result_keys[4]],
+                right=val[self.result_keys[5]],
                 fill_alpha=0.1,
                 fill_color='red')
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
-                title=fr'{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}',
+                title=fr'{selected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}',
                 layouts=[model_1, model_2]
             )
-
-        self.plotter.grid_show(self.plot_array)

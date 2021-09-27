@@ -253,16 +253,12 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{self.result_keys[0]: result[0], self.result_keys[1]: result[1]}],
-            Subject=[species]
-        )
-        data = properties.data
-        data += [{self.result_series_keys[0]: x, self.result_series_keys[1]: y} for x, y in
-                 zip(self.time, self.msd_array)]
-        properties.data = data
 
-        self.update_database(properties)
+        data = {
+            self.result_keys[0]: result[0],
+            self.result_keys[1]: result[1],
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.msd_array.tolist()
+        }
+
+        self.queue_data(data=data, subjects=[species])

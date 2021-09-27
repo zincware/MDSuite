@@ -109,7 +109,10 @@ def call(func):
             out[self.experiment.name] = data
 
             if self.plot:
+                """Plot the data"""
+                self.plotter = DataVisualizer2D(title=self.analysis_name)
                 self.plot_data(data.data_dict)
+                self.plotter.grid_show(self.plot_array)
 
         if return_dict:
             return out
@@ -875,30 +878,6 @@ class Calculator(CalculatorDatabase):
         else:
             return self.perform_computation()
 
-    def save_to_db(self, data: List[dict], subjects: list = None):
-        """Save calculation results to the database
-
-        Parameters
-        ----------
-        data: List[dict]
-            A list of dictionaries containing the keys and values of the respective data.
-            E.g. [{x: 5}, {x: 7}, {x: 11}, {val: 15, uncert: 0.12}]
-        subjects: list
-            A list of the species that are associated with the results.
-            Note: selected_species should be preferred over passing the subjects argument.
-        """
-        if subjects is None:
-            subjects = self.selected_species
-
-        params = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=data,
-            Subject=subjects)
-
-        self.update_database(params)
-
     @property
     def dtype(self):
         """Get the dtype used for the calculator"""
@@ -911,12 +890,9 @@ class Calculator(CalculatorDatabase):
         ----------
         data: db.Compution.data_dict associated with the current project
         """
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selectected_species, val in data.items():
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
                 y_data=np.array(val[self.result_series_keys[1]]) * self.experiment.units['time'],
-                title=f"{selectected_species}: {val[self.result_keys[0]][0]: 0.3E} +- {val[self.result_keys[1]][0]: 0.3E}"
+                title=f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}"
             )
-
-        self.plotter.grid_show(self.plot_array)
