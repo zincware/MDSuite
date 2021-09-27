@@ -101,8 +101,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
-        self.species = None  # Species dictionary.
-        self.molecules = {}  # molecules
+        # self.species = None  # Species dictionary.
+        # self.molecules = {}  # molecules
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
