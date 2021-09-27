@@ -11,10 +11,8 @@ Class for the calculation of the coordinated numbers
 """
 import logging
 import numpy as np
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)

@@ -13,13 +13,11 @@ Summary
 -------
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
 
 
 tqdm.monitor_interval = 0

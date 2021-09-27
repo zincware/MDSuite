@@ -22,7 +22,6 @@ import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 

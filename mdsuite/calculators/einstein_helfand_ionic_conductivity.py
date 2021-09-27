@@ -21,7 +21,6 @@ import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
-from mdsuite.database.calculator_database import Parameters
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")

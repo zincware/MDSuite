@@ -16,16 +16,13 @@ calls the Experiment.green_kubo_ionic_conductivity method. The methods in class
 can then be called by the Experiment.green_kubo_ionic_conductivity method and
 all necessary calculations performed.
 """
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
 from bokeh.models import Span
 from mdsuite.database.scheme import Computation
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 
 class GreenKuboIonicConductivity(Calculator):

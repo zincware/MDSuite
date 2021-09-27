@@ -17,8 +17,6 @@ from __future__ import annotations
 import logging
 import numpy as np
 import random
-from matplotlib.axes._subplots import Axes
-from mdsuite.database.calculator_database import Parameters
 from pathlib import Path
 import tensorflow as tf
 import pandas as pd

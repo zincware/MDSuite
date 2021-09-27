@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
-from mdsuite.database.calculator_database import Parameters
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mdsuite.utils.exceptions import NotApplicableToAnalysis

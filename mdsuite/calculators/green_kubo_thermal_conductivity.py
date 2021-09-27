@@ -23,7 +23,6 @@ import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 import tensorflow_probability as tfp
-from mdsuite.database.calculator_database import Parameters
 from bokeh.models import Span
 
 tqdm.monitor_interval = 0

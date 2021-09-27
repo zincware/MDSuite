@@ -20,8 +20,6 @@ import tensorflow_probability as tfp
 import tensorflow as tf
 from bokeh.models import Span
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.database.scheme import Computation
 
 

@@ -21,7 +21,6 @@ import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from bokeh.models import Span
 

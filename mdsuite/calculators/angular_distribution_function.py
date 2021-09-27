@@ -16,9 +16,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)

@@ -31,9 +31,7 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import apply_minimum_image, get_partial_triu_indices, apply_system_cutoff
 

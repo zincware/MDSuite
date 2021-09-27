@@ -23,7 +23,6 @@ import tensorflow as tf
 import itertools
 from scipy import signal
 from bokeh.models import Span
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 

@@ -15,13 +15,11 @@ Summary
 import logging
 import numpy as np
 from scipy.signal import find_peaks
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from bokeh.models import BoxAnnotation
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 log = logging.getLogger(__name__)
 

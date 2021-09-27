@@ -11,13 +11,11 @@ Description: database management for the calculator class
 from __future__ import annotations
 
 import mdsuite.database.scheme as db
-from mdsuite.utils.database import get_or_create
 from collections import Counter
 from dataclasses import dataclass, field
 from sqlalchemy import and_
 
 import logging
-import numpy as np
 from typing import TYPE_CHECKING, List, Union
 
 if TYPE_CHECKING:
@@ -27,17 +25,10 @@ log = logging.getLogger(__name__)
 
 
 @dataclass
-class Parameters:
-    Property: str
-    Analysis: str
-    data_range: int
-    data: dict = field(default_factory=dict)
-    Subject: list[str] = field(default_factory=list)
-
-@dataclass
 class ComputationResults:
     data: dict = field(default_factory=dict)
     subjects: dict = field(default_factory=list)
+
 
 class CalculatorDatabase:
     """Database Interactions of the calculator class
@@ -200,7 +191,7 @@ class CalculatorDatabase:
         )
 
     def update_database(
-            self, parameters: Union[dict, Parameters], delete_duplicate: bool = True
+            self, parameters, delete_duplicate: bool = True
     ):
         """
         Add data to the database
