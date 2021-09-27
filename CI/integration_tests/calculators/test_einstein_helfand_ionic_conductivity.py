@@ -77,7 +77,7 @@ def test_project(traj_files, true_values, tmp_path):
     computation = project.run.EinsteinHelfandIonicConductivity()
     keys = project.run.EinsteinHelfandIonicConductivity.result_keys
 
-    data_dict = computation["NaCl"].data_dict['']
+    data_dict = computation["NaCl"].data_dict['System']
 
     np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'], decimal=-5)
     np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['uncertainty'], decimal=-5)

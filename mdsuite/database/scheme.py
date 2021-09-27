@@ -237,6 +237,8 @@ class Computation(Base):
                 species_associate: SpeciesAssociation
                 species_keys_list += species_associate.count * [species_associate.species.name]
             species_keys = "_".join(species_keys_list)
+            if species_keys == "":
+                species_keys = "System"
             # iterating over associates
             species_dict[species_keys] = result.data
 

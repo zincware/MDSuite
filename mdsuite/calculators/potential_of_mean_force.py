@@ -262,7 +262,6 @@ class PotentialOfMeanForce(Calculator):
     def plot_data(self, data):
         """Plot the POMF"""
         log.debug("Start plotting the POMF.")
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
         for selected_species, val in data.items():
             model = BoxAnnotation(
                 left=val[self.result_keys[2]],
@@ -276,5 +275,3 @@ class PotentialOfMeanForce(Calculator):
                 title=fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[model],
             )
-
-        self.plotter.grid_show(self.plot_array)
