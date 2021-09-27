@@ -181,6 +181,20 @@ class ExperimentAttribute(Base):
         return {self.str_value: species_dict}
 
 
+class ExperimentAttributeList(Base):
+    """Store lists of data for ExperimentAttributes"""
+
+    __tablename__ = 'experiment_attribute_lists'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    value = Column(Float, nullable=True)
+    str_value = Column(String, nullable=True)
+
+    experiment_attribute_id = Column(Integer, ForeignKey('experiment_attributes.id', ondelete="CASCADE"))
+    experiment_attribute = relationship("ExperimentAttribute", back_populates='experiment_attribute_lists')
+
+
 class ExperimentSpecies(Base):
     """Table for storing species information
 
