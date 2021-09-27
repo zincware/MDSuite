@@ -14,14 +14,12 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
-import matplotlib.pyplot as plt
 from tqdm import tqdm
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
 
-plt.rcParams['figure.facecolor'] = 'white'
 
 log = logging.getLogger(__name__)
 

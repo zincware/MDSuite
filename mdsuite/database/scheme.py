@@ -13,12 +13,9 @@ import logging
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table
 from sqlalchemy.orm import relationship
-from dataclasses import dataclass, field, asdict
-from tqdm import tqdm
-from mdsuite.utils import config
+
 from .types import MutableDict, JSONEncodedDict
 
-from typing import List
 
 log = logging.getLogger(__name__)
 

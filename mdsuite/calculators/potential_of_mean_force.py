@@ -227,7 +227,6 @@ class PotentialOfMeanForce(Calculator):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        log.warning("computing the POMF")
         # fill the tensor_values array with tensor_values
         calculations = self.experiment.run.RadialDistributionFunction(plot=False)
         self.data_range = calculations.data_range

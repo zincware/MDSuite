@@ -122,6 +122,11 @@ class GreenKuboThermalConductivity(Calculator):
         else:
             self.integration_range = integration_range
 
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
+
     def _update_output_signatures(self):
         """
         Update the output signature for the IC.
