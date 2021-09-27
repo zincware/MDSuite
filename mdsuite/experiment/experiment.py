@@ -101,8 +101,8 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
         # Added from trajectory file
         self.units = self.units_to_si(units)  # Units used during the simulation.
-        self.species = None  # Species dictionary.
-        self.molecules = {}  # molecules
+        # self.species = None  # Species dictionary.
+        # self.molecules = {}  # molecules
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
@@ -142,17 +142,17 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         """
         return RunComputation(experiment=self)
 
-    @property
-    def load(self) -> RunComputation:
-        """Method to access the available calculators results
-
-        Returns
-        -------
-        RunComputation:
-            if called, return List[db.Computation]
-
-        """
-        return RunComputation(experiment=self, load_data=True)
+    # @property
+    # def load(self) -> RunComputation:
+    #     """Method to access the available calculators results
+    #
+    #     Returns
+    #     -------
+    #     RunComputation:
+    #         if called, return List[db.Computation]
+    #
+    #     """
+    #     return RunComputation(experiment=self, load_data=True)
 
     def __repr__(self):
         return f"exp_{self.name}"
@@ -366,19 +366,21 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #         self.species[new_name] = self.species[old_name]  # update dict
     #         del self.species[old_name]  # remove old entry
     #
-    # def set_charge(self, element: str, charge: float):
-    #     """
-    #     Set the charge/s of an element
-    #
-    #     Parameters
-    #     ----------
-    #     element : str
-    #             Name of the element whose charge you want to change
-    #     charge : list
-    #             New charge/s of the element
-    #     """
-    #     self.species[element]['charge'] = [charge]  # update entry
-    #     self.save_class()
+    def set_charge(self, element: str, charge: float):
+        """
+        Set the charge/s of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose charge you want to change
+        charge : list
+                New charge/s of the element
+        """
+
+        species = self.species
+        species[element]['charge'] = [charge]  # update entry
+        self.species = species
     #
     # def set_mass(self, element: str, mass: float):
     #     """

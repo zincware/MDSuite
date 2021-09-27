@@ -14,10 +14,8 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.exceptions import ElementMassAssignedZero
-from mdsuite.database.property_database import PropertiesDatabase
 from mdsuite.utils.meta_functions import join_path
 
-from io import UnsupportedOperation
 from tqdm import tqdm
 from pathlib import Path
 import pubchempy as pcp
@@ -32,6 +30,7 @@ class ExperimentAddingFiles:
     """Parent class that handles the file additions"""
 
     def __init__(self):
+        """Constructor of the ExperimentAddingFiles class"""
         self.database_path: str = ""
         self.memory_requirements = None
         self.number_of_configurations = None
@@ -40,6 +39,7 @@ class ExperimentAddingFiles:
         self.species = None
         self.property_groups = None
         self.read_files = None
+        self.version = None
 
     def add_data(self,
                  trajectory_file: str = None,
@@ -106,8 +106,13 @@ class ExperimentAddingFiles:
                                      flux=flux,
                                      sort=sort)
 
+        self.version += 1
+
         self.build_species_dictionary()
         self.memory_requirements = database.get_memory_information()
+
+        # set at the end, because if something fails, the file was not properly read.
+        self.read_files = trajectory_file
 
     def _check_read_files(self, file_path: str):
         """
@@ -126,7 +131,6 @@ class ExperimentAddingFiles:
         if file_path in self.read_files:
             return True
         else:
-            self.read_files = file_path
             return False
 
     def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
@@ -207,13 +211,6 @@ class ExperimentAddingFiles:
                                   flux=flux,
                                   n_atoms=self.number_of_atoms,
                                   sort=sort)
-
-        # analysis_database = AnalysisDatabase(name=os.path.join(self.database_path, "analysis_database"))
-        # analysis_database.build_database()
-        property_database = PropertiesDatabase(name=Path(self.database_path, "property_database").as_posix())
-        property_database.build_database()
-
-        # self.save_class()  # Update the class state
 
     def build_species_dictionary(self):
         """

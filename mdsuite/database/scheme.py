@@ -8,14 +8,39 @@ Copyright Contributors to the Zincware Project.
 
 Description: Collection of all used SQLAlchemy Database schemes
 """
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
-from sqlalchemy.orm.exc import DetachedInstanceError
+import logging
 
-import numpy as np
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table
+from sqlalchemy.orm import relationship
+
+from .types import MutableDict, JSONEncodedDict
+
+
+log = logging.getLogger(__name__)
 
 Base = declarative_base()
+
+
+class SpeciesAssociation(Base):
+    """Connection between Computations and Experiment Species
+
+    This table is required to be defined specifically, because we need add the count, e.g. Na - Na would
+    otherwise only appear as Na.
+    """
+    __tablename__ = "species_association"
+    computation_results_id = Column(ForeignKey('computation_results.id'), primary_key=True)
+    experiment_species_id = Column(ForeignKey('experiment_species.id'), primary_key=True)
+
+    count = Column(Integer, default=1)  # how often a species occurs, e.g. Na - Na - Cl ADF would be 2, 1
+
+    computation_result = relationship("ComputationResult", back_populates="species")
+    species = relationship("ExperimentSpecies", back_populates="computation_result")
+
+    @property
+    def name(self):
+        """Get the name of the species"""
+        return self.species.name
 
 
 class Project(Base):
@@ -30,7 +55,8 @@ class Experiment(Base):
     """
     Class for the experiment table associated with the Project table.
     """
-    __tablename__ = 'experiments'
+
+    __tablename__ = "experiments"
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -38,15 +64,16 @@ class Experiment(Base):
     active = Column(Boolean, default=False)
     # Whether this experiment is currently loaded in the project class
 
-    project_id = Column(Integer, ForeignKey('projects.id', ondelete="CASCADE"))
+    project_id = Column(Integer, ForeignKey("projects.id", ondelete="CASCADE"))
     project = relationship("Project")
 
-    experiment_data = relationship("ExperimentData",
-                                   cascade='all, delete',
-                                   back_populates='experiment')
+    experiment_attributes = relationship(
+        "ExperimentAttribute", cascade="all, delete", back_populates="experiment"
+    )
 
     computations = relationship("Computation")
-    species = relationship("Species")
+
+    species = relationship("ExperimentSpecies")
 
     def __repr__(self):
         """
@@ -59,9 +86,30 @@ class Experiment(Base):
         """
         return f"{self.id}: {self.name}"
 
+    def get_species(self) -> dict:
+        """Get the species information for the experiment"""
+        species_dict = {}
+        for species in self.species:
+            if species.molecule:
+                continue
+            species: ExperimentSpecies
+            species_dict[species.name] = species.data
 
-# TODO consider renaming ExperimentAttributes in accordance to ComputationAttributes
-class ExperimentData(Base):
+        return species_dict
+
+    def get_molecules(self) -> dict:
+        """Get the molecules information for the experiment"""
+        molecule_dict = {}
+        for molecule in self.species:
+            if molecule.molecule:
+                molecule: ExperimentSpecies
+                molecule_name = molecule.name
+                molecule_dict[molecule_name] = molecule.data
+
+        return molecule_dict
+
+
+class ExperimentAttribute(Base):
     """
     Class for the experiment data table.
 
@@ -78,15 +126,16 @@ class ExperimentData(Base):
     str_value : str
             String value of the property.
     """
-    __tablename__ = 'experiment_data'
+
+    __tablename__ = "experiment_attributes"
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
     value = Column(Float, nullable=True)
     str_value = Column(String, nullable=True)
 
-    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
-    experiment = relationship("Experiment", back_populates='experiment_data')
+    experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
+    experiment = relationship("Experiment", back_populates="experiment_attributes")
 
     def __repr__(self):
         if self.value is not None:
@@ -94,90 +143,49 @@ class ExperimentData(Base):
         elif self.str_value is not None:
             return self.str_value
         else:
-            return None
+            return f"{self.name}"
 
 
-class Species(Base):
-    __tablename__ = 'species'
+class ExperimentSpecies(Base):
+    """Table for storing species information
+
+    This table is used to store species and molecule information that can be related to a specific experiment
+
+    """
+
+    __tablename__ = "experiment_species"
     id = Column(Integer, primary_key=True)
+
     name = Column(String)
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
+    molecule = Column(Boolean, default=False)
 
-    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
-    experiment = relationship("Experiment", back_populates='species')
+    experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
+    experiment = relationship("Experiment", back_populates="species")
 
-    species_data = relationship("SpeciesData")
+    computation_result = relationship("SpeciesAssociation", back_populates="species")
 
-    @property
-    def indices(self) -> list:
-        indices = []
-        for species_data in self.species_data:
-            if species_data.name == "indices":
-                indices.append(int(species_data.value))
-        return indices
-
-    @property
-    def mass(self) -> list:
-        mass = []
-        for species_data in self.species_data:
-            if species_data.name == "mass":
-                mass.append(species_data.value)
-        return mass
-
-    @property
-    def charge(self) -> list:
-        charge = []
-        for species_data in self.species_data:
-            if species_data.name == "charge":
-                charge.append(species_data.value)
-        return charge
-
-    @property
-    def particle_density(self) -> float:
-        for species_data in self.species_data:
-            if species_data.name == "particle_density":
-                return species_data.value
-        return None
-
-    @property
-    def molar_fraction(self) -> float:
-        for species_data in self.species_data:
-            if species_data.name == "molar_fraction":
-                return species_data.value
-        return None
-
-
-#      TODO consider adding species data as a function here!
-
-
-class SpeciesData(Base):
-    __tablename__ = 'species_data'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    value = Column(Float, nullable=True)
-    str_value = Column(String, nullable=True)
-
-    species_id = Column(Integer, ForeignKey('species.id', ondelete="CASCADE"))
-    species = relationship("Species", back_populates='species_data')
+    def __repr__(self):
+        return f"{self.name}_obj"
 
 
 class Computation(Base):
-    """
-    Class for the computation table.
-    """
-    __tablename__ = 'computations'
+    """Class for the computation table."""
+
+    __tablename__ = "computations"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, default="Computation")
 
-    experiment_id = Column(Integer, ForeignKey('experiments.id', ondelete="CASCADE"))
+    experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
     experiment = relationship("Experiment")
 
-    computation_attributes = relationship('ComputationAttribute',
-                                          cascade='all, delete',
-                                          back_populates='computation')
-    computation_data = relationship('ComputationData',
-                                    cascade='all, delete',
-                                    back_populates='computation')
+    computation_attributes = relationship(
+        "ComputationAttribute", cascade="all, delete", back_populates="computation"
+    )
+    computation_results = relationship(
+        "ComputationResult", cascade="all, delete", back_populates="computation", lazy=True
+    )
 
     def __repr__(self):
         """
@@ -196,33 +204,57 @@ class Computation(Base):
 
         Returns
         -------
-        data_dict: dict
-            A dictionary of the type {x: [1, 2, 3], y: [5, 6, 7], ...}
-            where the keys are defined by computation_data.dimension
+        species_dict: dict
+            A dictionary of the type
+            {
+                Li:
+                    {
+                        a: 1.2,
+                        uncert: 0.1,
+                        time: [1, 2, 3, ],
+                        msd: [0.1, 0.3, 0.7]
+                    },
+                Cl:
+                    {
+                        a: 1.2,
+                        uncert: 0.1,
+                        time: [1, 2, 3, ],
+                        msd: [0.1, 0.3, 0.7]
+                    },
+            }
+            where the keys are defined by species (multiple species are joined by "_") and the dimension argument
+            of the computation_data
 
         """
-        data_dict = {}
-        for data in self.computation_data:
-            data_list = data_dict.get(data.dimension, [])
-            data_list.append(data.value)
-            data_dict[data.dimension] = data_list
+        species_dict = {}
+        for result in self.computation_results:
+            result: ComputationResult
+            species_keys_list = []
+            for species_associate in result.species:
+                species_associate: SpeciesAssociation
+                species_keys_list += species_associate.count * [species_associate.species.name]
+            species_keys = "_".join(species_keys_list)
+            if species_keys == "":
+                species_keys = "System"
+            # iterating over associates
+            species_dict[species_keys] = result.data
 
-        return data_dict
+        return species_dict
 
     @property
     def data_range(self) -> int:
         """Get the data_range stored in computation_attributes"""
         for comp_attr in self.computation_attributes:
             if comp_attr.name == "data_range":
-                return int(comp_attr.value)
+                return int(comp_attr.str_value)
 
     @property
     def subjects(self) -> list:
         """Get the subjects stored in computation_attributes"""
+        log.warning("This function will be depreciated!")
         subjects = []
-        for comp_attr in self.computation_attributes:
-            if comp_attr.name == "subject":
-                subjects.append(comp_attr.str_value)
+        for x in self.computation_results:
+            subjects.append(x.species.species.name)
         return subjects
 
 
@@ -230,7 +262,8 @@ class ComputationAttribute(Base):
     """
     Class for the meta data of a computation.
     """
-    __tablename__ = 'computation_attributes'
+
+    __tablename__ = "computation_attributes"
 
     # Table data
     id = Column(Integer, primary_key=True)
@@ -239,28 +272,27 @@ class ComputationAttribute(Base):
     str_value = Column(String, nullable=True)
 
     # Relation data
-    computation_id = Column(Integer, ForeignKey('computations.id', ondelete="CASCADE"))
-    computation = relationship("Computation", back_populates='computation_attributes')
+    computation_id = Column(Integer, ForeignKey("computations.id", ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates="computation_attributes")
 
     def __repr__(self):
         return f"{self.name}: {self.value} - {self.str_value}"
 
 
-class ComputationData(Base):
+class ComputationResult(Base):
     """
     raw computation data of a calculation.
     """
-    __tablename__ = 'computation_data'
+
+    __tablename__ = "computation_results"
 
     id = Column(Integer, primary_key=True)
 
-    value = Column(Float)
-    uncertainty = Column(Float, nullable=True)
-    dimension = Column(String)
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
 
     # Relation data
-    computation_id = Column(Integer, ForeignKey('computations.id', ondelete="CASCADE"))
-    computation = relationship("Computation", back_populates='computation_data')
+    computation_id = Column(Integer, ForeignKey("computations.id", ondelete="CASCADE"))
+    computation = relationship("Computation", back_populates="computation_results")
 
-    def __repr__(self):
-        return f"{self.id}: {self.value} ({self.uncertainty}) - {self.dimension}"
+    # Many <-> Many
+    species = relationship("SpeciesAssociation", back_populates="computation_result")

@@ -10,9 +10,7 @@ Copyright Contributors to the MDSuite Project.
 Calculate the Nernst-Einstein Conductivity of a system
 """
 import logging
-import sys
 import operator
-from typing import Union
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 

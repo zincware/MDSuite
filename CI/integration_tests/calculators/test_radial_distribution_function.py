@@ -62,41 +62,45 @@ def true_values() -> dict:
     return json.loads(data.read_bytes())
 
 
-def test_rdf_project(traj_files, true_values, tmp_path):
+def test_project(traj_files, true_values, tmp_path):
     """Test the rdf called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    computation = project.run.RadialDistributionFunction(number_of_configurations=-1)
 
-    data_dict = project.load.RadialDistributionFunction()["NaCl"][0].data_dict
+    data_dict = computation["NaCl"].data_dict["Na_Na"]
 
-    data_dict['x'][data_dict['x'] is None] = 0
-    data_dict['y'][data_dict['y'] is None] = 0
+    keys = project.run.RadialDistributionFunction.result_series_keys
+
+    data_dict[keys[0]][data_dict[keys[0]] is None] = 0
+    data_dict[keys[1]][data_dict[keys[1]] is None] = 0
 
     true_values['x'][true_values['x'] is None] = 0
     true_values['y'][true_values['y'] is None] = 0
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=3)
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['y'], decimal=3)
 
 
-def test_rdf_experiment(traj_files, true_values, tmp_path):
+def test_experiment(traj_files, true_values, tmp_path):
     """Test the rdf called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    computation = project.experiments['NaCl'].run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
 
-    data_dict = project.experiments['NaCl'].load.RadialDistributionFunction()[0].data_dict
+    data_dict = computation.data_dict["Na_Na"]
 
-    data_dict['x'][data_dict['x'] is None] = 0
-    data_dict['y'][data_dict['y'] is None] = 0
+    keys = project.run.RadialDistributionFunction.result_series_keys
+
+    data_dict[keys[0]][data_dict[keys[0]] is None] = 0
+    data_dict[keys[1]][data_dict[keys[1]] is None] = 0
 
     true_values['x'][true_values['x'] is None] = 0
     true_values['y'][true_values['y'] is None] = 0
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'], decimal=3)
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'], decimal=3)
+    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['y'], decimal=3)

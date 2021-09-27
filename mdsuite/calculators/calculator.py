@@ -17,7 +17,6 @@ from __future__ import annotations
 import logging
 import numpy as np
 import random
-import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 import pandas as pd
@@ -85,13 +84,27 @@ def call(func):
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
-            func(self, *args, **kwargs)
-            if self.load_data:
-                out[self.experiment.name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name, "experiment": self.experiment.name}
-                )
+            self.clean_cache()
+            data = func(self, *args, **kwargs)
+            if data is None:
+                # new calculation will be performed
+                self.prepare_db_entry()
+                self.run_analysis()
+                self.save_db_data()
+                data = func(self, *args, **kwargs)
+            elif self.load_data:
+                raise NotImplementedError("Please user <exp/proj>.run.<method> instead of load!")
             else:
-                out[self.experiment.name] = self.run_analysis()
+                # Calculation already performed
+                pass
+
+            out[self.experiment.name] = data
+
+            if self.plot:
+                """Plot the data"""
+                self.plotter = DataVisualizer2D(title=self.analysis_name)
+                self.plot_data(data.data_dict)
+                self.plotter.grid_show(self.plot_array)
 
         if return_dict:
             return out
@@ -187,11 +200,19 @@ class Calculator(CalculatorDatabase):
         self.batch_output_signature = None
         self.ensemble_output_signature = None
         self.species = None
+        # all species that are used in the calculation
+        self.selected_species = None
+        # the selected species which the current calculation iteration is performed on
         self.database_group = None
         self.analysis_name = None
         self.tau_values = None
         self.time = None
         self.data_resolution = None
+        self.plotter = None
+        # e.g. [diffusion_coefficient, uncertainty]
+        self.result_keys = None
+        # e.g., [time, msd]
+        self.result_series_keys = None
 
         # Set during operation or by child class
         self.batch_size: int
@@ -265,8 +286,6 @@ class Calculator(CalculatorDatabase):
 
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
-
-        self.plotter = DataVisualizer2D(title=self.analysis_name)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -821,9 +840,6 @@ class Calculator(CalculatorDatabase):
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
 
-        if self.plot:
-            self.plotter.grid_show(self.plot_array)
-
     def run_experimental_analysis(self):
         """
         For experimental methods
@@ -858,3 +874,17 @@ class Calculator(CalculatorDatabase):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
+
+    def plot_data(self, data):
+        """Plot the data coming from the database
+
+        Parameters
+        ----------
+        data: db.Compution.data_dict associated with the current project
+        """
+        for selectected_species, val in data.items():
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                y_data=np.array(val[self.result_series_keys[1]]) * self.experiment.units['time'],
+                title=f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}"
+            )

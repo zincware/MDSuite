@@ -17,7 +17,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
 from bokeh.models import Span
 
 
@@ -104,6 +103,11 @@ class GreenKuboViscosity(Calculator):
             self.integration_range = self.data_range
         else:
             self.integration_range = integration_range
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
 
     def _update_output_signatures(self):
         """
@@ -194,19 +198,15 @@ class GreenKuboViscosity(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'viscosity': result[0],
-                   'uncertainty': result[1]}],
-            Subject=["System"]
-        )
-        data = properties.data
-        data += [{'time': x, 'acf': y} for x, y in
-                 zip(self.time, self.jacf)]
-        properties.data = data
-        self.update_database(properties)
+        data = {
+            'viscosity': result[0],
+            'uncertainty': result[1],
+            'time': self.time.tolist(),
+            'acf': self.jacf.numpy().tolist()
+        }
+
+        self.queue_data(data=data, subjects=['System'])
+
         # Update the plot if required
         if self.plot:
             span = Span(

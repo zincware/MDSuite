@@ -16,8 +16,8 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
 
@@ -89,6 +89,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.species = None
         self.number_of_atoms = None
         self.norm_power = None
+        self.result_series_keys = ['angle', 'adf']
 
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = None  # memory management for triples generation per batch.
@@ -113,7 +114,7 @@ class AngularDistributionFunction(Calculator, ABC):
                  gpu: bool = False,
                  plot: bool = True,
                  norm_power: int = 4,
-                 **kwargs):
+                 **kwargs) -> Computation:
         """
         Parameters
         ----------
@@ -173,6 +174,17 @@ class AngularDistributionFunction(Calculator, ABC):
         self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
+
+        return self.update_db_entry_with_kwargs(
+            r_cut=r_cut,
+            start=start,
+            stop=stop,
+            molecules=molecules,
+            n_confs=n_confs,
+            bins=bins,
+            species=species,
+            norm_power=norm_power
+        )
 
     def _check_inputs(self):
         """
@@ -426,24 +438,17 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            self.selected_species = [_species[0] for _species in species]
+
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
 
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[{'angle': x, 'adf': y} for x, y in zip(bin_range_to_angles, hist)],
-                Subject=[_species[0] for _species in species]
-            )
-            self.update_database(properties)
+            data = {
+                self.result_series_keys[0]: bin_range_to_angles.tolist(),
+                self.result_series_keys[1]: hist.numpy().tolist()
+            }
 
-            if self.plot:
-                self.run_visualization(
-                    x_data=bin_range_to_angles,
-                    y_data=hist,
-                    title=f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f} degrees ",
-                )
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def run_experimental_analysis(self):
         """
@@ -458,3 +463,16 @@ class AngularDistributionFunction(Calculator, ABC):
         sample_configs, species_indices = self._prepare_data_structure()
         angles = self._build_histograms(sample_configs, species_indices)
         self._compute_adfs(angles, species_indices)
+
+    def plot_data(self, data):
+        """Plot data"""
+        for selected_species, val in data.items():
+            bin_range_to_angles = np.linspace(self.bin_range[0] * (180 / 3.14159),
+                                              self.bin_range[1] * (180 / 3.14159),
+                                              len(val[self.result_series_keys[0]]))
+
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]),
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=f"{selected_species} - Max: {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees ",
+            )

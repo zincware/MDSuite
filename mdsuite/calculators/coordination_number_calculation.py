@@ -15,7 +15,6 @@ Summary
 import logging
 import numpy as np
 from scipy.signal import find_peaks
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
@@ -91,6 +90,8 @@ class CoordinationNumbers(Calculator):
         self.x_label = r'$$\text{r}$$'
         self.y_label = 'CN'
         self.analysis_name = 'Coordination_Numbers'
+        self.result_keys = ['coordination_number', 'uncertainty', 'left1', 'right1', 'left2', 'right2']
+        self.result_series_keys = ["r", "cn"]
 
     @call
     def __call__(self, plot: bool = True, save: bool = True, data_range: int = 1, export: bool = False,
@@ -128,6 +129,12 @@ class CoordinationNumbers(Calculator):
 
         self.savgol_order = savgol_order
         self.savgol_window_length = savgol_window_length
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            savgol_order=savgol_order,
+            savgol_window_length=savgol_window_length
+        )
 
     def _get_density(self, species: str) -> float:
         """
@@ -214,11 +221,11 @@ class CoordinationNumbers(Calculator):
         first_shell_error = np.std([self.integral_data[self.indices[0][0]],
                                     self.integral_data[self.indices[0][1]]]) / np.sqrt(2)
 
+        # TODO what about second shell?!
         second_shell = np.mean([self.integral_data[self.indices[1][0]],
                                 self.integral_data[self.indices[1][1]]]) - first_shell
         second_shell_error = np.std([self.integral_data[self.indices[1][0]],
                                      self.integral_data[self.indices[1][1]]]) / np.sqrt(2)
-
 
         return first_shell, first_shell_error
 
@@ -226,48 +233,51 @@ class CoordinationNumbers(Calculator):
         """
         Calculate the coordination numbers and perform error analysis
         """
-        calculations = self._get_rdf_data()
-        for data in calculations:  # Loop over all existing RDFs
-            log.debug(f"Computing coordination numbers for {data.subjects}")
-            self.data_range = data.data_range
-            self._load_rdf_from_file(data)  # load the tensor_values from it
-            density = self._get_density(data.subjects[0])  # calculate the density
+        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
+        self.data_range = calculations.data_range
+        for selected_species, vals in calculations.data_dict.items():  # Loop over all existing RDFs
+            log.debug(f"Computing coordination numbers for {selected_species}")
+            self.radii = np.array(vals["x"]).astype(float)[1:]
+            self.rdf = np.array(vals["y"]).astype(float)[1:]
+            self.selected_species = selected_species.split("_")
+            self.species_tuple = selected_species  # depreciated
 
-            self.species_tuple = "_".join(data.subjects)
+            density = self._get_density(self.selected_species[0])  # calculate the density
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied
             _data = self._get_coordination_numbers()  # calculate the coordination numbers and update the experiment
 
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[{'coordination_number': _data[0],
-                       'uncertainty': _data[1]}],
-                Subject=[self.species_tuple]
-            )
-            data = properties.data
-            data += [{'r': x, 'cn': y} for x, y in
-                     zip(self.radii[1:], self.integral_data)]
-            properties.data = data
-            self.update_database(properties)
+            data = {
+                self.result_keys[0]: _data[0],
+                self.result_keys[1]: _data[1],
+                self.result_keys[2]: self.radii[self.indices[0][0]],
+                self.result_keys[3]: self.radii[self.indices[0][1]],
+                self.result_keys[4]: self.radii[self.indices[1][0]],
+                self.result_keys[5]: self.radii[self.indices[1][1]],
+                self.result_series_keys[0]: self.radii[1:].tolist(),
+                self.result_series_keys[1]: self.integral_data.tolist()
+            }
 
-            # Plot the tensor_values if required
-            if self.plot:
-                model_1 = BoxAnnotation(
-                    left=self.radii[self.indices[0][0]],
-                    right=self.radii[self.indices[0][1]],
-                    fill_alpha=0.1,
-                    fill_color='red')
-                model_2 = BoxAnnotation(
-                    left=self.radii[self.indices[1][0]],
-                    right=self.radii[self.indices[1][1]],
-                    fill_alpha=0.1,
-                    fill_color='red')
-                self.run_visualization(
-                    x_data=self.radii[1:],
-                    y_data=np.array(self.integral_data),
-                    title=fr'{self.species_tuple}: {_data[0]: 0.3E} +- {_data[1]: 0.3E}',
-                    layouts=[model_1, model_2]
-                )
+            self.queue_data(data=data, subjects=self.selected_species)
+
+    def plot_data(self, data):
+        """Plot the CN"""
+        # Plot the tensor_values if required
+        for selected_species, val in data.items():
+            model_1 = BoxAnnotation(
+                left=val[self.result_keys[2]],
+                right=val[self.result_keys[3]],
+                fill_alpha=0.1,
+                fill_color='red')
+            model_2 = BoxAnnotation(
+                left=val[self.result_keys[4]],
+                right=val[self.result_keys[5]],
+                fill_alpha=0.1,
+                fill_color='red')
+            self.run_visualization(
+                x_data=val[self.result_series_keys[0]],
+                y_data=val[self.result_series_keys[1]],
+                title=fr'{selected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}',
+                layouts=[model_1, model_2]
+            )

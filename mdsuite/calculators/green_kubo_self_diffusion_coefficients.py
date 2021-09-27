@@ -20,7 +20,7 @@ import tensorflow_probability as tfp
 import tensorflow as tf
 from bokeh.models import Span
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
+from mdsuite.database.scheme import Computation
 
 
 class GreenKuboDiffusionCoefficients(Calculator):
@@ -69,20 +69,23 @@ class GreenKuboDiffusionCoefficients(Calculator):
         self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
 
+        self.result_keys = ['diffusion_coefficient', 'uncertainty']
+        self.result_series_keys = ['time', 'acf']
+
     @call
     def __call__(
-        self,
-        plot: bool = False,
-        species: list = None,
-        data_range: int = 500,
-        save: bool = True,
-        correlation_time: int = 1,
-        atom_selection=np.s_[:],
-        export: bool = False,
-        molecules: bool = False,
-        gpu: bool = False,
-        integration_range: int = None,
-    ):
+            self,
+            plot: bool = True,
+            species: list = None,
+            data_range: int = 500,
+            save: bool = True,
+            correlation_time: int = 1,
+            atom_selection=np.s_[:],
+            export: bool = False,
+            molecules: bool = False,
+            gpu: bool = False,
+            integration_range: int = None,
+    ) -> Computation:
         """
         Constructor for the Green-Kubo diffusion coefficients class.
 
@@ -138,6 +141,13 @@ class GreenKuboDiffusionCoefficients(Calculator):
             else:
                 self.species = list(self.experiment.species)
 
+        return self.update_db_entry_with_kwargs(
+            species=species,
+            data_range=data_range,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection
+        )
+
     def _update_output_signatures(self):
         """
         After having run _prepare managers, update the output signatures.
@@ -173,19 +183,19 @@ class GreenKuboDiffusionCoefficients(Calculator):
         if self.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * (self.integration_range - 1)
-                * len(self.experiment.molecules[species]["indices"])
+                    3
+                    * self.experiment.units["time"]
+                    * (self.integration_range - 1)
+                    * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * self.integration_range
-                * len(self.experiment.species[species]["indices"])
+                    3
+                    * self.experiment.units["time"]
+                    * self.integration_range
+                    * len(self.experiment.species[species]["indices"])
             )
             self.prefactor = numerator / denominator
 
@@ -232,30 +242,27 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'diffusion_coefficient': result[0],
-                   'uncertainty': result[1]}],
-            Subject=[species]
-        )
-        data = properties.data
-        data += [{'time': x, 'acf': y} for x, y in
-                 zip(self.time, self.vacf)]
-        properties.data = data
-        self.update_database(properties)
+        data = {
+            self.result_keys[0]: np.mean(result).tolist(),
+            self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.vacf.numpy().tolist()
+        }
 
-        # Update the plot if required
-        if self.plot:
+        self.queue_data(data=data, subjects=[species])
+
+    def plot_data(self, data):
+        """Plot the data"""
+        for selected_species, val in data.items():
             span = Span(
-                location=(np.array(self.time) * self.experiment.units["time"])[self.integration_range - 1],
+                location=(np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"])[
+                    self.integration_range - 1],
                 dimension='height',
                 line_dash='dashed'
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
-                y_data=self.vacf.numpy(),
-                title=f"{species}: {np.mean(result): .3E} +- {np.std(result) / (np.sqrt(len(result))): .3E}",
+                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=f"{val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
                 layouts=[span]
             )

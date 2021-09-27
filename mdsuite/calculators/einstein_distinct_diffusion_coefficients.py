@@ -22,7 +22,6 @@ import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
@@ -234,31 +233,21 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         """
         if np.sign(self.msd_array[-1]) == -1:
             result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[{'diffusion_coefficient': -1*result[0],
-                       'uncertainty': result[1]}],
-                Subject=list(species)
-            )
+
+            data = {
+                'diffusion_coefficient': -1 * result[0],
+                'uncertainty': result[1]
+            }
         else:
             result = self._fit_einstein_curve([self.time, self.msd_array])
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=[{'diffusion_coefficient': result[0],
-                       'uncertainty': result[1]}],
-                Subject=list(species)
-            )
+            data = {
+                'diffusion_coefficient': result[0],
+                'uncertainty': result[1]
+            }
 
-        data = properties.data
-        data += [{'time': x, 'msd': y} for x, y in
-                 zip(self.time, self.msd_array)]
-        properties.data = data
+        data.update({'time': self.time.tolist(), 'msd': self.msd_array.tolist()})
 
-        self.update_database(properties)
+        self.queue_data(data=data, subjects=list(species))
 
         # Update the plot if required
         if self.plot:

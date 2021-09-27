@@ -272,19 +272,19 @@ class Project(ProjectDatabase):
         """
         return RunComputation(experiments=[x for x in self.experiments.values()])
 
-    @property
-    def load(self) -> RunComputation:
-        """Method to access the available calculators results
-
-        Returns
-        -------
-        RunComputation:
-            if called, return List[db.Computation]
-
-        """
-        return RunComputation(
-            experiments=[x for x in self.experiments.values()], load_data=True
-        )
+    # @property
+    # def load(self) -> RunComputation:
+    #     """Method to access the available calculators results
+    #
+    #     Returns
+    #     -------
+    #     RunComputation:
+    #         if called, return List[db.Computation]
+    #
+    #     """
+    #     return RunComputation(
+    #         experiments=[x for x in self.experiments.values()], load_data=True
+    #     )
 
     # def get_results(self, key_to_find):
     #     """

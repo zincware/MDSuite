@@ -11,9 +11,9 @@ Class for the calculation of the coordinated numbers
 """
 import logging
 import numpy as np
-from mdsuite.database.calculator_database import Parameters
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
 
@@ -70,17 +70,17 @@ class KirkwoodBuffIntegral(Calculator):
         self.data_files = []
         self.rdf = None
         self.radii = None
-        self.species_tuple = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
         self.x_label = r"$$ \text{r} / \AA$$"
         self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
+        self.result_series_keys = ['r', 'kb_integral']
 
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False) -> Computation:
         """
         Doc string for this one.
         Parameters
@@ -97,6 +97,10 @@ class KirkwoodBuffIntegral(Calculator):
 
         self.update_user_args(
             plot=plot, save=save, data_range=data_range, export=export
+        )
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range
         )
 
     def _autocorrelation_time(self):
@@ -127,31 +131,27 @@ class KirkwoodBuffIntegral(Calculator):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        calculations = self._get_rdf_data()
-        for data in calculations:  # Loop over all existing RDFs
-            self.species_tuple = "_".join(data.subjects)
-            self.data_range = data.data_range
-            self._load_rdf_from_file(data)  # load the tensor_values from it
+        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
+        self.data_range = calculations.data_range
+        for selected_species, vals in calculations.data_dict.items():  # Loop over all existing RDFs
+            self.selected_species = selected_species.split("_")
+
+            self.radii = np.array(vals["x"]).astype(float)[1:]
+            self.rdf = np.array(vals["y"]).astype(float)[1:]
             self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
 
-            data = [
-                {"r": x, "kb_integral": y} for x, y in
-                zip(self.radii[1:], self.kb_integral)
-            ]
-            log.debug(f"Writing {self.analysis_name} to database!")
-            properties = Parameters(
-                Property=self.database_group,
-                Analysis=self.analysis_name,
-                data_range=self.data_range,
-                data=data,
-                Subject=[self.species_tuple]
-            )
-            self.update_database(properties)
+            data = {
+                self.result_series_keys[0]: self.radii[1:].tolist(),
+                self.result_series_keys[1]: self.kb_integral
+            }
 
-            # Plot if required
-            if self.plot:
-                self.run_visualization(
-                    x_data=self.radii[1:],
-                    y_data=self.kb_integral,
-                    title=f"{self.species_tuple}",
-                )
+            self.queue_data(data=data, subjects=self.selected_species)
+
+    def plot_data(self, data):
+        """Plot the data"""
+        for selected_species, val in data.items():
+            self.run_visualization(
+                x_data=val[self.result_series_keys[0]],
+                y_data=val[self.result_series_keys[1]],
+                title=selected_species,
+            )

@@ -24,12 +24,12 @@ from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.calculator_database import Parameters
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
+    from mdsuite.database.scheme import Computation
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -92,6 +92,8 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.database_group = 'Diffusion_Coefficients'
         self.x_label = r'$$ \text{Time} / s$$'
         self.y_label = r'$$ \text{MSD} / m^{2}$$'
+        self.result_keys = ['diffusion_coefficient', 'uncertainty']
+        self.result_series_keys = ['time', 'msd']
         self.analysis_name = 'Einstein Self-Diffusion Coefficients'
         self.loop_condition = False
         self.optimize = None
@@ -111,7 +113,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                  export: bool = False,
                  molecules: bool = False,
                  tau_values: Union[int, List, Any] = np.s_[:],
-                 gpu: bool = False):
+                 gpu: bool = False) -> Computation:
 
         """
 
@@ -145,7 +147,6 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         None
         """
-
         self.update_user_args(plot=plot,
                               data_range=data_range,
                               save=save,
@@ -154,6 +155,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                               tau_values=tau_values,
                               export=export,
                               gpu=gpu)
+
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
@@ -165,6 +167,15 @@ class EinsteinDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            molecules=molecules,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            species=species
+        )
 
     def _update_output_signatures(self):
         """
@@ -241,20 +252,12 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = Parameters(
-            Property=self.database_group,
-            Analysis=self.analysis_name,
-            data_range=self.data_range,
-            data=[{'diffusion_coefficient': result[0], 'uncertainty': result[1]}],
-            Subject=[species]
-        )
-        data = properties.data
-        data += [{'time': x, 'msd': y} for x, y in zip(self.time, self.msd_array)]
-        properties.data = data
 
-        self.update_database(properties)
+        data = {
+            self.result_keys[0]: result[0],
+            self.result_keys[1]: result[1],
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.msd_array.tolist()
+        }
 
-        if self.plot:
-            self.run_visualization(x_data=np.array(self.time) * self.experiment.units['time'],
-                                   y_data=self.msd_array * self.experiment.units['time'],
-                                   title=f"{species}: {result[0]: 0.3E} +- {result[1]: 0.3E}")
+        self.queue_data(data=data, subjects=[species])
