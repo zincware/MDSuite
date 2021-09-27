@@ -78,18 +78,3 @@ def test_project(traj_files, true_values, tmp_path):
     np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values['y'])
     np.testing.assert_array_almost_equal(data_dict[keys[2]], true_values['uncertainty'])
-
-
-# def test_cn_experiment(traj_files, true_values, tmp_path):
-#     """Test the CN called from the experiment class"""
-#     os.chdir(tmp_path)
-#     project = mds.Project()
-#     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
-#
-#     project.experiments['NaCl'].run.CoordinationNumbers(plot=False)
-#
-#     data_dict = project.experiments['NaCl'].load.CoordinationNumbers(plot=False)[0].data_dict
-#
-#     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-#     np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
-#     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
