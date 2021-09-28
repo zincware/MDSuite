@@ -32,9 +32,13 @@ class SpatialDistributionFunction(Calculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
     def __init__(
-        self, experiment: Experiment, experiments=None, load_data: bool = False
+            self,
+            experiment: Experiment,
+            experiments=None,
+            load_data: bool = False
     ):
-        """Constructor of the SpatialDistributionFunction
+        """
+        Constructor of the SpatialDistributionFunction
 
         Parameters
         ----------
@@ -46,7 +50,10 @@ class SpatialDistributionFunction(Calculator):
             managed by RunComputation
 
         """
-        super().__init__(experiment, experiments=experiments, load_data=load_data)
+        super().__init__(
+            experiment,
+            experiments=experiments,
+            load_data=load_data)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
         self.loaded_property = "Positions"
@@ -75,7 +82,8 @@ class SpatialDistributionFunction(Calculator):
 
         Parameters
         ----------
-        molecules
+        molecules : bool
+                If true, load molecules.
         start: int
             Index of the first configuration
         stop: int
@@ -136,7 +144,10 @@ class SpatialDistributionFunction(Calculator):
     def _check_input(self):
         """Check and correct the user input"""
         if self.species is None:
-            self.species = list(self.experiment.species)
+            if self.molecules:
+                self.species = list(self.experiment.molecules)
+            else:
+                self.species = list(self.experiment.species)
 
     def run_experimental_analysis(self):
         """Run the computation"""
@@ -192,6 +203,24 @@ class SpatialDistributionFunction(Calculator):
     def _run_visualization(self, plot_data: tf.Tensor):
         """
         Run the visualizer.
+
+        Parameters
+        ----------
+        plot_data : tf.Tensor
+                Data to be plot.
+
         """
-        visualizer = DataVisualizer3D(data=plot_data.numpy(), title="test")
+        if self.species[0] in list(self.experiment.species):
+            center = self.species[0]
+        else:
+            center_dict = self.experiment.molecules[self.species[0]]['groups']['0']
+            center = {}
+            for item in center_dict:
+                for index in center_dict[item]:
+                    center[f"{item}_{index}"] = self.database.load_data(
+                        path_list=[join_path(item, 'Positions')],
+                        select_slice=np.s_[index, 0]
+                    )
+        visualizer = DataVisualizer3D(
+            data=plot_data.numpy(), title="SDF", center=center)
         visualizer.plot()

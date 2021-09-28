@@ -432,7 +432,9 @@ class Database:
         """
         Load tensor_values from the database_path for some operation.
 
-        Should be called by the tensor_values fetch class as this will ensure correct loading and pre-loading.
+        Should be called by the tensor_values fetch class as this will ensure
+        correct loading and pre-loading.
+
         Returns
         -------
 

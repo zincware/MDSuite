@@ -49,11 +49,11 @@ def run_example():
 
     project.experiments.bmim_bf4.perform_transformation("UnwrapCoordinates")
     mapper = MolecularMap(
-        project.experiments.bmim_bf4,
-        molecules={
-            'bmim': {'smiles': 'CCCCN1C=C[N+](+C1)C', 'cutoff': 1.9, 'amount': 50},
-            'bf4': {'smiles': '[B-](F)(F)(F)F', 'cutoff': 2.4, 'amount': 50}
-        }
+       project.experiments.bmim_bf4,
+       molecules={
+           'bmim': {'smiles': 'CCCCN1C=C[N+](+C1)C', 'cutoff': 1.9, 'amount': 50},
+           'bf4': {'smiles': '[B-](F)(F)(F)F', 'cutoff': 2.4, 'amount': 50}
+       }
     )
     mapper.run_transformation()
 

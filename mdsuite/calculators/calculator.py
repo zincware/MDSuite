@@ -238,8 +238,8 @@ class Calculator(CalculatorDatabase):
         self._dtype = tf.float64
 
     def update_user_args(self,
-                         plot: bool = True,
-                         save: bool = True,
+                         plot: bool,
+                         save: bool,
                          data_range: int = 500,
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
