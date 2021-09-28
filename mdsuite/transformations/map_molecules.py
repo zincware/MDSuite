@@ -222,10 +222,11 @@ class MolecularMap(Transformations):
             self._prepare_monitors(data_path=path_list)
             # TODO for #338
             scaling_factor = self.reference_molecules[item]['mass']
-            self.experiment.molecules[item] = {}
-            self.experiment.molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
-            self.experiment.molecules[item]['mass'] = scaling_factor
-            self.experiment.molecules[item]['groups'] = {}
+            molecules = self.experiment.molecules
+            molecules[item] = {}
+            molecules[item]['indices'] = [i for i in range(len(self.adjacency_graphs[item]['molecules']))]
+            molecules[item]['mass'] = scaling_factor
+            molecules[item]['groups'] = {}
             for i in tqdm(range(self.n_batches),
                           ncols=70,
                           desc='Mapping molecules'):
@@ -233,9 +234,10 @@ class MolecularMap(Transformations):
                 stop = start + self.batch_size
                 data = self._load_batch(path_list, np.s_[:, start:stop], factor=np.array(mass_factor) / scaling_factor)
                 trajectory = np.zeros(shape=(len(self.adjacency_graphs[item]['molecules']), self.batch_size, 3))
+
                 for t, molecule in enumerate(self.adjacency_graphs[item]['molecules']):
                     indices = list(self.adjacency_graphs[item]['molecules'][molecule].numpy())
-                    self.experiment.molecules[item]['groups'][t] = self._build_indices_dict(indices, species)
+                    molecules[item]['groups'][t] = self._build_indices_dict(indices, species)
                     trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
                 self._save_coordinates(data=trajectory,
                                        data_structure=data_structure,
@@ -243,6 +245,8 @@ class MolecularMap(Transformations):
                                        batch_size=self.batch_size,
                                        system_tensor=False,
                                        tensor=True)
+            print(molecules)
+            self.experiment.molecules = molecules
 
     def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
         """
@@ -271,11 +275,11 @@ class MolecularMap(Transformations):
 
         for i, item in enumerate(species):
             if i == 0:
-                indices_dict[item] = np.sort(list(filter(lambda x: x < lengths[i], indices)))
+                indices_dict[item] = np.sort(list(filter(lambda x: x < lengths[i], indices))).tolist()
             else:
                 greater_array = list(filter(lambda x: x >= lengths[i-1], indices))
                 constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
-                indices_dict[item] = np.sort(np.array(constrained_array) - (lengths[i-1]-1))
+                indices_dict[item] = np.sort(np.array(constrained_array) - (lengths[i-1]-1)).tolist()
 
         return indices_dict
 

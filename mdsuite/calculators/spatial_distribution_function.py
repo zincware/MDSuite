@@ -32,7 +32,10 @@ class SpatialDistributionFunction(Calculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
     def __init__(
-        self, experiment: Experiment, experiments=None, load_data: bool = False
+            self,
+            experiment: Experiment,
+            experiments=None,
+            load_data: bool = False
     ):
         """Constructor of the SpatialDistributionFunction
 
@@ -46,7 +49,10 @@ class SpatialDistributionFunction(Calculator):
             managed by RunComputation
 
         """
-        super().__init__(experiment, experiments=experiments, load_data=load_data)
+        super().__init__(
+            experiment,
+            experiments=experiments,
+            load_data=load_data)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
         self.loaded_property = "Positions"
@@ -75,7 +81,8 @@ class SpatialDistributionFunction(Calculator):
 
         Parameters
         ----------
-        molecules
+        molecules : bool
+                If true, load molecules.
         start: int
             Index of the first configuration
         stop: int
@@ -95,6 +102,7 @@ class SpatialDistributionFunction(Calculator):
         self.molecules = molecules
         self.r_min = r_min
         self.r_max = r_max
+        self.plot = False
 
         # choose sampled configurations
         self.sample_configurations = np.linspace(
@@ -124,6 +132,7 @@ class SpatialDistributionFunction(Calculator):
         # path_list = [join_path(species, "Positions") for species in self.species]
 
         path_list = [join_path(species, "Positions")]
+        print(self.experiment.molecules)
 
         data = self.experiment.load_matrix(
             "Positions", path=path_list, select_slice=np.s_[:, indices]
@@ -136,7 +145,10 @@ class SpatialDistributionFunction(Calculator):
     def _check_input(self):
         """Check and correct the user input"""
         if self.species is None:
-            self.species = list(self.experiment.species)
+            if self.molecules:
+                self.species = list(self.experiment.molecules)
+            else:
+                self.species = list(self.experiment.species)
 
     def run_experimental_analysis(self):
         """Run the computation"""
@@ -192,6 +204,12 @@ class SpatialDistributionFunction(Calculator):
     def _run_visualization(self, plot_data: tf.Tensor):
         """
         Run the visualizer.
+
+        Parameters
+        ----------
+        plot_data : tf.Tensor
+                Data to be plot.
+
         """
         visualizer = DataVisualizer3D(data=plot_data.numpy(), title="test")
         visualizer.plot()
