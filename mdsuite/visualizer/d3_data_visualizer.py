@@ -17,7 +17,7 @@ class DataVisualizer3D:
     """
 
     def __init__(self,
-                 data: tf.Tensor,
+                 data: np.ndarray,
                  title: str,
                  center: Union[str, dict] = None
                  ):
@@ -26,7 +26,7 @@ class DataVisualizer3D:
 
         Parameters
         ----------
-        data : tf.Tensor
+        data : np.ndarray
                 data to plot.
         center : str
                 centre molecule to be displayed (optional)
