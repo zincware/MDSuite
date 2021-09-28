@@ -245,7 +245,6 @@ class MolecularMap(Transformations):
                                        batch_size=self.batch_size,
                                        system_tensor=False,
                                        tensor=True)
-            print(molecules)
             self.experiment.molecules = molecules
 
     def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
