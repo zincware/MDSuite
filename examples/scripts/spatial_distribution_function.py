@@ -47,15 +47,15 @@ def run_example():
         data='bmim_bf4.lammpstraj'
     )
 
-    # project.experiments.bmim_bf4.perform_transformation("UnwrapCoordinates")
-    # mapper = MolecularMap(
-    #    project.experiments.bmim_bf4,
-    #    molecules={
-    #        'bmim': {'smiles': 'CCCCN1C=C[N+](+C1)C', 'cutoff': 1.9, 'amount': 50},
-    #        'bf4': {'smiles': '[B-](F)(F)(F)F', 'cutoff': 2.4, 'amount': 50}
-    #    }
-    # )
-    # mapper.run_transformation()
+    project.experiments.bmim_bf4.perform_transformation("UnwrapCoordinates")
+    mapper = MolecularMap(
+       project.experiments.bmim_bf4,
+       molecules={
+           'bmim': {'smiles': 'CCCCN1C=C[N+](+C1)C', 'cutoff': 1.9, 'amount': 50},
+           'bf4': {'smiles': '[B-](F)(F)(F)F', 'cutoff': 2.4, 'amount': 50}
+       }
+    )
+    mapper.run_transformation()
 
     project.run.SpatialDistributionFunction(
         species=['bmim', 'bf4'],
@@ -75,8 +75,8 @@ if __name__ == '__main__':
     Collect and run the code.
     """
     temp_dir = tempfile.TemporaryDirectory()
-    #os.chdir(temp_dir.name)
-    #load_data()  # load the data.
+    os.chdir(temp_dir.name)
+    load_data()  # load the data.
     run_example()  # run the example.
-    #os.chdir('..')
+    os.chdir('..')
     temp_dir.cleanup()

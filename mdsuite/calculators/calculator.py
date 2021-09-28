@@ -238,7 +238,7 @@ class Calculator(CalculatorDatabase):
         self._dtype = tf.float64
 
     def update_user_args(self,
-                         plot: bool = True,
+                         plot: bool = False,
                          save: bool = True,
                          data_range: int = 500,
                          correlation_time: int = 1,

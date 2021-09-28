@@ -37,7 +37,8 @@ class SpatialDistributionFunction(Calculator):
             experiments=None,
             load_data: bool = False
     ):
-        """Constructor of the SpatialDistributionFunction
+        """
+        Constructor of the SpatialDistributionFunction
 
         Parameters
         ----------
@@ -132,7 +133,6 @@ class SpatialDistributionFunction(Calculator):
         # path_list = [join_path(species, "Positions") for species in self.species]
 
         path_list = [join_path(species, "Positions")]
-        print(self.experiment.molecules)
 
         data = self.experiment.load_matrix(
             "Positions", path=path_list, select_slice=np.s_[:, indices]
@@ -211,5 +211,17 @@ class SpatialDistributionFunction(Calculator):
                 Data to be plot.
 
         """
-        visualizer = DataVisualizer3D(data=plot_data.numpy(), title="test")
+        if self.species[0] in list(self.experiment.species):
+            center = self.species[0]
+        else:
+            center_dict = self.experiment.molecules[self.species[0]]['groups']['0']
+            center = {}
+            for item in center_dict:
+                for index in center_dict[item]:
+                    center[f"{item}_{index}"] = self.database.load_data(
+                        path_list=[join_path(item, 'Positions')],
+                        select_slice=np.s_[index, 20]
+                    )
+        visualizer = DataVisualizer3D(
+            data=plot_data.numpy(), title="SDF", center=center)
         visualizer.plot()
