@@ -103,7 +103,6 @@ class SpatialDistributionFunction(Calculator):
         self.molecules = molecules
         self.r_min = r_min
         self.r_max = r_max
-        self.plot = False
 
         # choose sampled configurations
         self.sample_configurations = np.linspace(
@@ -220,7 +219,7 @@ class SpatialDistributionFunction(Calculator):
                 for index in center_dict[item]:
                     center[f"{item}_{index}"] = self.database.load_data(
                         path_list=[join_path(item, 'Positions')],
-                        select_slice=np.s_[index, 20]
+                        select_slice=np.s_[index, 0]
                     )
         visualizer = DataVisualizer3D(
             data=plot_data.numpy(), title="SDF", center=center)
