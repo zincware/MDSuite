@@ -126,6 +126,13 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            species=species
+        )
+
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
         Compute the vacf on the given dictionary of data.

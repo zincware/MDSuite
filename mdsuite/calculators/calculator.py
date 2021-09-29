@@ -239,7 +239,6 @@ class Calculator(CalculatorDatabase):
 
     def update_user_args(self,
                          plot: bool,
-                         save: bool,
                          data_range: int = 500,
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
@@ -278,7 +277,6 @@ class Calculator(CalculatorDatabase):
 
         self.data_range = data_range
         self.plot = plot
-        self.save = save
         self.gpu = gpu
         self.tau_values = tau_values
         self.correlation_time = correlation_time
