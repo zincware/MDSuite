@@ -519,12 +519,15 @@ class AngularDistributionFunction(Calculator, ABC):
                 self.bin_range[1] * (180 / 3.14159),
                 len(val[self.result_series_keys[0]]),
             )
+            title_value = bin_range_to_angles[
+                tf.math.argmax(val[self.result_series_keys[1]])
+            ]
 
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
                     f"{selected_species} - Max:"
-                    f" {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees "
+                    f" {title_value:.3f} degrees "
                 ),
             )

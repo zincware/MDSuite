@@ -220,7 +220,8 @@ class CoordinationNumbers(Calculator):
         )
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
-        # Check that more than one peak exists. If not, the GS search cannot be performed.
+        # Check that more than one peak exists. If not, the GS search cannot be
+        # performed.
         if len(peaks) < 2:
             print(
                 "Not enough peaks were found for the minimum analysis (First shell)."

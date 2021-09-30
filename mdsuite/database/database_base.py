@@ -67,8 +67,9 @@ class DatabaseBase:
 
         """
         if self._engine is None:
+            engine_path = Path(self.storage_path, self.name, self.database_name)
             self._engine = sa.create_engine(
-                f"sqlite+pysqlite:///{Path(self.storage_path, self.name, self.database_name)}",
+                f"sqlite+pysqlite:///{engine_path}",
                 echo=False,
                 future=True,
             )

@@ -212,7 +212,8 @@ class CalculatorDatabase:
 
         Parameters:
             data: dict
-                A  dictionary containing all the data that was computed by the computation
+                A  dictionary containing all the data that was computed by the
+                computation
             subjects: list
                 A list of strings / subject names that are associated with the data,
                 e.g. the pairs of the RDF
@@ -237,7 +238,7 @@ class CalculatorDatabase:
         """
         raise DeprecationWarning("This function has been replaced by `queue_data`")
 
-    ##### REMOVE ######
+    # REMOVE
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""

@@ -455,7 +455,8 @@ class RadialDistributionFunction(Calculator, ABC):
             #         desc=f"Mini batch {idx + 1}/{self.n_batches}",
             #     ):
             #         pre_factor = np.sqrt(jdx + 1)
-            #         new_ds = tf.data.Dataset.from_tensor_slices(corrected_per_atoms_ds)
+            #         new_ds = tf.data.Dataset.from_tensor_slices(
+            #         corrected_per_atoms_ds)
             #         new_ds = new_ds.batch(int(pre_factor * self.minibatch))
             #         log.debug(
             #             "batch size:"
@@ -469,7 +470,8 @@ class RadialDistributionFunction(Calculator, ABC):
             #             indices = get_partial_triu_indices(
             #                 n_atoms, atoms_per_batch, minibatch_start
             #             )
-            #             log.debug(f"Calculating indices took {timer() - start_time} s")
+            #             log.debug(f"Calculating indices took {timer() - start_time}
+            #             s")
             #
             #             start_time = timer()
             #             d_ij = self.get_dij(
@@ -800,7 +802,8 @@ class RadialDistributionFunction(Calculator, ABC):
                     tensor_values that has been operated on.
             """
 
-            # Boundaries on the ideal gsa correction. These go to 73% over half the box size, the most for a cubic box.
+            # Boundaries on the ideal gsa correction. These go to 73% over half the box
+            # size, the most for a cubic box.
             lower_bound = self.experiment.box_array[0] / 2
             middle_bound = np.sqrt(2) * self.experiment.box_array[0] / 2
 

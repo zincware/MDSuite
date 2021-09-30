@@ -34,7 +34,6 @@ from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
-from mdsuite.utils import config
 
 from typing import Dict
 

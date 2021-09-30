@@ -47,14 +47,15 @@ class NLLayer(tf.keras.layers.Layer):
         Parameters
         ----------
         inputs: dict
-            containing the keys positions and cell with e.g., positions shape (None, n_atoms, 3)
+            containing the keys positions and cell with e.g., positions shape
+            (None, n_atoms, 3)
 
         Returns
         -------
 
         flat_rij, triu_indices, n_atoms: tf.Tensor, tf.Tensor, tf.Tenosr
-            The distances flattend out, of shape (x, 3) and the corresponding indices in the r_ij matrix
-            of shape (x, 2) as well as the number of atoms
+            The distances flattend out, of shape (x, 3) and the corresponding indices
+            in the r_ij matrix of shape (x, 2) as well as the number of atoms
 
         """
         positions = tf.cast(inputs["positions"], self.dtype)

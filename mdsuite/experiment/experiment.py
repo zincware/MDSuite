@@ -375,7 +375,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #         self.species[new_name] = self.species[old_name]  # update dict
     #         del self.species[old_name]  # remove old entry
 
-
     def set_charge(self, element: str, charge: float):
         """
         Set the charge/s of an element
