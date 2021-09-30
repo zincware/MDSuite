@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import and_
 
 import logging
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -62,7 +62,7 @@ class CalculatorDatabase:
 
         self._queued_data = []
 
-        # List of computation attributes that will be added to the database when it is written
+        # List of computation attributes that will be added to the database
         self.db_computation_attributes = []
 
     def clean_cache(self):
@@ -75,8 +75,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
         self.db_computation = db.Computation(experiment=experiment)
@@ -87,7 +87,8 @@ class CalculatorDatabase:
 
         Parameters
         ----------
-        kwargs: all arguments that are passed to the call method and should be stored in the database
+        kwargs: all arguments that are passed to the call method and should be stored
+        in the database
 
 
         Notes
@@ -97,14 +98,15 @@ class CalculatorDatabase:
         Returns
         -------
         db.Computation:
-            Either a db.Computation object if the calculation was already performed or None
+            Either a db.Computation object if the calculation was already performed or
+            None
 
         """
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
             #  filter the correct experiment
@@ -130,7 +132,7 @@ class CalculatorDatabase:
                 db.Computation.computation_attributes.any(
                     and_(
                         db.ComputationAttribute.name == "version",
-                        db.ComputationAttribute.value == self.experiment.version
+                        db.ComputationAttribute.value == self.experiment.version,
                     )
                 )
             )
@@ -146,7 +148,10 @@ class CalculatorDatabase:
 
         if len(computations) > 0:
             if len(computations) > 1:
-                log.warning("Something went wrong! Found more than one computation with the given arguments!")
+                log.warning(
+                    "Something went wrong! Found more than one computation with the"
+                    " given arguments!"
+                )
             return computations[0]  # it should only be one value
         else:
             for key, val in kwargs.items():
@@ -157,30 +162,39 @@ class CalculatorDatabase:
                 self.db_computation_attributes.append(computation_attribute)
 
             # save the current experiment version in the ComputationAttributes
-            experiment_version = db.ComputationAttribute(name="version", value=self.experiment.version)
+            experiment_version = db.ComputationAttribute(
+                name="version", value=self.experiment.version
+            )
             self.db_computation_attributes.append(experiment_version)
 
     def save_db_data(self):
-        """Save all the collected computationattributes and computation data to the database
+        """Save all the collected computationattributes and computation data to the
+        database
 
         This will be run after the computation was successful.
         """
         with self.experiment.project.session as ses:
             ses.add(self.db_computation)
             for val in self.db_computation_attributes:
-                # I need to set the relation inside the session, otherwise it does not work.
+                # I need to set the relation inside the session.
                 val.computation = self.db_computation
                 ses.add(val)
 
             for data_obj in self._queued_data:
-                # TODO consider renaming species to e.g., subjects, because species here can also be molecules
+                # TODO consider renaming species to e.g., subjects, because species here
+                #  can also be molecules
                 data_obj: ComputationResults
-                computation_result = db.ComputationResult(computation=self.db_computation, data=data_obj.data)
+                computation_result = db.ComputationResult(
+                    computation=self.db_computation, data=data_obj.data
+                )
                 species_list = []
                 for species in data_obj.subjects:
-                    # this will collect duplicates that can be counted later, otherwise I would use .in_
+                    # this will collect duplicates that can be counted later,
+                    # otherwise I would use .in_
                     species_list.append(
-                        ses.query(db.ExperimentSpecies).filter(db.ExperimentSpecies.name == species).first()
+                        ses.query(db.ExperimentSpecies)
+                        .filter(db.ExperimentSpecies.name == species)
+                        .first()
                     )
                 # in case of e.g. `System` species will be [None], which is then removed
                 species_list = [x for x in species_list if x is not None]
@@ -198,17 +212,15 @@ class CalculatorDatabase:
 
         Parameters:
             data: dict
-                A  dictionary containing all the data that was computed by the computation
+                A  dictionary containing all the data that was computed by the
+                computation
             subjects: list
-                A list of strings / subject names that are associated with the data, e.g. the pairs of the RDF
+                A list of strings / subject names that are associated with the data,
+                e.g. the pairs of the RDF
         """
-        self._queued_data.append(
-            ComputationResults(data=data, subjects=subjects)
-        )
+        self._queued_data.append(ComputationResults(data=data, subjects=subjects))
 
-    def update_database(
-            self, parameters, delete_duplicate: bool = True
-    ):
+    def update_database(self, parameters, delete_duplicate: bool = True):
         """
         Add data to the database
 
@@ -216,7 +228,8 @@ class CalculatorDatabase:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500, "data": 1.8e-9}
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
+                "data_range": 500, "data": 1.8e-9}
         delete_duplicate : bool
                 If true, duplicate entries will be deleted.
         Returns
@@ -225,12 +238,14 @@ class CalculatorDatabase:
         """
         raise DeprecationWarning("This function has been replaced by `queue_data`")
 
-    ##### REMOVE ######
+    # REMOVE
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
         """Fill the data_files list with filenames of the rdf tensor_values"""
         # TODO replace with exp.load.RDF()
-        raise DeprecationWarning("Replaced by experiment.run.RadialDistributionFuncion(**kwargs)")
+        raise DeprecationWarning(
+            "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
+        )
         # with self.experiment.project.session as ses:
         #     computations = (
         #         ses.query(db.Computation)
@@ -251,8 +266,12 @@ class CalculatorDatabase:
     # TODO rename and potentially move to a RDF based parent class
     def _load_rdf_from_file(self, computation: db.Computation):
         """Load the raw rdf tensor_values from a directory"""
-        raise DeprecationWarning("Replaced by experiment.run.RadialDistributionFuncion(**kwargs)")
+        raise DeprecationWarning(
+            "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
+        )
 
         # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
         # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
+
+
 #####################

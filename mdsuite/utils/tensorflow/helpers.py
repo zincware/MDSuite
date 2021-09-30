@@ -38,6 +38,7 @@ def triu_mask(n, k=0, m=None):
         return tf.linalg.band_part(bool_mat, 0, -1)
     return ~tf.linalg.band_part(bool_mat, tf.cast(-1, dtype=tf.int32), k - 1)
 
+
 def triu_indices(n, k=0, m=None):
     """Replicate of np.triu_mask"""
     return tf.where(triu_mask(n, k, m))

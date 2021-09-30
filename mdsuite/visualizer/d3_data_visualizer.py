@@ -26,7 +26,6 @@ Summary
 """
 import open3d as o3d
 import open3d.visualization.gui as gui
-import tensorflow as tf
 from typing import Union
 from PIL.ImageColor import getcolor
 import importlib.resources
@@ -39,11 +38,7 @@ class DataVisualizer3D:
     Class for the visualizer of three dimensional data.
     """
 
-    def __init__(self,
-                 data: np.ndarray,
-                 title: str,
-                 center: Union[str, dict] = None
-                 ):
+    def __init__(self, data: np.ndarray, title: str, center: Union[str, dict] = None):
         """
         Constructor for the data visualizer.
 
@@ -56,7 +51,7 @@ class DataVisualizer3D:
         title : str
                 title of the plot.
         """
-        self.data =data
+        self.data = data
         self.title = title
         self.center = center
 
@@ -76,15 +71,14 @@ class DataVisualizer3D:
         self.app = gui.Application.instance
         self.app.initialize()
 
-        self.vis = o3d.visualization.O3DVisualizer("MDSuite Visualizer",
-                                                   1024,
-                                                   768)
+        self.vis = o3d.visualization.O3DVisualizer("MDSuite Visualizer", 1024, 768)
         self.vis.show_settings = True
         self.vis.reset_camera_to_default()
 
         self.app.add_window(self.vis)
 
-    def _get_atom_properties(self, element: str) -> dict:
+    @staticmethod
+    def _get_atom_properties(element: str) -> dict:
         """
         Get atom size and colour based on species.
 
@@ -101,22 +95,20 @@ class DataVisualizer3D:
         """
         data = {}
         data_name = "mdsuite.data"
-        json_name = 'PubChemElements_all.json'
+        json_name = "PubChemElements_all.json"
         with importlib.resources.open_text(data_name, json_name) as json_file:
             pse = json.loads(json_file.read())
 
         try:
-            name_split = element.split('_')
+            name_split = element.split("_")
             element = name_split[0]
         except ValueError:
             element = element
 
         for entry in pse:
             if pse[entry][1] == element:
-                data['colour'] = getcolor(
-                    f'#{pse[entry][4]}', 'RGB'
-                )
-                data['mass'] = float(pse[entry][3])
+                data["colour"] = getcolor(f"#{pse[entry][4]}", "RGB")
+                data["mass"] = float(pse[entry][3])
 
         return data
 
@@ -142,11 +134,12 @@ class DataVisualizer3D:
 
         """
         data = self._get_atom_properties(self.center)
-        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=data['mass']/25,
-                                                       resolution=15)
+        mesh = o3d.geometry.TriangleMesh.create_sphere(
+            radius=data["mass"] / 25, resolution=15
+        )
         mesh.compute_vertex_normals()
-        mesh.paint_uniform_color(data['colour'])
-        self.vis.add_geometry('Center', mesh)
+        mesh.paint_uniform_color(data["colour"])
+        self.vis.add_geometry("Center", mesh)
 
     def _add_group_center(self):
         """
@@ -160,8 +153,8 @@ class DataVisualizer3D:
         mass = 0.0
         for item in self.center:
             data = self._get_atom_properties(item)
-            mass += data['mass']
-            translation += (self.center[item]/10) * data['mass']
+            mass += data["mass"]
+            translation += (self.center[item] / 10) * data["mass"]
         translation = -1 * translation / mass
 
         global_mesh = None
@@ -169,23 +162,23 @@ class DataVisualizer3D:
             data = self._get_atom_properties(item)
             if i == 0:
                 global_mesh = o3d.geometry.TriangleMesh.create_sphere(
-                    radius=data['mass']/100,
-                    resolution=15)
+                    radius=data["mass"] / 100, resolution=15
+                )
                 global_mesh.compute_vertex_normals()
                 global_mesh.translate(self.center[item] / 10)
-                colour = np.array(data['colour']) / 255
+                colour = np.array(data["colour"]) / 255
                 global_mesh.paint_uniform_color(colour)
-                #self.vis.add_geometry(item, global_mesh)
+                # self.vis.add_geometry(item, global_mesh)
             else:
                 mesh = o3d.geometry.TriangleMesh.create_sphere(
-                    radius=data['mass']/100,
-                    resolution=15)
+                    radius=data["mass"] / 100, resolution=15
+                )
                 mesh.compute_vertex_normals()
                 mesh.translate(self.center[item] / 10)
-                colour = np.array(data['colour']) / 255
+                colour = np.array(data["colour"]) / 255
                 mesh.paint_uniform_color(colour)
                 global_mesh += mesh
-                #self.vis.add_geometry(item, mesh)
+                # self.vis.add_geometry(item, mesh)
         global_mesh.translate(translation)
         self.vis.add_geometry("Center", global_mesh)
 
@@ -199,7 +192,7 @@ class DataVisualizer3D:
         """
         self.vis.add_geometry("Points", self.point_cloud)
 
-        #if self.center is not None:
+        # if self.center is not None:
         self._add_center()
 
         self.vis.reset_camera_to_default()

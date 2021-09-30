@@ -24,17 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
-
-import json
 import os
-
 import pytest
-
-import numpy as np
 import urllib.request
 import gzip
 import shutil
-from pathlib import Path
 
 import mdsuite as mds
 
@@ -42,8 +36,8 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
+    # time_step = 0.002
+    # temperature = 1400.0
     base_url = "https://github.com/zincware/ExampleData/raw/main/"
 
     files_in_url = [
@@ -84,10 +78,18 @@ def test_add_run_load_data(project, traj_files):
 
     Test the run_computation and load_data method on multiple experiments
     """
-    project.add_experiment("NaCl0", data=traj_files[0], timestep=0.002, temperature=1400)
-    project.add_experiment("NaCl1", data=traj_files[1], timestep=0.002, temperature=1400)
-    project.add_experiment("NaCl2", data=traj_files[2], timestep=0.002, temperature=1400)
-    project.add_experiment("NaCl3", data=traj_files[3], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl0", data=traj_files[0], timestep=0.002, temperature=1400
+    )
+    project.add_experiment(
+        "NaCl1", data=traj_files[1], timestep=0.002, temperature=1400
+    )
+    project.add_experiment(
+        "NaCl2", data=traj_files[2], timestep=0.002, temperature=1400
+    )
+    project.add_experiment(
+        "NaCl3", data=traj_files[3], timestep=0.002, temperature=1400
+    )
 
     # Check that 4 experiments have been created
     assert len(project.experiments) == 4
@@ -97,7 +99,7 @@ def test_add_run_load_data(project, traj_files):
     # Check that data for 4 experiments has been loaded
     assert len(loaded_data) == 4
     # Check the keys
-    assert {x for x in loaded_data} == {'NaCl0', 'NaCl1', 'NaCl2', 'NaCl3'}#
+    assert {x for x in loaded_data} == {"NaCl0", "NaCl1", "NaCl2", "NaCl3"}  #
 
     # Each loaded data should contain 3 entries, Na-Na, Na-Cl, Cl-Cl
     for data in loaded_data.values():

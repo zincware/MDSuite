@@ -45,6 +45,7 @@ def prepare_env():
     os.chdir(cwd)
     temp_dir.cleanup()
 
+
 def test_project_description():
     """Test that the project description is stored correctly in the database"""
 
@@ -54,10 +55,14 @@ def test_project_description():
     project_2 = mds.Project()
     assert project_2.description == "HelloWorld"
 
-def test_project_description_from_file():
-    """Test that the project description is stored correctly in the database if read from file"""
 
-    desc = Path('desc.md')
+def test_project_description_from_file():
+    """
+    Test that the project description is stored correctly in the database if
+    read from file
+    """
+
+    desc = Path("desc.md")
     desc.write_text("HelloWorld")
 
     project_1 = mds.Project()

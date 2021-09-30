@@ -42,14 +42,16 @@ class KirkwoodBuffIntegral(Calculator):
     experiment : class object
                         Class object of the experiment.
     data_range : int (default=500)
-                        Range over which the property should be evaluated. This is not applicable to the current
-                        analysis as the full rdf will be calculated.
+                        Range over which the property should be evaluated. This is not
+                        applicable to the current analysis as the full rdf will be
+                        calculated.
     x_label : str
                         How to label the x axis of the saved plot.
     y_label : str
                         How to label the y axis of the saved plot.
     analysis_name : str
-                        Name of the analysis. used in saving of the tensor_values and figure.
+                        Name of the analysis. used in saving of the tensor_values and
+                        figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
     data_files : list
@@ -90,18 +92,21 @@ class KirkwoodBuffIntegral(Calculator):
         self.x_label = r"$$ \text{r} / \AA$$"
         self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
-        self.result_series_keys = ['r', 'kb_integral']
+        self.result_series_keys = ["r", "kb_integral"]
 
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False) -> Computation:
+    def __call__(
+        self, plot=True, save=True, data_range=1, export: bool = False
+    ) -> Computation:
         """
         Doc string for this one.
         Parameters
         ----------
         plot : bool
-                If true, the output will be displayed in a figure. This figure will also be saved.
+                If true, the output will be displayed in a figure. This figure will also
+                be saved.
         save : bool
                 If true, the data from the analysis will be saved in the sql database
         data_range : int
@@ -114,9 +119,7 @@ class KirkwoodBuffIntegral(Calculator):
             plot=plot, save=save, data_range=data_range, export=export
         )
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range
-        )
+        return self.update_db_entry_with_kwargs(data_range=data_range)
 
     def _autocorrelation_time(self):
         """
@@ -148,16 +151,19 @@ class KirkwoodBuffIntegral(Calculator):
         """
         calculations = self.experiment.run.RadialDistributionFunction(plot=False)
         self.data_range = calculations.data_range
-        for selected_species, vals in calculations.data_dict.items():  # Loop over all existing RDFs
+        for (
+            selected_species,
+            vals,
+        ) in calculations.data_dict.items():  # Loop over all existing RDFs
             self.selected_species = selected_species.split("_")
 
             self.radii = np.array(vals["x"]).astype(float)[1:]
             self.rdf = np.array(vals["y"]).astype(float)[1:]
-            self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
+            self._calculate_kb_integral()  # Integrate the rdf
 
             data = {
                 self.result_series_keys[0]: self.radii[1:].tolist(),
-                self.result_series_keys[1]: self.kb_integral
+                self.result_series_keys[1]: self.kb_integral,
             }
 
             self.queue_data(data=data, subjects=self.selected_species)

@@ -37,7 +37,7 @@ from . import base_path
 def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     compressed_file = "NaCl_gk_i_q.zip"
-    uncompressed_file = 'NaCl_gk_i_q.lammpstraj'
+    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
 
     conv_raw = "?raw=true"
     compressed_file_path = base_path + compressed_file + conv_raw
@@ -48,12 +48,10 @@ def traj_file(tmp_path_factory) -> str:
     )
 
     shutil.unpack_archive(
-        filename=temporary_path / compressed_file,
-        extract_dir=temporary_path
+        filename=temporary_path / compressed_file, extract_dir=temporary_path
     )
 
     return (temporary_path / uncompressed_file).as_posix()
-
 
 
 @pytest.fixture(scope="session")
@@ -72,8 +70,7 @@ def true_values() -> dict:
 
 
 def test_project(traj_file, true_values, tmp_path):
-    """Test the green_kubo_ionic_conductivity called from the project class
-    """
+    """Test the green_kubo_ionic_conductivity called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)

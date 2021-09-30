@@ -130,8 +130,7 @@ class GreenKuboThermalConductivity(Calculator):
             self.integration_range = integration_range
 
         return self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            correlation_time=correlation_time
+            data_range=data_range, correlation_time=correlation_time
         )
 
     def _update_output_signatures(self):
@@ -169,7 +168,7 @@ class GreenKuboThermalConductivity(Calculator):
             * (self.data_range - 1)
             * self.experiment.temperature ** 2
             * self.experiment.units["boltzman"]
-                      * self.experiment.volume
+            * self.experiment.volume
         )
         prefactor_units = (
             self.experiment.units["energy"]
@@ -225,23 +224,24 @@ class GreenKuboThermalConductivity(Calculator):
         data = {
             "computation_results": result[0],
             "uncertainty": result[1],
-            'time': self.time.tolist(),
-            'acf': self.jacf.numpy().tolist()
+            "time": self.time.tolist(),
+            "acf": self.jacf.numpy().tolist(),
         }
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
         # Update the plot if required
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                    self.integration_range - 1
+                ],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
+                x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.jacf.numpy(),
                 title=f"{result[0]} +- {result[1]}",
-                layouts=[span]
+                layouts=[span],
             )

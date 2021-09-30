@@ -42,9 +42,10 @@ log = logging.getLogger(__name__)
 class StructureFactor(Calculator):
     """
     Class for the calculation of the total structure factor for X-ray scattering
-    using the Faber-Ziman partial structure factors. This analysis is valid for a magnitude of the X-ray
-    scattering vector Q < 25 * 1/Angstrom
+    using the Faber-Ziman partial structure factors. This analysis is valid for a
+    magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom
     Explicitly equations 9, 10 and 11 of the paper
+
     'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
     Samuel Tovey, Anand Narayanan Krishnamoorthy, Ganesh Sivaraman, Jicheng Guo,
     Chris Benmore,Andreas Heuer, and Christian Holm are implemented.
@@ -58,7 +59,8 @@ class StructureFactor(Calculator):
     y_label : str
                         How to label the y axis of the saved plot.
     analysis_name : str
-                        Name of the analysis. used in saving of the tensor_values and figure.
+                        Name of the analysis. used in saving of the tensor_values and
+                        figure.
     file_to_study : str
                         The tensor_values file corresponding to the rdf being studied.
     data_files : list
@@ -78,8 +80,9 @@ class StructureFactor(Calculator):
 
     Notes
     -----
-    In order to use the structure factor calculator both the masses and the charges of each species must be present.
-    If they are not correct, the structure factor will not work.
+    In order to use the structure factor calculator both the masses and the
+    charges of each species must be present. If they are not correct, the structure
+    factor will not work.
     """
 
     def __init__(self, **kwargs):
@@ -101,15 +104,17 @@ class StructureFactor(Calculator):
 
         self.post_generation = True
 
-        self.database_group = 'structure_factor'
-        self.x_label = r'$$\text{Q} / \AA ^{-1}$$'
-        self.y_label = r'$$\text{S(Q)}$$'
-        self.analysis_name = 'total_structure_factor'
+        self.database_group = "structure_factor"
+        self.x_label = r"$$\text{Q} / \AA ^{-1}$$"
+        self.y_label = r"$$\text{S(Q)}$$"
+        self.analysis_name = "total_structure_factor"
 
         self.rho = None
 
-        with open_text(static_data, 'form_fac_coeffs.csv') as file:
-            self.coeff_atomic_formfactor = pd.read_csv(file, sep=',')  # stores coefficients for atomic form factors
+        with open_text(static_data, "form_fac_coeffs.csv") as file:
+            self.coeff_atomic_formfactor = pd.read_csv(
+                file, sep=","
+            )  # stores coefficients for atomic form factors
 
     def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
         """
@@ -136,10 +141,15 @@ class StructureFactor(Calculator):
         for experiment in self.experiments:
             self.experiment = experiment
 
-            self.update_user_args(plot=plot, save=save, data_range=data_range, export=export)
+            self.update_user_args(
+                plot=plot, save=save, data_range=data_range, export=export
+            )
 
-            self.rho = self.experiment.number_of_atoms / (self.experiment.box_array[0] *
-                                                          self.experiment.box_array[1] * self.experiment.box_array[2])
+            self.rho = self.experiment.number_of_atoms / (
+                self.experiment.box_array[0]
+                * self.experiment.box_array[1]
+                * self.experiment.box_array[2]
+            )
 
             if self.load_data:
                 out[self.experiment.name] = self.experiment.export_property_data(
@@ -173,23 +183,33 @@ class StructureFactor(Calculator):
         """
         atomic_form_di = {}
         for el in list(self.experiment.species):
-            if self.experiment.species[el]['charge'][0] == 0:
+            if self.experiment.species[el]["charge"][0] == 0:
                 el_key = el
-            elif self.experiment.species[el]['charge'][0] > 0:
-                el_key = el + str(self.experiment.species[el]['charge'][0]) + '+'
-            elif self.experiment.species[el]['charge'][0] < 0:
-                el_key = el + str(self.experiment.species[el]['charge'][0])[1:] + '-'
+            elif self.experiment.species[el]["charge"][0] > 0:
+                el_key = el + str(self.experiment.species[el]["charge"][0]) + "+"
+            elif self.experiment.species[el]["charge"][0] < 0:
+                el_key = el + str(self.experiment.species[el]["charge"][0])[1:] + "-"
             else:
                 print("Impossible input")
                 return
-            el_frame = self.coeff_atomic_formfactor.loc[self.coeff_atomic_formfactor['Element'] == el_key]
-            atomic_form_fac = (self.gauss(el_frame.iloc[0, 1], el_frame.iloc[0, 2], scattering_scalar) +
-                               self.gauss(el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar) +
-                               self.gauss(el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar) +
-                               self.gauss(el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar) +
-                               el_frame.iloc[0, 9])
+            el_frame = self.coeff_atomic_formfactor.loc[
+                self.coeff_atomic_formfactor["Element"] == el_key
+            ]
+            atomic_form_fac = (
+                self.gauss(el_frame.iloc[0, 1], el_frame.iloc[0, 2], scattering_scalar)
+                + self.gauss(
+                    el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar
+                )
+                + self.gauss(
+                    el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar
+                )
+                + self.gauss(
+                    el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar
+                )
+                + el_frame.iloc[0, 9]
+            )
             atomic_form_di[el] = {}
-            atomic_form_di[el]['atomic_form_factor'] = atomic_form_fac
+            atomic_form_di[el]["atomic_form_factor"] = atomic_form_fac
         return atomic_form_di
 
     def molar_fractions(self):
@@ -200,8 +220,10 @@ class StructureFactor(Calculator):
         species = dict(self.experiment.species)
 
         for el in self.experiment.species:
-            species[el]['molar_fraction'] = len(
-                self.experiment.species[el]['indices']) / self.experiment.number_of_atoms
+            species[el]["molar_fraction"] = (
+                len(self.experiment.species[el]["indices"])
+                / self.experiment.number_of_atoms
+            )
 
         self.experiment.species = species
 
@@ -214,10 +236,13 @@ class StructureFactor(Calculator):
         log.warning("Updating particle_density")
         species = dict(self.experiment.species)
         for el in self.experiment.species:
-            species[el]['particle_density'] = len(self.experiment.species[el]['indices']) / (
-                    self.experiment.box_array[0] *
-                    self.experiment.box_array[1] *
-                    self.experiment.box_array[2])
+            species[el]["particle_density"] = len(
+                self.experiment.species[el]["indices"]
+            ) / (
+                self.experiment.box_array[0]
+                * self.experiment.box_array[1]
+                * self.experiment.box_array[2]
+            )
         self.experiment.species = species
         log.warning(species)
         log.warning(self.experiment.species)
@@ -229,7 +254,10 @@ class StructureFactor(Calculator):
         sum1 = 0
         atomic_form_facs = self.atomic_form_factors(scattering_scalar)
         for el in self.experiment.species:
-            sum1 += self.experiment.species[el]['molar_fraction'] * atomic_form_facs[el]['atomic_form_factor']
+            sum1 += (
+                self.experiment.species[el]["molar_fraction"]
+                * atomic_form_facs[el]["atomic_form_factor"]
+            )
         average_atomic_factor = sum1 ** 2
         return average_atomic_factor
 
@@ -244,12 +272,17 @@ class StructureFactor(Calculator):
             if radius == 0:
                 integrand[counter] = 0
                 continue
-            integrand[counter] = radius ** 2 * np.sin(scattering_scalar * radius) / (scattering_scalar * radius) * (
-                    self.rdf[counter] - 1)
+            integrand[counter] = (
+                radius ** 2
+                * np.sin(scattering_scalar * radius)
+                / (scattering_scalar * radius)
+                * (self.rdf[counter] - 1)
+            )
         running_integral = cumtrapz(integrand, self.radii, initial=0.0)
         integral = simps(integrand, self.radii)
         particle_density = self.experiment.species[elements[0]][
-            'particle_density']  # given g_ab take the particle density of a
+            "particle_density"
+        ]  # given g_ab take the particle density of a
         s_12 = 1 + 4 * np.pi * particle_density * integral
         return s_12, running_integral, integral
 
@@ -257,12 +290,12 @@ class StructureFactor(Calculator):
         """
         Calculates the weight factor
         """
-        c_a = self.experiment.species[species_lst[0]]['molar_fraction']
-        c_b = self.experiment.species[species_lst[1]]['molar_fraction']
+        c_a = self.experiment.species[species_lst[0]]["molar_fraction"]
+        c_b = self.experiment.species[species_lst[1]]["molar_fraction"]
         form_factors = self.atomic_form_factors(scattering_scalar)
         avg_form_fac = self.average_atomic_form_factor(scattering_scalar)
-        atom_form_fac_a = form_factors[species_lst[0]]['atomic_form_factor']
-        atom_form_fac_b = form_factors[species_lst[1]]['atomic_form_factor']
+        atom_form_fac_a = form_factors[species_lst[0]]["atomic_form_factor"]
+        atom_form_fac_b = form_factors[species_lst[1]]["atomic_form_factor"]
         weight = c_a * c_b * atom_form_fac_a * atom_form_fac_b / avg_form_fac
         return weight
 
@@ -278,7 +311,7 @@ class StructureFactor(Calculator):
             self._load_rdf_from_file(data)
             log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
             elements = data.subjects
-            log.debug(f'Elements are: {elements}')
+            log.debug(f"Elements are: {elements}")
             s_12, _, _ = self.partial_structure_factor(scattering_scalar, elements)
             s_in = self.weight_factor(scattering_scalar, elements) * s_12
             if elements[0] != elements[1]:  # S_ab and S_ba need to be considered
@@ -298,17 +331,19 @@ class StructureFactor(Calculator):
         self.molar_fractions()
         self.species_densities()
         total_structure_factor_li = []
-        for counter, scattering_scalar in tqdm(enumerate(self.Q_arr), total=len(self.Q_arr),
-                                               desc="Structure factor calculation"):
-            total_structure_factor_li.append(self.total_structure_factor(scattering_scalar))
+        for counter, scattering_scalar in tqdm(
+            enumerate(self.Q_arr),
+            total=len(self.Q_arr),
+            desc="Structure factor calculation",
+        ):
+            total_structure_factor_li.append(
+                self.total_structure_factor(scattering_scalar)
+            )
         total_structure_factor_li = np.array(total_structure_factor_li)
 
-        data = {
-            'q': self.Q_arr.tolist(),
-            's(q)': total_structure_factor_li.tolist()
-        }
+        data = {"q": self.Q_arr.tolist(), "s(q)": total_structure_factor_li.tolist()}
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
         if self.plot:
             self.run_visualization(

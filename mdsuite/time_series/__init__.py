@@ -26,7 +26,4 @@ Summary
 """
 from .energies import Energies
 
-time_series_dict = {
-    "Energies": Energies
-}
-
+time_series_dict = {"Energies": Energies}

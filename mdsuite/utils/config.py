@@ -30,6 +30,7 @@ from dataclasses import dataclass
 @dataclass
 class Config:
     """Collection of MDSuite configurations"""
+
     jupyter: bool = False
     GPU: bool = False
 

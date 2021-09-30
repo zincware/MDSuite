@@ -36,8 +36,9 @@ class RunModule:
 
     Notes
     -----
-    This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
-    attributes of the `experiment.run_computation` helper class.
+    This class is a helper to convert the dictionary of possible computations
+    "dict_classes_computations" into attributes of the `experiment.run_computation`
+    helper class.
     """
 
     def __init__(self, parent, module_dict, **kwargs):
@@ -47,7 +48,8 @@ class RunModule:
         parent: Experiment
             the experiment to be passed to the calculator afterwards
         module_dict: dict
-            A dictionary containing all the modules / calculators / Time series operations with their names as keys
+            A dictionary containing all the modules / calculators / Time series
+            operations with their names as keys
         kwargs:
             Additional parameters to be passed to the module_dict
         """
@@ -65,7 +67,7 @@ class RunModule:
         Returns
             Instantiated calculator class with added experiment that can be called.
         """
-        if item.startswith('_'):
+        if item.startswith("_"):
             # handle privat functions
             return super().__getattribute__(item)
 

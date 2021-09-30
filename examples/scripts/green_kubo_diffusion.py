@@ -40,11 +40,12 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    base_url = 'https://github.com/zincware/ExampleData/raw/main/NaCl_gk_i_q.lammpstraj'
-    filename, headers = urllib.request.urlretrieve(f'{base_url}.gz',
-                                                   filename='NaCl_gk_i_q.lammpstraj.gz')
-    with gzip.open(filename, 'rb') as f_in:
-        with open('NaCl_gk_i_q.lammpstraj', 'wb') as f_out:
+    base_url = "https://github.com/zincware/ExampleData/raw/main/NaCl_gk_i_q.lammpstraj"
+    filename, headers = urllib.request.urlretrieve(
+        f"{base_url}.gz", filename="NaCl_gk_i_q.lammpstraj.gz"
+    )
+    with gzip.open(filename, "rb") as f_in:
+        with open("NaCl_gk_i_q.lammpstraj", "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
 
 
@@ -58,11 +59,11 @@ def run_example():
     """
     project = mds.Project("GK_Diffusion_Example")
     project.add_experiment(
-        experiment='NaCl_GK',
+        experiment="NaCl_GK",
         timestep=0.002,
         temperature=1400.0,
-        units='metal',
-        data='NaCl_gk_i_q.lammpstraj'
+        units="metal",
+        data="NaCl_gk_i_q.lammpstraj",
     )
     project.run.GreenKuboDiffusionCoefficients(
         data_range=100, plot=True, correlation_time=10
@@ -83,7 +84,7 @@ def run_example():
     print("Tutorial complete....... Files being deleted now.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     """
     Run the example.
     """
@@ -91,5 +92,5 @@ if __name__ == '__main__':
     os.chdir(temp_dir.name)
     load_data()  # load the data.
     run_example()  # run the example.
-    os.chdir('..')
+    os.chdir("..")
     temp_dir.cleanup()

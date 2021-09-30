@@ -60,14 +60,19 @@ class FileProcessor(metaclass=abc.ABCMeta):
 
         self.experiment = obj  # Experiment class instance to add to.
 
-        self.header_lines = header_lines  # Number of header lines in the given file format.
-        self.file_path = file_path   # path to the file being read
+        self.header_lines = (
+            header_lines  # Number of header lines in the given file format.
+        )
+        self.file_path = file_path  # path to the file being read
 
     @abc.abstractmethod
-    def process_trajectory_file(self, rename_cols: dict = None, update_class: bool = True):
+    def process_trajectory_file(
+        self, rename_cols: dict = None, update_class: bool = True
+    ):
         """
         Get property groups from the trajectory
-        This method is dependent on the code that generated the file. So it should be implemented in a grandchild class.
+        This method is dependent on the code that generated the file. So it should be
+        implemented in a grandchild class.
         """
 
         return
@@ -75,20 +80,24 @@ class FileProcessor(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def build_file_structure(self, batch_size: int = None):
         """
-        Build a skeleton of the file so that the database_path class can process it correctly.
+        Build a skeleton of the file so that the database_path class can process it
+        correctly.
         """
 
         return
 
     @abc.abstractmethod
-    def read_configurations(self, number_of_configurations: int, file_object: TextIO, line_length: int):
+    def read_configurations(
+        self, number_of_configurations: int, file_object: TextIO, line_length: int
+    ):
         """
         Read in a number of configurations from a file
 
         Parameters
         ----------
         line_length : int
-             Length of each line of tensor_values to be read in. Necessary for instantiation.
+             Length of each line of tensor_values to be read in. Necessary for
+             instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
         file_object : experiment
@@ -103,12 +112,14 @@ class FileProcessor(metaclass=abc.ABCMeta):
         return
 
     @staticmethod
-    def _extract_properties(database_correspondence_dict: dict, column_dict_properties: dict):
+    def _extract_properties(
+        database_correspondence_dict: dict, column_dict_properties: dict
+    ):
         """
         Construct generalized property array
 
-        Takes the lammps properties dictionary and constructs an array of properties which can be used by the species
-        class.
+        Takes the lammps properties dictionary and constructs an array of properties
+        which can be used by the species class.
 
         Parameters
         ----------
@@ -118,21 +129,34 @@ class FileProcessor(metaclass=abc.ABCMeta):
         Returns
         -------
         trajectory_properties : dict
-                A dictionary of the keyword labelled properties in the trajectory. The  values of the dictionary keys
-                correspond to the array location of the specific piece of tensor_values in the set.
+                A dictionary of the keyword labelled properties in the trajectory. The
+                values of the dictionary keys correspond to the array location of the
+                specific piece of tensor_values in the set.
         """
         # for each property label (position, velocity,etc) in the lammps definition
         for property_label, property_names in database_correspondence_dict.items():
-            # for each coordinate for a given property label (position: x, y, z), get idx and the name
+            # for each coordinate for a given property label (position: x, y, z),
+            # get idx and the name
             for idx, property_name in enumerate(property_names):
-                if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
-                    # we change the lammps_properties_dict replacing the string of the property name by the column name
-                    database_correspondence_dict[property_label][idx] = column_dict_properties[property_name]
+                if (
+                    property_name in column_dict_properties.keys()
+                ):  # if this name (x) is in the input file properties
+                    # we change the lammps_properties_dict replacing the string of the
+                    # property name by the column name
+                    database_correspondence_dict[property_label][
+                        idx
+                    ] = column_dict_properties[property_name]
 
-        # trajectory_properties only need the labels with the integer columns, then we only copy those
+        # trajectory_properties only need the labels with the integer columns, then we
+        # only copy those
         trajectory_properties = {}
         for property_label, properties_columns in database_correspondence_dict.items():
-            if all([isinstance(property_column, int) for property_column in properties_columns]):
+            if all(
+                [
+                    isinstance(property_column, int)
+                    for property_column in properties_columns
+                ]
+            ):
                 trajectory_properties[property_label] = properties_columns
 
         return trajectory_properties
@@ -140,8 +164,9 @@ class FileProcessor(metaclass=abc.ABCMeta):
     @staticmethod
     def _get_column_properties(header_line: str, skip_words: int = 0) -> dict:
         """
-        Given a line of text with the header, split it, enumerate and put in a dictionary.
-        This is used to create the column - variable correspondance (see self._extract_properties)
+        Given a line of text with the header, split it, enumerate and put in a
+        dictionary. This is used to create the column - variable correspondance
+        (see self._extract_properties)
 
         Parameters
         ----------

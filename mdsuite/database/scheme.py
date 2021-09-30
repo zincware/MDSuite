@@ -27,7 +27,7 @@ Summary
 import logging
 
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 from .types import MutableDict, JSONEncodedDict
@@ -41,14 +41,21 @@ Base = declarative_base()
 class SpeciesAssociation(Base):
     """Connection between Computations and Experiment Species
 
-    This table is required to be defined specifically, because we need add the count, e.g. Na - Na would
-    otherwise only appear as Na.
+    This table is required to be defined specifically, because we need add the count,
+    e.g. Na - Na would otherwise only appear as Na.
     """
-    __tablename__ = "species_association"
-    computation_results_id = Column(ForeignKey('computation_results.id'), primary_key=True)
-    experiment_species_id = Column(ForeignKey('experiment_species.id'), primary_key=True)
 
-    count = Column(Integer, default=1)  # how often a species occurs, e.g. Na - Na - Cl ADF would be 2, 1
+    __tablename__ = "species_association"
+    computation_results_id = Column(
+        ForeignKey("computation_results.id"), primary_key=True
+    )
+    experiment_species_id = Column(
+        ForeignKey("experiment_species.id"), primary_key=True
+    )
+
+    count = Column(
+        Integer, default=1
+    )  # how often a species occurs, e.g. Na - Na - Cl ADF would be 2, 1
 
     computation_result = relationship("ComputationResult", back_populates="species")
     species = relationship("ExperimentSpecies", back_populates="computation_result")
@@ -165,7 +172,8 @@ class ExperimentAttribute(Base):
 class ExperimentSpecies(Base):
     """Table for storing species information
 
-    This table is used to store species and molecule information that can be related to a specific experiment
+    This table is used to store species and molecule information that can be related to
+    a specific experiment
 
     """
 
@@ -200,7 +208,10 @@ class Computation(Base):
         "ComputationAttribute", cascade="all, delete", back_populates="computation"
     )
     computation_results = relationship(
-        "ComputationResult", cascade="all, delete", back_populates="computation", lazy=True
+        "ComputationResult",
+        cascade="all, delete",
+        back_populates="computation",
+        lazy=True,
     )
 
     def __repr__(self):
@@ -238,8 +249,8 @@ class Computation(Base):
                         msd: [0.1, 0.3, 0.7]
                     },
             }
-            where the keys are defined by species (multiple species are joined by "_") and the dimension argument
-            of the computation_data
+            where the keys are defined by species (multiple species are joined by "_")
+            and the dimension argument of the computation_data
 
         """
         species_dict = {}
@@ -248,7 +259,9 @@ class Computation(Base):
             species_keys_list = []
             for species_associate in result.species:
                 species_associate: SpeciesAssociation
-                species_keys_list += species_associate.count * [species_associate.species.name]
+                species_keys_list += species_associate.count * [
+                    species_associate.species.name
+                ]
             species_keys = "_".join(species_keys_list)
             if species_keys == "":
                 species_keys = "System"

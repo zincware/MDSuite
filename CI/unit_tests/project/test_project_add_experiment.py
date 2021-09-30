@@ -38,8 +38,8 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
+    # time_step = 0.002
+    # temperature = 1400.0
     base_url = "https://github.com/zincware/ExampleData/raw/main/"
 
     files_in_url = [
@@ -117,5 +117,11 @@ def test_multiple_experiments(tmp_path):
 
     project_loaded = mds.Project()
 
-    assert project.experiments.Test01.experiment_path == project_loaded.experiments.Test01.experiment_path
-    assert project.experiments.Test02.experiment_path == project_loaded.experiments.Test02.experiment_path
+    assert (
+        project.experiments.Test01.experiment_path
+        == project_loaded.experiments.Test01.experiment_path
+    )
+    assert (
+        project.experiments.Test02.experiment_path
+        == project_loaded.experiments.Test02.experiment_path
+    )
