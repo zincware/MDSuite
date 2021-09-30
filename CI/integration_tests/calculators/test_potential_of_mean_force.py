@@ -30,6 +30,7 @@ import mdsuite as mds
 import urllib.request
 import json
 import shutil
+from mdsuite.utils.testing import assertDeepAlmostEqual
 from . import base_path
 
 
@@ -77,7 +78,7 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.PotentialOfMeanForce(plot=False)
 
-    assert computation["NaCl"].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-0)
 
 
 def test_experiment(traj_file, true_values, tmp_path):
@@ -88,4 +89,4 @@ def test_experiment(traj_file, true_values, tmp_path):
 
     computation = project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)
 
-    assert computation.data_dict == true_values
+    assertDeepAlmostEqual(computation.data_dict, true_values, decimal=0)

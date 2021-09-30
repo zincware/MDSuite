@@ -30,6 +30,7 @@ import mdsuite as mds
 import urllib.request
 import json
 import shutil
+from mdsuite.utils.testing import assertDeepAlmostEqual
 from . import base_path
 
 
@@ -77,4 +78,4 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.KirkwoodBuffIntegral(plot=False)
 
-    assert computation["NaCl"].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)

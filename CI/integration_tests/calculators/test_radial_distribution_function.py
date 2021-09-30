@@ -31,6 +31,7 @@ import urllib.request
 import json
 import shutil
 from . import base_path
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -76,7 +77,7 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.RadialDistributionFunction(plot=False)
 
-    assert computation["NaCl"].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
 
 
 def test_experiment(traj_file, true_values, tmp_path):
@@ -87,4 +88,4 @@ def test_experiment(traj_file, true_values, tmp_path):
 
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 
-    assert computation.data_dict == true_values
+    assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
