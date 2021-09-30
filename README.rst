@@ -3,19 +3,18 @@
 Introduction
 ------------
 
-MDSuite is a software designed specifically for the molecular dynamics community to enable fast, reliable, and simple 
-calculations from simulation data. 
+MDSuite is a software designed specifically for the molecular dynamics community to
+enable fast, reliable, and easy-to-run calculations from simulation data.
 
-If you want to start learning about the code, you can check out the docs `here <https://mdsuite.readthedocs.io/en/latest/>`_.
-
-**NOTE:** This README is designed for the release. Anything PyPi related is not yet functioning as the code is in
-development.
+If you want to start learning about the code, you can check out the docs
+`here <https://mdsuite.readthedocs.io/en/latest/>`_.
 
 Installation
 ============
 
-There are several way to install MDSuite depending on what you would like from it. One can simply installing using 
-PyPi as **Not Currently available**
+There are several way to install MDSuite depending on what you would like from it.
+
+One can simply installing using
 
 .. code-block:: bash
 
@@ -27,8 +26,8 @@ If you would like to install it from source then you can clone the repository by
 
    git clone https://github.com/SamTov/MDSuite.git
 
-Once you have cloned the repository, depending on whether you prefer conda or straight pip, you should follow the 
-instructions below.
+Once you have cloned the repository, depending on whether you prefer conda or straight
+pip, you should follow the instructions below.
 
 Installation with pip
 *********************
@@ -52,8 +51,10 @@ Installation with conda
 Documentation
 =============
 
-There is a live version of the documentation hosted `here <https://mdsuite.readthedocs.io/en/latest/>`_.
-If you would prefer to have a local copy, it can be built using sphinx by following the instructions below.
+There is a live version of the documentation hosted
+`here <https://mdsuite.readthedocs.io/en/latest/>`_.
+If you would prefer to have a local copy, it can be built using sphinx by following the
+instructions below.
 
 .. code-block:: bash
 
@@ -65,8 +66,9 @@ If you would prefer to have a local copy, it can be built using sphinx by follow
 HINT
 ====
 
-Check out the MDSuite code through a jupyter notebook for a more user friendly experience. You can take full advantage
-of the autocomplete features that are available for the calculators.
+Check out the MDSuite code through a jupyter notebook for a more user friendly
+experience. You can take full advantage of the autocomplete features that are available
+for the calculators.
 
 .. image:: docs/source/images/test_einstein_record_3.gif
     :width: 600
