@@ -65,6 +65,7 @@ def run_example():
         units="metal",
         data="NaCl_gk_i_q.lammpstraj",
     )
+    project.run.ParticleDensity()
     project.run.GreenKuboDiffusionCoefficients(
         data_range=100, plot=True, correlation_time=10
     )

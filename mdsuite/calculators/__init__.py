@@ -33,6 +33,7 @@ from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
 from .einstein_distinct_diffusion_coefficients import (
     EinsteinDistinctDiffusionCoefficients,
 )
+from .particle_density_profile import ParticleDensity
 from .einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from .einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
@@ -77,6 +78,7 @@ __all__ = [
     "RadialDistributionFunction",
     "StructureFactor",
     "SpatialDistributionFunction",
+    "ParticleDensity",
 ]
 
 
@@ -204,3 +206,8 @@ class RunComputation:
     def SpatialDistributionFunction(self):
         """Calculator Property"""
         return SpatialDistributionFunction(**self.kwargs)
+
+    @property
+    def ParticleDensity(self):
+        """Calculator Property"""
+        return ParticleDensity(**self.kwargs)

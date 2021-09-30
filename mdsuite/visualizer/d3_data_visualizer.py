@@ -192,8 +192,8 @@ class DataVisualizer3D:
         """
         self.vis.add_geometry("Points", self.point_cloud)
 
-        # if self.center is not None:
-        self._add_center()
+        if self.center is not None:
+            self._add_center()
 
         self.vis.reset_camera_to_default()
         self.app.run()
