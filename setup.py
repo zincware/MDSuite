@@ -22,7 +22,7 @@ setuptools.setup(
     include_package_data=True,
     python_requires='>=3.7',
     install_requires=[
-        'tensorflow',
+        'tensorflow>=2.5',
         'h5py',
         'pysmiles',
         'matplotlib',
