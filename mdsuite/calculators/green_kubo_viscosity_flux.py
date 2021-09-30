@@ -17,13 +17,12 @@ The methods in class can then be called by the ... method and all necessary
 calculations performed.
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
-from scipy import signal
-
+import tensorflow_probability as tfp
 from mdsuite.calculators.calculator import Calculator, call
+from bokeh.models import Span
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -69,16 +68,21 @@ class GreenKuboViscosityFlux(Calculator):
 
         self.database_group = 'Viscosity'  # Which database_path group to save the tensor_values in
         self.analysis_name = 'Viscosity_Flux'
-        self.x_label = 'Time (s)'
-        self.y_label = 'JACF ($C^{2}\\cdot m^{2}/s^{2}$)'
+        self.x_label = r'$$\text{Time} / s$$'
+        self.y_label = r'$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$'
 
         self.prefactor: float
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
     @call
-    def __call__(self, plot=False, data_range=500, correlation_time=1, save=True, export: bool = False,
-                 gpu: bool = False):
+    def __call__(self,
+                 plot=False,
+                 data_range=500,
+                 correlation_time=1,
+                 save=True,
+                 gpu: bool = False,
+                 integration_range: int = None):
         """
         Python constructor for the experiment class.
 
@@ -90,11 +94,22 @@ class GreenKuboViscosityFlux(Calculator):
                 Number of configurations to include in each ensemble
         """
 
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot, data_range=data_range, save=save,
+            correlation_time=correlation_time, gpu=gpu)
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
+
+        if integration_range is None:
+            self.integration_range = self.data_range
+        else:
+            self.integration_range = integration_range
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
 
     def _update_output_signatures(self):
         """
@@ -149,17 +164,18 @@ class GreenKuboViscosityFlux(Calculator):
         -------
         updates class vacf with the tensor_values.
         """
-        jacf = (signal.correlate(ensemble[:, 0],
-                                 ensemble[:, 0],
-                                 mode='full', method='auto') +
-                signal.correlate(ensemble[:, 1],
-                                 ensemble[:, 1],
-                                 mode='full', method='auto') +
-                signal.correlate(ensemble[:, 2],
-                                 ensemble[:, 2],
-                                 mode='full', method='auto'))
+        jacf = self.data_range * tf.reduce_sum(
+            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0,
+                                       center=False),
+            axis=-1,
+        )
         self.jacf += jacf[int(self.data_range - 1):]
-        self.sigma.append(np.trapz(jacf[int(self.data_range - 1):], x=self.time))
+        self.sigma.append(
+            np.trapz(
+                jacf[: self.integration_range],
+                x=self.time[: self.integration_range]
+            )
+        )
 
     def _post_operation_processes(self, species: str = None):
         """
@@ -170,29 +186,26 @@ class GreenKuboViscosityFlux(Calculator):
         """
         result = self.prefactor*np.array(self.sigma)
 
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': np.mean(result), 'uncertainty': np.std(result)/(np.sqrt(len(result)))}]
-                      }
-        self._update_properties_file(properties)
+        data = {
+            'viscosity': result[0],
+            'uncertainty': result[1],
+            'time': self.time.tolist(),
+            'acf': self.jacf.numpy().tolist()
+        }
+
+        self.queue_data(data=data, subjects=['System'])
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.jacf)
-            self._plot_data()
-
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.jacf)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.jacf))
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range - 1],
+                dimension='height',
+                line_dash='dashed'
+            )
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.jacf.numpy(),
+                title=f"{result[0]} +- {result[1]}",
+                layouts=[span]
+            )

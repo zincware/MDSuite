@@ -18,7 +18,6 @@ calculations performed.
 """
 from __future__ import annotations
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 from typing import Union, Any, List
@@ -30,6 +29,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
+    from mdsuite.database.scheme import Computation
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -90,9 +90,11 @@ class EinsteinDiffusionCoefficients(Calculator):
         self.species = None
         self.molecules = None
         self.database_group = 'Diffusion_Coefficients'
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$)'
-        self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
+        self.x_label = r'$$ \text{Time} / s$$'
+        self.y_label = r'$$ \text{MSD} / m^{2}$$'
+        self.result_keys = ['diffusion_coefficient', 'uncertainty']
+        self.result_series_keys = ['time', 'msd']
+        self.analysis_name = 'Einstein Self-Diffusion Coefficients'
         self.loop_condition = False
         self.optimize = None
         self.msd_array = None  # define empty msd array
@@ -111,10 +113,40 @@ class EinsteinDiffusionCoefficients(Calculator):
                  export: bool = False,
                  molecules: bool = False,
                  tau_values: Union[int, List, Any] = np.s_[:],
-                 gpu: bool = False):
+                 gpu: bool = False) -> Computation:
 
-        # TODO Docstrings!!
+        """
 
+        Parameters
+        ----------
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        optimize : bool
+                If true, an optimization loop will be run.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        tau_values : Union[int, list, np.s_]
+                Selection of tau values to use in the window sliding.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+
+        Returns
+        -------
+        None
+        """
         self.update_user_args(plot=plot,
                               data_range=data_range,
                               save=save,
@@ -123,6 +155,7 @@ class EinsteinDiffusionCoefficients(Calculator):
                               tau_values=tau_values,
                               export=export,
                               gpu=gpu)
+
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
@@ -134,6 +167,15 @@ class EinsteinDiffusionCoefficients(Calculator):
                 self.species = list(self.experiment.molecules)
             else:
                 self.species = list(self.experiment.species)
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            molecules=molecules,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            species=species
+        )
 
     def _update_output_signatures(self):
         """
@@ -210,45 +252,12 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": [species],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
 
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": [species],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"}
-            self._update_properties_file(properties)
+        data = {
+            self.result_keys[0]: result[0],
+            self.result_keys[1]: result[1],
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.msd_array.tolist()
+        }
 
-        if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
-
-        if self.plot:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'],
-                     self.msd_array * self.experiment.units['time'],
-                     label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
-
-    def _optimized_calculation(self):
-        """
-        Run an range optimized calculation
-        """
-        # Optimize the data_range parameter
-        # for item in self.species:
-        #     while not self.loop_condition:
-        #         tensor_values = self._self_diffusion_coefficients(item, parse=True)
-        #         self._optimize_einstein_data_range(tensor_values=tensor_values)
-        #
-        #     self.loop_condition = False
-        #     result = self._fit_einstein_curve(tensor_values)  # get the final fits
-        #     self._update_properties_file(item='Singular', sub_item=item, tensor_values=result)
-        pass
+        self.queue_data(data=data, subjects=[species])

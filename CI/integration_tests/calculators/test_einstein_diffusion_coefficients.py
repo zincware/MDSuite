@@ -8,85 +8,59 @@ Copyright Contributors to the Zincware Project.
 
 Description: Test for the einstein_diffusion_coefficients
 """
-
-import json
-import os
-
 import pytest
-
-import numpy as np
-import urllib.request
-import gzip
-import shutil
-from pathlib import Path
-
-import data as static_data
+import os
 import mdsuite as mds
+import urllib.request
+import json
+import shutil
+from . import base_path
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
-def traj_files(tmp_path_factory) -> list:
-    """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
-    base_url = "https://github.com/zincware/ExampleData/raw/main/"
+def traj_file(tmp_path_factory) -> str:
+    """Download trajectory file into a temporary directory and keep it for all tests"""
+    compressed_file = "NaCl_gk_i_q.zip"
+    uncompressed_file = 'NaCl_gk_i_q.lammpstraj'
 
-    files_in_url = [
-        "NaCl_gk_i_q.lammpstraj",
-        # "NaCl_gk_ni_nq.lammpstraj",
-        # "NaCl_i_q.lammpstraj",
-        # "NaCl_ni_nq.lammpstraj",
-    ]
+    conv_raw = "?raw=true"
+    compressed_file_path = base_path + compressed_file + conv_raw
 
-    files = []
     temporary_path = tmp_path_factory.getbasetemp()
+    urllib.request.urlretrieve(
+        compressed_file_path, filename=temporary_path / compressed_file
+    )
 
-    for item in files_in_url:
-        filename, headers = urllib.request.urlretrieve(
-            f"{base_url}{item}.gz", filename=f"{temporary_path / item}.gz"
-        )
-        with gzip.open(filename, "rb") as f_in:
-            new_file = temporary_path / item
-            with open(new_file, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
+    shutil.unpack_archive(
+        filename=temporary_path / compressed_file,
+        extract_dir=temporary_path
+    )
 
-            files.append(new_file.as_posix())
-
-    return files
+    return (temporary_path / uncompressed_file).as_posix()
 
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Values to compare to"""
-    static_path = Path(static_data.__file__).parent
-    data = static_path / 'einstein_diffusion_coefficients.json'
-    return json.loads(data.read_bytes())
+    """Example fixture for downloading analysis results from github"""
+    # --- Change Me --- #
+    file = "EinsteinDiffusionCoefficients.json"
+    # ----------------- #
+
+    conv_raw = "?raw=true"
+
+    with urllib.request.urlopen(base_path + "analysis/" + file + conv_raw) as url:
+        out = json.loads(url.read().decode())
+
+    return out
 
 
-def test_rdf_project(traj_files, true_values, tmp_path):
+def test_project(traj_file, true_values, tmp_path):
     """Test the EinsteinDiffusionCoefficients called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
 
-    project.run_computation.EinsteinDiffusionCoefficients(plot=False, data_range=300, correlation_time=1)
+    computation = project.run.EinsteinDiffusionCoefficients(plot=False)
 
-    data_dict = project.load_data.EinsteinDiffusionCoefficients()[0].data_dict
-
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
-
-
-def test_rdf_experiment(traj_files, true_values, tmp_path):
-    """Test the EinsteinDiffusionCoefficients called from the experiment class"""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
-
-    project.experiments['NaCl'].run_computation.EinsteinDiffusionCoefficients(plot=False, data_range=300,
-                                                                              correlation_time=1)
-
-    data_dict = project.experiments['NaCl'].load_data.EinsteinDiffusionCoefficients()[0].data_dict
-
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values)

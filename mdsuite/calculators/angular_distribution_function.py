@@ -16,8 +16,8 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
 from mdsuite.utils.linalg import get_angles
-import matplotlib.pyplot as plt
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
 
@@ -89,17 +89,19 @@ class AngularDistributionFunction(Calculator, ABC):
         self.species = None
         self.number_of_atoms = None
         self.norm_power = None
+        self.result_series_keys = ['angle', 'adf']
 
         # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
         self.n_minibatches = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
         self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'Angle ($\theta$)'
-        self.y_label = 'ADF /a.u.'
+        self.x_label = r'$$\text{Angle} / \theta $$'
+        self.y_label = r'$$\text{ADF} / a.u.$$'
 
     @call
-    def __call__(self, batch_size: int = 1,
+    def __call__(self,
+                 batch_size: int = 1,
                  n_minibatches: int = 50,
                  n_confs: int = 5,
                  r_cut: int = 6.0,
@@ -108,12 +110,11 @@ class AngularDistributionFunction(Calculator, ABC):
                  bins: int = 500,
                  species: list = None,
                  use_tf_function: bool = False,
-                 export: bool = False,
                  molecules: bool = False,
                  gpu: bool = False,
                  plot: bool = True,
                  norm_power: int = 4,
-                 **kwargs):
+                 **kwargs) -> Computation:
         """
         Parameters
         ----------
@@ -132,22 +133,32 @@ class AngularDistributionFunction(Calculator, ABC):
         bins: int
             bins for the ADF
         use_tf_function: bool, default False
-            activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
-            may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
-            so this might only be useful for a larger number of batches.
+            activate the tf.function decorator for the minibatches. Can speed
+            up the calculation significantly, but may lead to excessive use of
+            memory! During the first batch, this function will be traced.
+            Tracing is slow, so this might only be useful for a larger number
+            of batches.
         species : list
             A list of species to use.
         norm_power: int
-            The power of the normalization factor applied to the ADF histogram. If set to zero no distance normalization
-            will be applied.
+            The power of the normalization factor applied to the ADF histogram.
+            If set to zero no distance normalization will be applied.
+        molecules : bool
+                if true, perform the anlaysis on molecules.
+        gpu : bool
+                if true, scale the memory requirements to that of the biggest
+                GPU on the machine.
+        plot : bool
+                If true, plot the result of the analysis.
 
         Notes
         -----
-        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
+        # TODO _n_batches is used instead of n_batches because the memory
+        management is not yet implemented correctly
 
         """
         # Parse the parent class arguments.
-        self.update_user_args(data_range=1, export=export, gpu=gpu, plot=plot)
+        self.update_user_args(data_range=1, gpu=gpu, plot=plot)
 
         # Parse the user arguments.
         self.use_tf_function = use_tf_function
@@ -163,6 +174,17 @@ class AngularDistributionFunction(Calculator, ABC):
         self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
+
+        return self.update_db_entry_with_kwargs(
+            r_cut=r_cut,
+            start=start,
+            stop=stop,
+            molecules=molecules,
+            n_confs=n_confs,
+            bins=bins,
+            species=species,
+            norm_power=norm_power
+        )
 
     def _check_inputs(self):
         """
@@ -416,24 +438,17 @@ class AngularDistributionFunction(Calculator, ABC):
                                               self.bin_range[1] * (180 / 3.14159),
                                               self.bins)
 
+            self.selected_species = [_species[0] for _species in species]
+
             self.data_range = self.n_confs
             log.debug(f"species are {species}")
-            if self.save or self.export:
-                properties = {"Property": self.database_group,
-                              "Analysis": self.analysis_name,
-                              "Subject": [_species[0] for _species in species],
-                              "data_range": self.data_range,
-                              'data': [{'x': x, 'y': y} for x, y in zip(bin_range_to_angles, hist)],
-                              }
-                self._update_properties_file(properties, delete_duplicate=False)
-                log.warning("Delete duplicates is not supported for calculators "
-                            "that involve more then 3 species!")
 
-            if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(bin_range_to_angles, hist, label=name)
-                ax.set_title(f"{name} - Max: {bin_range_to_angles[tf.math.argmax(hist)]:.3f}° ")
-                self._plot_fig(fig, ax, title=name)
+            data = {
+                self.result_series_keys[0]: bin_range_to_angles.tolist(),
+                self.result_series_keys[1]: hist.numpy().tolist()
+            }
+
+            self.queue_data(data=data, subjects=self.selected_species)
 
     def run_experimental_analysis(self):
         """
@@ -449,59 +464,15 @@ class AngularDistributionFunction(Calculator, ABC):
         angles = self._build_histograms(sample_configs, species_indices)
         self._compute_adfs(angles, species_indices)
 
-    # Methods required by parent, all are empty.
-    def _calculate_prefactor(self, species: str = None):
-        """
-        calculate the calculator pre-factor.
+    def plot_data(self, data):
+        """Plot data"""
+        for selected_species, val in data.items():
+            bin_range_to_angles = np.linspace(self.bin_range[0] * (180 / 3.14159),
+                                              self.bin_range[1] * (180 / 3.14159),
+                                              len(val[self.result_series_keys[0]]))
 
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
-
-    def _post_operation_processes(self, species: str = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        pass
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]),
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=f"{selected_species} - Max: {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees ",
+            )

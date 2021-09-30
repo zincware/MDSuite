@@ -84,7 +84,14 @@ def test_add_file_from_dict(traj_files, tmp_path):
 
 
 def test_multiple_experiments(tmp_path):
-    """Test the paths within the experiment classes"""
+    """Test the paths within the experiment classes
+
+    Parameters
+    ----------
+    tmp_path:
+        default pytest fixture
+
+    """
     os.chdir(tmp_path)
 
     project = mds.Project()
@@ -96,5 +103,3 @@ def test_multiple_experiments(tmp_path):
 
     assert project.experiments.Test01.experiment_path == project_loaded.experiments.Test01.experiment_path
     assert project.experiments.Test02.experiment_path == project_loaded.experiments.Test02.experiment_path
-
-

@@ -156,7 +156,7 @@ class MolecularGraph:
         return self._apply_system_cutoff(distance_matrix, cutoff)
 
     @staticmethod
-    def reduce_graphs(adjacency_matrix: tf.Tensor):
+    def reduce_graphs(adjacency_matrix: tf.Tensor, n_molecules: int = None):
         """
         Reduce an adjacency matrix into a linear combination of sub-matrices.
 
@@ -164,8 +164,35 @@ class MolecularGraph:
         ----------
         adjacency_matrix : tf.Tensor
                 Adjacency tensor to reduce.
+        n_molecules : int
+                Number of molecules that should be found after the reduction.
+                If a number is passed here and the reduced number if not equal
+                to the argument, the kernel is exited by a raised error. If
+                nothing is passed, no checks are performed.
         """
+
+        def check_a_in_b(a, b):
+            """Check if any value of a is in b
+
+            Parameters
+            ----------
+            a: tf.Tensor
+            b: tf.Tensor
+
+            Returns
+            -------
+            bool
+
+            """
+            x = tf.unstack(a)
+            for x1 in x:
+                if tf.reduce_any(b == x1):
+                    return True
+            return False
+
+
         molecules = {}
+        # TODO speed up
         for i in tqdm(range(len(adjacency_matrix)), desc="Building molecules"):
             indices = tf.where(adjacency_matrix[i])
             indices = tf.reshape(indices, (len(indices)))
@@ -175,7 +202,7 @@ class MolecularGraph:
             else:
                 molecule = None
                 for mol in molecules:
-                    if any(x in molecules[mol] for x in indices):
+                    if check_a_in_b(indices, molecules[mol]):
                         molecule = mol
                         molecules[mol] = tf.concat([molecules[mol], indices],
                                                    0)
@@ -197,4 +224,12 @@ class MolecularGraph:
         for item in del_list:
             molecules.pop(item)
 
-        return molecules
+        if n_molecules is None:
+            return molecules
+        else:
+            if len(molecules) != n_molecules:
+                raise ValueError("Expected number of molecules does not "
+                                 "match the amount computed, please adjust"
+                                 "parameters.")
+            else:
+                return molecules

@@ -76,9 +76,7 @@ def test_add_run_load_data(project, traj_files):
     # Check that 4 experiments have been created
     assert len(project.experiments) == 4
 
-    project.run_computation.RadialDistributionFunction(plot=False)
-
-    loaded_data = project.load_data.RadialDistributionFunction()
+    loaded_data = project.run.RadialDistributionFunction(plot=False)
 
     # Check that data for 4 experiments has been loaded
     assert len(loaded_data) == 4
@@ -87,4 +85,4 @@ def test_add_run_load_data(project, traj_files):
 
     # Each loaded data should contain 3 entries, Na-Na, Na-Cl, Cl-Cl
     for data in loaded_data.values():
-        assert len(data) == 3
+        assert len(data.data_dict) == 3

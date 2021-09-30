@@ -18,12 +18,12 @@ class can then be called by the Experiment.green_kubo_thermal_conductivity
  method and all necessary calculations performed.
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 import tensorflow_probability as tfp
+from bokeh.models import Span
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -70,8 +70,8 @@ class GreenKuboThermalConductivity(Calculator):
         self.database_group = "Thermal_Conductivity"
         self.system_property = True
 
-        self.x_label = "Time (s)"
-        self.y_label = r"JACF ($C^{2}\cdot m^{2}/s^{2}$)"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Thermal_Conductivity"
 
     @call
@@ -81,29 +81,35 @@ class GreenKuboThermalConductivity(Calculator):
         data_range=500,
         save=True,
         correlation_time: int = 1,
-        export: bool = False,
         gpu: bool = False,
         integration_range: int = None,
     ):
         """
         Class for the Green-Kubo Thermal conductivity implementation
 
-        Attributes
+        Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
-        correlation_time: int
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+        integration_range : int
+                Range over which the integration should be performed.
         """
         self.update_user_args(
             plot=plot,
             data_range=data_range,
             save=save,
             correlation_time=correlation_time,
-            export=export,
             gpu=gpu,
         )
 
@@ -115,6 +121,11 @@ class GreenKuboThermalConductivity(Calculator):
             self.integration_range = self.data_range
         else:
             self.integration_range = integration_range
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time
+        )
 
     def _update_output_signatures(self):
         """
@@ -203,43 +214,27 @@ class GreenKuboThermalConductivity(Calculator):
 
         """
         result = self.prefactor * np.array(self.sigma)
-        properties = {
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "Subject": ["System"],
-            "data_range": self.data_range,
-            "data": [
-                {
-                    "x": np.mean(result),
-                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
-                }
-            ],
+
+        data = {
+            "computation_results": result[0],
+            "uncertainty": result[1],
+            'time': self.time.tolist(),
+            'acf': self.jacf.numpy().tolist()
         }
-        self._update_properties_file(properties)
+
+        self.queue_data(data=data, subjects=['System'])
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units["time"], self.jacf)
-            plt.vlines(
-                (np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range
-                ],
-                min(self.jacf),
-                max(self.jacf),
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range - 1],
+                dimension='height',
+                line_dash='dashed'
             )
-            self._plot_data()
-        if self.save:
-            properties = {
-                "Property": self.database_group,
-                "Analysis": self.analysis_name,
-                "Subject": ["System"],
-                "data_range": self.data_range,
-                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.jacf)],
-                "information": "series",
-            }
-            self._update_properties_file(properties)
-        if self.export:
-            self._export_data(
-                name=self._build_table_name("System"),
-                data=self._build_pandas_dataframe(self.time, self.jacf),
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.jacf.numpy(),
+                title=f"{result[0]} +- {result[1]}",
+                layouts=[span]
             )

@@ -13,11 +13,11 @@ Summary
 -------
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
+
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -46,7 +46,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
+    experiment.run.EinsteinHelfandTThermalConductivity(data_range=500, plot=True, correlation_time=10)
     """
 
     def __init__(self, **kwargs):
@@ -67,11 +67,12 @@ class EinsteinHelfandThermalConductivity(Calculator):
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Thermal_Conductivity'
+        self.x_label = r'$$\text{Time} / s$$'
+        self.y_label = r'$$\text{MSD}  / m^2/s$$'
+        self.analysis_name = 'Einstein Helfand Thermal Conductivity'
 
-        self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in
+        # Which database_path group to save the tensor_values in
+        self.database_group = 'Thermal_Conductivity'
 
         self.prefactor: float
 
@@ -84,16 +85,24 @@ class EinsteinHelfandThermalConductivity(Calculator):
         Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
         """
 
         # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot, data_range=data_range, save=save,
+            correlation_time=correlation_time, export=export, gpu=gpu)
 
         self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
@@ -161,29 +170,18 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
+
+        data = {
+            'thermal_conductivity': result[0],
+            'uncertainty': result[1],
+            'time': self.time.tolist(),
+            'msd': self.msd_array.tolist()
+        }
+        self.queue_data(data=data, subjects=['System'])
 
         # Update the plot if required
         if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array)
-            self._plot_data()
-
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(name=self._build_table_name("System"),
-                              data=self._build_pandas_dataframe(self.time, self.msd_array))
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units['time'],
+                y_data=self.msd_array * self.experiment.units['time'],
+                title=f'{result[0]} += {result[1]}')

@@ -16,17 +16,12 @@ from __future__ import annotations
 
 import logging
 import numpy as np
-import os
-import abc
 import random
-import sys
-import matplotlib.figure
-import matplotlib.pyplot as plt
-from matplotlib.axes._subplots import Axes
 from pathlib import Path
 import tensorflow as tf
 import pandas as pd
 from scipy.optimize import curve_fit
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.utils.exceptions import RangeExceeded
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.memory_management.memory_manager import MemoryManager
@@ -37,6 +32,8 @@ from mdsuite.calculators.transformations_reference import \
 from mdsuite.database.calculator_database import CalculatorDatabase
 from tqdm import tqdm
 from typing import Union, List, Any
+
+import functools
 
 from typing import TYPE_CHECKING
 
@@ -49,10 +46,11 @@ log = logging.getLogger(__name__)
 def call(func):
     """Decorator for the calculator call method
 
-    This decorator provides a unified approach for handling run_computation and load_data for a single or multiple
-    experiments.
-    It handles the `run_computation()` method, iterates over experiments and loads data if requested!
-    Therefore, the __call__ method does not and can not return any values anymore!
+    This decorator provides a unified approach for handling run_computation and
+    load_data for a single or multiple experiments.
+    It handles the `run_computation()` method, iterates over experiments and
+    loads data if requested! Therefore, the __call__ method does not and can
+    not return any values anymore!
 
     Parameters
     ----------
@@ -64,6 +62,7 @@ def call(func):
 
     """
 
+    @functools.wraps(func)
     def inner(self, *args, **kwargs):
         """Manage the call method
 
@@ -75,20 +74,39 @@ def call(func):
         Returns
         -------
         data:
-            A dictionary of shape {name: data} for multiple len(experiments) > 1 or otherwise just data
+            A dictionary of shape {name: data} when called from the project class
+            A list of [data] when called directly from the experiment class
         """
+        # This is only true, when called via project.experiments.Exp.run_computation,
+        #  otherwise the experiment will be None
+        return_dict = self.experiment is None
+
         out = {}
         for experiment in self.experiments:
             self.experiment = experiment
-            func(self, *args, **kwargs)
-            if self.load_data:
-                out[self.experiment.name] = self.experiment.export_property_data(
-                    {"Analysis": self.analysis_name, "experiment": self.experiment.name}
-                )
+            self.clean_cache()
+            data = func(self, *args, **kwargs)
+            if data is None:
+                # new calculation will be performed
+                self.prepare_db_entry()
+                self.run_analysis()
+                self.save_db_data()
+                data = func(self, *args, **kwargs)
+            elif self.load_data:
+                raise NotImplementedError("Please user <exp/proj>.run.<method> instead of load!")
             else:
-                out[self.experiment.name] = self.run_analysis()
+                # Calculation already performed
+                pass
 
-        if len(self.experiments) > 1:
+            out[self.experiment.name] = data
+
+            if self.plot:
+                """Plot the data"""
+                self.plotter = DataVisualizer2D(title=self.analysis_name)
+                self.plot_data(data.data_dict)
+                self.plotter.grid_show(self.plot_array)
+
+        if return_dict:
             return out
         else:
             return out[self.experiment.name]
@@ -120,11 +138,14 @@ class Calculator(CalculatorDatabase):
     n_batches : dict
             Number of barthes to use as a dictionary for both serial and
             parallel implementations
+    plot_array : list
+            A list of plot objects to be show together at the end of the
+            species loop.
     """
 
     def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, plot: bool = True,
                  save: bool = True, data_range: int = 500,
-                 correlation_time: int = 1, atom_selection: object = np.s_[:], export: bool = True, gpu: bool = False,
+                 correlation_time: int = 1, atom_selection: object = np.s_[:], gpu: bool = False,
                  load_data: bool = False):
         """
         Constructor for the calculator class.
@@ -145,8 +166,6 @@ class Calculator(CalculatorDatabase):
                 Correlation time to use in the analysis.
         atom_selection : np.s_
                 Atoms to perform the analysis on.
-        export : bool
-                If true, analysis results are exported to a csv file.
         gpu : bool
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
@@ -163,7 +182,6 @@ class Calculator(CalculatorDatabase):
         self.data_range = data_range
         self.plot = plot
         self.save = save
-        self.export = export
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
         self.database = None
@@ -182,11 +200,19 @@ class Calculator(CalculatorDatabase):
         self.batch_output_signature = None
         self.ensemble_output_signature = None
         self.species = None
+        # all species that are used in the calculation
+        self.selected_species = None
+        # the selected species which the current calculation iteration is performed on
         self.database_group = None
         self.analysis_name = None
         self.tau_values = None
         self.time = None
         self.data_resolution = None
+        self.plotter = None
+        # e.g. [diffusion_coefficient, uncertainty]
+        self.result_keys = None
+        # e.g., [time, msd]
+        self.result_series_keys = None
 
         # Set during operation or by child class
         self.batch_size: int
@@ -203,6 +229,7 @@ class Calculator(CalculatorDatabase):
         self.x_label: str
         self.y_label: str
         self.analysis_name: str
+        self.plot_array = []
 
         self.database_group = None
         self.analysis_name = None
@@ -211,13 +238,11 @@ class Calculator(CalculatorDatabase):
         self._dtype = tf.float64
 
     def update_user_args(self,
-                         plot: bool = True,
-                         save: bool = True,
+                         plot: bool,
                          data_range: int = 500,
                          correlation_time: int = 1,
                          atom_selection: object = np.s_[:],
                          tau_values: Union[int, List, Any] = np.s_[:],
-                         export: bool = True,
                          gpu: bool = False,
                          *args,
                          **kwargs):
@@ -237,8 +262,6 @@ class Calculator(CalculatorDatabase):
                 Correlation time to use in the analysis.
         atom_selection : object
                 Atoms to perform the analysis on.
-        export : bool
-                If true, analysis results are exported to a csv file.
         gpu : bool
                 If true, reduce memory usage to what is allowed on the system
                 GPU.
@@ -254,8 +277,6 @@ class Calculator(CalculatorDatabase):
 
         self.data_range = data_range
         self.plot = plot
-        self.save = save
-        self.export = export
         self.gpu = gpu
         self.tau_values = tau_values
         self.correlation_time = correlation_time
@@ -264,7 +285,6 @@ class Calculator(CalculatorDatabase):
         # attributes based on user args
         self.time = self._handle_tau_values()  # process selected tau values.
 
-    @abc.abstractmethod
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
         calculate the calculator pre-factor.
@@ -279,7 +299,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _apply_operation(self, data, index):
         """
         Perform operation on an ensemble.
@@ -294,7 +313,6 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _apply_averaging_factor(self):
         """
         Apply an averaging factor to the tensor_values.
@@ -304,17 +322,21 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
         call the post-op processes
+
+        Parameters
+        ----------
+        species : Union[str, tuple]
+                List or tuple of species fo which this post-operation process
+                is being applied.
         Returns
         -------
 
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _update_output_signatures(self):
         """
         After having run _prepare managers, update the output signatures.
@@ -323,7 +345,7 @@ class Calculator(CalculatorDatabase):
         -------
 
         """
-        raise NotImplementedError
+        pass
 
     @staticmethod
     def _fit_einstein_curve(data: list):
@@ -429,26 +451,6 @@ class Calculator(CalculatorDatabase):
         """
 
         return pd.DataFrame({'x': x, 'y': y})
-
-    @staticmethod
-    def _export_data(name: str, data: pd.DataFrame):
-        """
-        Export data from the analysis database.
-
-        Parameters
-        ----------
-        name : str
-                name of the tensor_values to save. Usually this is just the
-                analysis name. In the case of species specific analysis,
-                this will be further appended to include the name of the
-                species.
-        data : pd.DataFrame
-                Data to be saved.
-        Returns
-        -------
-        Saves a csv file to disc.
-        """
-        data.to_csv(name)
 
     def _msd_operation(self, ensemble: tf.Tensor, square: bool = True):
         """
@@ -565,82 +567,26 @@ class Calculator(CalculatorDatabase):
         """
         return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
 
-    def _save_data(self, name: str, data: pd.DataFrame):
+    def run_visualization(
+            self, x_data, y_data, title: str, layouts: object = None
+    ):
         """
-        Save tensor_values to the save tensor_values directory
+        Run a visualization session on the data.
 
         Parameters
         ----------
-        name : str
-                name of the tensor_values to save. Usually this is just the
-                analysis name. In the case of species specific analysis,
-                this will be further appended to include the name of the
-                species.
-        data : pd.DataFrame
-                Data to be saved.
+        x_data
+        y_data
+        title
+        span
+
+        Returns
+        -------
+
         """
-        # database = AnalysisDatabase(
-        #     name=os.path.join(self.experiment.database_path,
-        #                       "analysis_database"))
-        # database.add_data(name=name, data_frame=data)
-
-    def _plot_fig(self,
-                  fig: matplotlib.figure.Figure,
-                  ax: Axes,
-                  title: str = None,
-                  dpi: int = 600,
-                  filetype: str = 'svg'):
-        """
-        Class based plotting using fig, ax = plt.subplots
-
-        Parameters
-        ----------
-        fig: matplotlib figure
-        ax: matplotlib subplot axes
-            currently only a single axes is supported. Subplots aren't yet!
-        title: str
-            Name of the plot
-        dpi: int
-            matplotlib dpi resolution
-        filetype: str
-            matplotlib filetype / format
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        ax.set_xlabel(rf'{self.x_label}')
-        ax.set_ylabel(rf'{self.y_label}')
-        ax.legend()
-        fig.set_facecolor("w")
-        fig.show()
-
-        fig.savefig(os.path.join(self.experiment.figures_path, f"{title}.svg"),
-                    dpi=dpi, format=filetype)
-
-    def _plot_data(self, title: str = None, manual: bool = False,
-                   dpi: int = 600):
-        """
-        Plot the tensor_values generated during the analysis
-        """
-
-        if title is None:
-            title = f"{self.analysis_name}"
-
-        if manual:
-            plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
-                dpi=dpi,
-                format='svg')
-        else:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.legend()  # enable the legend
-            plt.savefig(
-                os.path.join(self.experiment.figures_path,
-                             f"{title}.svg"),
-                dpi=dpi, format='svg')
+        self.plot_array.append(self.plotter.construct_plot(
+            x_data=x_data, y_data=y_data, title=title, x_label=self.x_label, y_label=self.y_label, layouts=layouts
+        ))
 
     def _check_input(self):
         """
@@ -730,13 +676,6 @@ class Calculator(CalculatorDatabase):
         """
         log.warning("Using depreciated method `_update_properties_file` \t Please use `update_database` instead.")
         self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
-        #
-        #
-        #
-        # database = PropertiesDatabase(
-        #     name=os.path.join(self.experiment.database_path,
-        #                       'property_database'))
-        # database.add_data(parameters, delete_duplicate)
 
     def _resolve_dependencies(self, dependency):
         """
@@ -853,18 +792,12 @@ class Calculator(CalculatorDatabase):
             self._apply_averaging_factor()
             self._post_operation_processes()
 
-            if self.plot:
-                plt.legend()
-                plt.show()
-
         elif self.experimental:
             data_path = [join_path(species,
                                    self.loaded_property) for species
                          in self.experiment.species]
             self._prepare_managers(data_path)
-            output = self.run_experimental_analysis()
-
-            return output
+            self.run_experimental_analysis()
 
         elif self.post_generation:
             self.run_post_generation_analysis()
@@ -905,10 +838,6 @@ class Calculator(CalculatorDatabase):
                 self._apply_averaging_factor()
                 self._post_operation_processes(species)
 
-            if self.plot:
-                plt.legend()
-                plt.show()
-
     def run_experimental_analysis(self):
         """
         For experimental methods
@@ -944,7 +873,16 @@ class Calculator(CalculatorDatabase):
         """Get the dtype used for the calculator"""
         return self._dtype
 
-    # @property
-    # def data(self):
-    #     """Return the data that may have previously been generated with the same parameters"""
-    #     return self.experiment.export_property_data(parameters={"Analysis": self.name})
+    def plot_data(self, data):
+        """Plot the data coming from the database
+
+        Parameters
+        ----------
+        data: db.Compution.data_dict associated with the current project
+        """
+        for selectected_species, val in data.items():
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                y_data=np.array(val[self.result_series_keys[1]]) * self.experiment.units['time'],
+                title=f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}"
+            )

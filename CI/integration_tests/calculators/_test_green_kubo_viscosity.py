@@ -68,9 +68,9 @@ def test_gkv_project(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.GreenKuboViscosity(plot=False)
+    project.run.GreenKuboViscosity(plot=False)
 
-    data_dict = project.load_data.GreenKuboViscosity()[0].data_dict
+    data_dict = project.load.GreenKuboViscosity()[0].data_dict
 
     data = Path(
         r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\green_kubo_viscosity.json')
@@ -87,10 +87,10 @@ def test_gkv_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.run_computation.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.experiments['NaCl'].run_computation.PotentialOfMeanForce(plot=False)
+    project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
+    project.experiments['NaCl'].run.PotentialOfMeanForce(plot=False)
 
-    data_dict = project.experiments['NaCl'].load_data.PotentialOfMeanForce()[0].data_dict
+    data_dict = project.experiments['NaCl'].load.PotentialOfMeanForce()[0].data_dict
 
     np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
     np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])

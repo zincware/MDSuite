@@ -11,10 +11,9 @@ Class for the calculation of the coordinated numbers
 """
 import logging
 import numpy as np
-import matplotlib.pyplot as plt
-from typing import Union
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
 
@@ -71,17 +70,17 @@ class KirkwoodBuffIntegral(Calculator):
         self.data_files = []
         self.rdf = None
         self.radii = None
-        self.species_tuple = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
-        self.x_label = r"r ($\AA$)"
-        self.y_label = r"$G(\mathbf{r})$"
+        self.x_label = r"$$ \text{r} / \AA$$"
+        self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
+        self.result_series_keys = ['r', 'kb_integral']
 
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False) -> Computation:
         """
         Doc string for this one.
         Parameters
@@ -98,6 +97,10 @@ class KirkwoodBuffIntegral(Calculator):
 
         self.update_user_args(
             plot=plot, save=save, data_range=data_range, export=export
+        )
+
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range
         )
 
     def _autocorrelation_time(self):
@@ -128,89 +131,27 @@ class KirkwoodBuffIntegral(Calculator):
         """
         Calculate the potential of mean-force and perform error analysis
         """
+        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
+        self.data_range = calculations.data_range
+        for selected_species, vals in calculations.data_dict.items():  # Loop over all existing RDFs
+            self.selected_species = selected_species.split("_")
 
-        for data in self._get_rdf_data():  # Loop over all existing RDFs
-            self.species_tuple = "_".join(data.subjects)
-            self.data_range = data.data_range
-
-            self._load_rdf_from_file(data)  # load the tensor_values from it
-
+            self.radii = np.array(vals["x"]).astype(float)[1:]
+            self.rdf = np.array(vals["y"]).astype(float)[1:]
             self._calculate_kb_integral()  # Integrate the rdf and calculate the KB integral
 
-            # Plot if required
-            if self.plot:
-                plt.plot(
-                    self.radii[1:], self.kb_integral, label=f"{self.species_tuple}"
-                )
-                self._plot_data(title=f"{self.analysis_name}_{self.species_tuple}")
+            data = {
+                self.result_series_keys[0]: self.radii[1:].tolist(),
+                self.result_series_keys[1]: self.kb_integral
+            }
 
-            if self.save or self.export:
-                data = [
-                    {"x": x, "y": y} for x, y in zip(self.radii[1:], self.kb_integral)
-                ]
-                log.debug(f"Writing {self.analysis_name} to database!")
-                self._update_properties_file(
-                    {
-                        "Property": self.system_property,
-                        "Analysis": self.analysis_name,
-                        "subjects": self.species_tuple.split("_"),
-                        "data_range": self.data_range,
-                        "data": data,
-                    }
-                )
+            self.queue_data(data=data, subjects=self.selected_species)
 
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
+    def plot_data(self, data):
+        """Plot the data"""
+        for selected_species, val in data.items():
+            self.run_visualization(
+                x_data=val[self.result_series_keys[0]],
+                y_data=val[self.result_series_keys[1]],
+                title=selected_species,
+            )

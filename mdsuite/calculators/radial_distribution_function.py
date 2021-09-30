@@ -23,7 +23,6 @@ import logging
 from abc import ABC
 from typing import Union
 import numpy as np
-import matplotlib.pyplot as plt
 import warnings
 
 # Import user packages
@@ -42,6 +41,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
+    from mdsuite.database.scheme import Computation
 
 # Set style preferences, turn off warning, and suppress the duplication of loading bars.
 tqdm.monitor_interval = 0
@@ -81,25 +81,23 @@ class RadialDistributionFunction(Calculator, ABC):
                                                            stop = 1000, number_of_bins = 100, use_tf_function = False)
     """
 
-    def __init__(self, experiment: Experiment, experiments=None, load_data: bool = False):
+    def __init__(self, **kwargs):
         """
         Constructor for the RDF calculator.
 
         Attributes
         ----------
-        experiment :  Experiment
-                Experiment class to call from
-        load_data: bool, default False
-                Whether RunComputation or LoadData is being called
+        kwargs: see RunComputation class for all the passed arguments
         """
-        super().__init__(experiment, experiments=experiments, load_data=load_data)
+        super().__init__(**kwargs)
 
         self.scale_function = {'quadratic': {'outer_scale_factor': 1}}
         self.loaded_property = 'Positions'
         self.database_group = 'Radial_Distribution_Function'  # Which database_path group to save the tensor_values in
-        self.x_label = r'r ($\AA$)'
-        self.y_label = 'g(r)'
+        self.x_label = r'$$r / \AA$$'
+        self.y_label = r'$$g(r)$$'
         self.analysis_name = 'Radial_Distribution_Function'
+        self.result_series_keys = ["x", "y"]
         self.experimental = True
 
         self._dtype = tf.float32
@@ -133,12 +131,11 @@ class RadialDistributionFunction(Calculator, ABC):
                  start=0,
                  stop=None,
                  number_of_configurations=500,
-                 export: bool = False,
                  minibatch: int = -1,
                  species: list = None,
                  molecules: bool = False,
                  gpu: bool = False,
-                 **kwargs):
+                 **kwargs) -> Computation:
         """
         Compute the RDF with the given user parameters
 
@@ -157,15 +154,17 @@ class RadialDistributionFunction(Calculator, ABC):
         data_range: int
             None, must be here for the parent classes to work.
         start: int
-            Starting position in the database. All values before start will be ignored.
+            Starting position in the database. All values before start will be
+            ignored.
         stop: int
-            Stopping position in the database. All values after stop will be ignored.
+            Stopping position in the database. All values after stop will be
+            ignored.
         number_of_configurations: int
-            The number of uniformly sampled configuration between start and stop to be used for the RDF.
-        export: bool
-            If true, the outcome is immediately exported to a csv file.
+            The number of uniformly sampled configuration between start and
+            stop to be used for the RDF.
         minibatch: int
-            Size of a minibatch over atoms in the batch over configurations. Decrease this value if you run into memory
+            Size of a minibatch over atoms in the batch over configurations.
+            Decrease this value if you run into memory
             issues. Increase this value for better performance.
         molecules: bool
             If true, the molecules will be analyzed rather than the atoms.
@@ -177,8 +176,6 @@ class RadialDistributionFunction(Calculator, ABC):
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
         """
-        # Calculator arguments
-        # RDF arguments
         self.number_of_bins = number_of_bins
         self.cutoff = cutoff
         self.start = start
@@ -191,7 +188,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.update_user_args(plot=plot,
                               save=save,
                               data_range=data_range,
-                              export=export,
                               gpu=gpu)
 
         # kwarg parsing
@@ -205,9 +201,15 @@ class RadialDistributionFunction(Calculator, ABC):
         self._check_input()
         self._initialize_rdf_parameters()
 
-        # # Perform analysis and save.
-        # return self.run_analysis()
-
+        return self.update_db_entry_with_kwargs(
+            data_range=self.data_range,
+            number_of_bins=number_of_bins,
+            number_of_configurations=number_of_configurations,
+            start=start,
+            stop=stop,
+            molecules=molecules,
+            species=species
+        )
 
     def _initialize_rdf_parameters(self):
         """
@@ -341,32 +343,22 @@ class RadialDistributionFunction(Calculator, ABC):
         Updates the class state
         """
         for names in self.key_list:
+            self.selected_species = names.split("_")
+            # TODO use selected_species instead of names, it is more clear!
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
 
             self.rdf.update({names: self.rdf.get(names) * prefactor})  # Apply the prefactor
-
-            if self.plot:
-                fig, ax = plt.subplots()
-                ax.plot(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names), label=names)
-                self._plot_fig(fig, ax, title=names)  # Plot the tensor_values if necessary
+            log.debug("Writing RDF to database!")
 
             self.data_range = self.number_of_configurations
-            if self.save:
-                data = [{"x": x, "y": y} for x, y in
-                        zip(np.linspace(0.0, self.cutoff, self.number_of_bins), self.rdf.get(names))]
-                log.debug("Writing RDF to database!")
-                self._update_properties_file({
-                    "Property": "RDF",  # TODO this should be dynamic
-                    "Analysis": self.analysis_name,
-                    "subjects": names.split("_"),
-                    "data_range": self.data_range,
-                    "data": data
-                })
-            if self.export:
-                self._export_data(name=self._build_table_name(names),
-                                  data=self._build_pandas_dataframe(np.linspace(0.0, self.cutoff, self.number_of_bins),
-                                                                    self.rdf.get(names)))
+            data = {
+                self.result_series_keys[0]: np.linspace(0.0, self.cutoff, self.number_of_bins).tolist(),
+                self.result_series_keys[1]: self.rdf.get(names).tolist()
+            }
 
+            self.queue_data(data=data, subjects=self.selected_species)
+
+        # TODO remove rdf_state
         self.experiment.radial_distribution_function_state = True  # update the state
 
     def _correct_batch_properties(self):
@@ -705,45 +697,12 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return _piecewise(np.array(bin_edges)) * bin_width
 
-    # Calculator class methods required by the parent class -- All are empty.
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
-
-    def _post_operation_processes(self, species: str = None):
-        """
-        call the post-op processes
-        Returns
-        -------
-
-        """
-        pass
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass
+    def plot_data(self, data):
+        """Plot the RDF data"""
+        for selected_species, val in data.items():
+            # TODO fix units!
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]]),
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=selected_species,
+            )

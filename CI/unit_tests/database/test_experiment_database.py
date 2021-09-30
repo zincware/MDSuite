@@ -54,18 +54,6 @@ def test_project_time_step():
     assert project_2.experiments['Exp01'].time_step == 1
 
 
-def test_project_unit_system():
-    """Test that the project description is stored correctly in the database"""
-
-    project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].unit_system = "real"
-
-    project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].unit_system == "real"
-
-
 def test_project_number_of_configurations():
     """Test that the project description is stored correctly in the database"""
 
@@ -89,6 +77,32 @@ def test_project_number_of_atoms():
     project_2.load_experiments('Exp01')
     assert project_2.experiments['Exp01'].number_of_atoms == 100
 
+
+def test_species():
+    """Test that the species are stored correctly in the database"""
+
+    species = {"H": {'indices': [1, 2, 3], 'mass': 1}, 'Cl': {'indices': [4, 5, 6], 'mass': 35.45}}
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01")
+    project_1.experiments['Exp01'].species = species
+
+    project_2 = mds.Project()
+    project_2.load_experiments('Exp01')
+    assert project_2.experiments['Exp01'].species == species
+
+def test_molecules():
+    """Test that the molecules are stored correctly in the database"""
+
+    molecule = {"Proton": {'indices': [1, 2, 3], 'mass': 1}, 'Chloride': {'indices': [4, 5, 6], 'mass': 35.45}}
+
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01")
+    project_1.experiments['Exp01'].molecules = molecule
+
+    project_2 = mds.Project()
+    project_2.load_experiments('Exp01')
+    assert project_2.experiments['Exp01'].molecules == molecule
 
 def test_project_box_array():
     """Test that the project description is stored correctly in the database"""
