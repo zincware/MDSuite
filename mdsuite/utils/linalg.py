@@ -1,11 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
+
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 
 import tensorflow as tf
@@ -25,9 +42,12 @@ def angle_between(v1, v2, acos=True):
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     # return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-    # return tf.math.acos(tf.clip_by_value(tf.einsum("ijk, ijk -> ij", v1_u, v2_u), -1.0, 1.0))
+    # return tf.math.acos(tf.clip_by_value(tf.einsum("ijk, ijk -> ij", v1_u, v2_u),
+    # -1.0, 1.0))
     if acos:
-        return tf.math.acos(tf.clip_by_value(tf.einsum("ij, ij -> i", v1_u, v2_u), -1.0, 1.0))
+        return tf.math.acos(
+            tf.clip_by_value(tf.einsum("ij, ij -> i", v1_u, v2_u), -1.0, 1.0)
+        )
     else:
         return tf.einsum("ij, ij -> i", v1_u, v2_u)
 
@@ -53,10 +73,16 @@ def get_angles(r_ij_mat, indices, acos=True):
     tf.Tensor: Tensor with the shape (triples)
     """
 
-    r_ij = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1))
-    r_ik = tf.gather_nd(r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1))
+    r_ij = tf.gather_nd(
+        r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1)
+    )
+    r_ik = tf.gather_nd(
+        r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1)
+    )
 
-    return angle_between(r_ij, r_ik, acos), tf.linalg.norm(r_ij, axis=-1) * tf.linalg.norm(r_ik, axis=-1)
+    return angle_between(r_ij, r_ik, acos), tf.linalg.norm(
+        r_ij, axis=-1
+    ) * tf.linalg.norm(r_ik, axis=-1)
 
 
 @tf.function(experimental_relax_shapes=True)

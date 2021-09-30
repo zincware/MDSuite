@@ -1,13 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Parent class for MDSuite transformations
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 from __future__ import annotations
 import time
@@ -21,16 +36,17 @@ from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
 switcher_transformations = {
-    'Translational_Dipole_Moment': 'TranslationalDipoleMoment',
-    'Ionic_Current': 'IonicCurrent',
-    'Integrated_Heat_Current': 'IntegratedHeatCurrent',
-    'Thermal_Flux': 'ThermalFlux',
-    'Momentum_Flux': 'MomentumFlux',
-    'Kinaci_Heat_Current': 'KinaciIntegratedHeatCurrent'
+    "Translational_Dipole_Moment": "TranslationalDipoleMoment",
+    "Ionic_Current": "IonicCurrent",
+    "Integrated_Heat_Current": "IntegratedHeatCurrent",
+    "Thermal_Flux": "ThermalFlux",
+    "Momentum_Flux": "MomentumFlux",
+    "Kinaci_Heat_Current": "KinaciIntegratedHeatCurrent",
 }
 
 
@@ -66,9 +82,10 @@ class Transformations:
                 Experiment class object to update
         """
         self.experiment = experiment
-        self.database = Database(name=os.path.join(self.experiment.database_path,
-                                                   "database.hdf5"),
-                                 architecture='simulation')
+        self.database = Database(
+            name=os.path.join(self.experiment.database_path, "database.hdf5"),
+            architecture="simulation",
+        )
         self.batch_size: int
         self.n_batches: int
         self.remainder: int
@@ -107,7 +124,9 @@ class Transformations:
         Calls a resolve method if dependencies are not met.
         """
         path_list = []
-        truth_array = [join_path(species, self.dependency) for species in self.experiment.species]
+        truth_array = [
+            join_path(species, self.dependency) for species in self.experiment.species
+        ]
         for item in path_list:
             truth_array.append(self.database.check_existence(item))
         if all(truth_array):
@@ -143,12 +162,15 @@ class Transformations:
             transformation call.
             """
 
-            switcher_unwrapping = {'Unwrapped_Positions': self._unwrap_choice(), }
+            switcher_unwrapping = {
+                "Unwrapped_Positions": self._unwrap_choice(),
+            }
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(argument,
-                                  lambda: "Data not in database and can not be generated.")
+            choice = switcher.get(
+                argument, lambda: "Data not in database and can not be generated."
+            )
             return choice
 
         transformation = _string_to_function(dependency)
@@ -161,16 +183,13 @@ class Transformations:
         -------
 
         """
-        indices = self.database.check_existence('Box_Images')
+        indices = self.database.check_existence("Box_Images")
         if indices:
-            return 'UnwrapViaIndices'
+            return "UnwrapViaIndices"
         else:
-            return 'UnwrapCoordinates'
+            return "UnwrapCoordinates"
 
-    def _update_type_dict(self,
-                          dictionary: dict,
-                          path_list: list,
-                          dimension: int):
+    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
         """
         Update a type spec dictionary.
 
@@ -188,17 +207,15 @@ class Transformations:
                 Dictionary for the type spec.
         """
         for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(None,
-                                                                None,
-                                                                dimension),
-                                                         dtype=tf.float64)
+            dictionary[str.encode(item)] = tf.TensorSpec(
+                shape=(None, None, dimension), dtype=tf.float64
+            )
 
         return dictionary
 
-    def _update_species_type_dict(self,
-                                  dictionary: dict,
-                                  path_list: list,
-                                  dimension: int):
+    def _update_species_type_dict(
+        self, dictionary: dict, path_list: list, dimension: int
+    ):
         """
         Update a type spec dictionary for a species input.
 
@@ -216,12 +233,11 @@ class Transformations:
                 Dictionary for the type spec.
         """
         for item in path_list:
-            species = item.split('/')[0]
-            n_atoms = len(self.experiment.species[species]['indices'])
-            dictionary[str.encode(item)] = tf.TensorSpec(shape=(n_atoms,
-                                                                None,
-                                                                dimension),
-                                                         dtype=tf.float64)
+            species = item.split("/")[0]
+            n_atoms = len(self.experiment.species[species]["indices"])
+            dictionary[str.encode(item)] = tf.TensorSpec(
+                shape=(n_atoms, None, dimension), dtype=tf.float64
+            )
 
         return dictionary
 
@@ -235,13 +251,15 @@ class Transformations:
         """
         return int(self.remainder > 0)
 
-    def _save_coordinates(self,
-                          data: Union[tf.Tensor, np.array],
-                          index: int,
-                          batch_size: int,
-                          data_structure: dict,
-                          system_tensor: bool = True,
-                          tensor: bool = False):
+    def _save_coordinates(
+        self,
+        data: Union[tf.Tensor, np.array],
+        index: int,
+        batch_size: int,
+        data_structure: dict,
+        system_tensor: bool = True,
+        tensor: bool = False,
+    ):
         """
         Save the tensor_values into the database_path
 
@@ -250,25 +268,29 @@ class Transformations:
         saves the tensor_values to the database_path.
         """
         try:
-            self.database.add_data(data=data,
-                                   structure=data_structure,
-                                   start_index=index + self.offset,
-                                   batch_size=batch_size,
-                                   system_tensor=system_tensor,
-                                   tensor=tensor)
+            self.database.add_data(
+                data=data,
+                structure=data_structure,
+                start_index=index + self.offset,
+                batch_size=batch_size,
+                system_tensor=system_tensor,
+                tensor=tensor,
+            )
         except OSError:
             """
-            This is used because in Windows and in WSL we got the error that 
-            the file was still open while it should already be closed. So, we 
+            This is used because in Windows and in WSL we got the error that
+            the file was still open while it should already be closed. So, we
             wait, and we add again.
             """
             time.sleep(0.5)
-            self.database.add_data(data=data,
-                                   structure=data_structure,
-                                   start_index=index + self.offset,
-                                   batch_size=batch_size,
-                                   system_tensor=system_tensor,
-                                   tensor=tensor)
+            self.database.add_data(
+                data=data,
+                structure=data_structure,
+                start_index=index + self.offset,
+                batch_size=batch_size,
+                system_tensor=system_tensor,
+                tensor=tensor,
+            )
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """
@@ -284,18 +306,26 @@ class Transformations:
         -------
 
         """
-        self.memory_manager = MemoryManager(data_path=data_path,
-                                            database=self.database,
-                                            memory_fraction=0.5,
-                                            scale_function=self.scale_function,
-                                            offset=self.offset)
-        self.batch_size, self.n_batches, self.remainder = self.memory_manager.get_batch_size()
-        self.data_manager = DataManager(data_path=data_path,
-                                        database=self.database,
-                                        batch_size=self.batch_size,
-                                        n_batches=self.n_batches,
-                                        remainder=self.remainder,
-                                        offset=self.offset)
+        self.memory_manager = MemoryManager(
+            data_path=data_path,
+            database=self.database,
+            memory_fraction=0.5,
+            scale_function=self.scale_function,
+            offset=self.offset,
+        )
+        (
+            self.batch_size,
+            self.n_batches,
+            self.remainder,
+        ) = self.memory_manager.get_batch_size()
+        self.data_manager = DataManager(
+            data_path=data_path,
+            database=self.database,
+            batch_size=self.batch_size,
+            n_batches=self.n_batches,
+            remainder=self.remainder,
+            offset=self.offset,
+        )
 
     def run_transformation(self):
         """

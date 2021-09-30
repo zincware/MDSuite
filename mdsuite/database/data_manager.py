@@ -1,13 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Python module for the tensor_values fetch class
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import logging
 import sys
@@ -23,20 +38,29 @@ class DataManager:
     """
     Class for the MDS tensor_values fetcher
 
-    Due to the amount of tensor_values that needs to be collected and the possibility to optimize repeated loading,
-    a separate tensor_values fetching class is required. This class manages how tensor_values is loaded from the MDS
-    database_path and optimizes processes such as pre-loading and parallel reading.
+    Due to the amount of tensor_values that needs to be collected and the possibility
+    to optimize repeated loading, a separate tensor_values fetching class is required.
+    This class manages how tensor_values is loaded from the MDS database_path and
+    optimizes processes such as pre-loading and parallel reading.
     """
 
-    def __init__(self, database: Database = None, data_path: list = None,
-                 data_range: int = None,
-                 n_batches: int = None, batch_size: int = None,
-                 ensemble_loop: int = None,
-                 correlation_time: int = 1, remainder: int = None,
-                 atom_selection=np.s_[:],
-                 minibatch: bool = False, atom_batch_size: int = None,
-                 n_atom_batches: int = None,
-                 atom_remainder: int = None, offset: int = 0):
+    def __init__(
+        self,
+        database: Database = None,
+        data_path: list = None,
+        data_range: int = None,
+        n_batches: int = None,
+        batch_size: int = None,
+        ensemble_loop: int = None,
+        correlation_time: int = 1,
+        remainder: int = None,
+        atom_selection=np.s_[:],
+        minibatch: bool = False,
+        atom_batch_size: int = None,
+        n_atom_batches: int = None,
+        atom_remainder: int = None,
+        offset: int = 0,
+    ):
         """
         Constructor for the DataManager class
 
@@ -61,8 +85,9 @@ class DataManager:
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
-    def batch_generator(self, dictionary: bool = False, system: bool = False,
-                        remainder: bool = False) -> tuple:
+    def batch_generator(
+        self, dictionary: bool = False, system: bool = False, remainder: bool = False
+    ) -> tuple:
         """
         Build a generator object for the batch loop
         Returns
@@ -70,14 +95,21 @@ class DataManager:
         Returns a generator function and its arguments
         """
 
-        args = (self.n_batches,
-                self.batch_size,
-                self.database.name,
-                self.data_path,
-                dictionary)
+        args = (
+            self.n_batches,
+            self.batch_size,
+            self.database.name,
+            self.data_path,
+            dictionary,
+        )
 
-        def generator(batch_number: int, batch_size: int, database: str,
-                      data_path: list, dictionary: bool):
+        def generator(
+            batch_number: int,
+            batch_size: int,
+            database: str,
+            data_path: list,
+            dictionary: bool,
+        ):
             """
             Generator function for the batch loop.
 
@@ -108,16 +140,25 @@ class DataManager:
                 if type(self.atom_selection) is dict:
                     select_slice = {}
                     for item in self.atom_selection:
-                        select_slice[item] = np.s_[self.atom_selection[item], start:stop]
+                        select_slice[item] = np.s_[
+                            self.atom_selection[item], start:stop
+                        ]
                 else:
                     select_slice = np.s_[self.atom_selection, start:stop]
-                yield database.load_data(data_path,
-                                         select_slice=select_slice,
-                                         dictionary=dictionary,
-                                         d_size=data_size)
+                yield database.load_data(
+                    data_path,
+                    select_slice=select_slice,
+                    dictionary=dictionary,
+                    d_size=data_size,
+                )
 
-        def system_generator(batch_number: int, batch_size: int, database: str,
-                             data_path: list, dictionary: bool):
+        def system_generator(
+            batch_number: int,
+            batch_size: int,
+            database: str,
+            data_path: list,
+            dictionary: bool,
+        ):
             """
             Generator function for the batch loop.
 
@@ -139,19 +180,23 @@ class DataManager:
             """
             database = Database(name=database)
 
-            for batch in range(
-                    batch_number + int(remainder)):  # +1 for the remainder
+            for batch in range(batch_number + int(remainder)):  # +1 for the remainder
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 if batch == batch_number:
                     stop = int(start + self.remainder)
 
-                yield database.load_data(data_path,
-                                         select_slice=np.s_[start:stop],
-                                         dictionary=dictionary)
+                yield database.load_data(
+                    data_path, select_slice=np.s_[start:stop], dictionary=dictionary
+                )
 
-        def atom_generator(batch_number: int, batch_size: int, database: str,
-                           data_path: list, dictionary: bool):
+        def atom_generator(
+            batch_number: int,
+            batch_size: int,
+            database: str,
+            data_path: list,
+            dictionary: bool,
+        ):
             """
             Generator function for the batch loop.
 
@@ -174,10 +219,11 @@ class DataManager:
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
             for i, atom_batch in tqdm(
-                    enumerate(self.n_atom_batches + _atom_remainder),
-                    total=self.n_atom_batches + _atom_remainder,
-                    ncols=70,
-                    desc=f'batch loop'):
+                enumerate(self.n_atom_batches + _atom_remainder),
+                total=self.n_atom_batches + _atom_remainder,
+                ncols=70,
+                desc=f"batch loop",
+            ):
                 atom_start = atom_batch * self.atom_batch_size
                 atom_stop = atom_start + self.atom_batch_size
                 if atom_batch == self.n_atom_batches:
@@ -191,14 +237,18 @@ class DataManager:
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
                     if type(self.atom_selection) is dict:
                         log.warning(
-                            "Atom selection is not available for mini-batched calculations")
+                            "Atom selection is not available for mini-batched"
+                            " calculations"
+                        )
                         sys.exit(1)
                     else:
                         select_slice = np.s_[atom_start:atom_stop, start:stop]
-                    yield database.load_data(data_path,
-                                             select_slice=select_slice,
-                                             dictionary=dictionary,
-                                             d_size=data_size)
+                    yield database.load_data(
+                        data_path,
+                        select_slice=select_slice,
+                        dictionary=dictionary,
+                        d_size=data_size,
+                    )
 
         if self.remainder == 0:
             remainder = False
@@ -210,8 +260,9 @@ class DataManager:
         else:
             return generator, args
 
-    def ensemble_generator(self, system: bool = False,
-                           dictionary: bool = False) -> tuple:
+    def ensemble_generator(
+        self, system: bool = False, dictionary: bool = False
+    ) -> tuple:
         """
         Build a generator for the ensemble loop
 
@@ -227,9 +278,7 @@ class DataManager:
         Ensemble loop generator
         """
 
-        args = (self.ensemble_loop,
-                self.correlation_time,
-                self.data_range)
+        args = (self.ensemble_loop, self.correlation_time, self.data_range)
 
         def generator(ensemble_loop, correlation_time, data_range, data):
             """
@@ -254,8 +303,7 @@ class DataManager:
                 stop = start + data_range
                 yield data[:, start:stop]
 
-        def system_generator(ensemble_loop, correlation_time, data_range,
-                             data):
+        def system_generator(ensemble_loop, correlation_time, data_range, data):
             """
             Generator for the ensemble loop
             Parameters
@@ -278,8 +326,9 @@ class DataManager:
                 stop = start + data_range
                 yield data[start:stop]
 
-        def dictionary_generator(ensemble_loop, correlation_time, data_range,
-                                 data_dict):
+        def dictionary_generator(
+            ensemble_loop, correlation_time, data_range, data_dict
+        ):
             """
             Generator for the ensemble loop
             Parameters

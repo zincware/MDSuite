@@ -1,7 +1,28 @@
 """
-Copyright Contributors to the Zincware Project.
+MDSuite: A Zincwarecode package.
 
-Description: Visualize the output of a calculator.
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the Zincwarecode Project.
+
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import numpy as np
 from bokeh.plotting import figure, show
@@ -32,13 +53,13 @@ class DataVisualizer2D:
             output_file(f"{title}.html", title=title)
 
     def construct_plot(
-            self,
-            x_data: Union[list, np.ndarray],
-            y_data: Union[list, np.ndarray],
-            x_label: str,
-            y_label: str,
-            title: str,
-            layouts: List= None
+        self,
+        x_data: Union[list, np.ndarray],
+        y_data: Union[list, np.ndarray],
+        x_label: str,
+        y_label: str,
+        title: str,
+        layouts: List = None,
     ) -> figure:
         """
         Generate a plot.
@@ -60,9 +81,7 @@ class DataVisualizer2D:
         figure : figure
                 A bokeh figure object.
         """
-        fig = figure(
-            x_axis_label=x_label, y_axis_label=y_label
-        )
+        fig = figure(x_axis_label=x_label, y_axis_label=y_label)
         fig.line(x_data, y_data, legend_label=title)
         fig.add_tools(HoverTool())
         if layouts is not None:
@@ -84,5 +103,5 @@ class DataVisualizer2D:
         -------
 
         """
-        grid = gridplot(figures, ncols=3, sizing_mode='scale_both')
+        grid = gridplot(figures, ncols=3, sizing_mode="scale_both")
         show(grid)

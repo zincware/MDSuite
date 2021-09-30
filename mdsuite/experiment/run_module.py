@@ -1,12 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Autocompletion helper to run e.g. computations
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 from __future__ import annotations
 from typing import TYPE_CHECKING
@@ -20,8 +36,9 @@ class RunModule:
 
     Notes
     -----
-    This class is a helper to convert the dictionary of possible computations "dict_classes_computations" into
-    attributes of the `experiment.run_computation` helper class.
+    This class is a helper to convert the dictionary of possible computations
+    "dict_classes_computations" into attributes of the `experiment.run_computation`
+    helper class.
     """
 
     def __init__(self, parent, module_dict, **kwargs):
@@ -31,7 +48,8 @@ class RunModule:
         parent: Experiment
             the experiment to be passed to the calculator afterwards
         module_dict: dict
-            A dictionary containing all the modules / calculators / Time series operations with their names as keys
+            A dictionary containing all the modules / calculators / Time series
+            operations with their names as keys
         kwargs:
             Additional parameters to be passed to the module_dict
         """
@@ -49,7 +67,7 @@ class RunModule:
         Returns
             Instantiated calculator class with added experiment that can be called.
         """
-        if item.startswith('_'):
+        if item.startswith("_"):
             # handle privat functions
             return super().__getattribute__(item)
 

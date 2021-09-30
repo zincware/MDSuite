@@ -1,20 +1,28 @@
 """
+MDSuite: A Zincwarecode package.
+
+License
+-------
 This program and the accompanying materials are made available under the terms
 of the Eclipse Public License v2.0 which accompanies this distribution, and is
-available at https://www.eclipse.org/legal/epl-v20.html.
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the Green-Kubo diffusion coefficients.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
 Summary
 -------
-This module contains the code for the Einstein diffusion coefficient class.
-This class is called by the Experiment class and instantiated when the user
-calls the Experiment.einstein_diffusion_coefficients method. The methods in
-class can then be called by the Experiment.green_kubo_diffusion_coefficients
-method and all necessary calculations performed.
 """
 from typing import Union
 import numpy as np
@@ -178,7 +186,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                             ]
                         )
             self.vacf += vacf[
-                int(self.data_range - 1):
+                int(self.data_range - 1) :
             ]  # Update the averaged function
             self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
@@ -274,10 +282,10 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            'diffusion_coefficient': np.mean(result).tolist(),
-            'uncertainty': (np.std(result) / (np.sqrt(len(result)))).tolist(),
-            'time': self.time.tolist(),
-            'acf': self.vacf.tolist()
+            "diffusion_coefficient": np.mean(result).tolist(),
+            "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+            "time": self.time.tolist(),
+            "acf": self.vacf.tolist(),
         }
 
         self.queue_data(data=data, subjects=list(species))
@@ -286,15 +294,19 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                    self.integration_range - 1
+                ],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
+                x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.vacf.numpy(),
-                title=f"{species}: {np.mean(result): .3E} +- {np.std(result) / (np.sqrt(len(result))): .3E}",
-                layouts=[span]
+                title=(
+                    f"{species}: {np.mean(result): .3E} +-"
+                    f" {np.std(result) / (np.sqrt(len(result))): .3E}"
+                ),
+                layouts=[span],
             )
 
     def _update_output_signatures(self):

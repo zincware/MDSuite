@@ -1,13 +1,25 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Parent class for file processing
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
@@ -44,7 +56,8 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
                 Number of header lines in the given file format.
 
         sort : bool
-                If true, the tensor_values in the trajectory file must be sorted during the database_path build.
+                If true, the tensor_values in the trajectory file must be sorted during
+                the database_path build.
         """
 
         super().__init__(obj, header_lines, file_path)  # fill the experiment class
@@ -70,16 +83,21 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         for i in range(offset):
             f.readline()
 
-        return [next(f).split() for _ in range(self.header_lines)]  # Get the first header
+        return [
+            next(f).split() for _ in range(self.header_lines)
+        ]  # Get the first header
 
-    def read_configurations(self, number_of_configurations: int, file_object: TextIO, line_length: int):
+    def read_configurations(
+        self, number_of_configurations: int, file_object: TextIO, line_length: int
+    ):
         """
         Read in a number of configurations from a file
 
         Parameters
         ----------
         line_length : int
-                Length of each line of tensor_values to be read in. Necessary for instantiation.
+                Length of each line of tensor_values to be read in. Necessary for
+                instantiation.
         number_of_configurations : int
                 Number of configurations to be read in.
         file_object : experiment
@@ -92,9 +110,10 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         """
 
         # Define the empty tensor_values array
-        configurations_data = np.empty((number_of_configurations * self.experiment.number_of_atoms, line_length),
-
-                                       dtype='<U15')
+        configurations_data = np.empty(
+            (number_of_configurations * self.experiment.number_of_atoms, line_length),
+            dtype="<U15",
+        )
 
         counter = 0
         for i in range(number_of_configurations):
@@ -104,13 +123,16 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
             # Read the tensor_values into the arrays.
             for k in range(self.experiment.number_of_atoms):
-                configurations_data[counter] = np.array(list(file_object.readline().split()))
+                configurations_data[counter] = np.array(
+                    list(file_object.readline().split())
+                )
                 counter += 1  # update the counter
         return configurations_data
 
     def build_file_structure(self, batch_size: int = None):
         """
-        Build a skeleton of the file so that the database_path class can process it correctly.
+        Build a skeleton of the file so that the database_path class can process it
+        correctly.
         """
 
         structure = {}  # define initial dictionary
@@ -121,22 +143,33 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
 
         for item in species:
             if self.sort:
-                positions = np.array(species[item]['indices'])
+                positions = np.array(species[item]["indices"])
             else:
-                positions = np.array([np.array(species[item]['indices']) + i *
-                                      self.experiment.number_of_atoms -
-                                      self.header_lines for i in range(batch_size)]).flatten()
-            length = len(species[item]['indices'])
+                positions = np.array(
+                    [
+                        np.array(species[item]["indices"])
+                        + i * self.experiment.number_of_atoms
+                        - self.header_lines
+                        for i in range(batch_size)
+                    ]
+                ).flatten()
+            length = len(species[item]["indices"])
             for observable in self.experiment.property_groups:
                 path = join_path(item, observable)
                 columns = self.experiment.property_groups[observable]
 
-                structure[path] = {'indices': positions, 'columns': columns, 'length': length}
+                structure[path] = {
+                    "indices": positions,
+                    "columns": columns,
+                    "length": length,
+                }
 
         return structure
 
     @staticmethod
-    def _build_architecture(species_summary: dict, property_groups: dict, number_of_configurations: int):
+    def _build_architecture(
+        species_summary: dict, property_groups: dict, number_of_configurations: int
+    ):
         """
         Build the database_path architecture for use by the database_path class
 
@@ -154,9 +187,11 @@ class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):
         for species in species_summary:
             architecture[species] = {}
             for observable in property_groups:
-                architecture[species][observable] = (len(species_summary[species]['indices']),
-                                                     number_of_configurations,
-                                                     len(property_groups[observable]))
+                architecture[species][observable] = (
+                    len(species_summary[species]["indices"]),
+                    number_of_configurations,
+                    len(property_groups[observable]),
+                )
 
         return architecture
 

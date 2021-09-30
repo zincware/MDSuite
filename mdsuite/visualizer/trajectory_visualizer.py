@@ -1,12 +1,28 @@
 """
+MDSuite: A Zincwarecode package.
+
+License
+-------
 This program and the accompanying materials are made available under the terms
 of the Eclipse Public License v2.0 which accompanies this distribution, and is
-available at https://www.eclipse.org/legal/epl-v20.html.
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Visualize a simulation.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 from mdsuite.database.simulation_database import Database
 from PIL.ImageColor import getcolor
@@ -23,12 +39,14 @@ class SimulationVisualizer:
     Visualize a simulation.
     """
 
-    def __init__(self,
-                 experiment: object,
-                 species: list = None,
-                 molecules: bool = False,
-                 unwrapped: bool = False,
-                 number_of_configurations: int = None):
+    def __init__(
+        self,
+        experiment: object,
+        species: list = None,
+        molecules: bool = False,
+        unwrapped: bool = False,
+        number_of_configurations: int = None,
+    ):
         """
         Constructor for the visualizer.
 
@@ -47,8 +65,8 @@ class SimulationVisualizer:
         self.counter = 0
         # Particle information
         self.experiment = experiment
-        self.database = Database(name=join_path(
-            self.experiment.database_path, "database.hdf5")
+        self.database = Database(
+            name=join_path(self.experiment.database_path, "database.hdf5")
         )
         self.molecules = molecules
         self.species = species
@@ -75,7 +93,7 @@ class SimulationVisualizer:
         Updates the class attributes.
         """
         data_name = "mdsuite.data"
-        json_name = 'PubChemElements_all.json'
+        json_name = "PubChemElements_all.json"
         with importlib.resources.open_text(data_name, json_name) as json_file:
             pse = json.loads(json_file.read())
 
@@ -83,13 +101,11 @@ class SimulationVisualizer:
         for element in self.species:
             for entry in pse:
                 if pse[entry][1] == element:
-                    self.data[element]['colour'] = getcolor(
-                        f'#{pse[entry][4]}', 'RGB'
-                    )
-                    self.data[element]['mass'] = float(pse[entry][3]) / 25
-                    self.data[element]['particles'] = self.database.load_data(
+                    self.data[element]["colour"] = getcolor(f"#{pse[entry][4]}", "RGB")
+                    self.data[element]["mass"] = float(pse[entry][3]) / 25
+                    self.data[element]["particles"] = self.database.load_data(
                         path_list=[join_path(element, self.identifier)],
-                        select_slice=np.s_[:]
+                        select_slice=np.s_[:],
                     )
 
     def _check_input(self):
@@ -109,8 +125,7 @@ class SimulationVisualizer:
         """
         Return a mesh object coloured by element.
         """
-        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius,
-                                                       resolution=10)
+        mesh = o3d.geometry.TriangleMesh.create_sphere(radius=radius, resolution=10)
         mesh.compute_vertex_normals()
         mesh.translate(location)
         mesh.paint_uniform_color(colour)
@@ -130,12 +145,14 @@ class SimulationVisualizer:
         """
         output = []
         for element in self.species:
-            colour = np.array(self.data[element]['colour']) / 255
-            radius = self.data[element]['mass']
-            for atom in self.data[element]['particles']:
-                output.append(self._mesh(location=atom[configuration],
-                                         colour=colour,
-                                         radius=radius))
+            colour = np.array(self.data[element]["colour"]) / 255
+            radius = self.data[element]["mass"]
+            for atom in self.data[element]["particles"]:
+                output.append(
+                    self._mesh(
+                        location=atom[configuration], colour=colour, radius=radius
+                    )
+                )
 
         return output
 
@@ -147,9 +164,7 @@ class SimulationVisualizer:
         Updates the class state.
         """
         self.trajectory = [
-            self._build_particles(i) for i in range(
-                self.number_of_configurations
-            )
+            self._build_particles(i) for i in range(self.number_of_configurations)
         ]
 
     def _build_app(self):
@@ -163,9 +178,7 @@ class SimulationVisualizer:
         self.app = gui.Application.instance
         self.app.initialize()
 
-        self.vis = o3d.visualization.O3DVisualizer("MDSuite Visualizer",
-                                                   1024,
-                                                   768)
+        self.vis = o3d.visualization.O3DVisualizer("MDSuite Visualizer", 1024, 768)
         self.vis.show_settings = True
         # Add meshes
         self.vis.reset_camera_to_default()
@@ -184,16 +197,14 @@ class SimulationVisualizer:
                 self.counter = 0
 
             for i in range(len(self.trajectory[self.counter])):
-                self.vis.add_geometry(f"sphere_{i}",
-                                      self.trajectory[self.counter][i])
+                self.vis.add_geometry(f"sphere_{i}", self.trajectory[self.counter][i])
             self.counter += 1
         else:
             if configuration > self.number_of_configurations - 1:
                 configuration = self.number_of_configurations - 1
 
             for i in range(len(self.trajectory[configuration])):
-                self.vis.add_geometry(f"sphere_{i}",
-                                      self.trajectory[configuration][i])
+                self.vis.add_geometry(f"sphere_{i}", self.trajectory[configuration][i])
 
     def run_app(self, starting_configuration: int = None):
         """

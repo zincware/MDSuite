@@ -1,13 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Python module for complexity/memory scaling functions
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import numpy as np
 
@@ -21,7 +36,8 @@ def linear_scale_function(memory_usage: int, scale_factor: int = 1):
     memory_usage : int
             naive memory usage, i.e., the exact memory of one configuration.
     scale_factor : int
-            Scalar scaling factor for the memory usage in cases on non-size dependent inflation.
+            Scalar scaling factor for the memory usage in cases on non-size dependent
+            inflation.
     Returns
     -------
     scaled_memory : int
@@ -39,7 +55,8 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
     memory_usage : int
             naive memory usage, i.e., the exact memory of one configuration.
     scale_factor : int
-            Scalar scaling factor for the memory usage in cases on non-size dependent inflation.
+            Scalar scaling factor for the memory usage in cases on non-size dependent
+            inflation.
     Returns
     -------
     scaled_memory : int
@@ -48,7 +65,9 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
     return scale_factor * memory_usage * np.log(memory_usage)
 
 
-def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1):
+def quadratic_scale_function(
+    memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1
+):
     """
     Apply a quadratic scaling to memory usage.
 
@@ -65,11 +84,15 @@ def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, out
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**2
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** 2
 
 
-def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
-                              outer_scale_factor: int = 1, order: int = 3):
+def polynomial_scale_function(
+    memory_usage: int,
+    inner_scale_factor: int = 1,
+    outer_scale_factor: int = 1,
+    order: int = 3,
+):
     """
     Apply a polynomial scaling to memory usage.
 
@@ -88,4 +111,4 @@ def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**order
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** order

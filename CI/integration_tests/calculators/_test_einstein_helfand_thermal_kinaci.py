@@ -1,12 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Test for the einstein_helfand_thermal_kinaci
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 
 import json
@@ -27,8 +43,8 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
+    # time_step = 0.002
+    # temperature = 1400.0
     base_url = "https://github.com/zincware/ExampleData/raw/main/"
 
     files_in_url = [
@@ -59,13 +75,12 @@ def traj_files(tmp_path_factory) -> list:
 def true_values() -> dict:
     """Values to compare to"""
     static_path = Path(static_data.__file__).parent
-    data = static_path / 'einstein_helfand_thermal_kinaci.json'
+    data = static_path / "einstein_helfand_thermal_kinaci.json"
     return json.loads(data.read_bytes())
 
 
 def test_project(traj_files, true_values, tmp_path):
-    """Test the einstein_helfand_thermal_kinaci called from the project class
-    """
+    """Test the einstein_helfand_thermal_kinaci called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
@@ -75,24 +90,31 @@ def test_project(traj_files, true_values, tmp_path):
     data_dict = project.load.EinsteinHelfandThermalKinaci()[0].data_dict
 
     data = Path(
-        r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\einstein_helfand_thermal_kinaci.json')
+        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\
+        calculators\data\einstein_helfand_thermal_kinaci.json"
+    )
 
     data.write_text(json.dumps(data_dict))
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )
 
 
 def test_experiment(traj_files, true_values, tmp_path):
-    """Test the einstein_helfand_thermal_kinaci called from the experiment class
-    """
+    """Test the einstein_helfand_thermal_kinaci called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run.EinsteinHelfandThermalKinaci(plot=False)
+    project.experiments["NaCl"].run.EinsteinHelfandThermalKinaci(plot=False)
 
-    data_dict = project.experiments['NaCl'].load.EinsteinHelfandThermalKinaci()[0].data_dict
+    data_dict = (
+        project.experiments["NaCl"].load.EinsteinHelfandThermalKinaci()[0].data_dict
+    )
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )

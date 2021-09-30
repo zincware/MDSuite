@@ -1,12 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Base class for accessing the database
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import logging
 
@@ -51,10 +67,12 @@ class DatabaseBase:
 
         """
         if self._engine is None:
+            engine_path = Path(self.storage_path, self.name, self.database_name)
             self._engine = sa.create_engine(
-                f"sqlite+pysqlite:///{Path(self.storage_path, self.name, self.database_name)}",
+                f"sqlite+pysqlite:///{engine_path}",
                 echo=False,
-                future=True)
+                future=True,
+            )
         return self._engine
 
     @property
@@ -85,7 +103,6 @@ class DatabaseBase:
         return Base
 
     def build_database(self):
-        """Build the database and get create the tables
-        """
+        """Build the database and get create the tables"""
         log.debug("Creating the database if it does not exist.")
         self.base.metadata.create_all(self.engine)

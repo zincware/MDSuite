@@ -1,17 +1,28 @@
 """
-This program and the accompanying materials are made available under the
-terms of the Eclipse Public License v2.0 which accompanies this distribution
-and is available at https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the Green-Kubo viscosity.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
-This module contains the code for the Green-Kubo viscosity class.
-This class is called by the experiment class.
+-------
 """
 import numpy as np
 import tensorflow as tf
@@ -105,8 +116,7 @@ class GreenKuboViscosity(Calculator):
             self.integration_range = integration_range
 
         return self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            correlation_time=correlation_time
+            data_range=data_range, correlation_time=correlation_time
         )
 
     def _update_output_signatures(self):
@@ -199,25 +209,26 @@ class GreenKuboViscosity(Calculator):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            'viscosity': result[0],
-            'uncertainty': result[1],
-            'time': self.time.tolist(),
-            'acf': self.jacf.numpy().tolist()
+            "viscosity": result[0],
+            "uncertainty": result[1],
+            "time": self.time.tolist(),
+            "acf": self.jacf.numpy().tolist(),
         }
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
         # Update the plot if required
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                    self.integration_range - 1
+                ],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
+                x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.jacf.numpy(),
                 title=f"{result[0]} +- {result[1]}",
-                layouts=[span]
+                layouts=[span],
             )

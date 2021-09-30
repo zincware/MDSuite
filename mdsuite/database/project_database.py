@@ -1,12 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Module for the project database.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import logging
 from .scheme import Project, Experiment
@@ -37,7 +53,8 @@ class ProjectDatabase(DatabaseBase):
     @property
     def db_experiments(self):
         """Get all experiments"""
-        # renamed to db_experiments because experiments contains the instances of the Experiment class
+        # renamed to db_experiments because experiments contains the instances of the
+        # Experiment class
         with self.session as ses:
             experiments = ses.query(Experiment).all()
         return experiments
@@ -59,8 +76,9 @@ class ProjectDatabase(DatabaseBase):
         Parameters
         ----------
         value : str
-                Description of the project. If the string ends in .txt, the contents of the txt file will be read. If
-                it ends in .md, same outcome. Anything else will be read as is.
+                Description of the project. If the string ends in .txt, the contents of
+                the txt file will be read. If it ends in .md, same outcome. Anything
+                else will be read as is.
         """
         if value is None:
             return

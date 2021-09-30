@@ -1,14 +1,29 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the Zincware Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Description: Test the RDF
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
-
 import pytest
 import os
 import mdsuite as mds
@@ -16,13 +31,14 @@ import urllib.request
 import json
 import shutil
 from . import base_path
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     compressed_file = "NaCl_gk_i_q.zip"
-    uncompressed_file = 'NaCl_gk_i_q.lammpstraj'
+    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
 
     conv_raw = "?raw=true"
     compressed_file_path = base_path + compressed_file + conv_raw
@@ -33,8 +49,7 @@ def traj_file(tmp_path_factory) -> str:
     )
 
     shutil.unpack_archive(
-        filename=temporary_path / compressed_file,
-        extract_dir=temporary_path
+        filename=temporary_path / compressed_file, extract_dir=temporary_path
     )
 
     return (temporary_path / uncompressed_file).as_posix()
@@ -62,7 +77,7 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.RadialDistributionFunction(plot=False)
 
-    assert computation['NaCl'].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
 
 
 def test_experiment(traj_file, true_values, tmp_path):
@@ -73,4 +88,4 @@ def test_experiment(traj_file, true_values, tmp_path):
 
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 
-    assert computation.data_dict == true_values
+    assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)

@@ -1,13 +1,25 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the conductivity.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
@@ -47,7 +59,9 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinHelfandThermalKinaci(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.EinsteinHelfandThermalKinaci(data_range=500,
+                                                            plot=True,
+                                                            correlation_time=10)
 
     """
 
@@ -63,23 +77,34 @@ class EinsteinHelfandThermalKinaci(Calculator):
 
         # parse to the experiment class
         super().__init__(**kwargs)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Kinaci_Heat_Current'  # Property to be loaded for the analysis
+        self.loaded_property = (  # Property to be loaded for the analysis
+            "Kinaci_Heat_Current"
+        )
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.x_label = r'$$\text{Time} / s)$$'
-        self.y_label = r'$$\text{MSD} / m^2/s$$'
-        self.analysis_name = 'Einstein Helfand Thermal Conductivity Kinaci'
+        self.x_label = r"$$\text{Time} / s)$$"
+        self.y_label = r"$$\text{MSD} / m^2/s$$"
+        self.analysis_name = "Einstein Helfand Thermal Conductivity Kinaci"
 
-        self.database_group = 'Thermal_Conductivity'  # Which database_path group to save the tensor_values in
+        self.database_group = (
+            "Thermal_Conductivity"
+        )
 
         self.prefactor: float
 
     @call
-    def __call__(self, plot=True, data_range=500, save=True, correlation_time=1, export: bool = False,
-                 gpu: bool = False):
+    def __call__(
+        self,
+        plot=True,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+    ):
         """
         Python constructor
 
@@ -100,8 +125,14 @@ class EinsteinHelfandThermalKinaci(Calculator):
                 the biggest GPU in the system.
         """
         # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
         self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
 
     def _update_output_signatures(self):
@@ -112,8 +143,12 @@ class EinsteinHelfandThermalKinaci(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -129,9 +164,18 @@ class EinsteinHelfandThermalKinaci(Calculator):
         """
         # Calculate the prefactor
         numerator = 1
-        denominator = 6 * self.experiment.volume * self.experiment.temperature * self.experiment.units['boltzman']
-        units_change = self.experiment.units['energy'] / self.experiment.units['length'] / self.experiment.units[
-            'time'] / self.experiment.units['temperature']
+        denominator = (
+            6
+            * self.experiment.volume
+            * self.experiment.temperature
+            * self.experiment.units["boltzman"]
+        )
+        units_change = (
+            self.experiment.units["energy"]
+            / self.experiment.units["length"]
+            / self.experiment.units["time"]
+            / self.experiment.units["temperature"]
+        )
         self.prefactor = numerator / denominator * units_change
 
     def _apply_averaging_factor(self):
@@ -157,7 +201,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
         """
         msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
 
-        msd = self.prefactor*tf.reduce_sum(msd, axis=1)
+        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
     def _post_operation_processes(self, species: str = None):
@@ -170,16 +214,18 @@ class EinsteinHelfandThermalKinaci(Calculator):
         result = self._fit_einstein_curve([self.time, self.msd_array])
 
         data = {
-            'thermal_conductivity': result[0],
-            'uncertainty': result[1],
-            'time': self.time.tolist(),
-            'msd': self.msd_array.tolist()
+            "thermal_conductivity": result[0],
+            "uncertainty": result[1],
+            "time": self.time.tolist(),
+            "msd": self.msd_array.tolist(),
         }
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
         # Update the plot if required
         if self.plot:
-            self.run_visualization(x_data=np.array(self.time) * self.experiment.units['time'],
-                                   y_data=self.msd_array * self.experiment.units['time'],
-                                   title=f"{result[0]} +- {result[1]}")
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units["time"],
+                y_data=self.msd_array * self.experiment.units["time"],
+                title=f"{result[0]} +- {result[1]}",
+            )
