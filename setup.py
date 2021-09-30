@@ -25,17 +25,6 @@ Summary
 -------
 """
 import setuptools
-from os import path
-
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, "requirements.txt")) as requirements_file:
-    # Parse requirements.txt, ignoring any commented-out lines.
-    requirements = [
-        line
-        for line in requirements_file.read().splitlines()
-        if not line.startswith("#")
-    ]
-
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
@@ -58,5 +47,23 @@ setuptools.setup(
     package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
     python_requires=">=3.7",
-    install_requires=requirements,
+    install_requires=[
+        "tensorflow>=2.5",
+        "h5py",
+        "pysmiles",
+        "matplotlib",
+        "scipy",
+        "tqdm",
+        "psutil>=5.6.6",
+        "numpy",
+        "gputil",
+        "pubchempy",
+        "PyYAML>=5.4",
+        "scooby",
+        "sqlalchemy >= 1.4",
+        "pandas >= 1.0.0",
+        "tensorflow_probability",
+        "open3d",
+        "bokeh>=2.4.0",
+    ],
 )
