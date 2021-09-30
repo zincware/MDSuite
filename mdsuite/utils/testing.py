@@ -24,7 +24,6 @@ If you use this module please cite us with:
 Summary
 -------
 """
-
 import numpy as np
 
 
@@ -47,7 +46,6 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
     References
     ----------
     https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
-    https://numpy.org/doc/stable/reference/generated/numpy.testing.assert_array_almost_equal.html
 
     """
     if isinstance(expected, (int, float, complex, np.ndarray, list)):
@@ -60,12 +58,12 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
         assert expected == actual
 
 
-if __name__ == '__main__':
-    dict_1 = {'a': [1, 2, 3, 4]}
-    dict_2a = {'a': {'b': np.array([1, 2, 3, 4])}}
-    dict_2b = {'a': {'b': [1, 2, 3, 4]}}
-    dict_3a = {'a': {'c': np.array([1.10, 2.10, 3.11, 4.0])}}
-    dict_3b = {'a': {'c': np.array([1.11, 2.09, 3.10, 4.0])}}
+if __name__ == "__main__":
+    dict_1 = {"a": [1, 2, 3, 4]}
+    dict_2a = {"a": {"b": np.array([1, 2, 3, 4])}}
+    dict_2b = {"a": {"b": [1, 2, 3, 4]}}
+    dict_3a = {"a": {"c": np.array([1.10, 2.10, 3.11, 4.0])}}
+    dict_3b = {"a": {"c": np.array([1.11, 2.09, 3.10, 4.0])}}
 
     print(assertDeepAlmostEqual(dict_3a, dict_3b, decimal=1))
     print(assertDeepAlmostEqual(dict_2a, dict_2b, decimal=1))

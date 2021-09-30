@@ -59,13 +59,16 @@ class ExperimentDatabase:
         ----------
         parameters : dict
                 Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na", "data_range": 500}
+                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
+                "data_range": 500}
         Returns
         -------
         output : list
                 A list of rows represented as dictionaries.
         """
-        raise DeprecationWarning("This function has been removed and replaced by queue_database")
+        raise DeprecationWarning(
+            "This function has been removed and replaced by queue_database"
+        )
 
     @property
     def active(self):
@@ -336,7 +339,8 @@ class ExperimentDatabase:
         -------
 
         dict:
-            A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+            A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
+            charge: [0]}}
         """
         if self._species is None:
             with self.project.session as ses:
@@ -402,7 +406,7 @@ class ExperimentDatabase:
                     db.ExperimentSpecies,
                     name=molecule_name,
                     experiment=experiment,
-                    molecule=True
+                    molecule=True,
                 )
                 molecule.data = molecule_data
             ses.commit()
@@ -512,7 +516,8 @@ class ExperimentDatabase:
         -------
         bool:
             the state of the RDF
-        # TODO this method could potentially be replaced by a quick query of the database
+        # TODO this method could potentially be replaced by a quick query of the
+           database
         """
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
@@ -593,7 +598,8 @@ class ExperimentDatabase:
     def simulation_data(self, value: dict):
         """Update simulation data
 
-        Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
+        Try to load the data from self.simulation_data_file, update the internals and
+        update the yaml file.
 
         Parameters
         ----------
@@ -612,7 +618,8 @@ class ExperimentDatabase:
         for entry in value.values():
             if isinstance(entry, dict):
                 log.warning(
-                    "Converting nested dict of simulation_data into json_normalized version!"
+                    "Converting nested dict of simulation_data into json_normalized"
+                    " version!"
                 )
                 is_nested = True
         if is_nested:
@@ -633,7 +640,8 @@ class ExperimentDatabase:
                             name=f"simulation_data_{group}_{idx}",
                             experiment=experiment,
                         )
-                        # TODO consider using a dedicated relationship database instead of two keys in the name?!
+                        # TODO consider using a dedicated relationship database instead
+                        #  of two keys in the name?!
                         if isinstance(group_value, str):
                             entry.str_value = group_value
                         else:
@@ -677,7 +685,8 @@ class ExperimentDatabase:
     def version(self, value: int):
         """Update the version of the experiment
 
-        Can be used to differentiate between different experiment versions in calculations
+        Can be used to differentiate between different experiment versions in
+        calculations
         """
         if value is None:
             return

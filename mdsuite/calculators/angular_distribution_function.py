@@ -31,7 +31,11 @@ import itertools
 import numpy as np
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.neighbour_list import get_neighbour_list, get_triu_indicies, get_triplets
+from mdsuite.utils.neighbour_list import (
+    get_neighbour_list,
+    get_triu_indicies,
+    get_triplets,
+)
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.database.scheme import Computation
@@ -60,9 +64,10 @@ class AngularDistributionFunction(Calculator, ABC):
     bins: int
         bins for the ADF
     use_tf_function: bool, default False
-        activate the tf.function decorator for the minibatches. Can speed up the calculation significantly, but
-        may lead to excessive use of memory! During the first batch, this function will be traced. Tracing is slow,
-        so this might only be useful for a larger number of batches.
+        activate the tf.function decorator for the minibatches. Can speed up the
+        calculation significantly, but may lead to excessive use of memory! During the
+        first batch, this function will be traced. Tracing is slow, so this might only
+        be useful for a larger number of batches.
 
     See Also
     --------
@@ -90,8 +95,8 @@ class AngularDistributionFunction(Calculator, ABC):
                 Experiment object from which to take attributes.
         """
         super().__init__(**kwargs)
-        self.scale_function = {'quadratic': {'outer_scale_factor': 10}}
-        self.loaded_property = 'Positions'
+        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
+        self.loaded_property = "Positions"
 
         self.use_tf_function = None
         self.r_cut = None
@@ -106,32 +111,35 @@ class AngularDistributionFunction(Calculator, ABC):
         self.species = None
         self.number_of_atoms = None
         self.norm_power = None
-        self.result_series_keys = ['angle', 'adf']
+        self.result_series_keys = ["angle", "adf"]
 
-        # TODO _n_batches is used instead of n_batches because the memory management is not yet implemented correctly
+        # TODO _n_batches is used instead of n_batches because the memory management is
+        #  not yet implemented correctly
         self.n_minibatches = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
         self.database_group = "Angular_Distribution_Function"
-        self.x_label = r'$$\text{Angle} / \theta $$'
-        self.y_label = r'$$\text{ADF} / a.u.$$'
+        self.x_label = r"$$\text{Angle} / \theta $$"
+        self.y_label = r"$$\text{ADF} / a.u.$$"
 
     @call
-    def __call__(self,
-                 batch_size: int = 1,
-                 n_minibatches: int = 50,
-                 n_confs: int = 5,
-                 r_cut: int = 6.0,
-                 start: int = 1,
-                 stop: int = None,
-                 bins: int = 500,
-                 species: list = None,
-                 use_tf_function: bool = False,
-                 molecules: bool = False,
-                 gpu: bool = False,
-                 plot: bool = True,
-                 norm_power: int = 4,
-                 **kwargs) -> Computation:
+    def __call__(
+        self,
+        batch_size: int = 1,
+        n_minibatches: int = 50,
+        n_confs: int = 5,
+        r_cut: int = 6.0,
+        start: int = 1,
+        stop: int = None,
+        bins: int = 500,
+        species: list = None,
+        use_tf_function: bool = False,
+        molecules: bool = False,
+        gpu: bool = False,
+        plot: bool = True,
+        norm_power: int = 4,
+        **kwargs,
+    ) -> Computation:
         """
         Parameters
         ----------
@@ -186,7 +194,9 @@ class AngularDistributionFunction(Calculator, ABC):
         self.n_confs = n_confs
         self.bins = bins
         self._batch_size = batch_size  # memory management for all batches
-        self.n_minibatches = n_minibatches  # memory management for triples generation per batch.
+        self.n_minibatches = (
+            n_minibatches  # memory management for triples generation per batch.
+        )
         self.species = species
         self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
@@ -200,7 +210,7 @@ class AngularDistributionFunction(Calculator, ABC):
             n_confs=n_confs,
             bins=bins,
             species=species,
-            norm_power=norm_power
+            norm_power=norm_power,
         )
 
     def _check_inputs(self):
@@ -240,7 +250,7 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         number_of_atoms = 0
         for item in self.species:
-            number_of_atoms += len(reference[item]['indices'])
+            number_of_atoms += len(reference[item]["indices"])
 
         self.number_of_atoms = number_of_atoms
 
@@ -260,8 +270,9 @@ class AngularDistributionFunction(Calculator, ABC):
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix("Positions", path=path_list,
-                                           select_slice=np.s_[:, indices])
+        data = self.experiment.load_matrix(
+            "Positions", path=path_list, select_slice=np.s_[:, indices]
+        )
         if len(self.species) == 1:
             return data
         else:
@@ -280,7 +291,7 @@ class AngularDistributionFunction(Calculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.species:
-            stop_index += len(self.experiment.species.get(species).get('indices'))
+            stop_index += len(self.experiment.species.get(species).get("indices"))
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 
@@ -309,20 +320,27 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         if self.use_tf_function:
+
             @tf.function
             def _get_triplets(x):
-                return get_triplets(x,
-                                    r_cut=self.r_cut,
-                                    n_atoms=self.number_of_atoms,
-                                    n_batches=self.n_minibatches,
-                                    disable_tqdm=True)
+                return get_triplets(
+                    x,
+                    r_cut=self.r_cut,
+                    n_atoms=self.number_of_atoms,
+                    n_batches=self.n_minibatches,
+                    disable_tqdm=True,
+                )
+
         else:
+
             def _get_triplets(x):
-                return get_triplets(x,
-                                    r_cut=self.r_cut,
-                                    n_atoms=self.number_of_atoms,
-                                    n_batches=self.n_minibatches,
-                                    disable_tqdm=True)
+                return get_triplets(
+                    x,
+                    r_cut=self.r_cut,
+                    n_atoms=self.number_of_atoms,
+                    n_batches=self.n_minibatches,
+                    disable_tqdm=True,
+                )
 
         return _get_triplets
 
@@ -336,15 +354,17 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         _get_triplets = self._prepare_triples_generator()
 
-        r_ij_flat = next(get_neighbour_list(tmp, cell=self.experiment.box_array,
-                                            batch_size=1))
+        r_ij_flat = next(
+            get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1)
+        )
         r_ij_indices = get_triu_indicies(self.number_of_atoms)
 
         # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
-        r_ij_mat = tf.scatter_nd(indices=tf.transpose(r_ij_indices),
-                                 updates=tf.transpose(r_ij_flat, (1, 2, 0)),
-                                 shape=(self.number_of_atoms,
-                                        self.number_of_atoms, 3, timesteps))
+        r_ij_mat = tf.scatter_nd(
+            indices=tf.transpose(r_ij_indices),
+            updates=tf.transpose(r_ij_flat, (1, 2, 0)),
+            shape=(self.number_of_atoms, self.number_of_atoms, 3, timesteps),
+        )
 
         r_ij_mat -= tf.transpose(r_ij_mat, (1, 0, 2, 3))
         r_ij_mat = tf.transpose(r_ij_mat, (3, 0, 1, 2))
@@ -370,15 +390,19 @@ class AngularDistributionFunction(Calculator, ABC):
         (i_name, i_min, i_max), (j_name, j_min, j_max), (k_name, k_min, k_max) = species
         name = f"{i_name}-{j_name}-{k_name}"
 
-        i_condition = tf.logical_and(r_ijk_indices[:, 1] >= i_min,
-                                     r_ijk_indices[:, 1] < i_max)
-        j_condition = tf.logical_and(r_ijk_indices[:, 2] >= j_min,
-                                     r_ijk_indices[:, 2] < j_max)
-        k_condition = tf.logical_and(r_ijk_indices[:, 3] >= k_min,
-                                     r_ijk_indices[:, 3] < k_max)
+        i_condition = tf.logical_and(
+            r_ijk_indices[:, 1] >= i_min, r_ijk_indices[:, 1] < i_max
+        )
+        j_condition = tf.logical_and(
+            r_ijk_indices[:, 2] >= j_min, r_ijk_indices[:, 2] < j_max
+        )
+        k_condition = tf.logical_and(
+            r_ijk_indices[:, 3] >= k_min, r_ijk_indices[:, 3] < k_max
+        )
 
-        condition = tf.math.logical_and(x=tf.math.logical_and(x=i_condition, y=j_condition),
-                                        y=k_condition)
+        condition = tf.math.logical_and(
+            x=tf.math.logical_and(x=i_condition, y=j_condition), y=k_condition
+        )
 
         return condition, name
 
@@ -397,33 +421,37 @@ class AngularDistributionFunction(Calculator, ABC):
         generator = self._prepare_generators(sample_configs)
 
         # Prepare the dataset generators.
-        dataset = tf.data.Dataset.from_generator(generator, output_signature=(tf.TensorSpec(shape=(None, None),
-                                                                                            dtype=tf.float32)))
+        dataset = tf.data.Dataset.from_generator(
+            generator,
+            output_signature=(tf.TensorSpec(shape=(None, None), dtype=tf.float32)),
+        )
         dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
 
-        log.debug(f'batch_size: {self._batch_size}')
+        log.debug(f"batch_size: {self._batch_size}")
 
-        for positions in tqdm(dataset,
-                              total=self.n_confs,
-                              ncols=70,
-                              desc="Building histograms"):
+        for positions in tqdm(
+            dataset, total=self.n_confs, ncols=70, desc="Building histograms"
+        ):
             timesteps, atoms, _ = tf.shape(positions)
             tmp = tf.concat(positions, axis=0)
             r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
 
             for species in itertools.combinations_with_replacement(species_indices, 3):
-                # Select the part of the r_ijk indices, where the selected species triple occurs.
+                # Select the part of the r_ijk indices, where the selected species
+                # triple occurs.
                 condition, name = self._compute_angles(species, r_ijk_indices)
                 tmp = tf.gather_nd(r_ijk_indices, tf.where(condition))
 
                 # Get the indices required.
                 angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
                 pre_factor = 1 / pre_factor ** self.norm_power
-                histogram, _ = np.histogram(angle_vals,
-                                            bins=self.bins,
-                                            range=self.bin_range,
-                                            weights=pre_factor,
-                                            density=True)
+                histogram, _ = np.histogram(
+                    angle_vals,
+                    bins=self.bins,
+                    range=self.bin_range,
+                    weights=pre_factor,
+                    density=True,
+                )
                 histogram = tf.cast(histogram, dtype=tf.float32)
                 if angles.get(name) is not None:
                     angles.update({name: angles.get(name) + histogram})
@@ -451,9 +479,11 @@ class AngularDistributionFunction(Calculator, ABC):
             name = f"{species[0][0]}-{species[1][0]}-{species[2][0]}"
             hist = angles.get(name)
 
-            bin_range_to_angles = np.linspace(self.bin_range[0] * (180 / 3.14159),
-                                              self.bin_range[1] * (180 / 3.14159),
-                                              self.bins)
+            bin_range_to_angles = np.linspace(
+                self.bin_range[0] * (180 / 3.14159),
+                self.bin_range[1] * (180 / 3.14159),
+                self.bins,
+            )
 
             self.selected_species = [_species[0] for _species in species]
 
@@ -462,7 +492,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
             data = {
                 self.result_series_keys[0]: bin_range_to_angles.tolist(),
-                self.result_series_keys[1]: hist.numpy().tolist()
+                self.result_series_keys[1]: hist.numpy().tolist(),
             }
 
             self.queue_data(data=data, subjects=self.selected_species)
@@ -484,12 +514,17 @@ class AngularDistributionFunction(Calculator, ABC):
     def plot_data(self, data):
         """Plot data"""
         for selected_species, val in data.items():
-            bin_range_to_angles = np.linspace(self.bin_range[0] * (180 / 3.14159),
-                                              self.bin_range[1] * (180 / 3.14159),
-                                              len(val[self.result_series_keys[0]]))
+            bin_range_to_angles = np.linspace(
+                self.bin_range[0] * (180 / 3.14159),
+                self.bin_range[1] * (180 / 3.14159),
+                len(val[self.result_series_keys[0]]),
+            )
 
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{selected_species} - Max: {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees ",
+                title=(
+                    f"{selected_species} - Max:"
+                    f" {bin_range_to_angles[tf.math.argmax(val[self.result_series_keys[1]])]:.3f} degrees "
+                ),
             )

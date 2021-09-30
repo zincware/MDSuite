@@ -30,12 +30,16 @@ from .calculator import Calculator
 from .angular_distribution_function import AngularDistributionFunction
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
-from .einstein_distinct_diffusion_coefficients import EinsteinDistinctDiffusionCoefficients
+from .einstein_distinct_diffusion_coefficients import (
+    EinsteinDistinctDiffusionCoefficients,
+)
 from .einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from .einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
 from .green_kubo_viscosity_flux import GreenKuboViscosityFlux
-from .green_kubo_distinct_diffusion_coefficients import GreenKuboDistinctDiffusionCoefficients
+from .green_kubo_distinct_diffusion_coefficients import (
+    GreenKuboDistinctDiffusionCoefficients,
+)
 from .green_kubo_ionic_conductivity import GreenKuboIonicConductivity
 from .green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from .green_kubo_thermal_conductivity import GreenKuboThermalConductivity
@@ -52,20 +56,39 @@ from typing import TYPE_CHECKING, List
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
-__all__ = ['Calculator', 'AngularDistributionFunction', 'CoordinationNumbers', 'EinsteinDiffusionCoefficients',
-           'EinsteinDistinctDiffusionCoefficients', 'EinsteinHelfandIonicConductivity',
-           'EinsteinHelfandThermalConductivity', 'EinsteinHelfandThermalKinaci', 'GreenKuboViscosityFlux',
-           'GreenKuboDistinctDiffusionCoefficients', 'GreenKuboIonicConductivity',
-           'GreenKuboDiffusionCoefficients',
-           'GreenKuboThermalConductivity', 'GreenKuboViscosity', 'KirkwoodBuffIntegral',
-           'NernstEinsteinIonicConductivity', 'PotentialOfMeanForce', 'RadialDistributionFunction', 'StructureFactor',
-           'SpatialDistributionFunction']
+__all__ = [
+    "Calculator",
+    "AngularDistributionFunction",
+    "CoordinationNumbers",
+    "EinsteinDiffusionCoefficients",
+    "EinsteinDistinctDiffusionCoefficients",
+    "EinsteinHelfandIonicConductivity",
+    "EinsteinHelfandThermalConductivity",
+    "EinsteinHelfandThermalKinaci",
+    "GreenKuboViscosityFlux",
+    "GreenKuboDistinctDiffusionCoefficients",
+    "GreenKuboIonicConductivity",
+    "GreenKuboDiffusionCoefficients",
+    "GreenKuboThermalConductivity",
+    "GreenKuboViscosity",
+    "KirkwoodBuffIntegral",
+    "NernstEinsteinIonicConductivity",
+    "PotentialOfMeanForce",
+    "RadialDistributionFunction",
+    "StructureFactor",
+    "SpatialDistributionFunction",
+]
 
 
 class RunComputation:
     """Collection of all calculators that can be used by an experiment"""
 
-    def __init__(self, experiment: Experiment = None, experiments: List[Experiment] = None, load_data: bool = False):
+    def __init__(
+        self,
+        experiment: Experiment = None,
+        experiments: List[Experiment] = None,
+        load_data: bool = False,
+    ):
         """Collection of all calculators
 
         Parameters
@@ -73,14 +96,19 @@ class RunComputation:
         experiment: Experiment
             Experiment to run the computations for
         experiments: List[Experiment]
-            A list of experiments passed by running the computation from the project class
+            A list of experiments passed by running the computation from the project
+            class
         load_data: bool, default=False
             Do not run the computation but load the data and return a dictionary
         """
         self.experiment = experiment
         self.experiments = experiments
 
-        self.kwargs = {'experiment': experiment, 'experiments': experiments, 'load_data': load_data}
+        self.kwargs = {
+            "experiment": experiment,
+            "experiments": experiments,
+            "load_data": load_data,
+        }
 
     @property
     def AngularDistributionFunction(self):

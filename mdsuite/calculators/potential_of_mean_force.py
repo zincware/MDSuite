@@ -78,7 +78,8 @@ class PotentialOfMeanForce(Calculator):
 
     Examples
     --------
-    experiment.run_computation.PotentialOfMeanForce(savgol_order = 2, savgol_window_length = 17)
+    experiment.run_computation.PotentialOfMeanForce(savgol_order = 2,
+                                                    savgol_window_length = 17)
     """
 
     def __init__(self, **kwargs):
@@ -112,13 +113,13 @@ class PotentialOfMeanForce(Calculator):
 
     @call
     def __call__(
-            self,
-            plot=True,
-            save=True,
-            data_range=1,
-            export: bool = False,
-            savgol_order: int = 2,
-            savgol_window_length: int = 17,
+        self,
+        plot=True,
+        save=True,
+        data_range=1,
+        export: bool = False,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
     ) -> Computation:
         """
         Python constructor for the class
@@ -166,7 +167,7 @@ class PotentialOfMeanForce(Calculator):
         """
 
         self.pomf = (
-                -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
+            -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
         )
 
     def _get_max_values(self):
@@ -244,7 +245,7 @@ class PotentialOfMeanForce(Calculator):
             self.rdf = np.array(vals["y"]).astype(float)[1:]
 
             log.debug(f"rdf: {self.rdf} \t radii: {self.radii}")
-            self._calculate_potential_of_mean_force()  # calculate the potential of mean-force
+            self._calculate_potential_of_mean_force()
             (
                 pomf_value,
                 pomf_error,
@@ -258,7 +259,7 @@ class PotentialOfMeanForce(Calculator):
                 self.result_keys[2]: self.radii[self.indices[0]],
                 self.result_keys[3]: self.radii[self.indices[1]],
                 self.result_series_keys[0]: self.radii.tolist(),
-                self.result_series_keys[1]: self.pomf.tolist()
+                self.result_series_keys[1]: self.pomf.tolist(),
             }
 
             self.queue_data(data=data, subjects=self.selected_species)
@@ -276,6 +277,9 @@ class PotentialOfMeanForce(Calculator):
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
-                title=fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
+                title=(
+                    fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    fr" {val[self.result_keys[1]]: 0.3E}"
+                ),
                 layouts=[model],
             )

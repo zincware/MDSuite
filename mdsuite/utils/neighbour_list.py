@@ -36,7 +36,8 @@ def get_triu_indicies(n_atoms):
 
     Returns
     ---------
-        Returns a vector of size (2, None) instead of a tuple of two values like np.triu_indices
+    Returns a vector of size (2, None) instead of a tuple of two values like
+    np.triu_indices
     """
     bool_mat = tf.ones((n_atoms, n_atoms), dtype=tf.bool)
     # Just construct a boolean true matrix the size of one time_step
@@ -55,8 +56,9 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
     positions: tf.Tensor
         Tensor with shape (n_confs, n_atoms, 3) representing the coordinates
     cell: list
-        If periodic boundary conditions are used, please supply the cell dimensions, e.g. [13.97, 13.97, 13.97].
-        If the cell is provided minimum image convention will be applied!
+        If periodic boundary conditions are used, please supply the cell dimensions,
+        e.g. [13.97, 13.97, 13.97]. If the cell is provided minimum image convention
+        will be applied!
     batch_size: int
         Has to be evenly divisible by the the number of configurations.
 
@@ -73,10 +75,13 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
 
     def get_rij_mat(positions, triu_mask, cell):
         """
-        Use the upper triangle of the virtual r_ij matrix constructed of n_atoms * n_atoms matrix and subtract
-        the transpose to get all distances once! If PBC are used, apply the minimum image convention.
+        Use the upper triangle of the virtual r_ij matrix constructed of
+        n_atoms * n_atoms matrix and subtract the transpose to get all distances once!
+        If PBC are used, apply the minimum image convention.
         """
-        r_ij_mat = tf.gather(positions, triu_mask[0], axis=1) - tf.gather(positions, triu_mask[1], axis=1)
+        r_ij_mat = tf.gather(positions, triu_mask[0], axis=1) - tf.gather(
+            positions, triu_mask[1], axis=1
+        )
         if cell:
             r_ij_mat -= tf.math.rint(r_ij_mat / cell) * cell
         return r_ij_mat
@@ -89,7 +94,9 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
             assert positions.shape[0] % batch_size == 0
         except AssertionError:
             print(
-                f"positions must be evenly divisible by batch_size, but are {positions.shape[0]} and {batch_size}")
+                "positions must be evenly divisible by batch_size, but are"
+                f" {positions.shape[0]} and {batch_size}"
+            )
 
         for positions_batch in tf.split(positions, batch_size):
             yield get_rij_mat(positions_batch, triu_mask, cell)
@@ -98,20 +105,25 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
 
 
 # @tf.function
-def get_triplets(full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200, disable_tqdm=True) -> tf.Tensor:
+def get_triplets(
+    full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200, disable_tqdm=True
+) -> tf.Tensor:
     """Compute the triple indices within a cutoff
 
-    Mostly vectorized method to compute the triples inside the cutoff sphere. Therefore a matrix of all
-    possible distances *r_ijk* over all timesteps (n_timesteps, n_atoms, n_atoms, n_atoms) is constructed.
-    The first layer is identical to the r_ij matrix, all consecutive layers are shifted along the "j" axis
+    Mostly vectorized method to compute the triples inside the cutoff sphere. Therefore
+    a matrix of all possible distances *r_ijk* over all timesteps
+    (n_timesteps, n_atoms, n_atoms, n_atoms) is constructed. The first layer is
+    identical to the r_ij matrix, all consecutive layers are shifted along the "j" axis
     which leads to the full r_ijk matrix.
 
-    To check for a triple, the depth can be converted into the third particle, yielding an index over all *ijk* indices
+    To check for a triple, the depth can be converted into the third particle, yielding
+    an index over all *ijk* indices
 
     Parameters
     ----------
     full_r_ij: tf.Tensor
-        The full distance matrix (r_ij and r_ji) with the shape (n_timesteps, n_atoms, n_atoms)
+        The full distance matrix (r_ij and r_ji) with the shape
+        (n_timesteps, n_atoms, n_atoms)
     r_cut: float
         The cutoff for the maximal triple distance
     n_atoms: int
@@ -126,7 +138,8 @@ def get_triplets(full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200
 
     Warnings
     ---------
-    Using the @tf.function decorator can speed things up! But it can also lead to memory issues.
+    Using the @tf.function decorator can speed things up! But it can also lead to
+    memory issues.
 
     """
     r_ij = tf.norm(full_r_ij, axis=-1)

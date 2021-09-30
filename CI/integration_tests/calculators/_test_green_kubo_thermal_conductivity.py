@@ -42,8 +42,8 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
+    # time_step = 0.002
+    # temperature = 1400.0
     base_url = "https://github.com/zincware/ExampleData/raw/main/"
 
     files_in_url = [
@@ -74,7 +74,7 @@ def traj_files(tmp_path_factory) -> list:
 def true_values() -> dict:
     """Values to compare to"""
     static_path = Path(static_data.__file__).parent
-    data = static_path / 'green_kubo_thermal_conductivity.json'
+    data = static_path / "green_kubo_thermal_conductivity.json"
     return json.loads(data.read_bytes())
 
 
@@ -89,12 +89,16 @@ def test_roject(traj_files, true_values, tmp_path):
     data_dict = project.load.GreenKuboThermalConductivity()[0].data_dict
 
     data = Path(
-        r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\green_kubo_thermal_conductivity.json')
+        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\
+        calculators\data\green_kubo_thermal_conductivity.json"
+    )
 
     data.write_text(json.dumps(data_dict))
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )
 
 
 def test_experiment(traj_files, true_values, tmp_path):
@@ -103,9 +107,13 @@ def test_experiment(traj_files, true_values, tmp_path):
     project = mds.Project()
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
-    project.experiments['NaCl'].run.GreenKuboThermalConductivity(plot=False)
+    project.experiments["NaCl"].run.GreenKuboThermalConductivity(plot=False)
 
-    data_dict = project.experiments['NaCl'].load.GreenKuboThermalConductivity()[0].data_dict
+    data_dict = (
+        project.experiments["NaCl"].load.GreenKuboThermalConductivity()[0].data_dict
+    )
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )

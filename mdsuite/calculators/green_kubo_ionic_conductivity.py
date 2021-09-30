@@ -81,21 +81,21 @@ class GreenKuboIonicConductivity(Calculator):
         self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
-        self.result_keys = ['ionic_conductivity', 'uncertainty']
-        self.result_series_keys = ['time', 'acf']
+        self.result_keys = ["ionic_conductivity", "uncertainty"]
+        self.result_series_keys = ["time", "acf"]
 
         self.prefactor: float
 
     @call
     def __call__(
-            self,
-            plot=True,
-            data_range=500,
-            save=True,
-            correlation_time=1,
-            export: bool = False,
-            gpu: bool = False,
-            integration_range: int = None,
+        self,
+        plot=True,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+        integration_range: int = None,
     ) -> Computation:
         """
 
@@ -136,8 +136,7 @@ class GreenKuboIonicConductivity(Calculator):
             self.integration_range = integration_range
 
         return self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            correlation_time=correlation_time
+            data_range=data_range, correlation_time=correlation_time
         )
 
     def _update_output_signatures(self):
@@ -170,13 +169,13 @@ class GreenKuboIonicConductivity(Calculator):
         # Calculate the prefactor
         numerator = (elementary_charge ** 2) * (self.experiment.units["length"] ** 2)
         denominator = (
-                3
-                * boltzmann_constant
-                * self.experiment.temperature
-                * self.experiment.volume
-                * (self.experiment.units["length"] ** 3)
-                * self.data_range
-                * self.experiment.units["time"]
+            3
+            * boltzmann_constant
+            * self.experiment.temperature
+            * self.experiment.volume
+            * (self.experiment.units["length"] ** 3)
+            * self.data_range
+            * self.experiment.units["time"]
         )
         self.prefactor = numerator / denominator
 
@@ -225,23 +224,29 @@ class GreenKuboIonicConductivity(Calculator):
             self.result_keys[0]: np.mean(result).tolist(),
             self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: self.jacf.numpy().tolist()
+            self.result_series_keys[1]: self.jacf.numpy().tolist(),
         }
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
     def plot_data(self, data):
         """Plot the data"""
         for selected_species, val in data.items():
             span = Span(
-                location=(np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                location=(
+                    np.array(val[self.result_series_keys[0]])
+                    * self.experiment.units["time"]
+                )[self.integration_range - 1],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]]) * self.experiment.units['time'],
+                x_data=np.array(val[self.result_series_keys[0]])
+                * self.experiment.units["time"],
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{val[self.result_keys[0]]: 0.3E} +- {val[self.result_keys[1]]: 0.3E}",
-                layouts=[span]
+                title=(
+                    f"{val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
+                ),
+                layouts=[span],
             )

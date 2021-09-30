@@ -42,8 +42,8 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    time_step = 0.002
-    temperature = 1400.0
+    # time_step = 0.002
+    # temperature = 1400.0
     base_url = "https://github.com/zincware/ExampleData/raw/main/"
 
     files_in_url = [
@@ -74,7 +74,7 @@ def traj_files(tmp_path_factory) -> list:
 def true_values() -> dict:
     """Values to compare to"""
     static_path = Path(static_data.__file__).parent
-    data = static_path / 'structure_factor.json'
+    data = static_path / "structure_factor.json"
     return json.loads(data.read_bytes())
 
 
@@ -90,13 +90,17 @@ def test_structure_factor_project(traj_files, true_values, tmp_path):
     data_dict = project.load.StructureFactor()[0].data_dict
 
     data = Path(
-        r'C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\calculators\data\structure_factor.json')
+        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests"
+        r"\calculators\data\structure_factor.json"
+    )
 
     data.write_text(json.dumps(data_dict))
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(data_dict["y"], true_values["y"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )
 
 
 def test_structure_factor_experiment(traj_files, true_values, tmp_path):
@@ -106,10 +110,12 @@ def test_structure_factor_experiment(traj_files, true_values, tmp_path):
     project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
 
     project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.experiments['NaCl'].run.StructureFactor(plot=False)
+    project.experiments["NaCl"].run.StructureFactor(plot=False)
 
-    data_dict = project.experiments['NaCl'].load.StructureFactor()[0].data_dict
+    data_dict = project.experiments["NaCl"].load.StructureFactor()[0].data_dict
 
-    np.testing.assert_array_almost_equal(data_dict['x'], true_values['x'])
-    np.testing.assert_array_almost_equal(data_dict['y'], true_values['y'])
-    np.testing.assert_array_almost_equal(data_dict['uncertainty'], true_values['uncertainty'])
+    np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
+    np.testing.assert_array_almost_equal(data_dict["y"], true_values["y"])
+    np.testing.assert_array_almost_equal(
+        data_dict["uncertainty"], true_values["uncertainty"]
+    )

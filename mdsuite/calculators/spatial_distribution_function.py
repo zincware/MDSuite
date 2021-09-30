@@ -48,10 +48,7 @@ class SpatialDistributionFunction(Calculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
     def __init__(
-            self,
-            experiment: Experiment,
-            experiments=None,
-            load_data: bool = False
+        self, experiment: Experiment, experiments=None, load_data: bool = False
     ):
         """
         Constructor of the SpatialDistributionFunction
@@ -66,10 +63,7 @@ class SpatialDistributionFunction(Calculator):
             managed by RunComputation
 
         """
-        super().__init__(
-            experiment,
-            experiments=experiments,
-            load_data=load_data)
+        super().__init__(experiment, experiments=experiments, load_data=load_data)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
         self.loaded_property = "Positions"
@@ -229,14 +223,15 @@ class SpatialDistributionFunction(Calculator):
         if self.species[0] in list(self.experiment.species):
             center = self.species[0]
         else:
-            center_dict = self.experiment.molecules[self.species[0]]['groups']['0']
+            center_dict = self.experiment.molecules[self.species[0]]["groups"]["0"]
             center = {}
             for item in center_dict:
                 for index in center_dict[item]:
                     center[f"{item}_{index}"] = self.database.load_data(
-                        path_list=[join_path(item, 'Positions')],
-                        select_slice=np.s_[index, 0]
+                        path_list=[join_path(item, "Positions")],
+                        select_slice=np.s_[index, 0],
                     )
         visualizer = DataVisualizer3D(
-            data=plot_data.numpy(), title="SDF", center=center)
+            data=plot_data.numpy(), title="SDF", center=center
+        )
         visualizer.plot()

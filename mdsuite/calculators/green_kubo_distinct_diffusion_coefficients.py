@@ -186,7 +186,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                             ]
                         )
             self.vacf += vacf[
-                int(self.data_range - 1):
+                int(self.data_range - 1) :
             ]  # Update the averaged function
             self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
@@ -282,10 +282,10 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            'diffusion_coefficient': np.mean(result).tolist(),
-            'uncertainty': (np.std(result) / (np.sqrt(len(result)))).tolist(),
-            'time': self.time.tolist(),
-            'acf': self.vacf.tolist()
+            "diffusion_coefficient": np.mean(result).tolist(),
+            "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+            "time": self.time.tolist(),
+            "acf": self.vacf.tolist(),
         }
 
         self.queue_data(data=data, subjects=list(species))
@@ -294,15 +294,19 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                    self.integration_range - 1
+                ],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
+                x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.vacf.numpy(),
-                title=f"{species}: {np.mean(result): .3E} +- {np.std(result) / (np.sqrt(len(result))): .3E}",
-                layouts=[span]
+                title=(
+                    f"{species}: {np.mean(result): .3E} +-"
+                    f" {np.std(result) / (np.sqrt(len(result))): .3E}"
+                ),
+                layouts=[span],
             )
 
     def _update_output_signatures(self):

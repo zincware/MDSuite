@@ -38,7 +38,7 @@ from mdsuite.utils.testing import assertDeepAlmostEqual
 def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     compressed_file = "NaCl_gk_i_q.zip"
-    uncompressed_file = 'NaCl_gk_i_q.lammpstraj'
+    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
 
     conv_raw = "?raw=true"
     compressed_file_path = base_path + compressed_file + conv_raw
@@ -49,8 +49,7 @@ def traj_file(tmp_path_factory) -> str:
     )
 
     shutil.unpack_archive(
-        filename=temporary_path / compressed_file,
-        extract_dir=temporary_path
+        filename=temporary_path / compressed_file, extract_dir=temporary_path
     )
 
     return (temporary_path / uncompressed_file).as_posix()

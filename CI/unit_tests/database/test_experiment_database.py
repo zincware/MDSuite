@@ -51,11 +51,11 @@ def test_project_temperature():
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].temperature = 9000
+    project_1.experiments["Exp01"].temperature = 9000
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].temperature == 9000
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].temperature == 9000
 
 
 def test_project_time_step():
@@ -63,11 +63,11 @@ def test_project_time_step():
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].time_step = 1
+    project_1.experiments["Exp01"].time_step = 1
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].time_step == 1
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].time_step == 1
 
 
 def test_project_number_of_configurations():
@@ -75,11 +75,11 @@ def test_project_number_of_configurations():
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].number_of_configurations = 100
+    project_1.experiments["Exp01"].number_of_configurations = 100
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].number_of_configurations == 100
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].number_of_configurations == 100
 
 
 def test_project_number_of_atoms():
@@ -87,38 +87,46 @@ def test_project_number_of_atoms():
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].number_of_atoms = 100
+    project_1.experiments["Exp01"].number_of_atoms = 100
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].number_of_atoms == 100
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].number_of_atoms == 100
 
 
 def test_species():
     """Test that the species are stored correctly in the database"""
 
-    species = {"H": {'indices': [1, 2, 3], 'mass': 1}, 'Cl': {'indices': [4, 5, 6], 'mass': 35.45}}
+    species = {
+        "H": {"indices": [1, 2, 3], "mass": 1},
+        "Cl": {"indices": [4, 5, 6], "mass": 35.45},
+    }
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].species = species
+    project_1.experiments["Exp01"].species = species
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].species == species
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].species == species
+
 
 def test_molecules():
     """Test that the molecules are stored correctly in the database"""
 
-    molecule = {"Proton": {'indices': [1, 2, 3], 'mass': 1}, 'Chloride': {'indices': [4, 5, 6], 'mass': 35.45}}
+    molecule = {
+        "Proton": {"indices": [1, 2, 3], "mass": 1},
+        "Chloride": {"indices": [4, 5, 6], "mass": 35.45},
+    }
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].molecules = molecule
+    project_1.experiments["Exp01"].molecules = molecule
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    assert project_2.experiments['Exp01'].molecules == molecule
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].molecules == molecule
+
 
 def test_project_box_array():
     """Test that the project description is stored correctly in the database"""
@@ -127,42 +135,49 @@ def test_project_box_array():
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].box_array = box_array
+    project_1.experiments["Exp01"].box_array = box_array
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
-    np.testing.assert_array_equal(project_2.experiments['Exp01'].box_array, box_array)
+    project_2.load_experiments("Exp01")
+    np.testing.assert_array_equal(project_2.experiments["Exp01"].box_array, box_array)
 
 
 def test_experiment_simulation_data():
     """Test that the experiment simulation data is stored correctly in the database"""
 
-    simulation_data = {"a_5": [10.0, 11.0, 12.0], "b_test": "HelloWorld", "c": 15.0}  # can only handle float and str
+    simulation_data = {
+        "a_5": [10.0, 11.0, 12.0],
+        "b_test": "HelloWorld",
+        "c": 15.0,
+    }  # can only handle float and str
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].simulation_data = simulation_data
+    project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
+    project_2.load_experiments("Exp01")
 
-    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+    for key, val in project_2.experiments["Exp01"].simulation_data.items():
         assert val == simulation_data[key]
 
-def test_experiment_simulation_data_nested():
-    """Test that nested experiment simulation data is stored correctly in the database"""
 
-    simulation_data = {"a": {"one": [1., 2., 3.], "two": [4., 5., 6.]}}
-    simulation_true = {"a.one": [1., 2., 3.], "a.two": [4., 5., 6.]}
+def test_experiment_simulation_data_nested():
+    """
+    Test that nested experiment simulation data is stored correctly in the database
+    """
+
+    simulation_data = {"a": {"one": [1.0, 2.0, 3.0], "two": [4.0, 5.0, 6.0]}}
+    simulation_true = {"a.one": [1.0, 2.0, 3.0], "a.two": [4.0, 5.0, 6.0]}
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
-    project_1.experiments['Exp01'].simulation_data = simulation_data
+    project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
-    project_2.load_experiments('Exp01')
+    project_2.load_experiments("Exp01")
 
-    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+    for key, val in project_2.experiments["Exp01"].simulation_data.items():
         assert val == simulation_true[key]
 
 
@@ -173,15 +188,14 @@ def test_experiment_units():
 
     from mdsuite.utils.units import units_real
 
-
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01", units="real")
     project_1.add_experiment(experiment="Exp02", units=custom_units)
 
     project_2 = mds.Project()
 
-    for key, val in project_2.experiments['Exp01'].simulation_data.items():
+    for key, val in project_2.experiments["Exp01"].simulation_data.items():
         assert val == units_real()[key]
 
-    for key, val in project_2.experiments['Exp02'].simulation_data.items():
+    for key, val in project_2.experiments["Exp02"].simulation_data.items():
         assert val == custom_units[key]

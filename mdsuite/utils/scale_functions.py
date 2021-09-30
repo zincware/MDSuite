@@ -36,7 +36,8 @@ def linear_scale_function(memory_usage: int, scale_factor: int = 1):
     memory_usage : int
             naive memory usage, i.e., the exact memory of one configuration.
     scale_factor : int
-            Scalar scaling factor for the memory usage in cases on non-size dependent inflation.
+            Scalar scaling factor for the memory usage in cases on non-size dependent
+            inflation.
     Returns
     -------
     scaled_memory : int
@@ -54,7 +55,8 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
     memory_usage : int
             naive memory usage, i.e., the exact memory of one configuration.
     scale_factor : int
-            Scalar scaling factor for the memory usage in cases on non-size dependent inflation.
+            Scalar scaling factor for the memory usage in cases on non-size dependent
+            inflation.
     Returns
     -------
     scaled_memory : int
@@ -63,7 +65,9 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
     return scale_factor * memory_usage * np.log(memory_usage)
 
 
-def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1):
+def quadratic_scale_function(
+    memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1
+):
     """
     Apply a quadratic scaling to memory usage.
 
@@ -80,11 +84,15 @@ def quadratic_scale_function(memory_usage: int, inner_scale_factor: int = 1, out
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**2
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** 2
 
 
-def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
-                              outer_scale_factor: int = 1, order: int = 3):
+def polynomial_scale_function(
+    memory_usage: int,
+    inner_scale_factor: int = 1,
+    outer_scale_factor: int = 1,
+    order: int = 3,
+):
     """
     Apply a polynomial scaling to memory usage.
 
@@ -103,4 +111,4 @@ def polynomial_scale_function(memory_usage: int, inner_scale_factor: int = 1,
     scaled_memory : int
             Amount of memory required per configuration loaded.
     """
-    return outer_scale_factor * (memory_usage * inner_scale_factor)**order
+    return outer_scale_factor * (memory_usage * inner_scale_factor) ** order

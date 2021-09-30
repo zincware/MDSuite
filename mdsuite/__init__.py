@@ -32,13 +32,13 @@ from .graph_modules import adjacency_matrix
 from .utils.report_computer_characteristics import Report
 from .utils import config
 
-__all__ = ['Project', 'Experiment', 'adjacency_matrix', 'Report', 'config']
+__all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 
 logger = logging.getLogger("mdsuite")
 logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging
-formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
 
 channel = logging.StreamHandler(sys.stdout)
 channel.setLevel(logging.DEBUG)

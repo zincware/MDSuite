@@ -28,10 +28,13 @@ import setuptools
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'requirements.txt')) as requirements_file:
+with open(path.join(here, "requirements.txt")) as requirements_file:
     # Parse requirements.txt, ignoring any commented-out lines.
-    requirements = [line for line in requirements_file.read().splitlines()
-                    if not line.startswith('#')]
+    requirements = [
+        line
+        for line in requirements_file.read().splitlines()
+        if not line.startswith("#")
+    ]
 
 
 with open("README.rst", "r") as fh:
@@ -52,8 +55,8 @@ setuptools.setup(
         "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
         "Operating System :: OS Independent",
     ],
-    package_data={'': ['form_fac_coeffs.csv']},
+    package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
-    python_requires='>=3.7',
+    python_requires=">=3.7",
     install_requires=requirements,
 )

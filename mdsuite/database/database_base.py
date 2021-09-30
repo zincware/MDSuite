@@ -70,7 +70,8 @@ class DatabaseBase:
             self._engine = sa.create_engine(
                 f"sqlite+pysqlite:///{Path(self.storage_path, self.name, self.database_name)}",
                 echo=False,
-                future=True)
+                future=True,
+            )
         return self._engine
 
     @property
@@ -101,7 +102,6 @@ class DatabaseBase:
         return Base
 
     def build_database(self):
-        """Build the database and get create the tables
-        """
+        """Build the database and get create the tables"""
         log.debug("Creating the database if it does not exist.")
         self.base.metadata.create_all(self.engine)

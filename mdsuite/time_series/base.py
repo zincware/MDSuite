@@ -33,6 +33,7 @@ from pathlib import Path
 import tensorflow as tf
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
@@ -55,10 +56,7 @@ class TimeSeries:
         self.experiment = experiment
 
         self.loaded_property = None
-        self.fig_labels = {
-            "x": None,
-            "y": None
-        }
+        self.fig_labels = {"x": None, "y": None}
         self.species = experiment.species
         self.rolling_window = 0
         self.reduce_sum = True
@@ -77,7 +75,9 @@ class TimeSeries:
     def database(self):
         """Get the database"""
         if self._database is None:
-            self._database = Database(name=Path(self.experiment.database_path, "database.hdf5"))
+            self._database = Database(
+                name=Path(self.experiment.database_path, "database.hdf5")
+            )
         return self._database
 
     @property
@@ -85,8 +85,11 @@ class TimeSeries:
         """Get the data for all species and timesteps for the loaded_property"""
         if self._data is None:
             self._data = tf.concat(
-                [self.database.load_data([f'{species}/{self.loaded_property}']) for species in self.species],
-                axis=0
+                [
+                    self.database.load_data([f"{species}/{self.loaded_property}"])
+                    for species in self.species
+                ],
+                axis=0,
             )
         return self._data
 
@@ -96,7 +99,8 @@ class TimeSeries:
         data = self.data
         if self.reduce_sum:
             data = tf.einsum("atx -> t", data)
-            # perform a reduce sum over atoms "a" and property dimension "x" to yield time steps "t"
+            # perform a reduce sum over atoms "a" and property dimension "x" to
+            # yield time steps "t"
         if self.rolling_window > 0:
             data = running_mean(data, self.rolling_window)
 
@@ -106,6 +110,6 @@ class TimeSeries:
         """Plot the data over timesteps"""
         fig, ax = plt.subplots()
         ax.plot(self.preprocess_data)
-        ax.set_xlabel(self.fig_labels['x'])
-        ax.set_ylabel(self.fig_labels['y'])
+        ax.set_xlabel(self.fig_labels["x"])
+        ax.set_ylabel(self.fig_labels["y"])
         fig.show()

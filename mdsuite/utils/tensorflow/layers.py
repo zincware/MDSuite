@@ -57,21 +57,22 @@ class NLLayer(tf.keras.layers.Layer):
             of shape (x, 2) as well as the number of atoms
 
         """
-        positions = tf.cast(inputs['positions'], self.dtype)
-        cell = tf.cast(inputs['cell'], self.dtype)
+        positions = tf.cast(inputs["positions"], self.dtype)
+        cell = tf.cast(inputs["cell"], self.dtype)
 
         n_atoms = tf.shape(positions)[1]
         triu_indices = compute_triu(n_atoms, k=1)
 
-        flat_rij = tf.gather(
-            positions, triu_indices[:, 0], axis=1
-        ) - tf.gather(positions, triu_indices[:, 1], axis=1)
+        flat_rij = tf.gather(positions, triu_indices[:, 0], axis=1) - tf.gather(
+            positions, triu_indices[:, 1], axis=1
+        )
 
         cell = tf.linalg.diag_part(cell)
 
         flat_rij -= tf.math.rint(flat_rij / cell[:, None]) * cell[:, None]
 
         if self.dense:
+
             def to_dense(flat_rij):
                 """Convert the flattened output to a dense r_ij matrix
 

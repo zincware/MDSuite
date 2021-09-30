@@ -53,7 +53,8 @@ class ProjectDatabase(DatabaseBase):
     @property
     def db_experiments(self):
         """Get all experiments"""
-        # renamed to db_experiments because experiments contains the instances of the Experiment class
+        # renamed to db_experiments because experiments contains the instances of the
+        # Experiment class
         with self.session as ses:
             experiments = ses.query(Experiment).all()
         return experiments
@@ -75,8 +76,9 @@ class ProjectDatabase(DatabaseBase):
         Parameters
         ----------
         value : str
-                Description of the project. If the string ends in .txt, the contents of the txt file will be read. If
-                it ends in .md, same outcome. Anything else will be read as is.
+                Description of the project. If the string ends in .txt, the contents of
+                the txt file will be read. If it ends in .md, same outcome. Anything
+                else will be read as is.
         """
         if value is None:
             return

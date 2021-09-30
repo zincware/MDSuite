@@ -28,7 +28,6 @@ import os
 from tempfile import TemporaryDirectory
 import pytest
 import mdsuite as mds
-from pathlib import Path
 
 temp_dir = TemporaryDirectory()
 cwd = os.getcwd()

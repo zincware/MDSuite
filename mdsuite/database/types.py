@@ -57,6 +57,7 @@ class JSONEncodedDict(TypeDecorator):
 
 class MutableDict(Mutable, dict):
     """Subclassed version of a dictionary used in the database"""
+
     @classmethod
     def coerce(cls, key, value):
         """Convert plain dictionaries to MutableDict."""

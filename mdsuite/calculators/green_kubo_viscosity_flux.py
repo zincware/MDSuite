@@ -56,7 +56,9 @@ class GreenKuboViscosityFlux(Calculator):
 
     Examples
     --------
-    experiment.run_computation.GreenKuboViscosityFlux(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.GreenKuboViscosityFlux(data_range=500,
+                                                      plot=True,
+                                                      correlation_time=10)
     """
 
     def __init__(self, **kwargs):
@@ -69,28 +71,32 @@ class GreenKuboViscosityFlux(Calculator):
                 Experiment class to read and write to
         """
         super().__init__(**kwargs)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Stress_visc'  # Property to be loaded for the analysis
+        self.loaded_property = "Stress_visc"  # Property to be loaded for the analysis
         self.system_property = True
 
-        self.database_group = 'Viscosity'  # Which database_path group to save the tensor_values in
-        self.analysis_name = 'Viscosity_Flux'
-        self.x_label = r'$$\text{Time} / s$$'
-        self.y_label = r'$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$'
+        self.database_group = (  # Which database_path group to save the tensor_values
+            "Viscosity"
+        )
+        self.analysis_name = "Viscosity_Flux"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$"
 
         self.prefactor: float
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
 
     @call
-    def __call__(self,
-                 plot=False,
-                 data_range=500,
-                 correlation_time=1,
-                 save=True,
-                 gpu: bool = False,
-                 integration_range: int = None):
+    def __call__(
+        self,
+        plot=False,
+        data_range=500,
+        correlation_time=1,
+        save=True,
+        gpu: bool = False,
+        integration_range: int = None,
+    ):
         """
         Python constructor for the experiment class.
 
@@ -103,8 +109,12 @@ class GreenKuboViscosityFlux(Calculator):
         """
 
         self.update_user_args(
-            plot=plot, data_range=data_range, save=save,
-            correlation_time=correlation_time, gpu=gpu)
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            gpu=gpu,
+        )
 
         self.jacf = np.zeros(self.data_range)
         self.sigma = []
@@ -115,8 +125,7 @@ class GreenKuboViscosityFlux(Calculator):
             self.integration_range = integration_range
 
         return self.update_db_entry_with_kwargs(
-            data_range=data_range,
-            correlation_time=correlation_time
+            data_range=data_range, correlation_time=correlation_time
         )
 
     def _update_output_signatures(self):
@@ -127,8 +136,12 @@ class GreenKuboViscosityFlux(Calculator):
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -144,12 +157,21 @@ class GreenKuboViscosityFlux(Calculator):
         """
         # Calculate the prefactor
         numerator = self.experiment.volume
-        denominator = 3 * (self.data_range - 1) * self.experiment.temperature * self.experiment.units['boltzman']
+        denominator = (
+            3
+            * (self.data_range - 1)
+            * self.experiment.temperature
+            * self.experiment.units["boltzman"]
+        )
 
-        prefactor_units = self.experiment.units['pressure'] ** 2 * self.experiment.units['length'] ** 3 * \
-            self.experiment.units['time'] / self.experiment.units['energy']
+        prefactor_units = (
+            self.experiment.units["pressure"] ** 2
+            * self.experiment.units["length"] ** 3
+            * self.experiment.units["time"]
+            / self.experiment.units["energy"]
+        )
 
-        self.prefactor = (numerator / denominator)*prefactor_units
+        self.prefactor = (numerator / denominator) * prefactor_units
 
     def _apply_averaging_factor(self):
         """
@@ -173,15 +195,13 @@ class GreenKuboViscosityFlux(Calculator):
         updates class vacf with the tensor_values.
         """
         jacf = self.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0,
-                                       center=False),
+            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
-        self.jacf += jacf[int(self.data_range - 1):]
+        self.jacf += jacf[int(self.data_range - 1) :]
         self.sigma.append(
             np.trapz(
-                jacf[: self.integration_range],
-                x=self.time[: self.integration_range]
+                jacf[: self.integration_range], x=self.time[: self.integration_range]
             )
         )
 
@@ -192,28 +212,29 @@ class GreenKuboViscosityFlux(Calculator):
         -------
 
         """
-        result = self.prefactor*np.array(self.sigma)
+        result = self.prefactor * np.array(self.sigma)
 
         data = {
-            'viscosity': result[0],
-            'uncertainty': result[1],
-            'time': self.time.tolist(),
-            'acf': self.jacf.numpy().tolist()
+            "viscosity": result[0],
+            "uncertainty": result[1],
+            "time": self.time.tolist(),
+            "acf": self.jacf.numpy().tolist(),
         }
 
-        self.queue_data(data=data, subjects=['System'])
+        self.queue_data(data=data, subjects=["System"])
 
         # Update the plot if required
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1],
-                dimension='height',
-                line_dash='dashed'
+                    self.integration_range - 1
+                ],
+                dimension="height",
+                line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units['time'],
+                x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.jacf.numpy(),
                 title=f"{result[0]} +- {result[1]}",
-                layouts=[span]
+                layouts=[span],
             )
