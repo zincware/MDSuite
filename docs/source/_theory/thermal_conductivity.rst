@@ -59,6 +59,7 @@ Thermal Traditional Formulation Class` simply describes the energy moment as:
 
 .. math::
     \mathbf{R} = \sum_{i=1}^{N_{atoms}} \epsilon_i \vec{r}
+
 Where :math:`\epsilon_i` is the energy (potential and kinetic) of the :math:`i`-th atom, and :math:`\vec{r}` is
 the position of the atom.
 
@@ -71,6 +72,7 @@ The potential contribution stays the same as in the traditional formulation:
 
 .. math::
     \mathbf{R}_P = \sum_{i,j>i}^{N_{atoms}} \frac{1}{2} u_{i,j} (\vec{r_i}+\vec{r_j}).
+
 Where :math:`u_{i,j}` is the pair potential energy.
 
 
@@ -79,6 +81,7 @@ particles that interact with it.
 
 .. math::
     \mathbf{R}_K = \sum_{i=1}^{N_{atoms}} \vec{r_i} \int_0^t \vec{f_i} \vec{v_i} dt
+
 In this case, :math:`\vec{f_i}` and :math:`\vec{v_i}` are the net force and the velocity of particle :math:`i`.
 In general, for solids, the component :math:`\mathbf{R}_P` does not contribute to the computation, and it
 can be neglected. For the sake of generality, this component is always computed in MDSuite.

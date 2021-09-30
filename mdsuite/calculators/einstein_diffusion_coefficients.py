@@ -1,49 +1,63 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the einstein diffusion coefficients.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
-Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
-Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
-calculations performed.
 """
+from __future__ import annotations
 import logging
-import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 
-log = logging.getLogger(__name__)
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.database.scheme import Computation
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
 class EinsteinDiffusionCoefficients(Calculator):
     """
     Class for the Einstein diffusion coefficient implementation
 
-    Description: This module contains the code for the Einstein diffusion coefficient class. This class is called by the
-    Experiment class and instantiated when the user calls the Experiment.einstein_diffusion_coefficients method.
-    The methods in class can then be called by the Experiment.einstein_diffusion_coefficients method and all necessary
-    calculations performed.
+    Description:
+    This module contains the code for the Einstein diffusion coefficient class.
+    This class is called by the Experiment class and instantiated when the user calls
+    the  Experiment.einstein_diffusion_coefficients method. The methods in class can
+    then be called by the Experiment.einstein_diffusion_coefficients method and all
+    necessary calculations performed.
 
     Attributes
     ----------
-    experiment :  object
+    experiment :  Experiment
             Experiment class to call from
     species : list
             Which species to perform the analysis on
@@ -62,43 +76,106 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.EinsteinDiffusionCoefficients(data_range=500,
+                                                             plot=True,
+                                                             correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
 
         Parameters
         ----------
-        experiment :  object
+        experiment :  Experiment
                 Experiment class to call from
+        experiments :  Experiment
+                Experiment classes to call from
+        load_data :  bool
+                whether to load data or not
         """
 
-        super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 150}}
-        self.loaded_property = 'Unwrapped_Positions'
+        super().__init__(**kwargs)
+        self.scale_function = {"linear": {"scale_factor": 150}}
+        self.loaded_property = "Unwrapped_Positions"
         self.species = None
         self.molecules = None
-        self.database_group = 'Diffusion_Coefficients'
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$)'
-        self.analysis_name = 'Einstein_Self_Diffusion_Coefficients'
+        self.database_group = "Diffusion_Coefficients"
+        self.x_label = r"$ \text{Time} / s$"
+        self.y_label = r"$ \text{MSD} / m^{2}$"
+        self.result_keys = ["diffusion_coefficient", "uncertainty"]
+        self.result_series_keys = ["time", "msd"]
+        self.analysis_name = "Einstein Self-Diffusion Coefficients"
         self.loop_condition = False
         self.optimize = None
         self.msd_array = None  # define empty msd array
+        self.tau_values = None
         self.species = list()
-        log.info('starting Einstein Diffusion Computation')
+        log.info("starting Einstein Diffusion Computation")
 
-    def __call__(self, plot: bool = True, species: list = None, data_range: int = 100, save: bool = True,
-                 optimize: bool = False, correlation_time: int = 1, atom_selection=np.s_[:], export: bool = False,
-                 molecules: bool = False, gpu: bool = False):
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              atom_selection=atom_selection, export=export, gpu=gpu)
+    @call
+    def __call__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 100,
+        save: bool = True,
+        optimize: bool = False,
+        correlation_time: int = 1,
+        atom_selection: np.s_ = np.s_[:],
+        export: bool = False,
+        molecules: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        gpu: bool = False,
+    ) -> Computation:
+
+        """
+
+        Parameters
+        ----------
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        optimize : bool
+                If true, an optimization loop will be run.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        tau_values : Union[int, list, np.s_]
+                Selection of tau values to use in the window sliding.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+
+        Returns
+        -------
+        None
+        """
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            export=export,
+            gpu=gpu,
+        )
+
         self.species = species
         self.molecules = molecules
         self.optimize = optimize
         # attributes based on user args
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
+        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
         if species is None:
             if molecules:
@@ -106,12 +183,14 @@ class EinsteinDiffusionCoefficients(Calculator):
             else:
                 self.species = list(self.experiment.species)
 
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-        # need to move save_class() to here, because it can't be done in the experiment any more!
-
-        return out
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            molecules=molecules,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            species=species,
+        )
 
     def _update_output_signatures(self):
         """
@@ -121,8 +200,12 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
         Update the class state.
         """
-        self.batch_output_signature = tf.TensorSpec(shape=(None, self.batch_size, 3), dtype=tf.float64)
-        self.ensemble_output_signature = tf.TensorSpec(shape=(None, self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(None, self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(None, self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -139,12 +222,18 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         if self.molecules:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = (self.experiment.units['time'] * len(self.experiment.molecules[species]['indices'])) * 6
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                self.experiment.units["time"]
+                * len(self.experiment.molecules[species]["indices"])
+            ) * 6
         else:
             # Calculate the prefactor
-            numerator = self.experiment.units['length'] ** 2
-            denominator = (self.experiment.units['time'] * len(self.experiment.species[species]['indices'])) * 6
+            numerator = self.experiment.units["length"] ** 2
+            denominator = (
+                self.experiment.units["time"]
+                * len(self.experiment.species[species]["indices"])
+            ) * 6
 
         self.prefactor = numerator / denominator
 
@@ -178,6 +267,7 @@ class EinsteinDiffusionCoefficients(Calculator):
     def _post_operation_processes(self, species: str = None):
         """
         Apply post-op processes such as saving and plotting.
+
         Returns
         -------
 
@@ -185,44 +275,12 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         result = self._fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": [species],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
 
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": [species],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"}
-            self._update_properties_file(properties)
+        data = {
+            self.result_keys[0]: result[0],
+            self.result_keys[1]: result[1],
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.msd_array.tolist(),
+        }
 
-        if self.export:
-            self._export_data(name=self._build_table_name(species), data=self._build_pandas_dataframe(self.time,
-                                                                                                      self.msd_array))
-
-        if self.plot:
-            plt.xlabel(rf'{self.x_label}')  # set the x label
-            plt.ylabel(rf'{self.y_label}')  # set the y label
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array * self.experiment.units['time'],
-                     label=fr"{species}: {result[0]: 0.3E} $\pm$ {result[1]: 0.3E}")
-
-    def _optimized_calculation(self):
-        """
-        Run an range optimized calculation
-        """
-        # Optimize the data_range parameter
-        # for item in self.species:
-        #     while not self.loop_condition:
-        #         tensor_values = self._self_diffusion_coefficients(item, parse=True)
-        #         self._optimize_einstein_data_range(tensor_values=tensor_values)
-        #
-        #     self.loop_condition = False
-        #     result = self._fit_einstein_curve(tensor_values)  # get the final fits
-        #     self._update_properties_file(item='Singular', sub_item=item, tensor_values=result)
-        pass
+        self.queue_data(data=data, subjects=[species])

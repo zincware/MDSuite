@@ -1,17 +1,28 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Atomic transformation to wrap the simulation coordinates.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
-Sometimes, particularly in the study of molecules, it is necessary to wrap positions. This module will do that for you.
 """
 import numpy as np
 import os
@@ -27,17 +38,20 @@ class CoordinateWrapper(Transformations):
     Attributes
     ----------
     experiment : object
-            The experiment class from which tensor_values will be read and in which it will be saved.
+            The experiment class from which tensor_values will be read and in
+            which it will be saved.
 
     species : list
             species of atoms to unwrap.
 
     center_box : bool
-            Decision whether or not to center the positions in the box before performing the unwrapping. The default
-            value is set to True as this is most common in simulations.
+            Decision whether or not to center the positions in the box before
+            performing the unwrapping. The default value is set to True as
+            this is most common in simulations.
 
     storage_path : str
-            Path to the tensor_values in the database_path, taken directly from the system attribute.
+            Path to the tensor_values in the database_path, taken directly
+            from the system attribute.
 
     analysis_name : str
             Name of the analysis, taken directly from the system attribute.
@@ -51,10 +65,13 @@ class CoordinateWrapper(Transformations):
     mask : tf.tensor
             Mask to select and transform crossed tensor_values.
     scale_function : dict
-            A dictionary referencing the memory/time scaling function of the transformation.
+            A dictionary referencing the memory/time scaling function
+            of the transformation.
     """
 
-    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
+    def __init__(
+        self, experiment: object, species: list = None, center_box: bool = True
+    ):
         """
         Standard constructor
 
@@ -65,30 +82,33 @@ class CoordinateWrapper(Transformations):
         species : list
                 List of species to perform unwrapping on
         center_box : bool
-                If true, the box coordinates will be centered before the unwrapping occurs
+                If true, the box coordinates will be centered before the
+                unwrapping occurs
         """
         super().__init__(experiment)
 
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.storage_path = self.experiment.storage_path  # get the storage path of the database_path
-        self.analysis_name = self.experiment.analysis_name  # get the analysis name
+        self.storage_path = self.experiment.storage_path
+        self.analysis_name = self.experiment.name
         self.center_box = center_box
 
-        self.box_array = self.experiment.box_array  # re-assign the box array for cleaner code
+        self.box_array = self.experiment.box_array
         self.species = species  # re-assign species
         if species is None:
             self.species = list(self.experiment.species)
 
-        self.data = None  # tensor_values to be unwrapped
-        self.mask = None  # image number mask
+        self.data = None
+        self.mask = None
 
     def _load_data(self, species):
         """
         Load the tensor_values to be unwrapped
         """
         path = join_path(species, "Unwrapped_Positions")
-        self.data = np.array(self.experiment.load_matrix(path=[path], select_slice=np.s_[:]))
+        self.data = np.array(
+            self.experiment.load_matrix(path=[path], select_slice=np.s_[:])
+        )
 
     def _center_box(self):
         """
@@ -98,21 +118,30 @@ class CoordinateWrapper(Transformations):
         adjusts the self.data attribute
         """
         self.data = np.array(self.data)
-        self.data[:, :, 0] += (self.box_array[0] / 2)
-        self.data[:, :, 1] += (self.box_array[1] / 2)
-        self.data[:, :, 2] += (self.box_array[2] / 2)
+        self.data[:, :, 0] += self.box_array[0] / 2
+        self.data[:, :, 1] += self.box_array[1] / 2
+        self.data[:, :, 2] += self.box_array[2] / 2
 
     def _build_image_mask(self):
         """
-        Construct a mask of image numbers
-        """
+        Construct a mask of image numbers.
 
-        # Find all distance greater than half a box length and set them to integers.
-        self.mask = tf.cast(tf.cast(tf.greater_equal(abs(self.data), np.array(self.box_array) / 2), dtype=tf.int16),
-                            dtype=tf.float64)
+        This works by finding all distances greater than half the box length
+        and set them to a float in order to build the mask and set the values
+        to the correct sign.
+        """
+        self.mask = tf.cast(
+            tf.cast(
+                tf.greater_equal(abs(self.data), np.array(self.box_array) / 2),
+                dtype=tf.int16,
+            ),
+            dtype=tf.float64,
+        )
         self.mask = tf.math.floordiv(x=abs(self.data), y=np.array(self.box_array) / 2)
 
-        self.mask = tf.multiply(tf.sign(self.data), self.mask)  # get the correct image sign
+        self.mask = tf.multiply(
+            tf.sign(self.data), self.mask
+        )  # get the correct image sign
 
     def _apply_mask(self):
         """
@@ -133,30 +162,41 @@ class CoordinateWrapper(Transformations):
             exists = self.database.check_existence(os.path.join(species, "Positions"))
             # Check if the tensor_values has already been unwrapped
             if exists:
-                print(f"Wrapped positions exists for {species}, using the saved coordinates")
+                print(
+                    f"Wrapped positions exists for {species}, "
+                    "using the saved coordinates"
+                )
             else:
-                self._load_data(species)  # load the tensor_values to be unwrapped
+                self._load_data(species)
                 self.data = tf.convert_to_tensor(self.data)
                 self._build_image_mask()  # build the image mask
                 self._apply_mask()  # Apply the mask and unwrap the coordinates
                 if self.center_box:
                     self._center_box()
-                path = join_path(species, 'Positions')
-                dataset_structure = {species: {'Positions': tuple(np.shape(self.data))}}
-                self.database.add_dataset(dataset_structure)  # add the dataset to the database_path as resizeable
-                data_structure = {path: {'indices': np.s_[:], 'columns': [0, 1, 2], 'length': len(self.data)}}
-                self._save_coordinates(data=self.data,
-                                       data_structure=data_structure,
-                                       index=0,
-                                       batch_size=np.shape(self.data)[1],
-                                       system_tensor=False,
-                                       tensor=True)
+                path = join_path(species, "Positions")
+                dataset_structure = {species: {"Positions": tuple(np.shape(self.data))}}
+                self.database.add_dataset(dataset_structure)
+                data_structure = {
+                    path: {
+                        "indices": np.s_[:],
+                        "columns": [0, 1, 2],
+                        "length": len(self.data),
+                    }
+                }
+                self._save_coordinates(
+                    data=self.data,
+                    data_structure=data_structure,
+                    index=0,
+                    batch_size=np.shape(self.data)[1],
+                    system_tensor=False,
+                    tensor=True,
+                )
 
         self.experiment.memory_requirements = self.database.get_memory_information()
-        self.experiment.save_class()  # update the class state
+        self.experiment.save_class()
 
     def run_transformation(self):
         """
         Perform the transformation.
         """
-        self.wrap_particles()  # run the transformation
+        self.wrap_particles()

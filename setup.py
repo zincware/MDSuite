@@ -1,34 +1,30 @@
+"""
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
+SPDX-License-Identifier: EPL-2.0
+
+Copyright Contributors to the Zincwarecode Project.
+
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
+"""
 import setuptools
-from os import path
-
-from setuptools.command.develop import develop
-from setuptools.command.install import install
-import subprocess
-import sys
-
-
-class PostDevelopCommand(develop):
-    """Post-installation for development mode."""
-
-    def run(self):
-        develop.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
-
-
-class PostInstallCommand(install):
-    """Post-installation for installation mode."""
-
-    def run(self):
-        install.run(self)
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "h5py", "--upgrade", "--no-dependencies"])
-
-
-here = path.abspath(path.dirname(__file__))
-with open(path.join(here, 'requirements.txt')) as requirements_file:
-    # Parse requirements.txt, ignoring any commented-out lines.
-    requirements = [line for line in requirements_file.read().splitlines()
-                    if not line.startswith('#')]
-
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
@@ -48,12 +44,26 @@ setuptools.setup(
         "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
         "Operating System :: OS Independent",
     ],
-    package_data={'': ['form_fac_coeffs.csv']},
+    package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
-    python_requires='>=3.7',
-    install_requires=requirements,
-    cmdclass={'install': PostInstallCommand, 'develop': PostDevelopCommand}
-    # force install of the newest h5py after the dependencies are installed
-    # See https://github.com/tensorflow/tensorflow/issues/47303 for further information
-    # TODO remove if tensorflow supports h5py > 3
+    python_requires=">=3.7",
+    install_requires=[
+        "tensorflow>=2.5",
+        "h5py",
+        "pysmiles",
+        "matplotlib",
+        "scipy",
+        "tqdm",
+        "psutil>=5.6.6",
+        "numpy",
+        "gputil",
+        "pubchempy",
+        "PyYAML>=5.4",
+        "scooby",
+        "sqlalchemy >= 1.4",
+        "pandas >= 1.0.0",
+        "tensorflow_probability",
+        "open3d",
+        "bokeh",
+    ],
 )

@@ -1,13 +1,43 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
+
 SPDX-License-Identifier: EPL-2.0
-Copyright Contributors to the MDSuite Project.
+
+Copyright Contributors to the Zincwarecode Project.
+
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
+Summary
+-------
 """
 import unittest
-from mdsuite.utils.meta_functions import join_path, get_dimensionality, get_machine_properties, \
-    line_counter, optimize_batch_size, linear_fitting_function, simple_file_read, round_down, split_array, find_item
+from mdsuite.utils.meta_functions import (
+    join_path,
+    get_dimensionality,
+    get_machine_properties,
+    line_counter,
+    optimize_batch_size,
+    linear_fitting_function,
+    simple_file_read,
+    round_down,
+    split_array,
+    find_item,
+    golden_section_search,
+)
 import os
 import numpy as np
 
@@ -16,6 +46,7 @@ class TestMetaFunction(unittest.TestCase):
     """
     A test class for the meta functions module.
     """
+
     def test_join_path(self):
         """
         Test the join_path method.
@@ -24,7 +55,7 @@ class TestMetaFunction(unittest.TestCase):
         -------
         assert that join_path('a', 'b') is 'a/b'
         """
-        self.assertEqual(join_path('a', 'b'), 'a/b')
+        self.assertEqual(join_path("a", "b"), "a/b")
 
     def test_get_dimensionality(self):
         """
@@ -60,8 +91,8 @@ class TestMetaFunction(unittest.TestCase):
         Check that the correct number of lines is return for a test file.
         """
         data = [["ayy"], ["bee"], ["cee"], ["dee"]]
-        name = 'line_counter_test.txt'
-        with open(name, 'w') as f:
+        name = "line_counter_test.txt"
+        with open(name, "w") as f:
             for item in data:
                 f.write(f"{item[0]}\n")
         self.assertEqual(line_counter(name), 4)
@@ -79,13 +110,23 @@ class TestMetaFunction(unittest.TestCase):
         number_of_configurations = 10
         _file_size = 100
         _memory = 1000000
-        self.assertEqual(optimize_batch_size('None', number_of_configurations, _file_size, _memory, test=True), 10)
+        self.assertEqual(
+            optimize_batch_size(
+                "None", number_of_configurations, _file_size, _memory, test=True
+            ),
+            10,
+        )
 
         # Assert that the batch number is the half the trajectory.
         number_of_configurations = 10
         _file_size = 100
         _memory = 250
-        self.assertEqual(optimize_batch_size('None', number_of_configurations, _file_size, _memory, test=True), 5)
+        self.assertEqual(
+            optimize_batch_size(
+                "None", number_of_configurations, _file_size, _memory, test=True
+            ),
+            5,
+        )
 
     def test_linear_fitting_function(self):
         """
@@ -98,7 +139,7 @@ class TestMetaFunction(unittest.TestCase):
         a = 5
         b = 3
         x = np.array([1, 2, 3, 4, 5])
-        reference = a*x + b
+        reference = a * x + b
         assert np.array_equal(linear_fitting_function(x, a, b), reference)
 
     def test_simple_file_read(self):
@@ -110,8 +151,8 @@ class TestMetaFunction(unittest.TestCase):
         Assert that the arrays read in are as expected.
         """
         data = [["ayy"], ["bee"], ["cee"], ["dee"]]
-        name = 'line_counter_test.txt'
-        with open(name, 'w') as f:
+        name = "line_counter_test.txt"
+        with open(name, "w") as f:
             for item in data:
                 f.write(f"{item[0]}\n")
         np.array_equal(simple_file_read(name), data)
@@ -125,6 +166,7 @@ class TestMetaFunction(unittest.TestCase):
         -------
         Asserts that the correct minimum is found.
         """
+
         def func(x: np.ndarray):
             """
             test function.
@@ -136,8 +178,13 @@ class TestMetaFunction(unittest.TestCase):
             -------
             x**2
             """
-            return x**2
-        self.assertEqual(True, True)
+            return x ** 2
+
+        x_dat = np.linspace(-10, 10, 1000)
+        data = [x_dat, func(x_dat)]
+        output = golden_section_search(data, 10, -10)
+        self.assertEqual(output[0], 0.010010010010010006)
+        self.assertEqual(output[1], 0.03003003003003002)
 
     def test_round_down(self):
         """
@@ -161,7 +208,9 @@ class TestMetaFunction(unittest.TestCase):
         assert that array splitting has been performed correctly.
         """
         a = np.array([1, 2, 3, 10, 20, 30])
-        assert np.array_equal(split_array(a, a < 10), [np.array([1, 2, 3]), np.array([10, 20, 30])])
+        assert np.array_equal(
+            split_array(a, a < 10), [np.array([1, 2, 3]), np.array([10, 20, 30])]
+        )
 
     def test_find_item(self):
         """
@@ -171,12 +220,15 @@ class TestMetaFunction(unittest.TestCase):
         -------
         assert that a deep item is retrieved from a dictionary.
         """
-        test_1 = {'a': 4}  # test the first if statement
-        test_2 = {'a': {'ae': {'aee': 1}}, 'b': {'be': {'bee': 4}}}  # test the case when the if statement fails.
+        test_1 = {"a": 4}  # test the first if statement
+        test_2 = {
+            "a": {"ae": {"aee": 1}},
+            "b": {"be": {"bee": 4}},
+        }  # test the case when the if statement fails.
 
-        self.assertEqual(find_item(test_1, 'a'), 4)
-        self.assertEqual(find_item(test_2, 'aee'), 1)
+        self.assertEqual(find_item(test_1, "a"), 4)
+        self.assertEqual(find_item(test_2, "aee"), 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

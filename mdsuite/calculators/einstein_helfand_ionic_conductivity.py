@@ -1,26 +1,34 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the Einstein-Helfand ionic conductivity.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
-This class is called by the Experiment class and instantiated when the user calls the
-Experiment.einstein_helfand_ionic_conductivity method. The methods in class can then be called by the
-Experiment.einstein_helfand_ionic_conductivity method and all necessary calculations performed.
 """
 import warnings
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
 
 tqdm.monitor_interval = 0
@@ -50,10 +58,12 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
     Examples
     --------
-    experiment.run_computation.EinsteinHelfandTIonicConductivity(data_range=500, plot=True, correlation_time=10)
+    experiment.run_computation.EinsteinHelfandTIonicConductivity(data_range=500,
+                                                                 plot=True,
+                                                                 correlation_time=10)
     """
 
-    def __init__(self, experiment):
+    def __init__(self, **kwargs):
         """
         Python constructor
 
@@ -64,21 +74,36 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
 
         # parse to the experiment class
-        super().__init__(experiment)
-        self.scale_function = {'linear': {'scale_factor': 5}}
+        super().__init__(**kwargs)
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = 'Translational_Dipole_Moment'  # Property to be loaded for the analysis
+        self.loaded_property = (  # Property to be loaded for the analysis
+            "Translational_Dipole_Moment"
+        )
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.database_group = 'Ionic_Conductivity'  # Which database_path group to save the tensor_values in
-        self.x_label = 'Time (s)'
-        self.y_label = 'MSD (m$^2$/s)'
-        self.analysis_name = 'Einstein_Helfand_Ionic_Conductivity'
+        self.database_group = (
+            "Ionic_Conductivity"
+        )
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{MSD} / m^2/s$$"
+        self.analysis_name = "Einstein Helfand Ionic Conductivity"
         self.prefactor: float
 
-    def __call__(self, plot=True, data_range=500, save=True, correlation_time=1,
-                 export: bool = False, gpu: bool = False):
+        self.result_keys = ["ionic_conductivity", "uncertainty"]
+        self.result_series_keys = ["time", "msd"]
+
+    @call
+    def __call__(
+        self,
+        plot=True,
+        data_range=500,
+        save=True,
+        correlation_time=1,
+        export: bool = False,
+        gpu: bool = False,
+    ):
         """
         Python constructor
 
@@ -96,18 +121,22 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 If true, export the results to a csv.
         gpu : bool
                 If true, reduce memory usage to the maximum GPU capability.
-        """
 
+        """
         # parse to the experiment class
-        self.update_user_args(plot=plot, data_range=data_range, save=save, correlation_time=correlation_time,
-                              export=export, gpu=gpu)
+        self.update_user_args(
+            plot=plot,
+            data_range=data_range,
+            save=save,
+            correlation_time=correlation_time,
+            export=export,
+            gpu=gpu,
+        )
         self.msd_array = np.zeros(self.data_range)
 
-        out = self.run_analysis()
-
-        self.experiment.save_class()
-
-        return out
+        return self.update_db_entry_with_kwargs(
+            data_range=data_range, correlation_time=correlation_time
+        )
 
     def _update_output_signatures(self):
         """
@@ -117,8 +146,12 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
 
         """
-        self.batch_output_signature = (tf.TensorSpec(shape=(self.batch_size, 3), dtype=tf.float64))
-        self.ensemble_output_signature = tf.TensorSpec(shape=(self.data_range, 3), dtype=tf.float64)
+        self.batch_output_signature = tf.TensorSpec(
+            shape=(self.batch_size, 3), dtype=tf.float64
+        )
+        self.ensemble_output_signature = tf.TensorSpec(
+            shape=(self.data_range, 3), dtype=tf.float64
+        )
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -133,10 +166,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         # Calculate the prefactor
-        numerator = (self.experiment.units['length'] ** 2) * (elementary_charge ** 2)
-        denominator = 6 * self.experiment.units['time'] * (
-                self.experiment.volume * self.experiment.units['length'] ** 3) * \
-            self.experiment.temperature * boltzmann_constant
+        numerator = (self.experiment.units["length"] ** 2) * (elementary_charge ** 2)
+        denominator = (
+            6
+            * self.experiment.units["time"]
+            * (self.experiment.volume * self.experiment.units["length"] ** 3)
+            * self.experiment.temperature
+            * boltzmann_constant
+        )
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -172,31 +209,12 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         """
         result = self._fit_einstein_curve([self.time, self.msd_array])
-        properties = {"Property": self.database_group,
-                      "Analysis": self.analysis_name,
-                      "Subject": ["System"],
-                      "data_range": self.data_range,
-                      'data': [{'x': result[0], 'uncertainty': result[1]}]
-                      }
-        self._update_properties_file(properties)
 
-        # Update the plot if required
-        if self.plot:
-            plt.plot(np.array(self.time) * self.experiment.units['time'], self.msd_array,
-                     label=fr'{result[0]:.3E} $\pm$ '
-                           f'{result[1]:.3E}')
-            self._plot_data()
+        data = {
+            self.result_keys[0]: result[0].tolist(),
+            self.result_keys[1]: result[1].tolist(),
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.msd_array.tolist(),
+        }
 
-        if self.save:
-            properties = {"Property": self.database_group,
-                          "Analysis": self.analysis_name,
-                          "Subject": ["System"],
-                          "data_range": self.data_range,
-                          'data': [{'x': x, 'y': y} for x, y in zip(self.time, self.msd_array)],
-                          'information': "series"
-                          }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(name=self._build_table_name("System"), data=self._build_pandas_dataframe(self.time,
-                                                                                                       self.msd_array))
+        self.queue_data(data=data, subjects=["System"])
