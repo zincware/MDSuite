@@ -25,19 +25,4 @@ python program you are writing. This is done in the usual way,
         from mdsuite import ...
 
 which will load whichever modules are desired. Once you have import the module, you will need 
-to begin your first analysis. This can be done as follows.
-
-.. code-block:: python
-        
-        import mdsuite as mds
-
-        test_project =mds.Experiment(analysis_name='name of the experiment',
-                                     time_step='time_step',
-                                     temperature='temperature of the simulation',
-                                     units='LAMMPS units keyword e.g. real',
-                                     cluster_mode='Are you on a cluster?',
-                                     storage_path='where to save data')
-
-Once this has been constructed, and the database has been built, you will have access to all of 
-the methods currently available in the mdsuite package. For information about what these are, go 
-and check out the examples directory and run some for yourself.
+to begin your first analysis.
