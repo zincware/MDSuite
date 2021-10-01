@@ -575,8 +575,7 @@ class Database:
                     else:
                         my_slice = select_slice
 
-                    key = item.split(str.encode('/'))[0]
-                    data[key] = tf.convert_to_tensor(
+                    data[item] = tf.convert_to_tensor(
                         database[item][my_slice], dtype=tf.float64
                     ) * scaling[i]
                 data[str.encode("data_size")] = d_size

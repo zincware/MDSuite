@@ -39,6 +39,7 @@ class Args:
     data_range: int
     correlation_time: int
     tau_values: np.s_
+    atom_selection: np.s_
 
 
 class EinsteinHelfandIonicConductivity(Calculator):
@@ -94,6 +95,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Ionic Conductivity"
         self.prefactor: float
+        self.trial_pp = True
+
 
         self.result_keys = ["ionic_conductivity", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
@@ -131,6 +134,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
+            atom_selection=np.s_[:]
         )
 
         self.time = self._handle_tau_values()
@@ -233,7 +237,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
-        batch_ds = self.get_batch_dataset()
+        dict_ref = str.encode("/".join([self.loaded_property[0], self.loaded_property[0]]))
+
+        batch_ds = self.get_batch_dataset(self.loaded_property[0])
 
         for batch in tqdm(
                 batch_ds,
@@ -244,7 +250,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
             ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
 
             for ensemble in ensemble_ds:
-                self.ensemble_operation(ensemble[str.encode(self.loaded_property[0])])
+                self.ensemble_operation(ensemble[dict_ref])
 
         # Scale, save, and plot the data.
         self._apply_averaging_factor()

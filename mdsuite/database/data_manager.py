@@ -145,20 +145,29 @@ class DataManager:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
                     # TODO make default
-                if type(self.atom_selection) is dict:
-                    select_slice = {}
-                    for item in self.atom_selection:
-                        select_slice[item] = np.s_[
-                            self.atom_selection[item], start:stop
-                        ]
+
+                if system:
+                    yield database.load_data(
+                        data_path,
+                        select_slice=np.s_[start:stop],
+                        dictionary=dictionary,
+                        d_size=data_size,
+                    )
                 else:
-                    select_slice = np.s_[self.atom_selection, start:stop]
-                yield database.load_data(
-                    data_path,
-                    select_slice=select_slice,
-                    dictionary=dictionary,
-                    d_size=data_size,
-                )
+                    if type(self.atom_selection) is dict:
+                        select_slice = {}
+                        for item in self.atom_selection:
+                            select_slice[item] = np.s_[
+                                self.atom_selection[item], start:stop
+                            ]
+                    else:
+                        select_slice = np.s_[self.atom_selection, start:stop]
+                    yield database.load_data(
+                        data_path,
+                        select_slice=select_slice,
+                        dictionary=dictionary,
+                        d_size=data_size,
+                    )
 
         def system_generator(
             batch_number: int,
@@ -264,9 +273,9 @@ class DataManager:
         # if self.remainder == 0:
         #     remainder = False
 
-        if system:
-            return system_generator, args
-        elif self.minibatch:
+        # if system:
+        #     return system_generator, args
+        if self.minibatch:
             return atom_generator, args
         else:
             return generator, args
@@ -365,12 +374,16 @@ class DataManager:
                     if item == str.encode('data_size'):
                         pass
                     else:
-                        output_dict[item] = glob_data[item][:, start:stop]
+                        if system:
+                            output_dict[item] = glob_data[item][start:stop]
+                        else:
+                            output_dict[item] = glob_data[item][:, start:stop]
+
                 yield output_dict
 
-        if system:
-            return system_generator, args
-        elif dictionary:
+        # if system:
+        #     return system_generator, args
+        if dictionary:
             return dictionary_generator, args
         else:
             return generator, args

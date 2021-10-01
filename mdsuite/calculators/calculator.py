@@ -761,9 +761,9 @@ class Calculator(CalculatorDatabase):
             return
 
         if self.dependency is not None:
-            dependency = self.database.check_existence(self.dependency)
+            dependency = self.database.check_existence(self.dependency[0])
             if not dependency:
-                self._resolve_dependencies(self.dependency)
+                self._resolve_dependencies(self.dependency[0])
 
         loaded_property = self.database.check_existence(self.loaded_property[0])
         if not loaded_property:
@@ -941,7 +941,7 @@ class Calculator(CalculatorDatabase):
                 ),
             )
 
-    def get_batch_dataset(self, subject: str = None):
+    def get_batch_dataset(self, subject: str = None, split: bool = False):
         """
         Collect the batch loop dataset
 
@@ -967,21 +967,25 @@ class Calculator(CalculatorDatabase):
         if subject is None:
             pass
         else:
-            subject_list = subject.split('_')
+            if split:
+                subject_list = subject.split('_')
+            else:
+                subject_list = [subject]
             path_list = [
                 join_path(item, self.loaded_property[0]) for item in subject_list
             ]
             self._prepare_managers(path_list)
 
             type_spec = {}
-            for item in subject.split('_'):
-                type_spec[str.encode(item)] = tf.TensorSpec(
+            for item in subject_list:
+                dict_ref = "/".join([item, self.loaded_property[0]])
+                type_spec[str.encode(dict_ref)] = tf.TensorSpec(
                     shape=self.loaded_property[1], dtype=self.dtype
                 )
             type_spec[str.encode('data_size')] = tf.TensorSpec(shape=(), dtype=tf.int32)
 
             batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                dictionary=True
+                dictionary=True, system=self.system_property
             )
             ds = tf.data.Dataset.from_generator(
                 generator=batch_generator,
@@ -991,7 +995,7 @@ class Calculator(CalculatorDatabase):
 
             return ds.prefetch(tf.data.AUTOTUNE)
 
-    def get_ensemble_dataset(self, batch: dict, subject: str):
+    def get_ensemble_dataset(self, batch: dict, subject: str, split: bool = False):
         """
         Collect the ensemble loop dataset.
 
@@ -1009,11 +1013,19 @@ class Calculator(CalculatorDatabase):
         (
             ensemble_generator,
             ensemble_generators_args
-        ) = self.data_manager.ensemble_generator(dictionary=True, glob_data=batch)
+        ) = self.data_manager.ensemble_generator(
+            dictionary=True, glob_data=batch, system=self.system_property
+        )
 
         type_spec = {}
-        for item in subject.split('_'):
-            type_spec[str.encode(item)] = tf.TensorSpec(
+
+        if split:
+            loop_list = subject.split('_')
+        else:
+            loop_list = [subject]
+        for item in loop_list:
+            dict_ref = "/".join([item, self.loaded_property[0]])
+            type_spec[str.encode(dict_ref)] = tf.TensorSpec(
                 shape=self.loaded_property[1], dtype=self.dtype
             )
 

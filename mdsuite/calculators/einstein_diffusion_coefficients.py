@@ -172,6 +172,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             species=species,
         )
         self.optimize = optimize
+        self.system_property = False
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
@@ -290,9 +291,10 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         # Loop over species
         for species in self.args.species:
+            dict_ref = str.encode("/".join([species, self.loaded_property[0]]))
             self.calculate_prefactor(species)
 
-            batch_ds = self.get_batch_dataset(species)
+            batch_ds = self.get_batch_dataset(species, split=True)
 
             for batch in tqdm(
                     batch_ds,
@@ -301,10 +303,10 @@ class EinsteinDiffusionCoefficients(Calculator):
                     total=self.n_batches,
                     disable=self.memory_manager.minibatch,
             ):
-                ensemble_ds = self.get_ensemble_dataset(batch, species)
+                ensemble_ds = self.get_ensemble_dataset(batch, species, split=True)
 
                 for ensemble in ensemble_ds:
-                    self.ensemble_operation(ensemble[str.encode(species)])
+                    self.ensemble_operation(ensemble[dict_ref])
 
             # Scale, save, and plot the data.
             self.postprocessing(species)
