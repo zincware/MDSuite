@@ -24,15 +24,21 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import warnings
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
 
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
+
+
+@dataclass
+class Args:
+    data_range: int
+    correlation_time: int
+    tau_values: np.s_
 
 
 class EinsteinHelfandIonicConductivity(Calculator):
@@ -77,10 +83,8 @@ class EinsteinHelfandIonicConductivity(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = (  # Property to be loaded for the analysis
-            "Translational_Dipole_Moment"
-        )
-        self.dependency = "Unwrapped_Positions"
+        self.loaded_property = simulation_properties.translational_dipole_moment
+        self.dependency = simulation_properties.unwrapped_positions
         self.system_property = True
 
         self.database_group = (
@@ -101,7 +105,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         data_range=500,
         save=True,
         correlation_time=1,
-        export: bool = False,
+        tau_values: np.s_ = np.s_[:],
         gpu: bool = False,
     ):
         """
@@ -117,26 +121,20 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 If true, tensor_values will be saved after the analysis
         correlation_time : int
                 Correlation time to use in the analysis.
-        export : bool
-                If true, export the results to a csv.
         gpu : bool
                 If true, reduce memory usage to the maximum GPU capability.
 
         """
-        # parse to the experiment class
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            export=export,
-            gpu=gpu,
-        )
-        self.msd_array = np.zeros(self.data_range)
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range, correlation_time=correlation_time
+        # set args that will affect the computation result
+        self.args = Args(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
         )
+
+        self.time = self._handle_tau_values()
+        self.msd_array = np.zeros(self.data_resolution)
 
     def _update_output_signatures(self):
         """
@@ -152,6 +150,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.ensemble_output_signature = tf.TensorSpec(
             shape=(self.data_range, 3), dtype=tf.float64
         )
+
+    def check_input(self):
+        pass
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -185,7 +186,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def _apply_operation(self, ensemble, index):
+    def ensemble_operation(self, ensemble):
         """
         Calculate and return the msd.
 
@@ -197,7 +198,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
+        msd = tf.math.squared_difference(
+            tf.gather(ensemble, self.args.tau_values, axis=0), ensemble[None, 0]
+        )
         msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
@@ -218,3 +221,31 @@ class EinsteinHelfandIonicConductivity(Calculator):
         }
 
         self.queue_data(data=data, subjects=["System"])
+
+    def new_run(self):
+        """
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        # Compute the pre-factor early.
+        self._calculate_prefactor()
+
+        batch_ds = self.get_batch_dataset()
+
+        for batch in tqdm(
+                batch_ds,
+                ncols=70,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
+        ):
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
+
+            for ensemble in ensemble_ds:
+                self.ensemble_operation(ensemble[str.encode(self.loaded_property[0])])
+
+        # Scale, save, and plot the data.
+        self._apply_averaging_factor()
+        self._post_operation_processes()

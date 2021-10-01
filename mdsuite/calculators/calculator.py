@@ -31,7 +31,6 @@ import numpy as np
 import random
 from pathlib import Path
 import tensorflow as tf
-import pandas as pd
 from scipy.optimize import curve_fit
 from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 from mdsuite.utils.exceptions import RangeExceeded
@@ -44,6 +43,7 @@ from mdsuite.database.calculator_database import CalculatorDatabase
 import mdsuite.database.scheme as db
 from tqdm import tqdm
 from typing import Union, List, Dict
+import warnings
 
 import functools
 
@@ -51,6 +51,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
+
+tqdm.monitor_interval = 0
+warnings.filterwarnings("ignore")
 
 log = logging.getLogger(__name__)
 
@@ -163,11 +166,6 @@ class Calculator(CalculatorDatabase):
             Decision to plot the analysis.
     save : bool (default=True)
             Decision to save the generated tensor_values arrays.
-
-    data_range : int (default=500)
-            Range over which the property should be evaluated. This is not
-            applicable to the current analysis as the full rdf will be
-            calculated.
     batch_size : dict
             Size of batches to use in the analysis separated into parallel and
              serial components, i.e {'Serial': 100, 'Parallel': 50} for a two
@@ -203,10 +201,6 @@ class Calculator(CalculatorDatabase):
                 If true, analysis is plotted.
         save : bool
                 If true, the analysis is saved.
-        data_range : int
-                Data range over which to compute.
-        correlation_time : int
-                Correlation time to use in the analysis.
         atom_selection : np.s_
                 Atoms to perform the analysis on.
         gpu : bool
@@ -398,7 +392,7 @@ class Calculator(CalculatorDatabase):
         pass
 
     @staticmethod
-    def _fit_einstein_curve(data: list):
+    def _fit_einstein_curve(data: list) -> list:
         """
         Fit operation for Einstein calculations
 
@@ -493,7 +487,8 @@ class Calculator(CalculatorDatabase):
             self.args.tau_values = np.linspace(
                 0, self.args.data_range - 1, self.args.tau_values, dtype=int
             )
-        if isinstance(self.args.tau_values, list) or isinstance(self.args.tau_values, np.ndarray):
+        if isinstance(self.args.tau_values, list) or isinstance(self.args.tau_values,
+                                                                np.ndarray):
             self.data_resolution = len(self.args.tau_values)
             self.args.data_range = self.args.tau_values[-1] + 1
         if isinstance(self.args.tau_values, slice):
@@ -926,11 +921,13 @@ class Calculator(CalculatorDatabase):
         return self._dtype
 
     def plot_data(self, data):
-        """Plot the data coming from the database
+        """
+        Plot the data coming from the database
 
         Parameters
         ----------
-        data: db.Compution.data_dict associated with the current project
+        data: db.Compution.data_dict
+                associated with the current project
         """
         for selectected_species, val in data.items():
             self.run_visualization(

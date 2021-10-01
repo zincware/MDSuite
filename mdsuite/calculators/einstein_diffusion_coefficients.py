@@ -27,15 +27,12 @@ Summary
 from __future__ import annotations
 import logging
 import numpy as np
-import warnings
 from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
 from mdsuite.calculators.calculator import Calculator, call
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
 
 log = logging.getLogger(__name__)
 
