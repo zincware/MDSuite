@@ -64,6 +64,6 @@ setuptools.setup(
         "pandas >= 1.0.0",
         "tensorflow_probability",
         "open3d",
-        "bokeh>=2.4.0",
+        "bokeh",
     ],
 )

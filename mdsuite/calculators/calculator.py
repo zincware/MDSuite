@@ -41,8 +41,9 @@ from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.calculator_database import CalculatorDatabase
+import mdsuite.database.scheme as db
 from tqdm import tqdm
-from typing import Union, List, Any
+from typing import Union, List, Dict
 
 import functools
 
@@ -59,9 +60,31 @@ def call(func):
 
     This decorator provides a unified approach for handling run_computation and
     load_data for a single or multiple experiments.
-    It handles the `run_computation()` method, iterates over experiments and
+    It handles the `run.<calc>()` method, iterates over experiments and
     loads data if requested! Therefore, the __call__ method does not and can
     not return any values anymore!
+
+
+    Notes
+    -----
+    When calling the calculator it will check if a computation with the given
+    user arguments was already performed:
+    >>> Calculator.get_computation_data() is not None
+
+    if no computations are available it will
+    1. prepare a database entry
+    >>> Calculator.prepare_db_entry()
+    2. save the user arguments
+    >>> Calculator.save_computation_args()
+    3. Run the analysis
+    >>> Calculator.run_analysis()
+    4. Save all the data to the database
+    >>> Calculator.save_db_data()
+    5. Finally query the the data from the database and pass them to the user / plotting
+    >>> data = Calculator.get_computation_data()
+
+
+
 
     Parameters
     ----------
@@ -74,13 +97,14 @@ def call(func):
     """
 
     @functools.wraps(func)
-    def inner(self, *args, **kwargs):
+    def inner(
+        self, *args, **kwargs
+    ) -> Union[db.Computation, Dict[str, db.Computation]]:
         """Manage the call method
 
         Parameters
         ----------
         self: Calculator
-
 
         Returns
         -------
@@ -88,7 +112,7 @@ def call(func):
             A dictionary of shape {name: data} when called from the project class
             A list of [data] when called directly from the experiment class
         """
-        # This is only true, when called via project.experiments.Exp.run_computation,
+        # This is only true, when called via project.experiments.<exp>.run,
         #  otherwise the experiment will be None
         return_dict = self.experiment is None
 
@@ -96,28 +120,28 @@ def call(func):
         for experiment in self.experiments:
             self.experiment = experiment
             self.clean_cache()
-            data = func(self, *args, **kwargs)
+            # pass the user args to the calculator
+            func(self, *args, **kwargs)
+            data = self.get_computation_data()
             if data is None:
                 # new calculation will be performed
                 self.prepare_db_entry()
+                self.save_computation_args()
                 self.run_analysis()
                 self.save_db_data()
-                data = func(self, *args, **kwargs)
-            elif self.load_data:
-                raise NotImplementedError(
-                    "Please user <exp/proj>.run.<method> instead of load!"
-                )
-            else:
-                # Calculation already performed
-                pass
-
-            out[self.experiment.name] = data
+                # Need to reset the user args, if they got change
+                # or set to defaults, e.g. n_configurations = - 1 so
+                # that they match the query
+                func(self, *args, **kwargs)
+                data = self.get_computation_data()
 
             if self.plot:
                 """Plot the data"""
                 self.plotter = DataVisualizer2D(title=self.analysis_name)
                 self.plot_data(data.data_dict)
                 self.plotter.grid_show(self.plot_array)
+
+            out[self.experiment.name] = data
 
         if return_dict:
             return out
@@ -205,7 +229,6 @@ class Calculator(CalculatorDatabase):
         self.save = save
         self.atom_selection = atom_selection
         self.correlation_time = correlation_time
-        self.database = None
         self.gpu = gpu
         self.load_data = load_data
 
@@ -220,7 +243,7 @@ class Calculator(CalculatorDatabase):
         self.scale_function = None
         self.batch_output_signature = None
         self.ensemble_output_signature = None
-        self.species = None
+        # self.species = None
         # all species that are used in the calculation
         self.selected_species = None
         # the selected species which the current calculation iteration is performed on
@@ -257,52 +280,64 @@ class Calculator(CalculatorDatabase):
 
         # Properties
         self._dtype = tf.float64
+        self._database = None
 
-    def update_user_args(
-        self,
-        plot: bool,
-        data_range: int = 500,
-        correlation_time: int = 1,
-        atom_selection: object = np.s_[:],
-        tau_values: Union[int, List, Any] = np.s_[:],
-        gpu: bool = False,
-        *args,
-        **kwargs,
-    ):
-        """
-        Update the user args that are given by the __call__ method of the
-        calculator.
+    @property
+    def database(self):
+        """Get the database based on the experiment database path"""
+        if self._database is None:
+            self._database = Database(
+                name=Path(self.experiment.database_path, "database.hdf5").as_posix()
+            )
+        return self._database
 
-        Parameters
-        ----------
-        tau_values
-        plot : bool
-                If true, analysis is plotted.
-        save : bool
-                If true, the analysis is saved.
-        data_range : int
-                Data range over which to compute.
-        correlation_time : int
-                Correlation time to use in the analysis.
-        atom_selection : object
-                Atoms to perform the analysis on.
-        gpu : bool
-                If true, reduce memory usage to what is allowed on the system
-                GPU.
-        """
-        self.database = Database(
-            name=Path(self.experiment.database_path, "database.hdf5").as_posix()
-        )
-
-        self.data_range = data_range
-        self.plot = plot
-        self.gpu = gpu
-        self.tau_values = tau_values
-        self.correlation_time = correlation_time
-        self.atom_selection = atom_selection
-
-        # attributes based on user args
-        self.time = self._handle_tau_values()  # process selected tau values.
+    # def update_user_args(
+    #     self,
+    #     plot: bool,
+    #     data_range: int = 500,
+    #     correlation_time: int = 1,
+    #     atom_selection: object = np.s_[:],
+    #     tau_values: Union[int, List, Any] = np.s_[:],
+    #     gpu: bool = False,
+    #     *args,
+    #     **kwargs,
+    # ):
+    #     """
+    #     Update the user args that are given by the __call__ method of the
+    #     calculator.
+    #
+    #     Parameters
+    #     ----------
+    #     plot : bool
+    #             If true, analysis is plotted.
+    #     save : bool
+    #             If true, the analysis is saved.
+    #     data_range : int
+    #             Data range over which to compute.
+    #     correlation_time : int
+    #             Correlation time to use in the analysis.
+    #     atom_selection : object
+    #             Atoms to perform the analysis on.
+    #     gpu : bool
+    #             If true, reduce memory usage to what is allowed on the system
+    #             GPU.
+    #     """
+    #
+    #     # Prevent $DISPLAY warnings on clusters.
+    #     if self.experiment.cluster_mode:
+    #         import matplotlib
+    #
+    #         matplotlib.use("Agg")
+    #
+    #     self.data_range = data_range
+    #     self.plot = plot
+    #     self.gpu = gpu
+    #     self.tau_values = tau_values
+    #     self.correlation_time = correlation_time
+    #     self.atom_selection = atom_selection
+    #
+    #     # attributes based on user args
+    #     self.time = self._handle_tau_values()  # process selected tau values.
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -615,7 +650,7 @@ class Calculator(CalculatorDatabase):
             )
         )
 
-    def _check_input(self):
+    def check_input(self):
         """
         Look for user input that would kill the analysis
 
@@ -624,13 +659,16 @@ class Calculator(CalculatorDatabase):
         status: int
             if 0, check failed, if 1, check passed.
         """
-        if (
-            self.data_range
-            > self.experiment.number_of_configurations - self.correlation_time
-        ):
-            raise ValueError(
-                "Data range is impossible for this experiment, reduce and try again"
-            )
+
+        raise NotImplementedError("Please implement check input in child class")
+
+        # if (
+        #     self.data_range
+        #     > self.experiment.number_of_configurations - self.correlation_time
+        # ):
+        #     raise ValueError(
+        #         "Data range is impossible for this experiment, reduce and try again"
+        #     )
 
     def _optimize_einstein_data_range(self, data: np.array):
         """
@@ -923,7 +961,7 @@ class Calculator(CalculatorDatabase):
         """
         Run the appropriate analysis
         """
-        self._check_input()
+        self.check_input()
         self._run_dependency_check()
         if self.experimental:
             log.warning(
