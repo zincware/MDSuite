@@ -98,7 +98,7 @@ def call(func):
 
     @functools.wraps(func)
     def inner(
-        self, *args, **kwargs
+            self, *args, **kwargs
     ) -> Union[db.Computation, Dict[str, db.Computation]]:
         """Manage the call method
 
@@ -181,16 +181,14 @@ class Calculator(CalculatorDatabase):
     """
 
     def __init__(
-        self,
-        experiment: Experiment = None,
-        experiments: List[Experiment] = None,
-        plot: bool = True,
-        save: bool = True,
-        data_range: int = 500,
-        correlation_time: int = 1,
-        atom_selection: object = np.s_[:],
-        gpu: bool = False,
-        load_data: bool = False,
+            self,
+            experiment: Experiment = None,
+            experiments: List[Experiment] = None,
+            plot: bool = True,
+            save: bool = True,
+            atom_selection: object = np.s_[:],
+            gpu: bool = False,
+            load_data: bool = False,
     ):
         """
         Constructor for the calculator class.
@@ -219,16 +217,14 @@ class Calculator(CalculatorDatabase):
         super().__init__(experiment)
         self.experiment: Experiment = experiment
         self.experiments: List[Experiment] = experiments
-
+        self.trial_pp = False
         # Setting the experiment value supersedes setting experiments
         if self.experiment is not None:
             self.experiments = [self.experiment]
 
-        self.data_range = data_range
         self.plot = plot
         self.save = save
         self.atom_selection = atom_selection
-        self.correlation_time = correlation_time
         self.gpu = gpu
         self.load_data = load_data
 
@@ -483,48 +479,6 @@ class Calculator(CalculatorDatabase):
 
         return dictionary
 
-    @staticmethod
-    def _build_pandas_dataframe(x: np.array, y: np.array) -> pd.DataFrame:
-        """
-        Build a pandas dataframe with x and y data.
-
-        Parameters
-        ----------
-        x : np.array
-                x data to go into the data frame
-        y : np.array
-                y data to go into the data frame
-
-        Returns
-        -------
-        data : pd.DataFrame
-                Pandas data frame of the data
-        """
-
-        return pd.DataFrame({"x": x, "y": y})
-
-    def _msd_operation(self, ensemble: tf.Tensor, square: bool = True):
-        """
-        Perform a simple msd operation.
-
-        Parameters
-        ----------
-        ensemble : tf.Tensor
-            Trajectory over which to compute the msd.
-        square : bool
-            If true, square the result, else just return the difference.
-        Returns
-        -------
-        msd : tf.Tensor
-                Mean square displacement.
-        """
-        if square:
-            return tf.math.squared_difference(
-                tf.gather(ensemble, self.tau_values, axis=1), ensemble[:, None, 0]
-            )
-        else:
-            return tf.math.subtract(ensemble, ensemble[:, None, 0])
-
     def _handle_tau_values(self) -> np.array:
         """
         Handle the parsing of custom tau values.
@@ -534,24 +488,24 @@ class Calculator(CalculatorDatabase):
         times : np.array
             The time values corresponding to the selected tau values
         """
-        if isinstance(self.tau_values, int):
-            self.data_resolution = self.tau_values
-            self.tau_values = np.linspace(
-                0, self.data_range - 1, self.tau_values, dtype=int
+        if isinstance(self.args.tau_values, int):
+            self.data_resolution = self.args.tau_values
+            self.args.tau_values = np.linspace(
+                0, self.args.data_range - 1, self.args.tau_values, dtype=int
             )
-        if isinstance(self.tau_values, list) or isinstance(self.tau_values, np.ndarray):
-            self.data_resolution = len(self.tau_values)
-            self.data_range = self.tau_values[-1] + 1
-        if isinstance(self.tau_values, slice):
-            self.tau_values = np.linspace(
-                0, self.data_range - 1, self.data_range, dtype=int
-            )[self.tau_values]
-            self.data_resolution = len(self.tau_values)
+        if isinstance(self.args.tau_values, list) or isinstance(self.args.tau_values, np.ndarray):
+            self.data_resolution = len(self.args.tau_values)
+            self.args.data_range = self.args.tau_values[-1] + 1
+        if isinstance(self.args.tau_values, slice):
+            self.args.tau_values = np.linspace(
+                0, self.args.data_range - 1, self.args.data_range, dtype=int
+            )[self.args.tau_values]
+            self.data_resolution = len(self.args.tau_values)
 
         times = (
-            np.asarray(self.tau_values)
-            * self.experiment.time_step
-            * self.experiment.sample_rate
+                np.asarray(self.args.tau_values)
+                * self.experiment.time_step
+                * self.experiment.sample_rate
         )
 
         return times
@@ -584,7 +538,7 @@ class Calculator(CalculatorDatabase):
         ) = self.memory_manager.get_batch_size(system=self.system_property)
 
         self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(
-            self.data_range, self.correlation_time
+            self.args.data_range, self.args.correlation_time
         )
         if minibatch:
             self.batch_size = self.memory_manager.batch_size
@@ -594,19 +548,18 @@ class Calculator(CalculatorDatabase):
         self.data_manager = DataManager(
             data_path=data_path,
             database=self.database,
-            data_range=self.data_range,
+            data_range=self.args.data_range,
             batch_size=self.batch_size,
             n_batches=self.n_batches,
             ensemble_loop=self.ensemble_loop,
-            correlation_time=self.correlation_time,
+            correlation_time=self.args.correlation_time,
             remainder=self.remainder,
-            atom_selection=self.atom_selection,
+            atom_selection=self.args.atom_selection,
             minibatch=minibatch,
             atom_batch_size=self.memory_manager.atom_batch_size,
             n_atom_batches=self.memory_manager.n_atom_batches,
             atom_remainder=self.memory_manager.atom_remainder,
         )
-        self._update_output_signatures()
 
     def _build_table_name(self, species: str = "System"):
         """
@@ -622,7 +575,7 @@ class Calculator(CalculatorDatabase):
         name : str
                 A correctly formatted name for the SQL database.
         """
-        return f"{self.database_group}_{self.analysis_name}_{self.data_range}_{species}"
+        return f"{self.database_group}_{self.analysis_name}_{self.args.data_range}_{species}"
 
     def run_visualization(self, x_data, y_data, title: str, layouts: object = None):
         """
@@ -661,14 +614,6 @@ class Calculator(CalculatorDatabase):
         """
 
         raise NotImplementedError("Please implement check input in child class")
-
-        # if (
-        #     self.data_range
-        #     > self.experiment.number_of_configurations - self.correlation_time
-        # ):
-        #     raise ValueError(
-        #         "Data range is impossible for this experiment, reduce and try again"
-        #     )
 
     def _optimize_einstein_data_range(self, data: np.array):
         """
@@ -722,20 +667,20 @@ class Calculator(CalculatorDatabase):
 
         else:
             try:
-                self.data_range = int(1.1 * self.data_range)
+                self.args.data_range = int(1.1 * self.args.data_range)
                 self.time = np.linspace(
                     0.0,
-                    self.data_range
+                    self.args.data_range
                     * self.experiment.time_step
                     * self.experiment.sample_rate,
-                    self.data_range,
+                    self.args.data_range,
                 )
 
                 # end the calculation if the tensor_values range exceeds the relevant
                 # bounds
                 if (
-                    self.data_range
-                    > self.experiment.number_of_configurations - self.correlation_time
+                        self.args.data_range
+                        > self.experiment.number_of_configurations - self.args.correlation_time
                 ):
                     print("Trajectory not long enough to perform analysis.")
                     raise RangeExceeded
@@ -825,9 +770,9 @@ class Calculator(CalculatorDatabase):
             if not dependency:
                 self._resolve_dependencies(self.dependency)
 
-        loaded_property = self.database.check_existence(self.loaded_property)
+        loaded_property = self.database.check_existence(self.loaded_property[0])
         if not loaded_property:
-            self._resolve_dependencies(self.loaded_property)
+            self._resolve_dependencies(self.loaded_property[0])
 
     def perform_computation(self):
         """
@@ -864,10 +809,10 @@ class Calculator(CalculatorDatabase):
                 )
 
                 for ensemble_index, ensemble in tqdm(
-                    enumerate(ensemble_data_set),
-                    desc="Ensemble Loop",
-                    ncols=70,
-                    total=self.ensemble_loop,
+                        enumerate(ensemble_data_set),
+                        desc="Ensemble Loop",
+                        ncols=70,
+                        total=self.ensemble_loop,
                 ):
                     self._apply_operation(ensemble, ensemble_index)
 
@@ -906,11 +851,11 @@ class Calculator(CalculatorDatabase):
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
                 for batch_index, batch in tqdm(
-                    enumerate(batch_data_set),
-                    ncols=70,
-                    desc=species,
-                    total=self.n_batches,
-                    disable=self.memory_manager.minibatch,
+                        enumerate(batch_data_set),
+                        ncols=70,
+                        desc=species,
+                        total=self.n_batches,
+                        disable=self.memory_manager.minibatch,
                 ):
 
                     (
@@ -970,6 +915,8 @@ class Calculator(CalculatorDatabase):
             )
         if self.optimize:
             pass
+        if self.trial_pp:
+            self.new_run()
         else:
             return self.perform_computation()
 
@@ -988,11 +935,98 @@ class Calculator(CalculatorDatabase):
         for selectected_species, val in data.items():
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
+                       * self.experiment.units["time"],
                 y_data=np.array(val[self.result_series_keys[1]])
-                * self.experiment.units["time"],
+                       * self.experiment.units["time"],
                 title=(
                     f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
                 ),
             )
+
+    def get_batch_dataset(self, subject: str = None):
+        """
+        Collect the batch loop dataset
+
+        Parameters
+        ----------
+        subject : str (default = None)
+                A str of subjects to collect data for in case this is necessary. The
+                method will first try to split this string by an '_' in the case where
+                tuples have been parsed. If None, the method assumes that this is a
+                system calculator and returns a generator appropriate to such an
+                analysis.
+                e.g. species = 'Na'
+                     species = 'Na_Cl'
+                     species = 'Na_Cl_Na'
+
+        Returns
+        -------
+        dataset : tf.data.Dataset
+                A TensorFlow dataset for the batch loop to be iterated over.
+
+        """
+        # TODO implement for system properties.
+        if subject is None:
+            pass
+        else:
+            subject_list = subject.split('_')
+            path_list = [
+                join_path(item, self.loaded_property[0]) for item in subject_list
+            ]
+            self._prepare_managers(path_list)
+
+            type_spec = {}
+            for item in subject.split('_'):
+                type_spec[str.encode(item)] = tf.TensorSpec(
+                    shape=self.loaded_property[1], dtype=self.dtype
+                )
+            type_spec[str.encode('data_size')] = tf.TensorSpec(shape=(), dtype=tf.int32)
+
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(
+                dictionary=True
+            )
+            ds = tf.data.Dataset.from_generator(
+                generator=batch_generator,
+                args=batch_generator_args,
+                output_signature=type_spec
+            )
+
+            return ds.prefetch(tf.data.AUTOTUNE)
+
+    def get_ensemble_dataset(self, batch: dict, subject: str):
+        """
+        Collect the ensemble loop dataset.
+
+        Parameters
+        ----------
+        batch : tf.Tensor
+                A batch of data to be looped over in ensembles.
+
+        Returns
+        -------
+        dataset : tf.data.Dataset
+                A TensorFlow dataset object for the ensemble loop to be iterated over.
+
+        """
+        (
+            ensemble_generator,
+            ensemble_generators_args
+        ) = self.data_manager.ensemble_generator(dictionary=True, glob_data=batch)
+
+        type_spec = {}
+        for item in subject.split('_'):
+            type_spec[str.encode(item)] = tf.TensorSpec(
+                shape=self.loaded_property[1], dtype=self.dtype
+            )
+
+        ds = tf.data.Dataset.from_generator(
+            generator=ensemble_generator,
+            args=ensemble_generators_args,
+            output_signature=type_spec
+        )
+
+        return ds.prefetch(tf.data.AUTOTUNE)
+
+    def new_run(self):
+        pass

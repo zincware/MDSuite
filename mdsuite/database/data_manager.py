@@ -28,7 +28,6 @@ generators. These generators allow for the full use of the TF data pipelines but
 required special formatting rules.
 """
 import logging
-from typing import Callable
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -87,37 +86,6 @@ class DataManager:
         self.ensemble_loop = ensemble_loop
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
-
-    def parent_generator(self, loop_array: list) -> Callable:
-        """
-        Build a parent generator object.
-
-        The parent generator object loops over a defined list and can be used in cases
-        where one must loop over species of atoms, pairs of species, or some other
-        broader loop beneath which the batch and ensemble generators should be called.
-
-        Parameters
-        ----------
-        loop_array : list
-                Array over which the generator should loop.
-
-        Returns
-        -------
-        generator : Callable
-                A generator object that can be looped over.
-        """
-        def generator():
-            """
-            A generator object for the parent.
-
-            Returns
-            -------
-
-            """
-            for item in loop_array:
-                yield item
-
-        return generator
 
     def batch_generator(
         self, dictionary: bool = False, system: bool = False, remainder: bool = False
@@ -304,7 +272,7 @@ class DataManager:
             return generator, args
 
     def ensemble_generator(
-        self, system: bool = False, dictionary: bool = False
+        self, system: bool = False, dictionary: bool = False, glob_data: dict = None
     ) -> tuple:
         """
         Build a generator for the ensemble loop
@@ -370,7 +338,7 @@ class DataManager:
                 yield data[start:stop]
 
         def dictionary_generator(
-            ensemble_loop, correlation_time, data_range, data_dict
+            ensemble_loop, correlation_time, data_range
         ):
             """
             Generator for the ensemble loop
@@ -382,7 +350,7 @@ class DataManager:
                     Distance between ensembles
             data_range : int
                     Size of each ensemble
-            data_dict : Dictionary
+            data_dict : dict
                     Data from which to draw ensembles
 
             Returns
@@ -392,9 +360,12 @@ class DataManager:
             for ensemble in range(ensemble_loop):
                 start = ensemble * correlation_time
                 stop = start + data_range
-                output_dict = []
-                for item in data_dict[:-1]:
-                    output_dict[item] = data_dict[item][:, start:stop]
+                output_dict = {}
+                for item in glob_data:
+                    if item == str.encode('data_size'):
+                        pass
+                    else:
+                        output_dict[item] = glob_data[item][:, start:stop]
                 yield output_dict
 
         if system:

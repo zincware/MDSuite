@@ -69,7 +69,7 @@ def run_example():
     #     data_range=100, plot=True, correlation_time=10
     # )
     project.run.EinsteinDiffusionCoefficients(
-        data_range=100, correlation_time=10, plot=True
+        data_range=200, correlation_time=10, plot=True
      )
     # project.run.EinsteinHelfandIonicConductivity(
     #     data_range=100, correlation_time=10, plot=True
@@ -88,9 +88,9 @@ if __name__ == "__main__":
     """
     Run the example.
     """
-    #temp_dir = tempfile.TemporaryDirectory()
-    #os.chdir(temp_dir.name)
+    temp_dir = tempfile.TemporaryDirectory()
+    os.chdir(temp_dir.name)
     load_data()  # load the data.
     run_example()  # run the example.
-    #os.chdir("..")
-    #temp_dir.cleanup()
+    os.chdir("..")
+    temp_dir.cleanup()
