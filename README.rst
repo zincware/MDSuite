@@ -86,5 +86,5 @@ for the calculators.
     :alt: Build tests passing
     :target: https://mdsuite.readthedocs.io/en/latest/
 
-.. |license| image:: https://img.shields.io/badge/License-ZINCv0-purple.svg?style=flat
+.. |license| image:: https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat
     :alt: Project license
