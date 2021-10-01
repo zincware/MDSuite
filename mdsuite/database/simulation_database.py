@@ -562,12 +562,24 @@ class Database:
         -------
 
         """
-        data: Union[list, dict] = {}
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
         with hf.File(self.name, "r") as database:
-            if not dictionary:
+
+            if dictionary:
+                data = {}
+                for i, item in enumerate(path_list):
+                    if type(select_slice) is dict:
+                        my_slice = select_slice[item]
+                    else:
+                        my_slice = select_slice
+                    data[item] = tf.convert_to_tensor(
+                        database[item][my_slice], dtype=tf.float64
+                    ) * scaling[i]
+                data[str.encode("data_size")] = d_size
+
+            else:
                 data = []
                 for i, item in enumerate(path_list):
                     data.append(
@@ -576,18 +588,6 @@ class Database:
                         )
                         * scaling[i]
                     )
-
-            if dictionary:
-                data = {}
-                for item in path_list:
-                    if type(select_slice) is dict:
-                        my_slice = select_slice[item]
-                    else:
-                        my_slice = select_slice
-                    data[item] = tf.convert_to_tensor(
-                        database[item][my_slice], dtype=tf.float64
-                    )
-                data[str.encode("data_size")] = d_size
 
         if len(data) == 1:
             if dictionary:

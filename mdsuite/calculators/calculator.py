@@ -275,6 +275,7 @@ class Calculator(CalculatorDatabase):
 
         Parameters
         ----------
+        tau_values
         plot : bool
                 If true, analysis is plotted.
         save : bool
@@ -292,12 +293,6 @@ class Calculator(CalculatorDatabase):
         self.database = Database(
             name=Path(self.experiment.database_path, "database.hdf5").as_posix()
         )
-
-        # Prevent $DISPLAY warnings on clusters.
-        if self.experiment.cluster_mode:
-            import matplotlib
-
-            matplotlib.use("Agg")
 
         self.data_range = data_range
         self.plot = plot
@@ -863,11 +858,13 @@ class Calculator(CalculatorDatabase):
                     batch_generator,
                     batch_generator_args,
                 ) = self.data_manager.batch_generator()
+
                 batch_data_set = tf.data.Dataset.from_generator(
                     generator=batch_generator,
                     args=batch_generator_args,
                     output_signature=self.batch_output_signature,
                 )
+
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
                 for batch_index, batch in tqdm(
@@ -882,6 +879,7 @@ class Calculator(CalculatorDatabase):
                         ensemble_generator,
                         ensemble_generators_args,
                     ) = self.data_manager.ensemble_generator()
+
                     ensemble_data_set = tf.data.Dataset.from_generator(
                         generator=ensemble_generator,
                         args=ensemble_generators_args + (batch,),

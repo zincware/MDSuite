@@ -122,11 +122,10 @@ class EinsteinDiffusionCoefficients(Calculator):
         optimize: bool = False,
         correlation_time: int = 1,
         atom_selection: np.s_ = np.s_[:],
-        export: bool = False,
         molecules: bool = False,
         tau_values: Union[int, List, Any] = np.s_[:],
         gpu: bool = False,
-    ) -> Computation:
+    ) -> None:
 
         """
 
@@ -146,8 +145,6 @@ class EinsteinDiffusionCoefficients(Calculator):
                 Correlation time to use in the window sampling.
         atom_selection : np.s_
                 Selection of atoms to use within the HDF5 database.
-        export : bool
-                If true, export the data directly into a csv file.
         molecules : bool
                 If true, molecules are used instead of atoms.
         tau_values : Union[int, list, np.s_]
@@ -167,7 +164,6 @@ class EinsteinDiffusionCoefficients(Calculator):
             correlation_time=correlation_time,
             atom_selection=atom_selection,
             tau_values=tau_values,
-            export=export,
             gpu=gpu,
         )
 

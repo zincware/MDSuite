@@ -82,7 +82,7 @@ class CalculatorDatabase:
         self.db_computation = db.Computation(experiment=experiment)
         self.db_computation.name = self.analysis_name
 
-    def update_db_entry_with_kwargs(self, **kwargs):
+    def update_db_entry_with_kwargs(self, **kwargs) -> db.Computation:
         """Update the database entry with the given user args/kwargs
 
         Parameters

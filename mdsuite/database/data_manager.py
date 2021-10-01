@@ -23,6 +23,9 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the data manager. The data manager handles loading of data as TensorFlow
+generators. These generators allow for the full use of the TF data pipelines but can
+required special formatting rules.
 """
 import logging
 import sys
@@ -90,6 +93,10 @@ class DataManager:
     ) -> tuple:
         """
         Build a generator object for the batch loop
+
+        Parameters
+        ----------
+
         Returns
         -------
         Returns a generator function and its arguments
@@ -134,9 +141,11 @@ class DataManager:
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
+                # Handle the remainder
                 if batch == batch_number:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
+                    # TODO make default
                 if type(self.atom_selection) is dict:
                     select_slice = {}
                     for item in self.atom_selection:
@@ -183,6 +192,8 @@ class DataManager:
             for batch in range(batch_number + int(remainder)):  # +1 for the remainder
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
+
+                # Handle the remainder.
                 if batch == batch_number:
                     stop = int(start + self.remainder)
 
@@ -198,7 +209,7 @@ class DataManager:
             dictionary: bool,
         ):
             """
-            Generator function for the batch loop.
+            Generator function for a mini-batched calculation.
 
             Parameters
             ----------
@@ -215,6 +226,13 @@ class DataManager:
             Returns
             -------
             """
+            # Atom selection not currently available for mini-batched calculations
+            if type(self.atom_selection) is dict:
+                raise ValueError(
+                    "Atom selection is not currently available "
+                    "for mini-batched calculations"
+                )
+
             database = Database(name=database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
@@ -235,14 +253,8 @@ class DataManager:
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
-                    if type(self.atom_selection) is dict:
-                        log.warning(
-                            "Atom selection is not available for mini-batched"
-                            " calculations"
-                        )
-                        sys.exit(1)
-                    else:
-                        select_slice = np.s_[atom_start:atom_stop, start:stop]
+
+                    select_slice = np.s_[atom_start:atom_stop, start:stop]
                     yield database.load_data(
                         data_path,
                         select_slice=select_slice,
@@ -250,8 +262,8 @@ class DataManager:
                         d_size=data_size,
                     )
 
-        if self.remainder == 0:
-            remainder = False
+        # if self.remainder == 0:
+        #     remainder = False
 
         if system:
             return system_generator, args
