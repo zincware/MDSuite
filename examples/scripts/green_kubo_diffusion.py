@@ -88,9 +88,9 @@ if __name__ == "__main__":
     """
     Run the example.
     """
-    #temp_dir = tempfile.TemporaryDirectory()
-    #os.chdir(temp_dir.name)
+    temp_dir = tempfile.TemporaryDirectory()
+    os.chdir(temp_dir.name)
     load_data()  # load the data.
     run_example()  # run the example.
-    #os.chdir("..")
-    #temp_dir.cleanup()
+    os.chdir("..")
+    temp_dir.cleanup()
