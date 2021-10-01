@@ -910,6 +910,15 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
+    def new_run(self):
+        """
+        New approach to running the analysis.
+
+        Returns
+        -------
+
+        """
+
     def run_analysis(self):
         """
         Run the appropriate analysis

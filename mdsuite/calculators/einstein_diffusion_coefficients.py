@@ -188,6 +188,14 @@ class EinsteinDiffusionCoefficients(Calculator):
             species=species,
         )
 
+    def prepare_generators(self):
+        """
+        Prepare the generators for use in the analysis.
+        Returns
+        -------
+
+        """
+
     def _update_output_signatures(self):
         """
         After having run _prepare managers, update the output signatures.

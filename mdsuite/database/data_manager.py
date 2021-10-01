@@ -28,7 +28,7 @@ generators. These generators allow for the full use of the TF data pipelines but
 required special formatting rules.
 """
 import logging
-import sys
+from typing import Callable
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
@@ -88,7 +88,7 @@ class DataManager:
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
-    def parent_generator(self, loop_array: list):
+    def parent_generator(self, loop_array: list) -> Callable:
         """
         Build a parent generator object.
 
@@ -99,12 +99,25 @@ class DataManager:
         Parameters
         ----------
         loop_array : list
+                Array over which the generator should loop.
 
         Returns
         -------
-
+        generator : Callable
+                A generator object that can be looped over.
         """
+        def generator():
+            """
+            A generator object for the parent.
 
+            Returns
+            -------
+
+            """
+            for item in loop_array:
+                yield item
+
+        return generator
 
     def batch_generator(
         self, dictionary: bool = False, system: bool = False, remainder: bool = False
