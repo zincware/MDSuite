@@ -88,6 +88,24 @@ class DataManager:
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
+    def parent_generator(self, loop_array: list):
+        """
+        Build a parent generator object.
+
+        The parent generator object loops over a defined list and can be used in cases
+        where one must loop over species of atoms, pairs of species, or some other
+        broader loop beneath which the batch and ensemble generators should be called.
+
+        Parameters
+        ----------
+        loop_array : list
+
+        Returns
+        -------
+
+        """
+
+
     def batch_generator(
         self, dictionary: bool = False, system: bool = False, remainder: bool = False
     ) -> tuple:
