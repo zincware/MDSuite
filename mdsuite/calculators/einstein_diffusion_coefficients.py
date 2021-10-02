@@ -294,7 +294,7 @@ class EinsteinDiffusionCoefficients(Calculator):
             dict_ref = str.encode("/".join([species, self.loaded_property[0]]))
             self.calculate_prefactor(species)
 
-            batch_ds = self.get_batch_dataset(species, split=True)
+            batch_ds = self.get_batch_dataset([species])
 
             for batch in tqdm(
                     batch_ds,

@@ -941,21 +941,32 @@ class Calculator(CalculatorDatabase):
                 ),
             )
 
-    def get_batch_dataset(self, subject: str = None, split: bool = False):
+    def get_batch_dataset(
+            self,
+            subject_list: list = None,
+            loop_array: np.ndarray = None
+    ):
         """
         Collect the batch loop dataset
 
         Parameters
         ----------
-        subject : str (default = None)
+        subject_list : list (default = None)
                 A str of subjects to collect data for in case this is necessary. The
                 method will first try to split this string by an '_' in the case where
                 tuples have been parsed. If None, the method assumes that this is a
                 system calculator and returns a generator appropriate to such an
                 analysis.
-                e.g. species = 'Na'
-                     species = 'Na_Cl'
-                     species = 'Na_Cl_Na'
+                e.g. subject = ['Na']
+                     subject = ['Na', 'Cl', 'K']
+                     subject = ['Ionic_Current']
+        loop_array : np.ndarray (default = None)
+                If this is not None, elements of this array will be looped over in
+                in the batches which load data at their indices. For example,
+                    loop_array = [[1, 4, 7], [10, 13, 16], [19, 21, 24]]
+                In this case, in the fist batch, configurations 1, 4, and 7 will be
+                loaded for the analysis. This is particularly important in the
+                structural properties.
 
         Returns
         -------
@@ -963,37 +974,29 @@ class Calculator(CalculatorDatabase):
                 A TensorFlow dataset for the batch loop to be iterated over.
 
         """
-        # TODO implement for system properties.
-        if subject is None:
-            pass
-        else:
-            if split:
-                subject_list = subject.split('_')
-            else:
-                subject_list = [subject]
-            path_list = [
-                join_path(item, self.loaded_property[0]) for item in subject_list
-            ]
-            self._prepare_managers(path_list)
+        path_list = [
+            join_path(item, self.loaded_property[0]) for item in subject_list
+        ]
+        self._prepare_managers(path_list)
 
-            type_spec = {}
-            for item in subject_list:
-                dict_ref = "/".join([item, self.loaded_property[0]])
-                type_spec[str.encode(dict_ref)] = tf.TensorSpec(
-                    shape=self.loaded_property[1], dtype=self.dtype
-                )
-            type_spec[str.encode('data_size')] = tf.TensorSpec(shape=(), dtype=tf.int32)
-
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                dictionary=True, system=self.system_property
+        type_spec = {}
+        for item in subject_list:
+            dict_ref = "/".join([item, self.loaded_property[0]])
+            type_spec[str.encode(dict_ref)] = tf.TensorSpec(
+                shape=self.loaded_property[1], dtype=self.dtype
             )
-            ds = tf.data.Dataset.from_generator(
-                generator=batch_generator,
-                args=batch_generator_args,
-                output_signature=type_spec
-            )
+        type_spec[str.encode('data_size')] = tf.TensorSpec(shape=(), dtype=tf.int32)
 
-            return ds.prefetch(tf.data.AUTOTUNE)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator(
+            dictionary=True, system=self.system_property, loop_array=loop_array
+        )
+        ds = tf.data.Dataset.from_generator(
+            generator=batch_generator,
+            args=batch_generator_args,
+            output_signature=type_spec
+        )
+
+        return ds.prefetch(tf.data.AUTOTUNE)
 
     def get_ensemble_dataset(self, batch: dict, subject: str, split: bool = False):
         """

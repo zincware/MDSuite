@@ -97,7 +97,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.prefactor: float
         self.trial_pp = True
 
-
         self.result_keys = ["ionic_conductivity", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
 
@@ -237,9 +236,11 @@ class EinsteinHelfandIonicConductivity(Calculator):
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
-        dict_ref = str.encode("/".join([self.loaded_property[0], self.loaded_property[0]]))
+        dict_ref = str.encode(
+            "/".join([self.loaded_property[0], self.loaded_property[0]])
+        )
 
-        batch_ds = self.get_batch_dataset(self.loaded_property[0])
+        batch_ds = self.get_batch_dataset([self.loaded_property[0]])
 
         for batch in tqdm(
                 batch_ds,

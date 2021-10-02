@@ -30,6 +30,7 @@ required special formatting rules.
 import logging
 import numpy as np
 import tensorflow as tf
+import numpy as np
 from tqdm import tqdm
 from mdsuite.database.simulation_database import Database
 
@@ -88,7 +89,12 @@ class DataManager:
         self.atom_selection = atom_selection
 
     def batch_generator(
-        self, dictionary: bool = False, system: bool = False, remainder: bool = False
+            self,
+            dictionary: bool = False,
+            system: bool = False,
+            remainder: bool = False,
+            loop_array: np.ndarray = None
+
     ) -> tuple:
         """
         Build a generator object for the batch loop
@@ -146,13 +152,10 @@ class DataManager:
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
                     # TODO make default
 
-                if system:
-                    yield database.load_data(
-                        data_path,
-                        select_slice=np.s_[start:stop],
-                        dictionary=dictionary,
-                        d_size=data_size,
-                    )
+                if loop_array is not None:
+                    select_slice = np.s_[:, loop_array[batch]]
+                elif system:
+                    select_slice = np.s_[start:stop]
                 else:
                     if type(self.atom_selection) is dict:
                         select_slice = {}
@@ -162,12 +165,13 @@ class DataManager:
                             ]
                     else:
                         select_slice = np.s_[self.atom_selection, start:stop]
-                    yield database.load_data(
-                        data_path,
-                        select_slice=select_slice,
-                        dictionary=dictionary,
-                        d_size=data_size,
-                    )
+
+                yield database.load_data(
+                    data_path,
+                    select_slice=select_slice,
+                    dictionary=dictionary,
+                    d_size=data_size,
+                )
 
         def system_generator(
             batch_number: int,
