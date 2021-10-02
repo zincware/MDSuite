@@ -505,7 +505,7 @@ class Calculator(CalculatorDatabase):
 
         return times
 
-    def _prepare_managers(self, data_path: list):
+    def _prepare_managers(self, data_path: list, correct: bool = False):
         """
         Prepare the memory and tensor_values monitors for calculation.
 
@@ -539,6 +539,9 @@ class Calculator(CalculatorDatabase):
             self.batch_size = self.memory_manager.batch_size
             self.n_batches = self.memory_manager.n_batches
             self.remainder = self.memory_manager.remainder
+
+        if correct:
+            self._correct_batch_properties()
 
         self.data_manager = DataManager(
             data_path=data_path,
@@ -941,10 +944,17 @@ class Calculator(CalculatorDatabase):
                 ),
             )
 
+    def _correct_batch_properties(self):
+        """
+        Fix batch properties.
+        """
+        raise NotImplementedError
+
     def get_batch_dataset(
             self,
             subject_list: list = None,
-            loop_array: np.ndarray = None
+            loop_array: np.ndarray = None,
+            correct: bool = False
     ):
         """
         Collect the batch loop dataset
@@ -977,7 +987,7 @@ class Calculator(CalculatorDatabase):
         path_list = [
             join_path(item, self.loaded_property[0]) for item in subject_list
         ]
-        self._prepare_managers(path_list)
+        self._prepare_managers(path_list, correct=correct)
 
         type_spec = {}
         for item in subject_list:

@@ -61,6 +61,9 @@ log = logging.getLogger(__name__)
 class Args:
     number_of_bins: int
     number_of_configurations: int
+    correlation_time: int
+    atom_selection: np.s_
+    data_range: int
     cutoff: float
     start: int
     stop: int
@@ -120,7 +123,9 @@ class RadialDistributionFunction(Calculator, ABC):
         self.y_label = r"$$g(r)$$"
         self.analysis_name = "Radial_Distribution_Function"
         self.result_series_keys = ["x", "y"]
-        self.experimental = True
+        self.experimental = False
+        self.trial_pp = True
+
 
         self._dtype = tf.float32
 
@@ -203,6 +208,9 @@ class RadialDistributionFunction(Calculator, ABC):
             cutoff=cutoff,
             start=start,
             stop=stop,
+            atom_selection=np.s_[:],
+            data_range=data_range,
+            correlation_time=1,
             molecules=molecules,
             species=species,
             number_of_configurations=number_of_configurations,
@@ -212,7 +220,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.minibatch = minibatch
         self.plot = plot
 
-        self.trial_pp = True
 
         # kwargs parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -547,7 +554,7 @@ class RadialDistributionFunction(Calculator, ABC):
         if len(self.args.species) == 1:
             return tf.cast(formatted_data[0], dtype=self.dtype)
         else:
-            tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
+            return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
 
     def prepare_computation(self):
         """
@@ -557,6 +564,12 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
 
         """
+
+        path_list = [
+            join_path(item, self.loaded_property[0]) for item in self.args.species
+        ]
+        self._prepare_managers(path_list)
+
         # batch loop correction
         self._correct_batch_properties()
 
@@ -573,7 +586,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return dict_keys, split_arr, batch_tqm
 
-    def run_new(self):
+    def new_run(self):
         """
         Run the analysis.
 
@@ -586,11 +599,11 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Get the batch dataset
         batch_ds = self.get_batch_dataset(
-            subject_list=self.args.species, loop_array=split_arr
+            subject_list=self.args.species, loop_array=split_arr, correct=True
         )
 
         # Loop over the batches.
-        for idx, batch in tqdm(batch_ds, ncols=70, disable=batch_tqm):
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
 
             # Reformat the data.
             log.debug("Reformatting data.")
@@ -599,7 +612,7 @@ class RadialDistributionFunction(Calculator, ABC):
             # Create a new dataset to loop over.
             log.debug("Creating dataset.")
             per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
-            n_atoms = tf.shape([positions_tensor])[0]
+            n_atoms = tf.shape(positions_tensor)[0]
 
             # Start the computation.
             log.debug("Beginning calculation.")

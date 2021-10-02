@@ -74,10 +74,10 @@ def run_example():
     project.run.EinsteinHelfandIonicConductivity(
         data_range=100, correlation_time=10, plot=True
     )
-    #
-    # project.run.RadialDistributionFunction(
-    #     number_of_configurations=100, start=0, stop=101, plot=True
-    # )
+
+    project.run.RadialDistributionFunction(
+         number_of_configurations=100, start=0, stop=101, plot=True
+     )
     # project.run.CoordinationNumbers(plot=True)
     # project.run.PotentialOfMeanForce(plot=True)
     # project.experiments.NaCl_GK.run_visualization()

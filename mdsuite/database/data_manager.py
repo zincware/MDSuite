@@ -143,6 +143,7 @@ class DataManager:
             database = Database(name=database)
 
             for batch in range(batch_number + int(remainder)):
+
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
@@ -171,46 +172,6 @@ class DataManager:
                     select_slice=select_slice,
                     dictionary=dictionary,
                     d_size=data_size,
-                )
-
-        def system_generator(
-            batch_number: int,
-            batch_size: int,
-            database: str,
-            data_path: list,
-            dictionary: bool,
-        ):
-            """
-            Generator function for the batch loop.
-
-            Parameters
-            ----------
-            batch_number : int
-                    Number of batches to be looped over
-            batch_size : int
-                    size of each batch to load
-            database : Database
-                    database_path from which to load the tensor_values
-            data_path : str
-                    Path to the tensor_values in the database_path
-            dictionary : bool
-                    If true, tensor_values is returned in a dictionary
-            Returns
-            -------
-
-            """
-            database = Database(name=database)
-
-            for batch in range(batch_number + int(remainder)):  # +1 for the remainder
-                start = int(batch * batch_size) + self.offset
-                stop = int(start + batch_size)
-
-                # Handle the remainder.
-                if batch == batch_number:
-                    stop = int(start + self.remainder)
-
-                yield database.load_data(
-                    data_path, select_slice=np.s_[start:stop], dictionary=dictionary
                 )
 
         def atom_generator(
