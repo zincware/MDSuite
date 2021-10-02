@@ -171,6 +171,8 @@ class EinsteinDiffusionCoefficients(Calculator):
             molecules=molecules,
             species=species,
         )
+        self.gpu = gpu
+        self.plot = plot
         self.optimize = optimize
         self.system_property = False
         self.time = self._handle_tau_values()
@@ -281,7 +283,7 @@ class EinsteinDiffusionCoefficients(Calculator):
 
         self.queue_data(data=data, subjects=[species])
 
-    def new_run(self):
+    def run_calculator(self):
         """
         Run analysis.
 

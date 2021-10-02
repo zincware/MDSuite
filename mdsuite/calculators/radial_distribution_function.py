@@ -23,13 +23,15 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of the radial distribution function (RDF). An RDF
+describes the probability of finding a particle of species b at a distance r of
+species a.
 """
 from __future__ import annotations
 import logging
 from abc import ABC
 from typing import Union
 import numpy as np
-import warnings
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
 
@@ -49,10 +51,6 @@ from mdsuite.utils.linalg import (
 )
 
 from timeit import default_timer as timer
-
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
 
 log = logging.getLogger(__name__)
 
@@ -150,7 +148,6 @@ class RadialDistributionFunction(Calculator, ABC):
         number_of_bins=None,
         cutoff=None,
         save=True,
-        data_range=1,
         start=0,
         stop=None,
         number_of_configurations=500,
@@ -175,9 +172,6 @@ class RadialDistributionFunction(Calculator, ABC):
             The cutoff value for the RDF. Default is half the box size
         save: bool
             save the data
-        data_range: int
-        data_range: int
-            None, must be here for the parent classes to work.
         start: int
             Starting position in the database. All values before start will be
             ignored.
@@ -208,7 +202,7 @@ class RadialDistributionFunction(Calculator, ABC):
             start=start,
             stop=stop,
             atom_selection=np.s_[:],
-            data_range=data_range,
+            data_range=1,
             correlation_time=1,
             molecules=molecules,
             species=species,
@@ -218,6 +212,8 @@ class RadialDistributionFunction(Calculator, ABC):
         # usually performance or plotting
         self.minibatch = minibatch
         self.plot = plot
+        self.gpu = gpu
+        self.save = save
 
         # kwargs parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -578,65 +574,6 @@ class RadialDistributionFunction(Calculator, ABC):
 
         return dict_keys, split_arr, batch_tqm
 
-    def new_run(self):
-        """
-        Run the analysis.
-
-        Returns
-        -------
-
-        """
-
-        dict_keys, split_arr, batch_tqm = self.prepare_computation()
-
-        # Get the batch dataset
-        batch_ds = self.get_batch_dataset(
-            subject_list=self.args.species, loop_array=split_arr, correct=True
-        )
-
-        # Loop over the batches.
-        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
-
-            # Reformat the data.
-            log.debug("Reformatting data.")
-            positions_tensor = self._format_data(batch=batch, keys=dict_keys)
-
-            # Create a new dataset to loop over.
-            log.debug("Creating dataset.")
-            per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
-            n_atoms = tf.shape(positions_tensor)[0]
-
-            # Start the computation.
-            log.debug("Beginning calculation.")
-            minibatch_start = tf.constant(0)
-            stop = tf.constant(0)
-            rdf = {
-                name: tf.zeros(self.args.number_of_bins, dtype=tf.int32)
-                for name in self.key_list
-            }
-
-            for atoms in tqdm(
-                per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE),
-                ncols=70,
-                disable=not batch_tqm,
-                desc=f"Running mini batch loop {idx + 1} / {self.n_batches}",
-            ):
-                # Compute the minibatch update
-                minibatch_rdf, minibatch_start, stop = self.run_minibatch_loop(
-                    atoms, stop, n_atoms, minibatch_start, positions_tensor
-                )
-
-                # Update the rdf.
-                start_time = timer()
-                rdf = self.combine_dictionaries(rdf, minibatch_rdf)
-                log.debug(f"Updating dictionaries took {timer() - start_time} s")
-
-            # Update the class before the next batch.
-            for key in self.rdf:
-                self.rdf[key] += rdf[key]
-
-        self._calculate_radial_distribution_functions()
-
     @staticmethod
     def combine_dictionaries(dict_a: dict, dict_b: dict):
         """
@@ -855,3 +792,62 @@ class RadialDistributionFunction(Calculator, ABC):
         bin_edges = np.linspace(0.0, self.args.cutoff, self.args.number_of_bins)
 
         return _piecewise(np.array(bin_edges)) * bin_width
+
+    def run_calculator(self):
+        """
+        Run the analysis.
+
+        Returns
+        -------
+
+        """
+
+        dict_keys, split_arr, batch_tqm = self.prepare_computation()
+
+        # Get the batch dataset
+        batch_ds = self.get_batch_dataset(
+            subject_list=self.args.species, loop_array=split_arr, correct=True
+        )
+
+        # Loop over the batches.
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
+
+            # Reformat the data.
+            log.debug("Reformatting data.")
+            positions_tensor = self._format_data(batch=batch, keys=dict_keys)
+
+            # Create a new dataset to loop over.
+            log.debug("Creating dataset.")
+            per_atoms_ds = tf.data.Dataset.from_tensor_slices(positions_tensor)
+            n_atoms = tf.shape(positions_tensor)[0]
+
+            # Start the computation.
+            log.debug("Beginning calculation.")
+            minibatch_start = tf.constant(0)
+            stop = tf.constant(0)
+            rdf = {
+                name: tf.zeros(self.args.number_of_bins, dtype=tf.int32)
+                for name in self.key_list
+            }
+
+            for atoms in tqdm(
+                per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE),
+                ncols=70,
+                disable=not batch_tqm,
+                desc=f"Running mini batch loop {idx + 1} / {self.n_batches}",
+            ):
+                # Compute the minibatch update
+                minibatch_rdf, minibatch_start, stop = self.run_minibatch_loop(
+                    atoms, stop, n_atoms, minibatch_start, positions_tensor
+                )
+
+                # Update the rdf.
+                start_time = timer()
+                rdf = self.combine_dictionaries(rdf, minibatch_rdf)
+                log.debug(f"Updating dictionaries took {timer() - start_time} s")
+
+            # Update the class before the next batch.
+            for key in self.rdf:
+                self.rdf[key] += rdf[key]
+
+        self._calculate_radial_distribution_functions()

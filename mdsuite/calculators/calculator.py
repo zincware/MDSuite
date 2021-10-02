@@ -781,111 +781,10 @@ class Calculator(CalculatorDatabase):
         -------
         Performs the analysis.
         """
-        if self.system_property:
-            self._calculate_prefactor()
-
-            data_path = [join_path(self.loaded_property, self.loaded_property)]
-            self._prepare_managers(data_path)
-
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                system=self.system_property
-            )
-            batch_data_set = tf.data.Dataset.from_generator(
-                generator=batch_generator,
-                args=batch_generator_args,
-                output_signature=self.batch_output_signature,
-            )
-            batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-
-            for batch_index, batch in enumerate(batch_data_set):
-                (
-                    ensemble_generator,
-                    ensemble_generators_args,
-                ) = self.data_manager.ensemble_generator(system=self.system_property)
-                ensemble_data_set = tf.data.Dataset.from_generator(
-                    generator=ensemble_generator,
-                    args=ensemble_generators_args + (batch,),
-                    output_signature=self.ensemble_output_signature,
-                )
-
-                for ensemble_index, ensemble in tqdm(
-                    enumerate(ensemble_data_set),
-                    desc="Ensemble Loop",
-                    ncols=70,
-                    total=self.ensemble_loop,
-                ):
-                    self._apply_operation(ensemble, ensemble_index)
-
-            self._apply_averaging_factor()
-            self._post_operation_processes()
-
-        elif self.experimental:
-            data_path = [
-                join_path(species, self.loaded_property)
-                for species in self.experiment.species
-            ]
-            self._prepare_managers(data_path)
-            self.run_experimental_analysis()
-
-        elif self.post_generation:
+        if self.post_generation:
             self.run_post_generation_analysis()
-
         else:
-            for species in self.species:
-                self._calculate_prefactor(species)
-
-                data_path = [join_path(species, self.loaded_property)]
-                self._prepare_managers(data_path)
-
-                (
-                    batch_generator,
-                    batch_generator_args,
-                ) = self.data_manager.batch_generator()
-
-                batch_data_set = tf.data.Dataset.from_generator(
-                    generator=batch_generator,
-                    args=batch_generator_args,
-                    output_signature=self.batch_output_signature,
-                )
-
-                batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
-
-                for batch_index, batch in tqdm(
-                    enumerate(batch_data_set),
-                    ncols=70,
-                    desc=species,
-                    total=self.n_batches,
-                    disable=self.memory_manager.minibatch,
-                ):
-
-                    (
-                        ensemble_generator,
-                        ensemble_generators_args,
-                    ) = self.data_manager.ensemble_generator()
-
-                    ensemble_data_set = tf.data.Dataset.from_generator(
-                        generator=ensemble_generator,
-                        args=ensemble_generators_args + (batch,),
-                        output_signature=self.ensemble_output_signature,
-                    )
-                    ensemble_data_set = ensemble_data_set.prefetch(
-                        tf.data.experimental.AUTOTUNE
-                    )
-
-                    for ensemble_index, ensemble in enumerate(ensemble_data_set):
-                        self._apply_operation(ensemble, ensemble_index)
-
-                self._apply_averaging_factor()
-                self._post_operation_processes(species)
-
-    def run_experimental_analysis(self):
-        """
-        For experimental methods
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
+            self.run_calculator()
 
     def run_post_generation_analysis(self):
         """
@@ -893,32 +792,28 @@ class Calculator(CalculatorDatabase):
         """
         raise NotImplementedError
 
-    def new_run(self):
+    def run_calculator(self):
         """
-        New approach to running the analysis.
+        Run a standard calculation, i.e, not one that involves loading data from the
+        Project SQL database.
 
         Returns
         -------
 
         """
+        raise NotImplementedError
 
     def run_analysis(self):
         """
         Run the appropriate analysis
         """
-        self.check_input()
         self._run_dependency_check()
         if self.experimental:
             log.warning(
                 "This is an experimental calculator. Please see the "
                 "documentation before using the results."
             )
-        if self.optimize:
-            pass
-        if self.trial_pp:
-            self.new_run()
-        else:
-            return self.perform_computation()
+        self.perform_computation()
 
     @property
     def dtype(self):
@@ -934,14 +829,14 @@ class Calculator(CalculatorDatabase):
         data: db.Compution.data_dict
                 associated with the current project
         """
-        for selectected_species, val in data.items():
+        for selected_species, val in data.items():
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
                 * self.experiment.units["time"],
                 y_data=np.array(val[self.result_series_keys[1]])
                 * self.experiment.units["time"],
                 title=(
-                    f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
                 ),
             )
@@ -1049,6 +944,3 @@ class Calculator(CalculatorDatabase):
         )
 
         return ds.prefetch(tf.data.AUTOTUNE)
-
-    def new_run(self):
-        pass

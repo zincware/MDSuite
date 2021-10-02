@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of ionic conductivity using the Einstein method.
 """
 import numpy as np
 import tensorflow as tf
@@ -133,23 +134,9 @@ class EinsteinHelfandIonicConductivity(Calculator):
             atom_selection=np.s_[:],
         )
 
+        self.gpu = gpu
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
-
-    def _update_output_signatures(self):
-        """
-        Update the output signature for the IC.
-
-        Returns
-        -------
-
-        """
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(self.batch_size, 3), dtype=tf.float64
-        )
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(self.data_range, 3), dtype=tf.float64
-        )
 
     def check_input(self):
         pass
@@ -222,7 +209,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
         self.queue_data(data=data, subjects=["System"])
 
-    def new_run(self):
+    def run_calculator(self):
         """
         Run analysis.
 

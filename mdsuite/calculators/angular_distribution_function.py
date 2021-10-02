@@ -23,6 +23,9 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module to perform the calculation of the angular distribution function (ADF). The ADF
+describes the average distribution of angles between three particles of species a, b,
+and c. Note that a, b, and c may all be the same species, e.g. Na-Na-Na.
 """
 from abc import ABC
 import logging
@@ -30,6 +33,7 @@ import tensorflow as tf
 import itertools
 import numpy as np
 from tqdm import tqdm
+from typing import Union
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.neighbour_list import (
     get_neighbour_list,
@@ -39,8 +43,25 @@ from mdsuite.utils.neighbour_list import (
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.database.scheme import Computation
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    number_of_bins: int
+    number_of_configurations: int
+    correlation_time: int
+    atom_selection: np.s_
+    data_range: int
+    cutoff: float
+    start: int
+    norm_power: Union[int, float]
+    stop: int
+    species: list
+    molecules: bool
 
 
 class AngularDistributionFunction(Calculator, ABC):
@@ -99,13 +120,13 @@ class AngularDistributionFunction(Calculator, ABC):
         self.loaded_property = "Positions"
 
         self.use_tf_function = None
-        self.r_cut = None
+        self.cutoff = None
         self.start = None
         self.molecules = None
         self.experimental = True
         self.stop = None
-        self.n_confs = None
-        self.bins = None
+        self.number_of_configurations = None
+        self.number_of_bins = None
         self.bin_range = None
         self._batch_size = None  # memory management for all batches
         self.species = None
@@ -115,7 +136,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         # TODO _n_batches is used instead of n_batches because the memory management is
         #  not yet implemented correctly
-        self.n_minibatches = None  # memory management for triples generation per batch.
+        self.minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
         self.database_group = "Angular_Distribution_Function"
@@ -126,12 +147,12 @@ class AngularDistributionFunction(Calculator, ABC):
     def __call__(
         self,
         batch_size: int = 1,
-        n_minibatches: int = 50,
-        n_confs: int = 5,
-        r_cut: int = 6.0,
+        minibatch: int = 50,
+        number_of_configurations: int = 5,
+        cutoff: int = 6.0,
         start: int = 1,
         stop: int = None,
-        bins: int = 500,
+        number_of_bins: int = 500,
         species: list = None,
         use_tf_function: bool = False,
         molecules: bool = False,
@@ -139,23 +160,23 @@ class AngularDistributionFunction(Calculator, ABC):
         plot: bool = True,
         norm_power: int = 4,
         **kwargs,
-    ) -> Computation:
+    ):
         """
         Parameters
         ----------
         batch_size : int
             Number of batches, to split the configurations into.
-        n_minibatches: int
+        minibatch: int
             Number of minibatches for computing the angles to split each batch into
-        n_confs: int
+        number_of_configurations: int
             Number of configurations to analyse
-        r_cut: float
+        cutoff: float
             cutoff radius for the ADF
         start: int
             Index of the first configuration
         stop: int
             Index of the last configuration
-        bins: int
+        number_of_bins: int
             bins for the ADF
         use_tf_function: bool, default False
             activate the tf.function decorator for the minibatches. Can speed
@@ -169,7 +190,7 @@ class AngularDistributionFunction(Calculator, ABC):
             The power of the normalization factor applied to the ADF histogram.
             If set to zero no distance normalization will be applied.
         molecules : bool
-                if true, perform the anlaysis on molecules.
+                if true, perform the analysis on molecules.
         gpu : bool
                 if true, scale the memory requirements to that of the biggest
                 GPU on the machine.
@@ -182,38 +203,34 @@ class AngularDistributionFunction(Calculator, ABC):
         management is not yet implemented correctly
 
         """
-        # Parse the parent class arguments.
-        self.update_user_args(data_range=1, gpu=gpu, plot=plot)
+        # set args that will affect the computation result
+        self.args = Args(
+            number_of_bins=number_of_bins,
+            cutoff=cutoff,
+            start=start,
+            stop=stop,
+            atom_selection=np.s_[:],
+            data_range=1,
+            correlation_time=1,
+            molecules=molecules,
+            species=species,
+            number_of_configurations=number_of_configurations,
+            norm_power=norm_power
+        )
 
         # Parse the user arguments.
         self.use_tf_function = use_tf_function
-        self.r_cut = r_cut
-        self.start = start
-        self.stop = stop
-        self.molecules = molecules
-        self.n_confs = n_confs
-        self.bins = bins
+        self.cutoff = cutoff
+        self.gpu = gpu
+        self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.n_minibatches = (
-            n_minibatches  # memory management for triples generation per batch.
+        self.minibatch = (
+            minibatch  # memory management for triples generation per batch.
         )
-        self.species = species
-        self._check_inputs()
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
 
-        return self.update_db_entry_with_kwargs(
-            r_cut=r_cut,
-            start=start,
-            stop=stop,
-            molecules=molecules,
-            n_confs=n_confs,
-            bins=bins,
-            species=species,
-            norm_power=norm_power,
-        )
-
-    def _check_inputs(self):
+    def check_inputs(self):
         """
         Check the inputs and set defaults if necessary.
 
@@ -221,19 +238,18 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
         Updates the class attributes.
         """
-        if self.stop is None:
-            self.stop = self.experiment.number_of_configurations - 1
+        if self.args.stop is None:
+            self.args.stop = self.experiment.number_of_configurations - 1
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
-            self._compute_number_of_atoms(self.experiment.species)
+        # Get the correct species out.
+        if self.args.species is None:
+            if self.args.molecules:
+                self.args.species = list(self.experiment.molecules)
+            else:
+                self.args.species = list(self.experiment.species)
 
         else:
             self._compute_number_of_atoms(self.experiment.species)
-
-        if self.molecules:
-            self.species = list(self.experiment.molecules)
-            self._compute_number_of_atoms(self.experiment.molecules)
 
     def _compute_number_of_atoms(self, reference: dict):
         """
@@ -254,30 +270,6 @@ class AngularDistributionFunction(Calculator, ABC):
 
         self.number_of_atoms = number_of_atoms
 
-    def _load_positions(self, indices: list) -> tf.Tensor:
-        """
-        Load the positions matrix
-
-        This function is here to optimize calculation speed
-
-        Parameters
-        ----------
-        indices : list
-                List of indices to take from the database_path
-        Returns
-        -------
-        loaded_data : tf.Tensor
-                tf.Tensor of tensor_values loaded from the hdf5 database_path
-        """
-        path_list = [join_path(species, "Positions") for species in self.species]
-        data = self.experiment.load_matrix(
-            "Positions", path=path_list, select_slice=np.s_[:, indices]
-        )
-        if len(self.species) == 1:
-            return data
-        else:
-            return tf.concat(data, axis=0)
-
     def _prepare_data_structure(self):
         """
         Prepare variables and dicts for the analysis.
@@ -285,7 +277,9 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
 
         """
-        sample_configs = np.linspace(self.start, self.stop, self.n_confs, dtype=np.int)
+        sample_configs = np.linspace(
+            self.start, self.stop, self.number_of_configurations, dtype=np.int
+        )
 
         species_indices = []
         start_index = 0
@@ -296,21 +290,6 @@ class AngularDistributionFunction(Calculator, ABC):
             start_index = stop_index
 
         return sample_configs, species_indices
-
-    def _prepare_generators(self, sample_configs):
-        """
-        Prepare the generators and compiled functions for the analysis.
-
-        Returns
-        -------
-
-        """
-
-        def generator():
-            for idx in sample_configs:
-                yield self._load_positions(idx)
-
-        return generator
 
     def _prepare_triples_generator(self):
         """
@@ -325,9 +304,9 @@ class AngularDistributionFunction(Calculator, ABC):
             def _get_triplets(x):
                 return get_triplets(
                     x,
-                    r_cut=self.r_cut,
+                    r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.n_minibatches,
+                    n_batches=self.minibatch,
                     disable_tqdm=True,
                 )
 
@@ -336,9 +315,9 @@ class AngularDistributionFunction(Calculator, ABC):
             def _get_triplets(x):
                 return get_triplets(
                     x,
-                    r_cut=self.r_cut,
+                    r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.n_minibatches,
+                    n_batches=self.minibatch,
                     disable_tqdm=True,
                 )
 
@@ -406,7 +385,7 @@ class AngularDistributionFunction(Calculator, ABC):
 
         return condition, name
 
-    def _build_histograms(self, sample_configs, species_indices):
+    def _build_histograms(self, positions, species_indices, angles):
         """
         Build the adf histograms.
 
@@ -415,48 +394,31 @@ class AngularDistributionFunction(Calculator, ABC):
         angles : dict
                 A dictionary of the triples references and their histogram values.
         """
-        angles = {}
+        timesteps, atoms, _ = tf.shape(positions)
+        tmp = tf.concat(positions, axis=0)
+        r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
 
-        # Prepare the generators and trplets functions -- handle tf.function calls.
-        generator = self._prepare_generators(sample_configs)
+        for species in itertools.combinations_with_replacement(species_indices, 3):
+            # Select the part of the r_ijk indices, where the selected species
+            # triple occurs.
+            condition, name = self._compute_angles(species, r_ijk_indices)
+            tmp = tf.gather_nd(r_ijk_indices, tf.where(condition))
 
-        # Prepare the dataset generators.
-        dataset = tf.data.Dataset.from_generator(
-            generator,
-            output_signature=(tf.TensorSpec(shape=(None, None), dtype=tf.float32)),
-        )
-        dataset = dataset.batch(self._batch_size).prefetch(tf.data.AUTOTUNE)
-
-        log.debug(f"batch_size: {self._batch_size}")
-
-        for positions in tqdm(
-            dataset, total=self.n_confs, ncols=70, desc="Building histograms"
-        ):
-            timesteps, atoms, _ = tf.shape(positions)
-            tmp = tf.concat(positions, axis=0)
-            r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
-
-            for species in itertools.combinations_with_replacement(species_indices, 3):
-                # Select the part of the r_ijk indices, where the selected species
-                # triple occurs.
-                condition, name = self._compute_angles(species, r_ijk_indices)
-                tmp = tf.gather_nd(r_ijk_indices, tf.where(condition))
-
-                # Get the indices required.
-                angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
-                pre_factor = 1 / pre_factor ** self.norm_power
-                histogram, _ = np.histogram(
-                    angle_vals,
-                    bins=self.bins,
-                    range=self.bin_range,
-                    weights=pre_factor,
-                    density=True,
-                )
-                histogram = tf.cast(histogram, dtype=tf.float32)
-                if angles.get(name) is not None:
-                    angles.update({name: angles.get(name) + histogram})
-                else:
-                    angles.update({name: histogram})
+            # Get the indices required.
+            angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
+            pre_factor = 1 / pre_factor ** self.norm_power
+            histogram, _ = np.histogram(
+                angle_vals,
+                bins=self.number_of_bins,
+                range=self.bin_range,
+                weights=pre_factor,
+                density=True,
+            )
+            histogram = tf.cast(histogram, dtype=tf.float32)
+            if angles.get(name) is not None:
+                angles.update({name: angles.get(name) + histogram})
+            else:
+                angles.update({name: histogram})
 
         return angles
 
@@ -482,12 +444,12 @@ class AngularDistributionFunction(Calculator, ABC):
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),
                 self.bin_range[1] * (180 / 3.14159),
-                self.bins,
+                self.number_of_bins,
             )
 
             self.selected_species = [_species[0] for _species in species]
 
-            self.data_range = self.n_confs
+            self.data_range = self.number_of_configurations
             log.debug(f"species are {species}")
 
             data = {
@@ -528,3 +490,56 @@ class AngularDistributionFunction(Calculator, ABC):
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(f"{selected_species} - Max:" f" {title_value:.3f} degrees "),
             )
+
+    def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:
+        """
+        Format the loaded data for use in the rdf calculator.
+
+        The RDF requires a reshaped dataset. The generator will load a default
+        dict oriented type. This method restructures the data to be used in the
+        calculator.
+
+        Parameters
+        ----------
+        batch : tf.Tensor
+                A batch of data to transform.
+        keys : list
+                Dict keys to extract from the data.
+
+        Returns
+        -------
+
+        """
+        formatted_data = []
+        for item in keys:
+            formatted_data.append(batch[item])
+
+        if len(self.args.species) == 1:
+            return tf.cast(formatted_data[0], dtype=self.dtype)
+        else:
+            return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
+
+    def run_calculator(self):
+        """
+        Run the analysis.
+
+        Returns
+        -------
+
+        """
+
+        dict_keys, split_arr, batch_tqm = self.prepare_computation()
+
+        # Get the batch dataset
+        batch_ds = self.get_batch_dataset(
+            subject_list=self.args.species, loop_array=split_arr, correct=True
+        )
+
+        angles = {}
+
+        # Loop over the batches.
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
+            angles = self._build_histograms(positions=batch, angles=angles)
+
+
+

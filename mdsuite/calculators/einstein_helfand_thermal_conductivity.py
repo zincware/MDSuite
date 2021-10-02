@@ -23,16 +23,22 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of thermal conductivity using the Einstein method.
 """
-import warnings
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import Calculator, call
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
 
 
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
+@dataclass
+class Args:
+    data_range: int
+    correlation_time: int
+    tau_values: np.s_
+    atom_selection: np.s_
 
 
 class EinsteinHelfandThermalConductivity(Calculator):
@@ -77,10 +83,8 @@ class EinsteinHelfandThermalConductivity(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = (  # Property to be loaded for the analysis
-            "Integrated_Heat_Current"
-        )
-        self.dependency = "Unwrapped_Positions"
+        self.loaded_property = simulation_properties.integrated_heat_current
+        self.dependency = simulation_properties.unwrapped_positions
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
@@ -94,13 +98,13 @@ class EinsteinHelfandThermalConductivity(Calculator):
 
     @call
     def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        save=True,
-        correlation_time=1,
-        export: bool = False,
-        gpu: bool = False,
+            self,
+            plot=True,
+            data_range=500,
+            save=True,
+            correlation_time=1,
+            tau_values: np.s_ = np.s_[:],
+            gpu: bool = False,
     ):
         """
         Python constructor
@@ -115,39 +119,21 @@ class EinsteinHelfandThermalConductivity(Calculator):
                 if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        export : bool
-                If true, export the data directly into a csv file.
         gpu : bool
                 If true, scale the memory requirement down to the amount of
                 the biggest GPU in the system.
         """
-
-        # parse to the experiment class
-        self.update_user_args(
-            plot=plot,
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
-            save=save,
             correlation_time=correlation_time,
-            export=export,
-            gpu=gpu,
+            tau_values=tau_values,
+            atom_selection=np.s_[:],
         )
 
-        self.msd_array = np.zeros(self.data_range)  # Initialize the msd array
-
-    def _update_output_signatures(self):
-        """
-        Update the output signature for the IC.
-
-        Returns
-        -------
-
-        """
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(self.batch_size, 3), dtype=tf.float64
-        )
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(self.data_range, 3), dtype=tf.float64
-        )
+        self.gpu = gpu
+        self.time = self._handle_tau_values()
+        self.msd_array = np.zeros(self.data_resolution)
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -186,7 +172,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def _apply_operation(self, ensemble, index):
+    def ensemble_operation(self, ensemble):
         """
         Calculate and return the msd.
 
@@ -227,3 +213,35 @@ class EinsteinHelfandThermalConductivity(Calculator):
                 y_data=self.msd_array * self.experiment.units["time"],
                 title=f"{result[0]} += {result[1]}",
             )
+
+    def run_calculator(self):
+        """
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        # Compute the pre-factor early.
+        self._calculate_prefactor()
+
+        dict_ref = str.encode(
+            "/".join([self.loaded_property[0], self.loaded_property[0]])
+        )
+
+        batch_ds = self.get_batch_dataset([self.loaded_property[0]])
+
+        for batch in tqdm(
+            batch_ds,
+            ncols=70,
+            total=self.n_batches,
+            disable=self.memory_manager.minibatch,
+        ):
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
+
+            for ensemble in ensemble_ds:
+                self.ensemble_operation(ensemble[dict_ref])
+
+        # Scale, save, and plot the data.
+        self._apply_averaging_factor()
+        self._post_operation_processes()
