@@ -49,6 +49,7 @@ class ComputationResults:
 @dataclass
 class Args:
     """Dummy Class for type hinting"""
+
     pass
 
 
@@ -83,8 +84,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
         self.db_computation = db.Computation(experiment=experiment)
@@ -107,8 +108,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
             #  filter the correct experiment
@@ -208,8 +209,8 @@ class CalculatorDatabase:
                     # otherwise I would use .in_
                     species_list.append(
                         ses.query(db.ExperimentSpecies)
-                            .filter(db.ExperimentSpecies.name == species)
-                            .first()
+                        .filter(db.ExperimentSpecies.name == species)
+                        .first()
                     )
                 # in case of e.g. `System` species will be [None], which is then removed
                 species_list = [x for x in species_list if x is not None]
@@ -287,5 +288,6 @@ class CalculatorDatabase:
 
         # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
         # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
+
 
 #####################

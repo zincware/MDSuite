@@ -101,7 +101,7 @@ def call(func):
 
     @functools.wraps(func)
     def inner(
-            self, *args, **kwargs
+        self, *args, **kwargs
     ) -> Union[db.Computation, Dict[str, db.Computation]]:
         """Manage the call method
 
@@ -179,14 +179,14 @@ class Calculator(CalculatorDatabase):
     """
 
     def __init__(
-            self,
-            experiment: Experiment = None,
-            experiments: List[Experiment] = None,
-            plot: bool = True,
-            save: bool = True,
-            atom_selection: object = np.s_[:],
-            gpu: bool = False,
-            load_data: bool = False,
+        self,
+        experiment: Experiment = None,
+        experiments: List[Experiment] = None,
+        plot: bool = True,
+        save: bool = True,
+        atom_selection: object = np.s_[:],
+        gpu: bool = False,
+        load_data: bool = False,
     ):
         """
         Constructor for the calculator class.
@@ -487,8 +487,9 @@ class Calculator(CalculatorDatabase):
             self.args.tau_values = np.linspace(
                 0, self.args.data_range - 1, self.args.tau_values, dtype=int
             )
-        if isinstance(self.args.tau_values, list) or isinstance(self.args.tau_values,
-                                                                np.ndarray):
+        if isinstance(self.args.tau_values, list) or isinstance(
+            self.args.tau_values, np.ndarray
+        ):
             self.data_resolution = len(self.args.tau_values)
             self.args.data_range = self.args.tau_values[-1] + 1
         if isinstance(self.args.tau_values, slice):
@@ -498,9 +499,9 @@ class Calculator(CalculatorDatabase):
             self.data_resolution = len(self.args.tau_values)
 
         times = (
-                np.asarray(self.args.tau_values)
-                * self.experiment.time_step
-                * self.experiment.sample_rate
+            np.asarray(self.args.tau_values)
+            * self.experiment.time_step
+            * self.experiment.sample_rate
         )
 
         return times
@@ -677,8 +678,9 @@ class Calculator(CalculatorDatabase):
                 # end the calculation if the tensor_values range exceeds the relevant
                 # bounds
                 if (
-                        self.args.data_range
-                        > self.experiment.number_of_configurations - self.args.correlation_time
+                    self.args.data_range
+                    > self.experiment.number_of_configurations
+                    - self.args.correlation_time
                 ):
                     print("Trajectory not long enough to perform analysis.")
                     raise RangeExceeded
@@ -807,10 +809,10 @@ class Calculator(CalculatorDatabase):
                 )
 
                 for ensemble_index, ensemble in tqdm(
-                        enumerate(ensemble_data_set),
-                        desc="Ensemble Loop",
-                        ncols=70,
-                        total=self.ensemble_loop,
+                    enumerate(ensemble_data_set),
+                    desc="Ensemble Loop",
+                    ncols=70,
+                    total=self.ensemble_loop,
                 ):
                     self._apply_operation(ensemble, ensemble_index)
 
@@ -849,11 +851,11 @@ class Calculator(CalculatorDatabase):
                 batch_data_set = batch_data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
                 for batch_index, batch in tqdm(
-                        enumerate(batch_data_set),
-                        ncols=70,
-                        desc=species,
-                        total=self.n_batches,
-                        disable=self.memory_manager.minibatch,
+                    enumerate(batch_data_set),
+                    ncols=70,
+                    desc=species,
+                    total=self.n_batches,
+                    disable=self.memory_manager.minibatch,
                 ):
 
                     (
@@ -935,9 +937,9 @@ class Calculator(CalculatorDatabase):
         for selectected_species, val in data.items():
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
-                       * self.experiment.units["time"],
+                * self.experiment.units["time"],
                 y_data=np.array(val[self.result_series_keys[1]])
-                       * self.experiment.units["time"],
+                * self.experiment.units["time"],
                 title=(
                     f"{selectected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
@@ -951,10 +953,10 @@ class Calculator(CalculatorDatabase):
         raise NotImplementedError
 
     def get_batch_dataset(
-            self,
-            subject_list: list = None,
-            loop_array: np.ndarray = None,
-            correct: bool = False
+        self,
+        subject_list: list = None,
+        loop_array: np.ndarray = None,
+        correct: bool = False,
     ):
         """
         Collect the batch loop dataset
@@ -984,9 +986,7 @@ class Calculator(CalculatorDatabase):
                 A TensorFlow dataset for the batch loop to be iterated over.
 
         """
-        path_list = [
-            join_path(item, self.loaded_property[0]) for item in subject_list
-        ]
+        path_list = [join_path(item, self.loaded_property[0]) for item in subject_list]
         self._prepare_managers(path_list, correct=correct)
 
         type_spec = {}
@@ -995,7 +995,7 @@ class Calculator(CalculatorDatabase):
             type_spec[str.encode(dict_ref)] = tf.TensorSpec(
                 shape=self.loaded_property[1], dtype=self.dtype
             )
-        type_spec[str.encode('data_size')] = tf.TensorSpec(shape=(), dtype=tf.int32)
+        type_spec[str.encode("data_size")] = tf.TensorSpec(shape=(), dtype=tf.int32)
 
         batch_generator, batch_generator_args = self.data_manager.batch_generator(
             dictionary=True, system=self.system_property, loop_array=loop_array
@@ -1003,7 +1003,7 @@ class Calculator(CalculatorDatabase):
         ds = tf.data.Dataset.from_generator(
             generator=batch_generator,
             args=batch_generator_args,
-            output_signature=type_spec
+            output_signature=type_spec,
         )
 
         return ds.prefetch(tf.data.AUTOTUNE)
@@ -1025,7 +1025,7 @@ class Calculator(CalculatorDatabase):
         """
         (
             ensemble_generator,
-            ensemble_generators_args
+            ensemble_generators_args,
         ) = self.data_manager.ensemble_generator(
             dictionary=True, glob_data=batch, system=self.system_property
         )
@@ -1033,7 +1033,7 @@ class Calculator(CalculatorDatabase):
         type_spec = {}
 
         if split:
-            loop_list = subject.split('_')
+            loop_list = subject.split("_")
         else:
             loop_list = [subject]
         for item in loop_list:
@@ -1045,7 +1045,7 @@ class Calculator(CalculatorDatabase):
         ds = tf.data.Dataset.from_generator(
             generator=ensemble_generator,
             args=ensemble_generators_args,
-            output_signature=type_spec
+            output_signature=type_spec,
         )
 
         return ds.prefetch(tf.data.AUTOTUNE)

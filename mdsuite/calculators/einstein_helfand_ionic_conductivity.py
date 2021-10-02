@@ -33,7 +33,6 @@ from dataclasses import dataclass
 from mdsuite.database import simulation_properties
 
 
-
 @dataclass
 class Args:
     data_range: int
@@ -88,9 +87,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.dependency = simulation_properties.unwrapped_positions
         self.system_property = True
 
-        self.database_group = (
-            "Ionic_Conductivity"
-        )
+        self.database_group = "Ionic_Conductivity"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Ionic Conductivity"
@@ -133,7 +130,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
-            atom_selection=np.s_[:]
+            atom_selection=np.s_[:],
         )
 
         self.time = self._handle_tau_values()
@@ -243,10 +240,10 @@ class EinsteinHelfandIonicConductivity(Calculator):
         batch_ds = self.get_batch_dataset([self.loaded_property[0]])
 
         for batch in tqdm(
-                batch_ds,
-                ncols=70,
-                total=self.n_batches,
-                disable=self.memory_manager.minibatch,
+            batch_ds,
+            ncols=70,
+            total=self.n_batches,
+            disable=self.memory_manager.minibatch,
         ):
             ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
 

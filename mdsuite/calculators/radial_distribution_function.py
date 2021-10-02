@@ -126,7 +126,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.experimental = False
         self.trial_pp = True
 
-
         self._dtype = tf.float32
 
         # Arguments set by the user in __call__
@@ -219,7 +218,6 @@ class RadialDistributionFunction(Calculator, ABC):
         # usually performance or plotting
         self.minibatch = minibatch
         self.plot = plot
-
 
         # kwargs parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -415,7 +413,7 @@ class RadialDistributionFunction(Calculator, ABC):
             self.n_batches = self.override_n_batches
 
     def run_minibatch_loop(
-            self, atoms, stop, n_atoms, minibatch_start, positions_tensor
+        self, atoms, stop, n_atoms, minibatch_start, positions_tensor
     ):
         """
         Run a minibatch loop
@@ -436,9 +434,7 @@ class RadialDistributionFunction(Calculator, ABC):
         # Compute the indices
         stop += atoms_per_batch
         start_time = timer()
-        indices = get_partial_triu_indices(
-            n_atoms, atoms_per_batch, minibatch_start
-        )
+        indices = get_partial_triu_indices(n_atoms, atoms_per_batch, minibatch_start)
         log.debug(f"Calculating indices took {timer() - start_time} s")
 
         # Compute the d_ij matrix.
@@ -451,9 +447,7 @@ class RadialDistributionFunction(Calculator, ABC):
         )
         exec_time = timer() - start_time
         atom_pairs_per_second = (
-                tf.cast(tf.shape(indices)[1], dtype=self.dtype)
-                / exec_time
-                / 10 ** 6
+            tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
         )
         atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
         log.debug(
@@ -463,9 +457,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         # Compute the rdf for the minibatch
         start_time = timer()
-        minibatch_rdf = self.compute_species_values(
-            indices, minibatch_start, d_ij
-        )
+        minibatch_rdf = self.compute_species_values(indices, minibatch_start, d_ij)
         log.debug(f"Computing species values took {timer() - start_time} s")
 
         minibatch_start = stop
@@ -624,10 +616,10 @@ class RadialDistributionFunction(Calculator, ABC):
             }
 
             for atoms in tqdm(
-                    per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE),
-                    ncols=70,
-                    disable=not batch_tqm,
-                    desc=f"Running mini batch loop {idx + 1} / {self.n_batches}",
+                per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE),
+                ncols=70,
+                disable=not batch_tqm,
+                desc=f"Running mini batch loop {idx + 1} / {self.n_batches}",
             ):
                 # Compute the minibatch update
                 minibatch_rdf, minibatch_start, stop = self.run_minibatch_loop(
@@ -663,7 +655,7 @@ class RadialDistributionFunction(Calculator, ABC):
     @staticmethod
     @tf.function(experimental_relax_shapes=True)
     def bin_minibatch(
-            start, stop, indices, d_ij, bin_range, number_of_bins, cutoff
+        start, stop, indices, d_ij, bin_range, number_of_bins, cutoff
     ) -> tf.Tensor:
         """
         Compute the minibatch histogram
@@ -811,12 +803,12 @@ class RadialDistributionFunction(Calculator, ABC):
             """
             arctan_1 = np.arctan(np.sqrt(4 * (data ** 2) - 2))
             arctan_2 = (
-                    8
-                    * data
-                    * np.arctan(
-                (2 * data * (4 * (data ** 2) - 3))
-                / (np.sqrt(4 * (data ** 2) - 2) * (4 * (data ** 2) + 1))
-            )
+                8
+                * data
+                * np.arctan(
+                    (2 * data * (4 * (data ** 2) - 3))
+                    / (np.sqrt(4 * (data ** 2) - 2) * (4 * (data ** 2) + 1))
+                )
             )
 
             return 2 * data * (3 * np.pi - 12 * arctan_1 + arctan_2)

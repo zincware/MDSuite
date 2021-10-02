@@ -35,11 +35,12 @@ class SimulationProperties:
     Simulation properties refer to the observables measured during a simulation
     for which groups will exist in the HDF5 database.
     """
+
     temperature = ("Temperature", (None, 1))
     time = ("Time", (None, 1))
     thermal_flux = ("Thermal_Flux", (None, 3))
     stress_viscosity = ("Stress_visc", (None, 3))
-    ionic_current = ("Ionic_Current", (None, 3)),
+    ionic_current = (("Ionic_Current", (None, 3)),)
     translational_dipole_moment = ("Translational_Dipole_Moment", (None, 3))
     positions = ("Positions", (None, None, 3))
     scaled_positions = ("Scaled_Positions", (None, None, 3))

@@ -115,17 +115,17 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     @call
     def __call__(
-            self,
-            plot: bool = True,
-            species: list = None,
-            data_range: int = 100,
-            save: bool = True,
-            optimize: bool = False,
-            correlation_time: int = 1,
-            atom_selection: np.s_ = np.s_[:],
-            molecules: bool = False,
-            tau_values: Union[int, List, Any] = np.s_[:],
-            gpu: bool = False,
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 100,
+        save: bool = True,
+        optimize: bool = False,
+        correlation_time: int = 1,
+        atom_selection: np.s_ = np.s_[:],
+        molecules: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        gpu: bool = False,
     ):
         """
 
@@ -196,16 +196,16 @@ class EinsteinDiffusionCoefficients(Calculator):
             # Calculate the prefactor
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                                  self.experiment.units["time"]
-                                  * len(self.experiment.molecules[species]["indices"])
-                          ) * 6
+                self.experiment.units["time"]
+                * len(self.experiment.molecules[species]["indices"])
+            ) * 6
         else:
             # Calculate the prefactor
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                                  self.experiment.units["time"]
-                                  * len(self.experiment.species[species]["indices"])
-                          ) * 6
+                self.experiment.units["time"]
+                * len(self.experiment.species[species]["indices"])
+            ) * 6
 
         self.prefactor = numerator / denominator
 
@@ -297,11 +297,11 @@ class EinsteinDiffusionCoefficients(Calculator):
             batch_ds = self.get_batch_dataset([species])
 
             for batch in tqdm(
-                    batch_ds,
-                    ncols=70,
-                    desc=species,
-                    total=self.n_batches,
-                    disable=self.memory_manager.minibatch,
+                batch_ds,
+                ncols=70,
+                desc=species,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
             ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species, split=True)
 

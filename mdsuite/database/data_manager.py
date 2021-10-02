@@ -89,12 +89,11 @@ class DataManager:
         self.atom_selection = atom_selection
 
     def batch_generator(
-            self,
-            dictionary: bool = False,
-            system: bool = False,
-            remainder: bool = False,
-            loop_array: np.ndarray = None
-
+        self,
+        dictionary: bool = False,
+        system: bool = False,
+        remainder: bool = False,
+        loop_array: np.ndarray = None,
     ) -> tuple:
         """
         Build a generator object for the batch loop
@@ -311,9 +310,7 @@ class DataManager:
                 stop = start + data_range
                 yield data[start:stop]
 
-        def dictionary_generator(
-            ensemble_loop, correlation_time, data_range
-        ):
+        def dictionary_generator(ensemble_loop, correlation_time, data_range):
             """
             Generator for the ensemble loop
             Parameters
@@ -336,7 +333,7 @@ class DataManager:
                 stop = start + data_range
                 output_dict = {}
                 for item in glob_data:
-                    if item == str.encode('data_size'):
+                    if item == str.encode("data_size"):
                         pass
                     else:
                         if system:

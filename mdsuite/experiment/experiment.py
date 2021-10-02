@@ -108,17 +108,13 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         super().__init__(project=project, experiment_name=experiment_name)
         self.name = experiment_name
         self.storage_path = Path(project.storage_path, project.name).as_posix()
-        self.cluster_mode = (
-            cluster_mode
-        )
+        self.cluster_mode = cluster_mode
 
         # ExperimentDatabase stored properties:
         # ------- #
         # set default values
         if self.number_of_configurations is None:
-            self.number_of_configurations = (
-                0
-            )
+            self.number_of_configurations = 0
         # update database (None values are ignored)
         self.temperature = temperature
         self.time_step = time_step
@@ -403,5 +399,5 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                 New mass/es of the element
         """
         species = self.species
-        species[element]['mass'] = mass  # update the mass
+        species[element]["mass"] = mass  # update the mass
         self.species = species
