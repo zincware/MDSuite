@@ -34,9 +34,20 @@ from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
 from mdsuite import data as static_data
 from importlib.resources import open_text
+from dataclasses import dataclass
 
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    tau_values: np.s_
+    molecules: bool
+    species: list
 
 
 class StructureFactor(Calculator):
@@ -116,7 +127,7 @@ class StructureFactor(Calculator):
                 file, sep=","
             )  # stores coefficients for atomic form factors
 
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+    def __call__(self, plot=True, save=True, data_range=1):
         """
         Parameters
         ----------
@@ -129,8 +140,6 @@ class StructureFactor(Calculator):
                             Range over which the property should be evaluated.
                             This is not applicable to the current analysis as
                             the full rdf will be calculated.
-        export : bool
-                If true, export the data directly to a csv.
 
         Returns
         -------
@@ -141,9 +150,8 @@ class StructureFactor(Calculator):
         for experiment in self.experiments:
             self.experiment = experiment
 
-            self.update_user_args(
-                plot=plot, save=save, data_range=data_range, export=export
-            )
+            self.plot = plot
+            self.save = save
 
             self.rho = self.experiment.number_of_atoms / (
                 self.experiment.box_array[0]

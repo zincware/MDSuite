@@ -34,8 +34,16 @@ from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
 from bokeh.models import BoxAnnotation
 from mdsuite.database.scheme import Computation
+from dataclasses import dataclass
+
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    savgol_order: int
+    savgol_window_length: int
 
 
 class PotentialOfMeanForce(Calculator):
@@ -145,12 +153,12 @@ class PotentialOfMeanForce(Calculator):
         self.update_user_args(
             plot=plot, save=save, data_range=data_range, export=export
         )
-        self.data_files = []
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range,
+        self.plot = plot
+        self.save = save
+        self.data_files = []
+
+        self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
         )
@@ -175,7 +183,9 @@ class PotentialOfMeanForce(Calculator):
         Calculate the maximums of the rdf
         """
         filtered_data = apply_savgol_filter(
-            self.pomf, order=self.savgol_order, window_length=self.savgol_window_length
+            self.pomf,
+            order=self.args.savgol_order,
+            window_length=self.args.savgol_window_length
         )
 
         # Find the maximums in the filtered dataset

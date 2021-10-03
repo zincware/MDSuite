@@ -132,6 +132,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.species = None
         self.number_of_atoms = None
         self.norm_power = None
+        self.sample_configurations : np.ndarray = None
         self.result_series_keys = ["angle", "adf"]
 
         # TODO _n_batches is used instead of n_batches because the memory management is
@@ -215,7 +216,8 @@ class AngularDistributionFunction(Calculator, ABC):
             molecules=molecules,
             species=species,
             number_of_configurations=number_of_configurations,
-            norm_power=norm_power
+            norm_power=norm_power,
+            **kwargs
         )
 
         # Parse the user arguments.
@@ -229,6 +231,7 @@ class AngularDistributionFunction(Calculator, ABC):
         )
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
+        self.override_n_batches = kwargs.get("batches")
 
     def check_inputs(self):
         """
@@ -459,20 +462,6 @@ class AngularDistributionFunction(Calculator, ABC):
 
             self.queue_data(data=data, subjects=self.selected_species)
 
-    def run_experimental_analysis(self):
-        """
-        Perform the ADF analysis.
-
-        Notes
-        -----
-        # TODO select when to enable tqdm of get_triplets
-        # TODO batch_size!
-        # TODO allow for delete_duplicates with more then 2 species!
-        """
-        sample_configs, species_indices = self._prepare_data_structure()
-        angles = self._build_histograms(sample_configs, species_indices)
-        self._compute_adfs(angles, species_indices)
-
     def plot_data(self, data):
         """Plot data"""
         for selected_species, val in data.items():
@@ -519,6 +508,49 @@ class AngularDistributionFunction(Calculator, ABC):
         else:
             return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
 
+    def _correct_batch_properties(self):
+        """
+        We must fix the batch size parameters set by the parent class.
+
+        Returns
+        -------
+        Updates the parent class.
+        """
+        if self.batch_size > self.args.number_of_configurations:
+            self.batch_size = self.args.number_of_configurations
+            self.n_batches = 1
+        else:
+            self.n_batches = int(self.args.number_of_configurations / self.batch_size)
+
+        if self.override_n_batches is not None:
+            self.n_batches = self.override_n_batches
+
+    def prepare_computation(self):
+        """
+        Run steps necessary to prepare the computation for running.
+
+        Returns
+        -------
+
+        """
+        path_list = [
+            join_path(item, self.loaded_property[0]) for item in self.args.species
+        ]
+        self._prepare_managers(path_list)
+
+        # batch loop correction
+        self._correct_batch_properties()
+
+        # Get the correct dict keys.
+        dict_keys = []
+        for item in self.args.species:
+            dict_keys.append(str.encode(join_path(item, self.loaded_property[0])))
+
+        # Split the configurations into batches.
+        split_arr = np.array_split(self.sample_configurations, self.n_batches)
+
+        return dict_keys, split_arr
+
     def run_calculator(self):
         """
         Run the analysis.
@@ -527,8 +559,9 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
 
         """
+        self.sample_configurations, species_indices = self._prepare_data_structure()
 
-        dict_keys, split_arr, batch_tqm = self.prepare_computation()
+        dict_keys, split_arr = self.prepare_computation()
 
         # Get the batch dataset
         batch_ds = self.get_batch_dataset(
@@ -538,8 +571,9 @@ class AngularDistributionFunction(Calculator, ABC):
         angles = {}
 
         # Loop over the batches.
-        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
-            angles = self._build_histograms(positions=batch, angles=angles)
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70):
+            angles = self._build_histograms(
+                positions=batch, species_indices=species_indices, angles=angles
+            )
 
-
-
+        self._compute_adfs(angles, species_indices)

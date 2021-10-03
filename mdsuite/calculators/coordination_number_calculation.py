@@ -32,8 +32,16 @@ from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from bokeh.models import BoxAnnotation
+from dataclasses import dataclass
+
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    savgol_order: int
+    savgol_window_length: int
 
 
 class CoordinationNumbers(Calculator):
@@ -155,15 +163,11 @@ class CoordinationNumbers(Calculator):
         if self.experiment.radial_distribution_function_state is False:
             self.experiment.run.RadialDistributionFunction(plot=False, n_batches=-1)
 
-        self.update_user_args(
-            plot=plot, save=save, data_range=data_range, export=export
-        )
+        self.plot = plot
+        self.save = save
 
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
-
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range,
+        # set args that will affect the computation result
+        self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
         )
@@ -216,7 +220,9 @@ class CoordinationNumbers(Calculator):
         """
 
         filtered_data = apply_savgol_filter(
-            self.rdf, order=self.savgol_order, window_length=self.savgol_window_length
+            self.rdf,
+            order=self.args.savgol_order,
+            window_length=self.args.savgol_window_length
         )
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 

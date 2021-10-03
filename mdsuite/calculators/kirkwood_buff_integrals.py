@@ -29,8 +29,16 @@ import numpy as np
 from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
+from dataclasses import dataclass
+
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    savgol_order: int
+    savgol_window_length: int
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -97,9 +105,7 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     @call
-    def __call__(
-        self, plot=True, save=True, data_range=1, export: bool = False
-    ) -> Computation:
+    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
         """
         Doc string for this one.
         Parameters
@@ -114,12 +120,8 @@ class KirkwoodBuffIntegral(Calculator):
         export : bool
                 If tue, csv files will be dumped after the analysis.
         """
-
-        self.update_user_args(
-            plot=plot, save=save, data_range=data_range, export=export
-        )
-
-        return self.update_db_entry_with_kwargs(data_range=data_range)
+        self.plot = plot
+        self.save = save
 
     def _autocorrelation_time(self):
         """

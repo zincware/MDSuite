@@ -190,7 +190,7 @@ class RadialDistributionFunction(Calculator, ABC):
         gpu: bool
             Calculate batch size based on GPU memory instead of CPU memory
         kwargs:
-            batches: int
+            overide_n_batches: int
                     override the automatic batch size calculation
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
@@ -550,7 +550,14 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
-
+        dict_keys : dict
+                dict keys to use when selecting data from the output.
+        split_arr : np.ndarray
+                Array of indices to load from the database split into sub-arrays which
+                fulfill the necessary batch size.
+        batch_tqdm : bool
+                If true, the main tqdm loop over batches is disabled and only the
+                mini-batch loop will be displayed.
         """
 
         path_list = [
@@ -570,9 +577,9 @@ class RadialDistributionFunction(Calculator, ABC):
         split_arr = np.array_split(self.sample_configurations, self.n_batches)
 
         # Turn off the tqdm for certain scenarios.
-        batch_tqm = self.tqdm_limit > self.n_batches
+        batch_tqdm = self.tqdm_limit > self.n_batches
 
-        return dict_keys, split_arr, batch_tqm
+        return dict_keys, split_arr, batch_tqdm
 
     @staticmethod
     def combine_dictionaries(dict_a: dict, dict_b: dict):

@@ -281,116 +281,6 @@ class Calculator(CalculatorDatabase):
             )
         return self._database
 
-    # def update_user_args(
-    #     self,
-    #     plot: bool,
-    #     data_range: int = 500,
-    #     correlation_time: int = 1,
-    #     atom_selection: object = np.s_[:],
-    #     tau_values: Union[int, List, Any] = np.s_[:],
-    #     gpu: bool = False,
-    #     *args,
-    #     **kwargs,
-    # ):
-    #     """
-    #     Update the user args that are given by the __call__ method of the
-    #     calculator.
-    #
-    #     Parameters
-    #     ----------
-    #     plot : bool
-    #             If true, analysis is plotted.
-    #     save : bool
-    #             If true, the analysis is saved.
-    #     data_range : int
-    #             Data range over which to compute.
-    #     correlation_time : int
-    #             Correlation time to use in the analysis.
-    #     atom_selection : object
-    #             Atoms to perform the analysis on.
-    #     gpu : bool
-    #             If true, reduce memory usage to what is allowed on the system
-    #             GPU.
-    #     """
-    #
-    #     # Prevent $DISPLAY warnings on clusters.
-    #     if self.experiment.cluster_mode:
-    #         import matplotlib
-    #
-    #         matplotlib.use("Agg")
-    #
-    #     self.data_range = data_range
-    #     self.plot = plot
-    #     self.gpu = gpu
-    #     self.tau_values = tau_values
-    #     self.correlation_time = correlation_time
-    #     self.atom_selection = atom_selection
-    #
-    #     # attributes based on user args
-    #     self.time = self._handle_tau_values()  # process selected tau values.
-
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        raise NotImplementedError
-
-    def _post_operation_processes(self, species: Union[str, tuple] = None):
-        """
-        call the post-op processes
-
-        Parameters
-        ----------
-        species : Union[str, tuple]
-                List or tuple of species fo which this post-operation process
-                is being applied.
-        Returns
-        -------
-
-        """
-        raise NotImplementedError
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass
-
     @staticmethod
     def _fit_einstein_curve(data: list) -> list:
         """
@@ -602,18 +492,6 @@ class Calculator(CalculatorDatabase):
             )
         )
 
-    def check_input(self):
-        """
-        Look for user input that would kill the analysis
-
-        Returns
-        -------
-        status: int
-            if 0, check failed, if 1, check passed.
-        """
-
-        raise NotImplementedError("Please implement check input in child class")
-
     def _optimize_einstein_data_range(self, data: np.array):
         """
         Optimize the tensor_values range of a experiment using the Einstein
@@ -627,6 +505,10 @@ class Calculator(CalculatorDatabase):
         Returns
         -------
         Updates the data_range attribute of the class state
+
+        Notes
+        -----
+        TODO: Update this and add it to the code.
         """
 
         def func(x, m, a):
@@ -687,15 +569,15 @@ class Calculator(CalculatorDatabase):
             except RangeExceeded:
                 raise RangeExceeded
 
-    def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
-        """
-        Update the experiment properties YAML file.
-        """
-        log.warning(
-            "Using depreciated method `_update_properties_file` \t Please use"
-            " `update_database` instead."
-        )
-        self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
+    # def _update_properties_file(self, parameters: dict, delete_duplicate: bool = True):
+    #     """
+    #     Update the experiment properties YAML file.
+    #     """
+    #     log.warning(
+    #         "Using depreciated method `_update_properties_file` \t Please use"
+    #         " `update_database` instead."
+    #     )
+    #     self.update_database(parameters=parameters, delete_duplicate=delete_duplicate)
 
     def _resolve_dependencies(self, dependency):
         """
@@ -814,11 +696,6 @@ class Calculator(CalculatorDatabase):
                 "documentation before using the results."
             )
         self.perform_computation()
-
-    @property
-    def dtype(self):
-        """Get the dtype used for the calculator"""
-        return self._dtype
 
     def plot_data(self, data):
         """
@@ -944,3 +821,8 @@ class Calculator(CalculatorDatabase):
         )
 
         return ds.prefetch(tf.data.AUTOTUNE)
+
+    @property
+    def dtype(self):
+        """Get the dtype used for the calculator"""
+        return self._dtype
