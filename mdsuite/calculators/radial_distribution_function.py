@@ -808,6 +808,7 @@ class RadialDistributionFunction(Calculator, ABC):
         -------
 
         """
+        self.check_input()
 
         dict_keys, split_arr, batch_tqm = self.prepare_computation()
 

@@ -128,7 +128,7 @@ class PotentialOfMeanForce(Calculator):
         export: bool = False,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
-    ) -> Computation:
+    ):
         """
         Python constructor for the class
 
@@ -150,9 +150,6 @@ class PotentialOfMeanForce(Calculator):
         savgol_window_length : int
                 Window length of the savgol filter.
         """
-        self.update_user_args(
-            plot=plot, save=save, data_range=data_range, export=export
-        )
 
         self.plot = plot
         self.save = save

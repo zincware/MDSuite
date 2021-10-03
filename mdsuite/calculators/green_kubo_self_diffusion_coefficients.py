@@ -34,6 +34,7 @@ from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
+from typing import List, Any
 
 
 @dataclass
@@ -140,11 +141,11 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         if species is None:
             if molecules:
-                self.species = list(self.experiment.molecules)
+                species = list(self.experiment.molecules)
             else:
-                self.species = list(self.experiment.species)
+                species = list(self.experiment.species)
         if integration_range is None:
-            integration_range = self.data_range
+            integration_range = data_range
 
         # set args that will affect the computation result
         self.args = Args(

@@ -65,9 +65,9 @@ def run_example():
         units="metal",
         data="NaCl_gk_i_q.lammpstraj",
     )
-    # project.run.GreenKuboDiffusionCoefficients(
-    #     data_range=100, plot=True, correlation_time=10
-    # )
+    project.run.GreenKuboDiffusionCoefficients(
+        data_range=100, plot=True, correlation_time=10
+    )
     project.run.EinsteinDiffusionCoefficients(
         data_range=200, correlation_time=10, plot=True
     )
@@ -78,8 +78,11 @@ def run_example():
     project.run.RadialDistributionFunction(
         number_of_configurations=100, start=0, stop=101, plot=True
     )
-    # project.run.CoordinationNumbers(plot=True)
-    # project.run.PotentialOfMeanForce(plot=True)
+    project.run.GreenKuboIonicConductivity(data_range=100)
+
+    project.run.CoordinationNumbers(plot=True)
+    project.run.PotentialOfMeanForce(plot=True)
+    project.run.AngularDistributionFunction(number_of_configurations=3)
     # project.experiments.NaCl_GK.run_visualization()
     print("Tutorial complete....... Files being deleted now.")
 

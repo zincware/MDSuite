@@ -34,6 +34,7 @@ import tensorflow_probability as tfp
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.calculators.calculator import Calculator, call
 from bokeh.models import Span
+from tqdm import tqdm
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
 

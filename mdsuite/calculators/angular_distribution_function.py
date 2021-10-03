@@ -117,19 +117,13 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         super().__init__(**kwargs)
         self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
-        self.loaded_property = "Positions"
+        self.loaded_property = simulation_properties.positions
 
         self.use_tf_function = None
-        self.cutoff = None
-        self.start = None
         self.molecules = None
         self.experimental = True
-        self.stop = None
-        self.number_of_configurations = None
-        self.number_of_bins = None
         self.bin_range = None
         self._batch_size = None  # memory management for all batches
-        self.species = None
         self.number_of_atoms = None
         self.norm_power = None
         self.sample_configurations : np.ndarray = None
@@ -248,8 +242,10 @@ class AngularDistributionFunction(Calculator, ABC):
         if self.args.species is None:
             if self.args.molecules:
                 self.args.species = list(self.experiment.molecules)
+                self._compute_number_of_atoms(self.experiment.molecules)
             else:
                 self.args.species = list(self.experiment.species)
+                self._compute_number_of_atoms(self.experiment.species)
 
         else:
             self._compute_number_of_atoms(self.experiment.species)
@@ -268,7 +264,7 @@ class AngularDistributionFunction(Calculator, ABC):
         Updates the number of atoms attribute.
         """
         number_of_atoms = 0
-        for item in self.species:
+        for item in self.args.species:
             number_of_atoms += len(reference[item]["indices"])
 
         self.number_of_atoms = number_of_atoms
@@ -281,13 +277,13 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         sample_configs = np.linspace(
-            self.start, self.stop, self.number_of_configurations, dtype=np.int
+            self.args.start, self.args.stop, self.args.number_of_configurations, dtype=np.int
         )
 
         species_indices = []
         start_index = 0
         stop_index = 0
-        for species in self.species:
+        for species in self.args.species:
             stop_index += len(self.experiment.species.get(species).get("indices"))
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
@@ -559,6 +555,8 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
 
         """
+        self.check_inputs()
+        print(self.number_of_atoms)
         self.sample_configurations, species_indices = self._prepare_data_structure()
 
         dict_keys, split_arr = self.prepare_computation()
@@ -572,8 +570,10 @@ class AngularDistributionFunction(Calculator, ABC):
 
         # Loop over the batches.
         for idx, batch in tqdm(enumerate(batch_ds), ncols=70):
+            positions_tensor = self._format_data(batch=batch, keys=dict_keys)
+
             angles = self._build_histograms(
-                positions=batch, species_indices=species_indices, angles=angles
+                positions=positions_tensor, species_indices=species_indices, angles=angles
             )
 
         self._compute_adfs(angles, species_indices)
