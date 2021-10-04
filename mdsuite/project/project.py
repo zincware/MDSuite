@@ -34,6 +34,7 @@ from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
+from mdsuite.utils import Units
 
 from typing import Dict
 
@@ -125,7 +126,7 @@ class Project(ProjectDatabase):
         experiment: str = None,
         timestep: float = None,
         temperature: float = None,
-        units: Union[str, dict] = None,
+        units: Union[str, Units] = None,
         cluster_mode: bool = None,
         active: bool = True,
         data: Union[str, list, dict] = None,
@@ -171,7 +172,6 @@ class Project(ProjectDatabase):
         new_experiment = Experiment(
             project=self,
             experiment_name=experiment,
-            storage_path=f"{self.storage_path}/{self.name}",
             time_step=timestep,
             units=units,
             temperature=temperature,
