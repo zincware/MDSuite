@@ -1,5 +1,5 @@
-Welcome to MDSuite's documentation!
-===================================
+MDSuite documentation
+=====================
 
 This package was conceived out of the idea that scientists can
 perform computational experiments without filling their computers
@@ -13,15 +13,25 @@ hear from our users.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Welcome:
 
    installation
+   quickstart
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Getting started:
+
    theory_introduction
    user_guide
-   quickstart
-   modules_and_classes
    _architecture/data_structures
    tools
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Technical Stuff:
+
+   modules_and_classes
    bibliography
    developer
 
@@ -54,7 +64,8 @@ a number of great features beneath the surface that give us an edge.
 
 * Memory safety on all calculators up to atom-wise batching.
 * Built on top of TensorFlow allowing for full parallelization of processes as well as gpu use.
-* 18 calculators and 11 transformations for full characterization of a simulation.
+* 19 calculators and 11 transformations for full characterization of a simulation.
+* Powerful data visualization capabilities.
 
 On top of this, we also have a group of friendly developers who are trying the better their own skills as programmers
 while sharing their knowledge of physics.

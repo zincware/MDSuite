@@ -35,11 +35,11 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # -- Experiment information -----------------------------------------------------
 
 project = "MDSuite"
-copyright = "2020, Samuel Tovey"
-author = "Samuel Tovey"
+copyright = "2021, Zincwarecode"
+author = "Zincwarecode"
 
 # The full version, including alpha/beta/rc tags
-release = "2020"
+release = "2021"
 
 master_doc = "index"
 

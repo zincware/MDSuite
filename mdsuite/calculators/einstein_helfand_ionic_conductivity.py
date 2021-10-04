@@ -83,9 +83,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.dependency = "Unwrapped_Positions"
         self.system_property = True
 
-        self.database_group = (
-            "Ionic_Conductivity"
-        )
+        self.database_group = "Ionic_Conductivity"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Ionic Conductivity"

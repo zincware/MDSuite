@@ -29,6 +29,7 @@ from tempfile import TemporaryDirectory
 import pytest
 import mdsuite as mds
 import numpy as np
+from dataclasses import asdict
 
 temp_dir = TemporaryDirectory()
 cwd = os.getcwd()
@@ -183,19 +184,26 @@ def test_experiment_simulation_data_nested():
 
 def test_experiment_units():
     """Test that the experiment simulation data is stored correctly in the database"""
+    from mdsuite.utils.units import si, Units
 
-    custom_units = {"time": 17, "length": 1e-23}
-
-    from mdsuite.utils.units import units_real
+    custom_units = Units(
+        time=1.0,
+        length=1.0,
+        energy=2.0,
+        NkTV2p=1.0,
+        temperature=100.0,
+        pressure=123.0,
+        boltzmann=25.0,
+    )
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01", units="real")
+    project_1.add_experiment(experiment="Exp01", units="si")
     project_1.add_experiment(experiment="Exp02", units=custom_units)
 
     project_2 = mds.Project()
 
-    for key, val in project_2.experiments["Exp01"].simulation_data.items():
-        assert val == units_real()[key]
+    for key, val in project_2.experiments["Exp01"].units.items():
+        assert val == getattr(si, key)
 
-    for key, val in project_2.experiments["Exp02"].simulation_data.items():
-        assert val == custom_units[key]
+    for key, val in project_2.experiments["Exp02"].units.items():
+        assert val == getattr(custom_units, key)
