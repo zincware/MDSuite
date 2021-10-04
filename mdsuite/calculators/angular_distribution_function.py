@@ -126,7 +126,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self._batch_size = None  # memory management for all batches
         self.number_of_atoms = None
         self.norm_power = None
-        self.sample_configurations : np.ndarray = None
+        self.sample_configurations: np.ndarray = None
         self.result_series_keys = ["angle", "adf"]
 
         # TODO _n_batches is used instead of n_batches because the memory management is
@@ -336,6 +336,9 @@ class AngularDistributionFunction(Calculator, ABC):
             get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1)
         )
         r_ij_indices = get_triu_indicies(self.number_of_atoms)
+
+        print(self.number_of_atoms)
+        print(r_ij_indices.shape)
 
         # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
         r_ij_mat = tf.scatter_nd(
