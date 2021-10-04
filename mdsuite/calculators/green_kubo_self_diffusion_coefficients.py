@@ -112,7 +112,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         gpu: bool = False,
         tau_values: Union[int, List, Any] = np.s_[:],
         integration_range: int = None,
-    ) -> Computation:
+    ):
         """
         Constructor for the Green-Kubo diffusion coefficients class.
 
