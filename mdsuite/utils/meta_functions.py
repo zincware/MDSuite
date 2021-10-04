@@ -39,8 +39,29 @@ from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
+import json
+
 
 log = logging.getLogger(__name__)
+
+
+
+# https://stackoverflow.com/questions/42033142/is-there-an-easy-way-to-check-if-an-object-is-json-serializable-in-python
+def is_jsonable(x: dict) -> bool:
+    """
+    Parameters
+    ----------
+    x: dict
+        Dictionary to check, if it is json serializable.
+    Returns
+    -------
+    bool: Whether the dict was serializable or not.
+    """
+    try:
+        json.dumps(x)
+        return True
+    except (TypeError, OverflowError):
+        return False
 
 
 def join_path(a, b):
