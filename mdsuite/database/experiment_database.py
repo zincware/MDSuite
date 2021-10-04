@@ -32,6 +32,8 @@ import mdsuite.database.scheme as db
 from mdsuite.database.scheme import Project, Experiment, ExperimentAttribute
 from mdsuite.utils.database import get_or_create
 import pandas as pd
+from dataclasses import asdict
+from mdsuite.utils.units import Units
 
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Dict
@@ -148,34 +150,33 @@ class ExperimentDatabase:
     @property
     def units(self) -> Dict[str, float]:
         """Get the units of the experiment"""
-        units = {}
+        units = None
         with self.project.session as ses:
             experiment = (
                 ses.query(Experiment).filter(Experiment.name == self.name).first()
             )
-            for experiment_data in experiment.experiment_attributes:
-                if experiment_data.name.startswith("unit_system_"):
-                    unit_name = experiment_data.name.split("unit_system_", 1)[1]
-                    # everything after, max 1 split
-                    units[unit_name] = experiment_data.value
+            for experiment_attribute in experiment.experiment_attributes:
+                experiment_attribute: ExperimentAttribute
+                if experiment_attribute.name == "units":
+                    units = experiment_attribute.data
 
         return units
 
     @units.setter
-    def units(self, value: dict):
+    def units(self, value: Units):
         """Set the units of the experiment"""
         if value is None:
             return
         with self.project.session as ses:
             experiment = get_or_create(ses, Experiment, name=self.name)
-            for unit in value:
-                unit_entry = get_or_create(
-                    ses,
-                    ExperimentAttribute,
-                    experiment=experiment,
-                    name=f"unit_system_{unit}",
-                )
-                unit_entry.value = value[unit]
+
+            get_or_create(
+                ses,
+                ExperimentAttribute,
+                experiment=experiment,
+                name="units",
+                data=asdict(value),
+            )
 
             ses.commit()
 

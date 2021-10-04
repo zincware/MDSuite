@@ -26,5 +26,6 @@ Summary
 """
 
 from .config import config
+from .units import Units
 
-__all__ = ["config"]
+__all__ = ["config", "Units"]

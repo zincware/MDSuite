@@ -24,15 +24,8 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from dataclasses import dataclass
 
-# we will define each unit experiment as a function and then have a to_si_units which
-# is a dispatch dict. to add a new unit experiment, simply add it as a function here,
-# and then in the dictionary in units_to_si.
-
-# we can keep these here, or add them to the corresponding set of units.
-# for example, in the metal and real, the boltzman constant is added in that system of
-# units. This allows to perform all the computations using the system of units given,
-# and only perform the transformation of the final result.
 standard_state_pressure = 100000  # Pa -- Standard state pressure
 avogadro_constant = 6.02214076e23  # mol^-1 -- Avogadro's constant
 elementary_charge = 1.602176634e-19  # C -- Elementary charge
@@ -49,44 +42,54 @@ atmosphere = 101325  # Pa -- Standard atmospheric pressure
 golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 
 
-def units_real():
-    units = {
-        "time": 1e-15,
-        "length": 1e-10,
-        "energy": 4184 / 6.02214076e23,
-        "NkTV2p": 68568.415,
-        "boltzman": 0.0019872067,
-        "temperature": 1,
-        "pressure": 101325.0,
-    }
-    return units
+@dataclass()
+class Units:
+    """
+    Dataclass for the units.
+    """
+
+    time: float
+    length: float
+    energy: float
+    NkTV2p: float
+    boltzmann: float
+    temperature: float
+    pressure: float
+    avogadro: float = 6.02214076e23
+    elementary_charge: float = 1.602176634e-19
 
 
-def units_metal():
-    units = {
-        "time": 1e-12,
-        "length": 1e-10,
-        "energy": 1.6022e-19,
-        "NkTV2p": 1.6021765e6,
-        "boltzman": 8.617343e-5,
-        "temperature": 1,
-        "pressure": 100000,
-    }
-    return units
+real = Units(
+    time=1e-15,
+    length=1e-10,
+    energy=4184 / 6.02214076e23,
+    NkTV2p=68568.415,
+    boltzmann=0.0019872067,
+    temperature=1,
+    pressure=101325.0,
+)
 
 
-def units_SI():
-    units = {
-        "time": 1,
-        "length": 1,
-        "energy": 1,
-        "boltzman": 1.380649e-23,
-        "avogadro": 6.02214076e23,
-        "elementary_charge": 1.602176634e-19,
-        "temperature": 1,
-        "pressure": 1,
-    }
-    return units
+metal = Units(
+    time=1e-12,
+    length=1e-10,
+    energy=1.6022e-19,
+    NkTV2p=1.6021765e6,
+    boltzmann=8.617343e-5,
+    temperature=1,
+    pressure=100000,
+)
 
 
-units_dict = {"real": units_real, "metal": units_metal, "SI": units_SI}
+si = Units(
+    time=1,
+    length=1,
+    energy=1,
+    NkTV2p=1.380649e-23,
+    boltzmann=1.386049e-23,
+    temperature=1,
+    pressure=1,
+)
+
+
+units_dict = {"real": real, "metal": metal, "si": si}
