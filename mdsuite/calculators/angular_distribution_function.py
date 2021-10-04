@@ -34,7 +34,7 @@ import itertools
 import numpy as np
 from tqdm import tqdm
 from typing import Union
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from mdsuite.utils.neighbour_list import (
     get_neighbour_list,
     get_triu_indicies,
@@ -42,15 +42,19 @@ from mdsuite.utils.neighbour_list import (
 )
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.database.scheme import Computation
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
+
 
 log = logging.getLogger(__name__)
 
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     number_of_bins: int
     number_of_configurations: int
     correlation_time: int
@@ -64,7 +68,7 @@ class Args:
     molecules: bool
 
 
-class AngularDistributionFunction(Calculator, ABC):
+class AngularDistributionFunction(TrajectoryCalculator, ABC):
     """
     Compute the Angular Distribution Function for all species combinations
 
@@ -121,20 +125,16 @@ class AngularDistributionFunction(Calculator, ABC):
 
         self.use_tf_function = None
         self.molecules = None
-        self.experimental = True
         self.bin_range = None
-        self._batch_size = None  # memory management for all batches
         self.number_of_atoms = None
         self.norm_power = None
-        self.sample_configurations: np.ndarray = None
+        self.sample_configurations = None
         self.result_series_keys = ["angle", "adf"]
+        self._dtype = tf.float32
 
-        # TODO _n_batches is used instead of n_batches because the memory management is
-        #  not yet implemented correctly
         self.minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
-        self.database_group = "Angular_Distribution_Function"
         self.x_label = r"$$\text{Angle} / \theta $$"
         self.y_label = r"$$\text{ADF} / a.u.$$"
 
@@ -191,12 +191,6 @@ class AngularDistributionFunction(Calculator, ABC):
                 GPU on the machine.
         plot : bool
                 If true, plot the result of the analysis.
-
-        Notes
-        -----
-        # TODO _n_batches is used instead of n_batches because the memory
-        management is not yet implemented correctly
-
         """
         # set args that will affect the computation result
         self.args = Args(
@@ -211,7 +205,6 @@ class AngularDistributionFunction(Calculator, ABC):
             species=species,
             number_of_configurations=number_of_configurations,
             norm_power=norm_power,
-            **kwargs
         )
 
         # Parse the user arguments.
@@ -227,7 +220,7 @@ class AngularDistributionFunction(Calculator, ABC):
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
 
-    def check_inputs(self):
+    def check_input(self):
         """
         Check the inputs and set defaults if necessary.
 
@@ -235,6 +228,7 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
         Updates the class attributes.
         """
+        self._run_dependency_check()
         if self.args.stop is None:
             self.args.stop = self.experiment.number_of_configurations - 1
 
@@ -277,7 +271,10 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         sample_configs = np.linspace(
-            self.args.start, self.args.stop, self.args.number_of_configurations, dtype=np.int
+            self.args.start,
+            self.args.stop,
+            self.args.number_of_configurations,
+            dtype=np.int
         )
 
         species_indices = []
@@ -332,7 +329,6 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         _get_triplets = self._prepare_triples_generator()
 
-
         r_ij_flat = next(
             get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1)
         )
@@ -352,7 +348,8 @@ class AngularDistributionFunction(Calculator, ABC):
 
         return r_ij_mat, r_ijk_indices
 
-    def _compute_angles(self, species, r_ijk_indices):
+    @staticmethod
+    def _compute_angles(species, r_ijk_indices):
         """
         Compute the angles between indices in triangle.
 
@@ -477,7 +474,7 @@ class AngularDistributionFunction(Calculator, ABC):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=(f"{selected_species} - Max:" f" {title_value:.3f} degrees "),
+                title=f"{selected_species} - Max:" f" {title_value:.3f} degrees ",
             )
 
     def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:
@@ -559,7 +556,7 @@ class AngularDistributionFunction(Calculator, ABC):
         -------
 
         """
-        self.check_inputs()
+        self.check_input()
         self.sample_configurations, species_indices = self._prepare_data_structure()
 
         dict_keys, split_arr = self.prepare_computation()
@@ -576,7 +573,9 @@ class AngularDistributionFunction(Calculator, ABC):
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
 
             angles = self._build_histograms(
-                positions=positions_tensor, species_indices=species_indices, angles=angles
+                positions=positions_tensor,
+                species_indices=species_indices,
+                angles=angles
             )
 
         self._compute_adfs(angles, species_indices)

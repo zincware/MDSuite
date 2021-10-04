@@ -25,7 +25,8 @@ Summary
 -------
 """
 from .simulation_data_class import SimulationProperties
+from .data_manager import DataManager
 
 simulation_properties = SimulationProperties()
 
-__all__ = ["simulation_properties"]
+__all__ = ["simulation_properties", "DataManager"]

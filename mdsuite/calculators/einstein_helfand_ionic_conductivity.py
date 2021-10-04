@@ -25,39 +25,33 @@ Summary
 -------
 MDSuite module for the computation of ionic conductivity using the Einstein method.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from mdsuite.utils.units import elementary_charge, boltzmann_constant
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
     atom_selection: np.s_
 
 
-class EinsteinHelfandIonicConductivity(Calculator):
+class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Einstein-Helfand Ionic Conductivity
-
-    Attributes
-    ----------
-    experiment :  object
-            Experiment class to call from
-    x_label : str
-            X label of the tensor_values when plotted
-    y_label : str
-            Y label of the tensor_values when plotted
-    analysis_name : str
-            Name of the analysis
-    loaded_property : str
-            Property loaded from the database_path for the analysis
 
     See Also
     --------
@@ -88,22 +82,20 @@ class EinsteinHelfandIonicConductivity(Calculator):
         self.dependency = simulation_properties.unwrapped_positions
         self.system_property = True
 
-        self.database_group = "Ionic_Conductivity"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Ionic Conductivity"
-        self.prefactor: float
-        self.trial_pp = True
 
         self.result_keys = ["ionic_conductivity", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
+
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=True,
         data_range=500,
-        save=True,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
         gpu: bool = False,
@@ -117,8 +109,6 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
         correlation_time : int
                 Correlation time to use in the analysis.
         gpu : bool
@@ -135,19 +125,23 @@ class EinsteinHelfandIonicConductivity(Calculator):
         )
 
         self.gpu = gpu
+        self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
     def check_input(self):
-        pass
+        """
+        Check the user input to ensure no conflicts are present.
 
-    def _calculate_prefactor(self, species: str = None):
+        Returns
+        -------
+
+        """
+        self._run_dependency_check()
+
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -191,14 +185,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
         msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
         Returns
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = fit_einstein_curve([self.time, self.msd_array])
 
         data = {
             self.result_keys[0]: result[0].tolist(),
@@ -211,12 +205,14 @@ class EinsteinHelfandIonicConductivity(Calculator):
 
     def run_calculator(self):
         """
+
         Run analysis.
 
         Returns
         -------
 
         """
+        self.check_input()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 

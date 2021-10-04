@@ -26,11 +26,14 @@ Summary
 MDSuite module for the computation of the viscosity in a system using the Green-Kubo
 relation as applied to the momentum flux measured during a simulation.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators import TrajectoryCalculator
 from bokeh.models import Span
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
@@ -38,6 +41,9 @@ from mdsuite.database import simulation_properties
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -45,7 +51,7 @@ class Args:
     integration_range: int
 
 
-class GreenKuboViscosity(Calculator):
+class GreenKuboViscosity(TrajectoryCalculator, ABC):
     """Class for the Green-Kubo ionic conductivity implementation
 
     Attributes
@@ -83,20 +89,19 @@ class GreenKuboViscosity(Calculator):
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = simulation_properties.momentum_flux
-        self.database_group = "Viscosity"
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"\text{SACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Viscosity"
-        self.prefactor: float
+        self.prefactor = None
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=False,
         data_range=500,
-        save=True,
         tau_values: np.s_ = np.s_[:],
         correlation_time: int = 1,
         gpu: bool = False,
@@ -110,13 +115,10 @@ class GreenKuboViscosity(Calculator):
                 if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
         """
 
         self.gpu = gpu
         self.plot = plot
-        self.save = save
         self.sigma = []
 
         if integration_range is None:
@@ -132,15 +134,11 @@ class GreenKuboViscosity(Calculator):
         )
 
         self.time = self._handle_tau_values()
-        self.jacf = np.zeros(self.data_resolution)
+        self.jacf = tf.zeros(self.data_resolution)
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -152,7 +150,7 @@ class GreenKuboViscosity(Calculator):
             3
             * (self.args.data_range - 1)
             * self.experiment.temperature
-            * self.experiment.units["boltzman"]
+            * self.experiment.units["boltzmann"]
             * self.experiment.volume
         )
 
@@ -182,9 +180,8 @@ class GreenKuboViscosity(Calculator):
         ----------
         ensemble : tf.Tensor
                 An ensemble of data to be studied.
-        index : int
 
-                        Returns
+        Returns
         -------
         MSD of the tensor_values.
         """
@@ -195,11 +192,12 @@ class GreenKuboViscosity(Calculator):
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
-                jacf[: self.args.integration_range], x=self.time[: self.args.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
         Returns

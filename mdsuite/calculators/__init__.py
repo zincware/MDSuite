@@ -27,6 +27,7 @@ Summary
 from __future__ import annotations
 
 from .calculator import Calculator
+from.trajectory_calculator import TrajectoryCalculator
 from .angular_distribution_function import AngularDistributionFunction
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
@@ -58,6 +59,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Calculator",
+    "TrajectoryCalculator",
     "AngularDistributionFunction",
     "CoordinationNumbers",
     "EinsteinDiffusionCoefficients",

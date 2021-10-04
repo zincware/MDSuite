@@ -263,9 +263,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             self._build_model()
             return False
 
-    def save_class(self):
-        log.warning("Using depreciated method `save_class`!")
-
     def perform_transformation(self, transformation_name, **kwargs):
         """
         Perform a transformation on the experiment.

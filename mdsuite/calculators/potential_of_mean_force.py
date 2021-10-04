@@ -109,7 +109,6 @@ class PotentialOfMeanForce(Calculator):
         self.radii = None
         self.pomf = None
         self.indices = None
-        self.database_group = "Potential_Of_Mean_Force"
         self.x_label = r"$$\text{r| /  \AA$$"
         self.y_label = r"$$w^{(2)}(r)$$"
 
@@ -160,11 +159,6 @@ class PotentialOfMeanForce(Calculator):
             savgol_window_length=savgol_window_length,
         )
 
-    def _autocorrelation_time(self):
-        """
-        Not needed in this analysis
-        """
-        raise NotApplicableToAnalysis
 
     def _calculate_potential_of_mean_force(self):
         """
@@ -275,7 +269,6 @@ class PotentialOfMeanForce(Calculator):
         """Plot the POMF"""
         log.debug("Start plotting the POMF.")
         for selected_species, val in data.items():
-            print(selected_species)
             model = BoxAnnotation(
                 left=val[self.result_keys[2]],
                 right=val[self.result_keys[3]],

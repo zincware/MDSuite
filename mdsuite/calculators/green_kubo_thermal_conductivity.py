@@ -26,10 +26,13 @@ Summary
 MDSuite module for the computation of the thermal conductivity using the Green-Kubo
 relation.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators import TrajectoryCalculator
 import tensorflow_probability as tfp
 from bokeh.models import Span
 from dataclasses import dataclass
@@ -38,6 +41,9 @@ from mdsuite.database import simulation_properties
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -45,7 +51,7 @@ class Args:
     integration_range: int
 
 
-class GreenKuboThermalConductivity(Calculator):
+class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Green-Kubo Thermal conductivity implementation
 
@@ -83,19 +89,18 @@ class GreenKuboThermalConductivity(Calculator):
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = simulation_properties.thermal_flux
-        self.database_group = "Thermal_Conductivity"
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Thermal_Conductivity"
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=False,
         data_range=500,
-        save=True,
         tau_values: np.s_ = np.s_[:],
         correlation_time: int = 1,
         gpu: bool = False,
@@ -110,12 +115,8 @@ class GreenKuboThermalConductivity(Calculator):
                 if true, plot the output.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        export : bool
-                If true, export the data directly into a csv file.
         gpu : bool
                 If true, scale the memory requirement down to the amount of
                 the biggest GPU in the system.
@@ -124,7 +125,6 @@ class GreenKuboThermalConductivity(Calculator):
         """
         self.gpu = gpu
         self.plot = plot
-        self.save = save
         self.jacf: np.ndarray
         self.prefactor: float
         self.sigma = []
@@ -142,15 +142,11 @@ class GreenKuboThermalConductivity(Calculator):
         )
 
         self.time = self._handle_tau_values()
-        self.jacf = np.zeros(self.data_resolution)
+        self.jacf = tf.zeros(self.data_resolution)
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity pre-factor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -203,11 +199,12 @@ class GreenKuboThermalConductivity(Calculator):
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
-                jacf[: self.args.integration_range], x=self.time[: self.args.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
 

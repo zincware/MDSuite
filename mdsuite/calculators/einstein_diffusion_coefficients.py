@@ -23,22 +23,31 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the computation of self-diffusion coefficients using the Einstein method.
 """
 from __future__ import annotations
 import logging
+from abc import ABC
+
 import numpy as np
 from typing import Union, Any, List
 from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+
 
 log = logging.getLogger(__name__)
 
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     atom_selection: np.s_
@@ -47,31 +56,14 @@ class Args:
     species: list
 
 
-class EinsteinDiffusionCoefficients(Calculator):
+class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
     """
     Class for the Einstein diffusion coefficient implementation
 
-    Description:
-    This module contains the code for the Einstein diffusion coefficient class.
-    This class is called by the Experiment class and instantiated when the user calls
-    the  Experiment.einstein_diffusion_coefficients method. The methods in class can
-    then be called by the Experiment.einstein_diffusion_coefficients method and all
-    necessary calculations performed.
-
     Attributes
     ----------
-    experiment :  Experiment
-            Experiment class to call from
-    species : list
-            Which species to perform the analysis on
-    x_label : str
-            X label of the tensor_values when plotted
-    y_label : str
-            Y label of the tensor_values when plotted
-    analysis_name : str
-            Name of the analysis
-    loaded_property : str
-            Property loaded from the database_path for the analysis
+    msd_array : np.ndarray
+            MSd data updated during each ensemble computation.
 
     See Also
     --------
@@ -86,7 +78,6 @@ class EinsteinDiffusionCoefficients(Calculator):
 
     def __init__(self, **kwargs):
         """
-
         Parameters
         ----------
         experiment :  Experiment
@@ -98,18 +89,14 @@ class EinsteinDiffusionCoefficients(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = simulation_properties.unwrapped_positions
-        self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$ \text{Time} / s$"
         self.y_label = r"$ \text{MSD} / m^{2}$"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
         self.analysis_name = "Einstein Self-Diffusion Coefficients"
-        self.loop_condition = False
-        self.optimize = None
-        self.msd_array = None
-        self.tau_values = None
-        self.trial_pp = True
         self._dtype = tf.float64
+
+        self.msd_array = None
 
         log.info("starting Einstein Diffusion Computation")
 
@@ -119,8 +106,6 @@ class EinsteinDiffusionCoefficients(Calculator):
         plot: bool = True,
         species: list = None,
         data_range: int = 100,
-        save: bool = True,
-        optimize: bool = False,
         correlation_time: int = 1,
         atom_selection: np.s_ = np.s_[:],
         molecules: bool = False,
@@ -137,10 +122,6 @@ class EinsteinDiffusionCoefficients(Calculator):
                 List of species on which to operate.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
-        optimize : bool
-                If true, an optimization loop will be run.
         correlation_time : int
                 Correlation time to use in the window sampling.
         atom_selection : np.s_
@@ -173,13 +154,19 @@ class EinsteinDiffusionCoefficients(Calculator):
         )
         self.gpu = gpu
         self.plot = plot
-        self.optimize = optimize
         self.system_property = False
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
     def check_input(self):
-        pass
+        """
+        Check the user input to ensure no conflicts are present.
+
+        Returns
+        -------
+
+        """
+        self._run_dependency_check()
 
     def calculate_prefactor(self, species: str = None):
         """
@@ -271,7 +258,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = fit_einstein_curve([self.time, self.msd_array])
         log.debug(f"Saving {species}")
 
         data = {
@@ -291,6 +278,7 @@ class EinsteinDiffusionCoefficients(Calculator):
         -------
 
         """
+        self.check_input()
         # Loop over species
         for species in self.args.species:
             dict_ref = str.encode("/".join([species, self.loaded_property[0]]))

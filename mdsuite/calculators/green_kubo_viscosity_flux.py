@@ -26,11 +26,14 @@ Summary
 MDSuite module for the computation of viscosity using the Green-Kubo relation as applied
 to the stress on a system.
 """
+from abc import ABC
+
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.calculator import call
 from bokeh.models import Span
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
@@ -38,6 +41,9 @@ from mdsuite.database import simulation_properties
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -45,7 +51,7 @@ class Args:
     integration_range: int
 
 
-class GreenKuboViscosityFlux(Calculator):
+class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
     """
     Class for the Green Kubo viscosity from flux implementation
 
@@ -80,9 +86,6 @@ class GreenKuboViscosityFlux(Calculator):
         self.loaded_property = simulation_properties.stress_viscosity
         self.system_property = True
 
-        self.database_group = (  # Which database_path group to save the tensor_values
-            "Viscosity"
-        )
         self.analysis_name = "Viscosity_Flux"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$"
@@ -90,6 +93,7 @@ class GreenKuboViscosityFlux(Calculator):
         self.prefactor: float
         self.jacf: np.ndarray
         self.sigma = []
+        self._dtype = tf.float64
 
     @call
     def __call__(
@@ -98,7 +102,6 @@ class GreenKuboViscosityFlux(Calculator):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
-        save=True,
         gpu: bool = False,
         integration_range: int = None,
     ):
@@ -115,7 +118,6 @@ class GreenKuboViscosityFlux(Calculator):
 
         self.gpu = gpu
         self.plot = plot
-        self.save = save
         self.sigma = []
 
         if integration_range is None:
@@ -131,15 +133,11 @@ class GreenKuboViscosityFlux(Calculator):
         )
 
         self.time = self._handle_tau_values()
-        self.jacf = np.zeros(self.data_resolution)
+        self.jacf = tf.zeros(self.data_resolution)
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -151,7 +149,7 @@ class GreenKuboViscosityFlux(Calculator):
             3
             * (self.args.data_range - 1)
             * self.experiment.temperature
-            * self.experiment.units["boltzman"]
+            * self.experiment.units["boltzmann"]
         )
 
         prefactor_units = (
@@ -188,16 +186,18 @@ class GreenKuboViscosityFlux(Calculator):
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
-        self.jacf += jacf[int(self.args.data_range - 1) :]
+        self.jacf += jacf[int(self.args.data_range - 1):]
         self.sigma.append(
             np.trapz(
-                jacf[: self.args.integration_range], x=self.time[: self.args.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
+
         Returns
         -------
 

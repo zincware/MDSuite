@@ -28,11 +28,14 @@ Green-Kubo relation. Ionic conductivity describes how well a system can conduct 
 electrical charge due to the mobility of the ions contained within it. This differs
 from electronic conductivity which is transferred by electrons.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators import TrajectoryCalculator
 from bokeh.models import Span
 from tqdm import tqdm
 from dataclasses import dataclass
@@ -41,6 +44,9 @@ from mdsuite.database import simulation_properties
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -48,7 +54,7 @@ class Args:
     integration_range: int
 
 
-class GreenKuboIonicConductivity(Calculator):
+class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Green-Kubo ionic conductivity implementation
 
@@ -91,7 +97,6 @@ class GreenKuboIonicConductivity(Calculator):
         self.loaded_property = simulation_properties.ionic_current
         self.system_property = True
 
-        self.database_group = "Ionic_Conductivity"
         self.x_label = r"$$\text{Time} / s"
         self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
@@ -99,14 +104,14 @@ class GreenKuboIonicConductivity(Calculator):
         self.result_keys = ["ionic_conductivity", "uncertainty"]
         self.result_series_keys = ["time", "acf"]
 
-        self.prefactor: float
+        self.prefactor = None
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=True,
         data_range=500,
-        save=True,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
         gpu: bool = False,
@@ -120,12 +125,8 @@ class GreenKuboIonicConductivity(Calculator):
                 if true, plot the output.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        export : bool
-                If true, export the data directly into a csv file.
         gpu : bool
                 If true, scale the memory requirement down to the amount of
                 the biggest GPU in the system.
@@ -135,7 +136,6 @@ class GreenKuboIonicConductivity(Calculator):
 
         self.gpu = gpu
         self.plot = plot
-        self.save = save
         self.jacf: np.ndarray
         self.sigma = []
 
@@ -152,15 +152,11 @@ class GreenKuboIonicConductivity(Calculator):
         )
 
         self.time = self._handle_tau_values()
-        self.jacf = np.zeros(self.data_resolution)
+        self.jacf = tf.zeros(self.data_resolution)
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -207,11 +203,12 @@ class GreenKuboIonicConductivity(Calculator):
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
-                jacf[: self.args.integration_range], x=self.time[: self.args.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
         Returns

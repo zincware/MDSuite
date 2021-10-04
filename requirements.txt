@@ -1,10 +1,18 @@
-sphinxcontrib.bibtex
-pybtex
-nbsphinx
-sphinx_rtd_theme
-numpydoc
-sphinx-copybutton
+tensorflow>=2.5
+h5py
+pysmiles
+matplotlib
+scipy
+tqdm
+psutil>=5.6.6
+numpy
+gputil
+pubchempy
+PyYAML>=5.4
+scooby
+sqlalchemy >= 1.4
+pandas >= 1.0.0
+tensorflow_probability
+open3d
 colorutils
-IPython
-pandoc
-pytest
+bokeh

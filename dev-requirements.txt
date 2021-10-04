@@ -1,0 +1,9 @@
+sphinxcontrib.bibtex
+pybtex
+nbsphinx
+sphinx_rtd_theme
+numpydoc
+sphinx-copybutton
+IPython
+pandoc
+pytest

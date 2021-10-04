@@ -25,23 +25,30 @@ Summary
 -------
 MDSuite module for the computation of thermal conductivity using the Einstein method.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     tau_values: np.s_
     atom_selection: np.s_
 
 
-class EinsteinHelfandThermalConductivity(Calculator):
+class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Einstein-Helfand Ionic Conductivity
 
@@ -68,7 +75,6 @@ class EinsteinHelfandThermalConductivity(Calculator):
                                                        plot=True,
                                                        correlation_time=10)
     """
-
     def __init__(self, **kwargs):
         """
         Python constructor
@@ -90,18 +96,15 @@ class EinsteinHelfandThermalConductivity(Calculator):
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{MSD}  / m^2/s$$"
         self.analysis_name = "Einstein Helfand Thermal Conductivity"
+        self._dtype = tf.float64
 
-        # Which database_path group to save the tensor_values in
-        self.database_group = "Thermal_Conductivity"
-
-        self.prefactor: float
+        self.prefactor = None
 
     @call
     def __call__(
             self,
             plot=True,
             data_range=500,
-            save=True,
             correlation_time=1,
             tau_values: np.s_ = np.s_[:],
             gpu: bool = False,
@@ -115,8 +118,6 @@ class EinsteinHelfandThermalConductivity(Calculator):
                 if true, plot the output.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
         gpu : bool
@@ -132,16 +133,23 @@ class EinsteinHelfandThermalConductivity(Calculator):
         )
 
         self.gpu = gpu
+        self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
-    def _calculate_prefactor(self, species: str = None):
+    def check_input(self):
+        """
+        Check the user input to ensure no conflicts are present.
+
+        Returns
+        -------
+
+        """
+        self._run_dependency_check()
+
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -153,7 +161,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
             6
             * self.experiment.volume
             * self.experiment.temperature
-            * self.experiment.units["boltzman"]
+            * self.experiment.units["boltzmann"]
         )
         units_change = (
             self.experiment.units["energy"]
@@ -189,14 +197,14 @@ class EinsteinHelfandThermalConductivity(Calculator):
         msd = self.prefactor * tf.reduce_sum(msd, axis=1)
         self.msd_array += np.array(msd)  # Update the averaged function
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
         Returns
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = fit_einstein_curve([self.time, self.msd_array])
 
         data = {
             "thermal_conductivity": result[0],
@@ -222,6 +230,7 @@ class EinsteinHelfandThermalConductivity(Calculator):
         -------
 
         """
+        self.check_input()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 

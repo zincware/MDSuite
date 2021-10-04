@@ -34,7 +34,7 @@ from typing import Union
 import numpy as np
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
-
+from mdsuite.calculators import TrajectoryCalculator
 
 # Import user packages
 from tqdm import tqdm
@@ -42,7 +42,7 @@ import tensorflow as tf
 import itertools
 from mdsuite.utils.meta_functions import join_path
 
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from mdsuite.utils.meta_functions import split_array
 from mdsuite.utils.linalg import (
     apply_minimum_image,
@@ -57,6 +57,9 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     number_of_bins: int
     number_of_configurations: int
     correlation_time: int
@@ -69,7 +72,7 @@ class Args:
     molecules: bool
 
 
-class RadialDistributionFunction(Calculator, ABC):
+class RadialDistributionFunction(TrajectoryCalculator, ABC):
     """
     Class for the calculation of the radial distribution function
 
@@ -116,18 +119,12 @@ class RadialDistributionFunction(Calculator, ABC):
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
         self.loaded_property = simulation_properties.positions
-        self.database_group = "Radial_Distribution_Function"
         self.x_label = r"$$r / \AA$$"
         self.y_label = r"$$g(r)$$"
         self.analysis_name = "Radial_Distribution_Function"
         self.result_series_keys = ["x", "y"]
-        self.experimental = False
-        self.trial_pp = True
 
         self._dtype = tf.float32
-
-        # Arguments set by the user in __call__
-        self.args: Args = None
 
         self.minibatch = None
         self.use_tf_function = None
@@ -138,8 +135,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.rdf = None
 
         self.correct_minibatch_batching = None
-        # split the minibatches into equal sized chunks to use maximum computing and
-        # memory resources
 
     @call
     def __call__(
@@ -213,7 +208,6 @@ class RadialDistributionFunction(Calculator, ABC):
         self.minibatch = minibatch
         self.plot = plot
         self.gpu = gpu
-        self.save = save
 
         # kwargs parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -306,8 +300,9 @@ class RadialDistributionFunction(Calculator, ABC):
         names : str
                 Prefix for the saved file
         """
-
-        return f"{self.args.species[species_tuple[0]]}_{self.args.species[species_tuple[1]]}"
+        arg_1 = self.args.species[species_tuple[0]]
+        arg_2 = self.args.species[species_tuple[1]]
+        return f"{arg_1}_{arg_2} "
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -466,10 +461,14 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Parameters
         ----------
-        indices: indices of the d_ij distances in the shape (x, 2)
-        start_batch: starts from 0 and increments by atoms_per_batch every batch
-        d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu
-        computation
+        indices: tf.Tensor
+                indices of the d_ij distances in the shape (x, 2)
+                start_batch: starts from 0 and increments by atoms_per_batch every batch
+                d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu
+                computation
+        start_batch : int
+        d_ij : tf.Tensor
+                distance matrix for the atoms.
 
         Returns
         -------
@@ -533,6 +532,8 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
+        data : tf.Tensor
+                data tensor of the shape (n_atoms * n_species, n_configurations, 3)
 
         """
         formatted_data = []
@@ -550,7 +551,7 @@ class RadialDistributionFunction(Calculator, ABC):
 
         Returns
         -------
-        dict_keys : dict
+        dict_keys : list
                 dict keys to use when selecting data from the output.
         split_arr : np.ndarray
                 Array of indices to load from the database split into sub-arrays which
@@ -674,6 +675,12 @@ class RadialDistributionFunction(Calculator, ABC):
 
     @property
     def particles_list(self):
+        """
+        List of number of atoms of each species being studied.
+        Returns
+        -------
+
+        """
         if self.args.molecules:
             particles_list = [
                 len(self.experiment.molecules[item]["indices"])
