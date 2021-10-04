@@ -175,7 +175,7 @@ class ExperimentDatabase:
                 ExperimentAttribute,
                 experiment=experiment,
                 name="units",
-                data=asdict(value)
+                data=asdict(value),
             )
 
             ses.commit()

@@ -89,9 +89,7 @@ class EinsteinHelfandThermalKinaci(Calculator):
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Thermal Conductivity Kinaci"
 
-        self.database_group = (
-            "Thermal_Conductivity"
-        )
+        self.database_group = "Thermal_Conductivity"
 
         self.prefactor: float
 

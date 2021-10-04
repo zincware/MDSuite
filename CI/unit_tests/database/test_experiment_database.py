@@ -187,13 +187,13 @@ def test_experiment_units():
     from mdsuite.utils.units import si, Units
 
     custom_units = Units(
-        time=1.,
-        length=1.,
-        energy=2.,
-        NkTV2p=1.,
-        temperature=100.,
-        pressure=123.,
-        boltzmann=25.
+        time=1.0,
+        length=1.0,
+        energy=2.0,
+        NkTV2p=1.0,
+        temperature=100.0,
+        pressure=123.0,
+        boltzmann=25.0,
     )
 
     project_1 = mds.Project()

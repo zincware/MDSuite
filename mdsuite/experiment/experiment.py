@@ -107,17 +107,13 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         super().__init__(project=project, experiment_name=experiment_name)
         self.name = experiment_name
         self.storage_path = Path(project.storage_path, project.name).as_posix()
-        self.cluster_mode = (
-            cluster_mode
-        )
+        self.cluster_mode = cluster_mode
 
         # ExperimentDatabase stored properties:
         # ------- #
         # set default values
         if self.number_of_configurations is None:
-            self.number_of_configurations = (
-                0
-            )
+            self.number_of_configurations = 0
         # update database (None values are ignored)
         self.temperature = temperature
         self.time_step = time_step
@@ -245,8 +241,10 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                     f" The available units are: {[x for x in units_dict]}"
                 )
         else:
-            raise ValueError(f'units has to be of type Units or str,'
-                             f' found {type(units_system)} instead')
+            raise ValueError(
+                f"units has to be of type Units or str,"
+                f" found {type(units_system)} instead"
+            )
         return units
 
     def _load_or_build(self) -> bool:
@@ -404,5 +402,5 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                 New mass/es of the element
         """
         species = self.species
-        species[element]['mass'] = mass  # update the mass
+        species[element]["mass"] = mass  # update the mass
         self.species = species

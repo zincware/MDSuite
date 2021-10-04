@@ -526,8 +526,5 @@ class AngularDistributionFunction(Calculator, ABC):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=(
-                    f"{selected_species} - Max:"
-                    f" {title_value:.3f} degrees "
-                ),
+                title=(f"{selected_species} - Max:" f" {title_value:.3f} degrees "),
             )

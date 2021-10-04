@@ -47,6 +47,7 @@ class Units:
     """
     Dataclass for the units.
     """
+
     time: float
     length: float
     energy: float
@@ -65,7 +66,7 @@ real = Units(
     NkTV2p=68568.415,
     boltzmann=0.0019872067,
     temperature=1,
-    pressure=101325.0
+    pressure=101325.0,
 )
 
 
@@ -76,7 +77,7 @@ metal = Units(
     NkTV2p=1.6021765e6,
     boltzmann=8.617343e-5,
     temperature=1,
-    pressure=100000
+    pressure=100000,
 )
 
 
@@ -87,7 +88,7 @@ si = Units(
     NkTV2p=1.380649e-23,
     boltzmann=1.386049e-23,
     temperature=1,
-    pressure=1
+    pressure=1,
 )
 
 
