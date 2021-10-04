@@ -28,7 +28,7 @@ Let's go through them one by one.
 
 * logging is the library you will want to use to log information. Typically, when you
   want to output some information you might use a print statement. However, by using
-  for example log.INFO or log.WARNING you can better utilize Python software frameworks.
+  for example :code:`log.info` or :code:`log.warning` you can better utilize Python software frameworks.
 * Calculator is the parent class for all of our calculators. You need to import this
   and inherit from it so that you can access the simulation data in a batched way.
 * call is a decorator method we have implemented which helps to take care of some
@@ -60,9 +60,9 @@ in the project database.
        species: list
 
 Here we have shown the dataclass from our Einstein diffusion coefficients.
-In this calculator, we want to store the data_range over which the function was measured
-, the correlation time used, the atoms selected for the computation, the time steps used
-, and the species studied in the analysis.
+In this calculator, we want to store the data_range over which the function was measured,
+the correlation time used, the atoms selected for the computation, the time steps used,
+and the species studied in the analysis.
 Consider now the dataclass for the radial distribution function:
 
 .. code-block:: python
@@ -85,10 +85,10 @@ will discuss shortly.
 Declaration and __init__
 ========================
 We can now define the class.
-In reality, the __init__ method of MDSuite calculators is not overly useful as we rely
-mostly on the __call__ method.
+In reality, the :code:`__init__` method of MDSuite calculators is not overly useful as we rely
+mostly on the :code:`__call__` method.
 However, as best practice dictates, we must still declare our class variables in the
-__init__ and for your own benefit, should document them there.
+:code:`__init__` and for your own benefit, should document them there.
 
 .. code-block:: python
 
