@@ -332,14 +332,12 @@ class AngularDistributionFunction(Calculator, ABC):
         """
         _get_triplets = self._prepare_triples_generator()
 
+
         r_ij_flat = next(
             get_neighbour_list(tmp, cell=self.experiment.box_array, batch_size=1)
         )
+
         r_ij_indices = get_triu_indicies(self.number_of_atoms)
-
-        print(self.number_of_atoms)
-        print(r_ij_indices.shape)
-
         # Shape is now (n_atoms, n_atoms, 3, n_timesteps)
         r_ij_mat = tf.scatter_nd(
             indices=tf.transpose(r_ij_indices),
@@ -396,8 +394,11 @@ class AngularDistributionFunction(Calculator, ABC):
         angles : dict
                 A dictionary of the triples references and their histogram values.
         """
-        timesteps, atoms, _ = tf.shape(positions)
-        tmp = tf.concat(positions, axis=0)
+
+        tmp = tf.transpose(tf.concat(positions, axis=0), (1, 0, 2))
+
+        timesteps, atoms, _ = tf.shape(tmp)
+
         r_ij_mat, r_ijk_indices = self._compute_rijk_matrices(tmp, timesteps)
 
         for species in itertools.combinations_with_replacement(species_indices, 3):
@@ -411,7 +412,7 @@ class AngularDistributionFunction(Calculator, ABC):
             pre_factor = 1 / pre_factor ** self.norm_power
             histogram, _ = np.histogram(
                 angle_vals,
-                bins=self.number_of_bins,
+                bins=self.args.number_of_bins,
                 range=self.bin_range,
                 weights=pre_factor,
                 density=True,
@@ -446,12 +447,12 @@ class AngularDistributionFunction(Calculator, ABC):
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),
                 self.bin_range[1] * (180 / 3.14159),
-                self.number_of_bins,
+                self.args.number_of_bins,
             )
 
             self.selected_species = [_species[0] for _species in species]
 
-            self.data_range = self.number_of_configurations
+            self.data_range = self.args.number_of_configurations
             log.debug(f"species are {species}")
 
             data = {
@@ -559,7 +560,6 @@ class AngularDistributionFunction(Calculator, ABC):
 
         """
         self.check_inputs()
-        print(self.number_of_atoms)
         self.sample_configurations, species_indices = self._prepare_data_structure()
 
         dict_keys, split_arr = self.prepare_computation()

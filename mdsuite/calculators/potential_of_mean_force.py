@@ -275,6 +275,7 @@ class PotentialOfMeanForce(Calculator):
         """Plot the POMF"""
         log.debug("Start plotting the POMF.")
         for selected_species, val in data.items():
+            print(selected_species)
             model = BoxAnnotation(
                 left=val[self.result_keys[2]],
                 right=val[self.result_keys[3]],
