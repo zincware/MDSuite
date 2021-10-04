@@ -30,9 +30,38 @@ import pytest
 import mdsuite as mds
 import numpy as np
 from dataclasses import asdict
+import pytest
+import os
+import mdsuite as mds
+import urllib.request
+import json
+import shutil
 
 temp_dir = TemporaryDirectory()
 cwd = os.getcwd()
+
+base_path = "https://github.com/zincware/ExampleData/blob/add_CI_data/NaCl_gk_i_q/"
+
+
+@pytest.fixture(scope="session")
+def traj_file(tmp_path_factory) -> str:
+    """Download trajectory file into a temporary directory and keep it for all tests"""
+    compressed_file = "NaCl_gk_i_q.zip"
+    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
+
+    conv_raw = "?raw=true"
+    compressed_file_path = base_path + compressed_file + conv_raw
+
+    temporary_path = tmp_path_factory.getbasetemp()
+    urllib.request.urlretrieve(
+        compressed_file_path, filename=temporary_path / compressed_file
+    )
+
+    shutil.unpack_archive(
+        filename=temporary_path / compressed_file, extract_dir=temporary_path
+    )
+
+    return (temporary_path / uncompressed_file).as_posix()
 
 
 @pytest.fixture(autouse=True)
@@ -45,6 +74,14 @@ def prepare_env():
 
     os.chdir(cwd)
     temp_dir.cleanup()
+
+
+def test_read_files(tmp_path, traj_file):
+    """Test that read_files is saved correctly"""
+    os.chdir(tmp_path)
+    project_1 = mds.Project()
+    project_1.add_experiment(experiment="Exp01", data=traj_file)
+    assert len(project_1.experiments["Exp01"].read_files) == 1
 
 
 def test_project_temperature():
@@ -169,7 +206,6 @@ def test_experiment_simulation_data_nested():
     """
 
     simulation_data = {"a": {"one": [1.0, 2.0, 3.0], "two": [4.0, 5.0, 6.0]}}
-    simulation_true = {"a.one": [1.0, 2.0, 3.0], "a.two": [4.0, 5.0, 6.0]}
 
     project_1 = mds.Project()
     project_1.add_experiment(experiment="Exp01")
@@ -179,7 +215,7 @@ def test_experiment_simulation_data_nested():
     project_2.load_experiments("Exp01")
 
     for key, val in project_2.experiments["Exp01"].simulation_data.items():
-        assert val == simulation_true[key]
+        assert val == simulation_data[key]
 
 
 def test_experiment_units():
