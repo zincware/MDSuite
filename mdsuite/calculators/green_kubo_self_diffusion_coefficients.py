@@ -164,7 +164,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self.time = self._handle_tau_values()
-        self.vacf = tf.zeros(self.data_resolution)
+        self.vacf = np.zeros(self.data_resolution)
         self.sigma = []
 
     def check_input(self):

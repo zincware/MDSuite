@@ -142,7 +142,17 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         )
 
         self.time = self._handle_tau_values()
-        self.jacf = tf.zeros(self.data_resolution)
+        self.jacf = np.zeros(self.data_resolution)
+
+    def check_input(self):
+        """
+        Check the user input to ensure no conflicts are present.
+
+        Returns
+        -------
+
+        """
+        self._run_dependency_check()
 
     def _calculate_prefactor(self):
         """
@@ -247,6 +257,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
+        self.check_input()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 

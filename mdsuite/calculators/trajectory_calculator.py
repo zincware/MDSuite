@@ -25,6 +25,8 @@ Summary
 -------
 A parent class for calculators that operate on the trajectory.
 """
+from abc import ABC
+
 from .calculator import Calculator
 from typing import TYPE_CHECKING, List
 from mdsuite.memory_management import MemoryManager
@@ -33,6 +35,7 @@ from pathlib import Path
 from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.simulation_database import Database
 import numpy as np
+from mdsuite.utils.meta_functions import join_path
 import tensorflow as tf
 
 
@@ -40,7 +43,7 @@ if TYPE_CHECKING:
     from mdsuite import Experiment
 
 
-class TrajectoryCalculator(Calculator):
+class TrajectoryCalculator(Calculator, ABC):
     """
     Parent class for calculators operating on the trajectory.
 
@@ -75,8 +78,8 @@ class TrajectoryCalculator(Calculator):
     """
     def __init__(
             self,
-            experiment: Experiment = None,
-            experiments: List[Experiment] = None,
+            experiment: object = None,
+            experiments: List = None,
             plot: bool = True,
             gpu: bool = False
     ):

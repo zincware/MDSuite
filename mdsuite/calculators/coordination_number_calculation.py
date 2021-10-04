@@ -27,7 +27,7 @@ Summary
 import logging
 import numpy as np
 from scipy.signal import find_peaks
-from mdsuite.utils.exceptions import NotApplicableToAnalysis, CannotPerformThisAnalysis
+from mdsuite.utils.exceptions import CannotPerformThisAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
@@ -40,6 +40,9 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     savgol_order: int
     savgol_window_length: int
 
@@ -107,6 +110,7 @@ class CoordinationNumbers(Calculator):
         self.indices = None
         self.savgol_order = None
         self.savgol_window_length = None
+        self.data_range = 1
 
         self.post_generation = True
 
@@ -128,9 +132,7 @@ class CoordinationNumbers(Calculator):
     def __call__(
         self,
         plot: bool = True,
-        save: bool = True,
         data_range: int = 1,
-        export: bool = False,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
     ):
@@ -140,15 +142,10 @@ class CoordinationNumbers(Calculator):
         ----------
         plot : bool (default=True)
                             Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
         data_range : int (default=500)
                             Range over which the property should be evaluated.
                             This is not applicable to the current analysis as
                             the full rdf will be calculated.
-        export : bool
-                If true, export the data directly to a csv.
         savgol_order : int
                 Order of the savgol polynomial filter
         savgol_window_length : int
@@ -158,13 +155,7 @@ class CoordinationNumbers(Calculator):
         -------
         None.
         """
-
-        # Calculate the rdf if it has not been done already
-        if self.experiment.radial_distribution_function_state is False:
-            self.experiment.run.RadialDistributionFunction(plot=False, n_batches=-1)
-
         self.plot = plot
-        self.save = save
 
         # set args that will affect the computation result
         self.args = Args(
@@ -183,12 +174,6 @@ class CoordinationNumbers(Calculator):
         )  # get the number of atoms in the RDF
 
         return rdf_number_of_atoms / self.experiment.volume
-
-    def _autocorrelation_time(self):
-        """
-        Not needed in this analysis
-        """
-        raise NotApplicableToAnalysis
 
     def _integrate_rdf(self, density):
         """
@@ -322,7 +307,7 @@ class CoordinationNumbers(Calculator):
 
         return first_shell, first_shell_error
 
-    def run_post_generation_analysis(self):
+    def run_calculator(self):
         """
         Calculate the coordination numbers and perform error analysis
         """

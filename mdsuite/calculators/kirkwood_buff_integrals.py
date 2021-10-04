@@ -26,9 +26,7 @@ Summary
 """
 import logging
 import numpy as np
-from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.scheme import Computation
 from dataclasses import dataclass
 
 
@@ -37,13 +35,16 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     savgol_order: int
     savgol_window_length: int
 
 
 class KirkwoodBuffIntegral(Calculator):
     """
-    Class for the calculation of the Kikrwood-Buff integrals
+    Class for the calculation of the Kirkwood-Buff integrals
 
     Attributes
     ----------
@@ -101,11 +102,12 @@ class KirkwoodBuffIntegral(Calculator):
         self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
         self.result_series_keys = ["r", "kb_integral"]
+        self.data_range = 1
 
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, save=True, data_range=1, export: bool = False):
+    def __call__(self, plot=True, data_range=1):
         """
         Doc string for this one.
         Parameters
@@ -113,21 +115,10 @@ class KirkwoodBuffIntegral(Calculator):
         plot : bool
                 If true, the output will be displayed in a figure. This figure will also
                 be saved.
-        save : bool
-                If true, the data from the analysis will be saved in the sql database
         data_range : int
                 Default to 1 for this analysis
-        export : bool
-                If tue, csv files will be dumped after the analysis.
         """
         self.plot = plot
-        self.save = save
-
-    def _autocorrelation_time(self):
-        """
-        Not needed in this analysis
-        """
-        raise NotApplicableToAnalysis
 
     def _calculate_kb_integral(self):
         """
@@ -147,7 +138,7 @@ class KirkwoodBuffIntegral(Calculator):
                 )
             )
 
-    def run_post_generation_analysis(self):
+    def run_calculator(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """

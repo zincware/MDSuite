@@ -89,7 +89,6 @@ class RunComputation:
         self,
         experiment: Experiment = None,
         experiments: List[Experiment] = None,
-        load_data: bool = False,
     ):
         """Collection of all calculators
 
@@ -109,7 +108,6 @@ class RunComputation:
         self.kwargs = {
             "experiment": experiment,
             "experiments": experiments,
-            "load_data": load_data,
         }
 
     @property

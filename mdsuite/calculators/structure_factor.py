@@ -30,9 +30,8 @@ import pandas as pd
 from scipy.integrate import simps
 from scipy.integrate import cumtrapz
 from tqdm import tqdm
-from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator
-from mdsuite import data as static_data
+from mdsuite import data
 from importlib.resources import open_text
 from dataclasses import dataclass
 
@@ -42,6 +41,9 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
+    """
+    Data class for the saved properties.
+    """
     data_range: int
     correlation_time: int
     atom_selection: np.s_
@@ -115,27 +117,23 @@ class StructureFactor(Calculator):
 
         self.post_generation = True
 
-        self.database_group = "structure_factor"
         self.x_label = r"$$\text{Q} / \AA ^{-1}$$"
         self.y_label = r"$$\text{S(Q)}$$"
         self.analysis_name = "total_structure_factor"
 
         self.rho = None
 
-        with open_text(static_data, "form_fac_coeffs.csv") as file:
+        with open_text(data, "form_fac_coeffs.csv") as file:
             self.coeff_atomic_formfactor = pd.read_csv(
                 file, sep=","
             )  # stores coefficients for atomic form factors
 
-    def __call__(self, plot=True, save=True, data_range=1):
+    def __call__(self, plot=True, data_range=1):
         """
         Parameters
         ----------
         plot : bool (default=True)
                             Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
         data_range : int (default=500)
                             Range over which the property should be evaluated.
                             This is not applicable to the current analysis as
@@ -151,7 +149,6 @@ class StructureFactor(Calculator):
             self.experiment = experiment
 
             self.plot = plot
-            self.save = save
 
             self.rho = self.experiment.number_of_atoms / (
                 self.experiment.box_array[0]
@@ -170,12 +167,6 @@ class StructureFactor(Calculator):
             return out
         else:
             return out[self.experiment.name]
-
-    def _autocorrelation_time(self):
-        """
-        Not needed in this analysis
-        """
-        raise NotApplicableToAnalysis
 
     @staticmethod
     def gauss(a, b, scattering_scalar):
@@ -330,7 +321,7 @@ class StructureFactor(Calculator):
             total_struc_fac += s_in
         return total_struc_fac
 
-    def run_post_generation_analysis(self):
+    def run_calculator(self):
         """
         Calculates the total structure factor for all the different Q-values
         of the Q_arr (magnitude of the scattering vector)

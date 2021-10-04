@@ -302,7 +302,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         arg_1 = self.args.species[species_tuple[0]]
         arg_2 = self.args.species[species_tuple[1]]
-        return f"{arg_1}_{arg_2} "
+        return f"{arg_1}_{arg_2}"
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
