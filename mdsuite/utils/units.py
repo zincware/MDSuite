@@ -54,7 +54,7 @@ class Units:
     boltzmann: float
     temperature: float
     pressure: float
-    avogadro: float = 6.02214076e23,
+    avogadro: float = 6.02214076e23
     elementary_charge: float = 1.602176634e-19
 
 
@@ -91,4 +91,4 @@ si = Units(
 )
 
 
-units_dict = {"real": real, "metal": metal, "SI": si}
+units_dict = {"real": real, "metal": metal, "si": si}

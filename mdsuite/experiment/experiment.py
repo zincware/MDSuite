@@ -29,7 +29,7 @@ from pathlib import Path
 from mdsuite.calculators import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import units_dict
+from mdsuite.utils.units import units_dict, Units
 from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
@@ -75,10 +75,9 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self,
         project,
         experiment_name,
-        storage_path="./",
         time_step=None,
         temperature=None,
-        units: Union[str, dict] = None,
+        units: Union[str, Units] = None,
         cluster_mode=False,
     ):
         """
@@ -128,7 +127,12 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         # ------- #
 
         # Added from trajectory file
-        self.units = self.units_to_si(units)  # Units used during the simulation.
+
+        if self.units is None:
+            if units is None:
+                units = "real"
+            self.units = self.units_to_si(units)  # Units used during the simulation.
+
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
@@ -230,24 +234,21 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         conv_factor (float) -- conversion factor to pass to SI
         """
 
-        if units_system is None:
-            units_system = "real"  # set default here!
-
-        if isinstance(units_system, dict):
+        if isinstance(units_system, Units):
             return units_system
-        else:
+        elif isinstance(units_system, str):
             try:
-                units = units_dict[units_system]()
-                # executes the function to return the appropriate dictionary.
-                # TODO Why is this a function?!
+                units = units_dict[units_system]
             except KeyError:
                 raise KeyError(
                     f"The unit '{units_system}' is not implemented."
                     f" The available units are: {[x for x in units_dict]}"
                 )
+        else:
+            raise ValueError(f'units has to be of type Units or str,'
+                             f' found {type(units_system)} instead')
         return units
 
-    #
     def _load_or_build(self) -> bool:
         """
         Check if the experiment already exists and decide whether to load it or build a
@@ -256,7 +257,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
 
         # Check if the experiment exists and load if it does.
         if Path(self.experiment_path).exists():
-            log.info("This experiment already exists! I'll load it up now.")
+            log.debug("This experiment already exists! I'll load it up now.")
             # self.load_class()
             return True
         else:

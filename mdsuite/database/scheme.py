@@ -156,6 +156,7 @@ class ExperimentAttribute(Base):
     name = Column(String)
     value = Column(Float, nullable=True)
     str_value = Column(String, nullable=True)
+    data = Column(MutableDict.as_mutable(JSONEncodedDict), nullable=True)
 
     experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates="experiment_attributes")
@@ -176,6 +177,7 @@ class ExperimentSpecies(Base):
     a specific experiment
 
     """
+    # TODO this could potentially be replaced by ExperimentAttribute
 
     __tablename__ = "experiment_species"
     id = Column(Integer, primary_key=True)
