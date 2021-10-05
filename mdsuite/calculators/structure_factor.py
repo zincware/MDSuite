@@ -117,7 +117,7 @@ class StructureFactor(Calculator):
 
         self.post_generation = True
 
-        self.x_label = r"$$\text{Q} / \AA ^{-1}$$"
+        self.x_label = r"$$\text{Q} / nm ^{-1}$$"
         self.y_label = r"$$\text{S(Q)}$$"
         self.analysis_name = "total_structure_factor"
 

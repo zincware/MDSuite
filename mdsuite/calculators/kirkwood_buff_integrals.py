@@ -98,7 +98,7 @@ class KirkwoodBuffIntegral(Calculator):
         self.radii = None
         self.kb_integral = None
         self.database_group = "Kirkwood_Buff_Integral"
-        self.x_label = r"$$ \text{r} / \AA$$"
+        self.x_label = r"$$ \text{r} / nm$$"
         self.y_label = r"$$\text{G}(\mathbf{r})$$"
         self.analysis_name = "Kirkwood-Buff_Integral"
         self.result_series_keys = ["r", "kb_integral"]

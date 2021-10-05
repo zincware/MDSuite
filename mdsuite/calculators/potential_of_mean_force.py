@@ -112,7 +112,7 @@ class PotentialOfMeanForce(Calculator):
         self.radii = None
         self.pomf = None
         self.indices = None
-        self.x_label = r"$$\text{r| /  \AA$$"
+        self.x_label = r"$$\text{r| /  nm$$"
         self.y_label = r"$$w^{(2)}(r)$$"
         self.data_range = 1
 

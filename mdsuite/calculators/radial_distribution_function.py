@@ -119,7 +119,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
         self.loaded_property = simulation_properties.positions
-        self.x_label = r"$$r / \AA$$"
+        self.x_label = r"$$r / nm$$"
         self.y_label = r"$$g(r)$$"
         self.analysis_name = "Radial_Distribution_Function"
         self.result_series_keys = ["x", "y"]
@@ -376,15 +376,29 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             )  # Apply the prefactor
             log.debug("Writing RDF to database!")
 
+            x_data = self._ang_to_nm(
+                np.linspace(0.0, self.args.cutoff, self.args.number_of_bins)
+            )
+            y_data = self.rdf.get(names)
+
             # self.data_range = self.number_of_configurations
             data = {
-                self.result_series_keys[0]: np.linspace(
-                    0.0, self.args.cutoff, self.args.number_of_bins
-                ).tolist(),
-                self.result_series_keys[1]: self.rdf.get(names).tolist(),
+                self.result_series_keys[0]: x_data.tolist(),
+                self.result_series_keys[1]: y_data.tolist(),
             }
 
             self.queue_data(data=data, subjects=self.selected_species)
+
+    def _ang_to_nm(self, data_in: np.ndarray) -> np.ndarray:
+        """
+        Convert Angstroms to nm
+
+        Returns
+        -------
+        data_out : np.ndarray
+                data_in converted to nm
+        """
+        return self.experiment.units['length'] * 1e-9 * data_in
 
     def _correct_batch_properties(self):
         """

@@ -115,7 +115,7 @@ class CoordinationNumbers(Calculator):
         self.post_generation = True
 
         self.database_group = "Coordination_Numbers"
-        self.x_label = r"$$\text{r}$$"
+        self.x_label = r"$$\text{r} /  nm$$"
         self.y_label = "CN"
         self.analysis_name = "Coordination_Numbers"
         self.result_keys = [
