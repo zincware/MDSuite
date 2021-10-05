@@ -23,6 +23,8 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the computation of the potential of mean force (PMF). The PMF can be used to
+better understand effective bond strength between species of a system.
 """
 import logging
 import numpy as np
@@ -161,6 +163,7 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = (
             -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
         )
+        self.pomf *= 6.242e8  # convert to eV
 
     def _get_max_values(self):
         """

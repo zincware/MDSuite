@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Parent class for the calculators.
 """
 from __future__ import annotations
 
@@ -50,7 +51,8 @@ log = logging.getLogger(__name__)
 
 
 def call(func):
-    """Decorator for the calculator call method
+    """
+    Decorator for the calculator call method
 
     This decorator provides a unified approach for handling run_computation and
     load_data for a single or multiple experiments.
