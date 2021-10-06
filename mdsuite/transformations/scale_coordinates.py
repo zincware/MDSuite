@@ -29,6 +29,7 @@ from mdsuite.utils.meta_functions import join_path
 import sys
 import tensorflow as tf
 import numpy as np
+from mdsuite.database import simulation_properties
 from tqdm import tqdm
 
 
@@ -63,6 +64,7 @@ class ScaleCoordinates(Transformations):
         super().__init__(experiment)
         self.species = species
         self.scale_function = {"linear": {"scale_factor": 2}}
+        self.dtype = tf.float64
 
         if self.species is None:
             self.species = list(self.experiment.species)
@@ -164,19 +166,25 @@ class ScaleCoordinates(Transformations):
             data_structure = self._prepare_database_entry(species)
             data_path = [join_path(species, "Scaled_Positions")]
             self._prepare_monitors(data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(
+                dictionary=True
+            )
+            type_spec = {str.encode(data_path[0]): tf.TensorSpec(
+                shape=simulation_properties.scaled_positions[1], dtype=self.dtype),
+                         str.encode("data_size"): tf.TensorSpec(
+                             shape=(), dtype=tf.int32
+                         )
+            }
             data_set = tf.data.Dataset.from_generator(
                 batch_generator,
                 args=batch_generator_args,
-                output_signature=tf.TensorSpec(
-                    shape=(None, self.batch_size, 3), dtype=tf.float64
-                ),
+                output_signature=type_spec,
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, x in tqdm(
                 enumerate(data_set), ncols=70, desc=f"{species}: Scaling Coordinates"
             ):
-                data = self._transformation(x)
+                data = self._transformation(x[str.encode(data_path[0])])
                 self._save_coordinates(
                     data=data,
                     data_structure=data_structure,

@@ -49,7 +49,7 @@ class SimulationProperties:
     scaled_unwrapped_positions = ("Scaled_Unwrapped_Positions", (None, None, 3))
     velocities = ("Velocities", (None, None, 3))
     forces = ("Forces", (None, None, 3))
-    box_images = ("Box_Images", (None, None, 1))
+    box_images = ("Box_Images", (None, None, 3))
     dipole_orientation_magnitude = ("Dipole_Orientation_Magnitude", (None, None, 1))
     angular_velocity_spherical = ("Angular_Velocity_Spherical", (None, None, 3))
     angular_velocity_non_spherical = ("Angular_Velocity_Non_Spherical", (None, None, 3))

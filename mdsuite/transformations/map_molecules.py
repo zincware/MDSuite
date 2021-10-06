@@ -215,9 +215,13 @@ class MolecularMap(Transformations):
         data : tf.Tensor
                 A tensor of stacked data.
         """
-        data = self.database.load_data(
-            path_list=path_list, select_slice=slice, scaling=factor
+        data_dict = self.database.load_data(
+            path_list=path_list, select_slice=slice, scaling=factor, dictionary=True
         )
+        data = []
+        for item in path_list:
+            data.append(data_dict[item])
+
         return tf.concat(data, axis=0)
 
     def _prepare_mass_array(self, species: list) -> list:
@@ -255,7 +259,6 @@ class MolecularMap(Transformations):
             )
             path_list = [join_path(s, "Unwrapped_Positions") for s in species]
             self._prepare_monitors(data_path=path_list)
-            # TODO for #338
             scaling_factor = self.reference_molecules[item]["mass"]
             molecules = self.experiment.molecules
             molecules[item] = {}

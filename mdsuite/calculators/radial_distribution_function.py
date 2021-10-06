@@ -398,7 +398,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         data_out : np.ndarray
                 data_in converted to nm
         """
-        return self.experiment.units['length'] * 1e-9 * data_in
+        return (self.experiment.units['length'] / 1e-9) * data_in
 
     def _correct_batch_properties(self):
         """
@@ -508,6 +508,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             stop_ = start_ + tf.constant(
                 [particles_list[tuples[0]], particles_list[tuples[1]]]
             )
+
             rdf[names] = self.bin_minibatch(
                 start_,
                 stop_,
