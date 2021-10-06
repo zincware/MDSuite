@@ -114,30 +114,32 @@ def call(func):
 
         out = {}
         for experiment in self.experiments:
-            self.experiment = experiment
-            self.clean_cache()
+            CLS = self.__class__
+            # NOTE: if the calculator accepts more than just experiment/experiments
+            #  as init, this has to be changed!
+            cls = CLS(experiment=experiment)
             # pass the user args to the calculator
-            func(self, *args, **kwargs)
-            data = self.get_computation_data()
+            func(cls, *args, **kwargs)
+            data = cls.get_computation_data()
             if data is None:
                 # new calculation will be performed
-                self.prepare_db_entry()
-                self.save_computation_args()
-                self.run_analysis()
-                self.save_db_data()
+                cls.prepare_db_entry()
+                cls.save_computation_args()
+                cls.run_analysis()
+                cls.save_db_data()
                 # Need to reset the user args, if they got change
                 # or set to defaults, e.g. n_configurations = - 1 so
                 # that they match the query
-                func(self, *args, **kwargs)
-                data = self.get_computation_data()
+                func(cls, *args, **kwargs)
+                data = cls.get_computation_data()
 
-            if self.plot:
+            if cls.plot:
                 """Plot the data"""
-                self.plotter = DataVisualizer2D(title=self.analysis_name)
-                self.plot_data(data.data_dict)
-                self.plotter.grid_show(self.plot_array)
+                cls.plotter = DataVisualizer2D(title=cls.analysis_name)
+                cls.plot_data(data.data_dict)
+                cls.plotter.grid_show(cls.plot_array)
 
-            out[self.experiment.name] = data
+            out[cls.experiment.name] = data
 
         if return_dict:
             return out
@@ -197,9 +199,7 @@ class Calculator(CalculatorDatabase):
     def __init__(
         self,
         experiment: Experiment = None,
-        experiments: List[Experiment] = None,
-        plot: bool = True,
-        gpu: bool = False,
+        experiments: List[Experiment] = None
     ):
         """
         Constructor for the calculator class.
@@ -210,21 +210,19 @@ class Calculator(CalculatorDatabase):
                 Experiment for which the calculator will be run.
         experiments : List[Experiment]
                 List of experiments on which to run the calculator.
-        plot : bool
-                If true, the results will be plotted.
-        gpu : bool
-                If true, the memory will be scaled down to the best GPU on the system.
         """
         # Set upon instantiation of parent class
         super().__init__(experiment)
+        # NOTE: if the calculator accepts more than just experiment/experiments
+        #  in the init the @call decorator has to be changed!
         self.experiment: Experiment = experiment
         self.experiments: List[Experiment] = experiments
         # Setting the experiment value supersedes setting experiments
         if self.experiment is not None:
             self.experiments = [self.experiment]
 
-        self.plot = plot
-        self.gpu = gpu
+        self.plot = False
+        self.gpu = False
 
         # SQL data attributes.
         self.result_keys = None
@@ -251,16 +249,6 @@ class Calculator(CalculatorDatabase):
     def dtype(self):
         """Get the dtype used for the calculator"""
         return self._dtype
-
-    def clean_cache(self):
-        """
-        Clean the cache.
-        Returns
-        -------
-
-        """
-        super(Calculator, self).clean_cache()
-        self.plot_array = []
 
     def run_visualization(
             self,

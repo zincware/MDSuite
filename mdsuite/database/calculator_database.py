@@ -83,11 +83,6 @@ class CalculatorDatabase:
         # List of computation attributes that will be added to the database
         self.db_computation_attributes = []
 
-    def clean_cache(self):
-        """Clean the lists of computed data"""
-        self._queued_data = []
-        self.db_computation_attributes = []
-
     def prepare_db_entry(self):
         """Prepare a database entry based on the attributes defined in the init"""
         with self.experiment.project.session as ses:

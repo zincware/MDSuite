@@ -80,8 +80,6 @@ class TrajectoryCalculator(Calculator, ABC):
             self,
             experiment: object = None,
             experiments: List = None,
-            plot: bool = True,
-            gpu: bool = False
     ):
         """
         Constructor for the TrajectoryCalculator class.
@@ -92,13 +90,9 @@ class TrajectoryCalculator(Calculator, ABC):
                 Experiment for which the calculator will be run.
         experiments : List[Experiment]
                 List of experiments on which to run the calculator.
-        plot : bool
-                If true, the results will be plotted.
-        gpu : bool
-                If true, the memory will be scaled down to the best GPU on the system.
         """
         super(TrajectoryCalculator, self).__init__(
-            experiment=experiment, experiments=experiments, plot=plot, gpu=gpu
+            experiment=experiment, experiments=experiments
         )
 
         self.data_resolution = None
