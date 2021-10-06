@@ -298,7 +298,7 @@ class Project(ProjectDatabase):
         RunComputation:
             class that has all available calculators as properties
         """
-        return RunComputation(experiments=[x for x in self.experiments.values()])
+        return RunComputation(experiments=[x for x in self.active_experiments.values()])
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
@@ -329,7 +329,7 @@ class Project(ProjectDatabase):
         """Get a DotDict of instantiated experiments that are currently selected!"""
 
         active_experiment = {
-            key: val for key, val in self._experiments.items() if val.active
+            key: val for key, val in self.experiments.items() if val.active
         }
 
         return DotDict(active_experiment)
