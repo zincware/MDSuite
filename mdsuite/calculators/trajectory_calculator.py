@@ -347,7 +347,7 @@ class TrajectoryCalculator(Calculator, ABC):
 
         return ds.prefetch(tf.data.AUTOTUNE)
 
-    def get_ensemble_dataset(self, batch: dict, subject: str, split: bool = False):
+    def get_ensemble_dataset(self, batch: dict, subject: str):
         """
         Collect the ensemble loop dataset.
 
@@ -373,10 +373,7 @@ class TrajectoryCalculator(Calculator, ABC):
 
         type_spec = {}
 
-        if split:
-            loop_list = subject.split("_")
-        else:
-            loop_list = [subject]
+        loop_list = [subject]
         for item in loop_list:
             dict_ref = "/".join([item, self.loaded_property[0]])
             type_spec[str.encode(dict_ref)] = tf.TensorSpec(
