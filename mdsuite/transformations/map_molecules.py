@@ -357,4 +357,3 @@ class MolecularMap(Transformations):
         self.experiment.perform_transformation(
             "WrapCoordinates", species=[item for item in self.molecules]
         )
-        self.experiment.save_class()

@@ -35,6 +35,9 @@ from tqdm import tqdm
 import numpy as np
 import tensorflow as tf
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
 
 from typing import TYPE_CHECKING
 
@@ -44,12 +47,25 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class SpatialDistributionFunction(Calculator):
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+    number_of_configurations: int
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    molecules: bool
+    species: list
+    r_min: float
+    r_max: float
+
+
+class SpatialDistributionFunction(TrajectoryCalculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
-    def __init__(
-        self, experiment: Experiment, experiments=None, load_data: bool = False
-    ):
+    def __init__(self, experiment: Experiment, experiments=None):
         """
         Constructor of the SpatialDistributionFunction
 
@@ -63,11 +79,10 @@ class SpatialDistributionFunction(Calculator):
             managed by RunComputation
 
         """
-        super().__init__(experiment, experiments=experiments, load_data=load_data)
+        super().__init__(experiment, experiments=experiments)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
-        self.loaded_property = "Positions"
-        self.database_group = "Spatial_Distribution_Function"
+        self.loaded_property = simulation_properties.positions
         self.x_label = r"$$\text{r} /  nm$$"  # None
         self.y_label = r"$$\text{g(r)}$$"  # None
         self.analysis_name = "Spatial_Distribution_Function"
@@ -109,18 +124,27 @@ class SpatialDistributionFunction(Calculator):
             if None a single SDF of all available species will be computed
         kwargs
         """
-        self.species = species
-        self.molecules = molecules
-        self.r_min = r_min
-        self.r_max = r_max
+        if species is None:
+            if molecules:
+                species = list(self.experiment.molecules)
+            else:
+                species = list(self.experiment.species)
 
         # choose sampled configurations
         self.sample_configurations = np.linspace(
             start, stop, number_of_configurations, dtype=np.int
         )
 
-        self.update_user_args()
-        self._check_input()
+        self.args = Args(
+            molecules=molecules,
+            species=species,
+            number_of_configurations=number_of_configurations,
+            r_min=r_min,
+            atom_selection=np.s_[:],
+            r_max=r_max,
+            data_range=number_of_configurations,
+            correlation_time=1
+        )
 
     def _load_positions(self, indices: list, species: str) -> tf.Tensor:
         """
@@ -139,29 +163,25 @@ class SpatialDistributionFunction(Calculator):
         loaded_data : tf.Tensor
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
-        # path_list = [join_path(species, "Positions") for species in self.species]
+        path_list = [join_path(species, self.loaded_property[0])]
 
-        path_list = [join_path(species, "Positions")]
-
-        data = self.experiment.load_matrix(
-            "Positions", path=path_list, select_slice=np.s_[:, indices]
+        data_dict = self.database.load_data(
+            path_list=path_list, select_slice=np.s_[:, indices]
         )
-        if len(self.species) == 1:
+        data = []
+        for item in path_list:
+            data.append(data_dict[item])
+        if len(self.args.species) == 1:
             return tf.cast(data, dtype=self.dtype)
         else:
             return tf.cast(tf.concat(data, axis=0), dtype=self.dtype)
 
-    def _check_input(self):
-        """Check and correct the user input"""
-        if self.species is None:
-            if self.molecules:
-                self.species = list(self.experiment.molecules)
-            else:
-                self.species = list(self.experiment.species)
-
-    def run_experimental_analysis(self):
+    def run_calculator(self):
         """Run the computation"""
-
+        path_list = [
+            join_path(item, self.loaded_property[0]) for item in self.args.species
+        ]
+        self._prepare_managers(path_list)
         # Iterate over batches
         sdf_values = []
 
@@ -173,7 +193,7 @@ class SpatialDistributionFunction(Calculator):
         ):
             positions_tensor = []
             species_length = []
-            for species in self.species:
+            for species in self.args.species:
                 positions_tensor.append(
                     self._load_positions(sample_configuration, species)
                 )
@@ -191,7 +211,7 @@ class SpatialDistributionFunction(Calculator):
 
             d_ij = tf.linalg.norm(r_ij, axis=-1)  # shape (b, i, j)
             # apply minimal and maximal distance and remove the diagonal elements of 0
-            mask = (d_ij > self.r_min) & (d_ij < self.r_max)  # & (d_ij != 0)
+            mask = (d_ij > self.args.r_min) & (d_ij < self.args.r_max)  # & (d_ij != 0)
 
             # Slicing the mask to the area where only the distances i!=j occur.
             # There are two such areas, so I am slicing them twice
@@ -220,17 +240,17 @@ class SpatialDistributionFunction(Calculator):
                 Data to be plot.
 
         """
-        if self.species[0] in list(self.experiment.species):
-            center = self.species[0]
+        if self.args.species[0] in list(self.experiment.species):
+            center = self.args.species[0]
         else:
-            center_dict = self.experiment.molecules[self.species[0]]["groups"]["0"]
+            center_dict = self.experiment.molecules[self.args.species[0]]["groups"]["0"]
             center = {}
             for item in center_dict:
                 for index in center_dict[item]:
                     center[f"{item}_{index}"] = self.database.load_data(
                         path_list=[join_path(item, "Positions")],
                         select_slice=np.s_[index, 0],
-                    )
+                    )[join_path(item, "Positions")]
         visualizer = DataVisualizer3D(
             data=plot_data.numpy(), title="SDF", center=center
         )

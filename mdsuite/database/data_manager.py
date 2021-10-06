@@ -293,9 +293,6 @@ class DataManager:
                     Distance between ensembles
             data_range : int
                     Size of each ensemble
-            data_dict : dict
-                    Data from which to draw ensembles
-
             Returns
             -------
             None
