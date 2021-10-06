@@ -32,12 +32,16 @@ from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.tensorflow.layers import NLLayer
 from mdsuite.utils.meta_functions import join_path
 from tqdm import tqdm
+import math
 import numpy as np
 import tensorflow as tf
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties
 from mdsuite.calculators import TrajectoryCalculator
+
+from mdsuite.utils.linalg import spherical_to_cartesian_coordinates, \
+    cartesian_to_spherical_coordinates, get2dHistogram
 
 from typing import TYPE_CHECKING
 
@@ -60,6 +64,7 @@ class Args:
     species: list
     r_min: float
     r_max: float
+    n_bins: int
 
 
 class SpatialDistributionFunction(TrajectoryCalculator):
@@ -92,15 +97,16 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
     @call
     def __call__(
-        self,
-        molecules: bool = False,
-        start: int = 1,
-        stop: int = 10,
-        number_of_configurations: int = 5,
-        r_min: float = 4.0,
-        r_max: float = 4.5,
-        species: list = None,
-        **kwargs,
+            self,
+            molecules: bool = False,
+            start: int = 1,
+            stop: int = 10,
+            number_of_configurations: int = 5,
+            r_min: float = 4.0,
+            r_max: float = 4.5,
+            species: list = None,
+            n_bins: int = 100,
+            **kwargs,
     ):
         """
         User Interface to the Spatial Distribution Function
@@ -143,7 +149,8 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             atom_selection=np.s_[:],
             r_max=r_max,
             data_range=number_of_configurations,
-            correlation_time=1
+            correlation_time=1,
+            n_bins=n_bins
         )
 
     def _load_positions(self, indices: list, species: str) -> tf.Tensor:
@@ -188,8 +195,8 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         nllayer = NLLayer()
 
         for idx, sample_configuration in tqdm(
-            enumerate(np.array_split(self.sample_configurations, self.n_batches)),
-            ncols=70,
+                enumerate(np.array_split(self.sample_configurations, self.n_batches)),
+                ncols=70,
         ):
             positions_tensor = []
             species_length = []
@@ -216,19 +223,73 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             # Slicing the mask to the area where only the distances i!=j occur.
             # There are two such areas, so I am slicing them twice
             # could also mirror them
-            mask_ = mask[:, species_length[0] :, : species_length[1]]
-            r_ij_cut = r_ij[:, species_length[0] :, : species_length[1], :]
+            mask_ = mask[:, species_length[0]:, : species_length[1]]
+            r_ij_cut = r_ij[:, species_length[0]:, : species_length[1], :]
             r_ij_cut = r_ij_cut[mask_]
-            sdf_values.append(r_ij_cut)
+            sdf_values.append(self.r_ij_to_bins(r_ij_cut))
             # and the other half (only effective if species[0] != species[1])
-            mask_ = mask[:, : species_length[0], species_length[1] :]
-            r_ij_cut = r_ij[:, : species_length[0], species_length[1] :, :]
+            mask_ = mask[:, : species_length[0], species_length[1]:]
+            r_ij_cut = r_ij[:, : species_length[0], species_length[1]:, :]
             r_ij_cut = r_ij_cut[mask_]
-            sdf_values.append(r_ij_cut)
+            sdf_values.append(self.r_ij_to_bins(r_ij_cut))
 
-        sdf_values = tf.concat(sdf_values, axis=0)
+        sdf_values = tf.reduce_sum(sdf_values, axis=0)
 
-        self._run_visualization(sdf_values)
+        # TODO fix subjects and maybe rename
+        self.queue_data(data={'sdf': sdf_values.numpy().tolist(),
+                              'sphere': self._get_unit_sphere().numpy().tolist()},
+                        subjects=["System"])
+
+        if self.plot:
+            self._run_visualization(sdf_values)
+
+    def _get_unit_sphere(self) -> tf.Tensor:
+        """Get the coordinates on the sphere for the bins
+
+        Returns
+        -------
+        tf.Tensor:
+            A Tensor with shape (n_bins, n_bins, 3) where 3 represents (x,y,z)
+            for the coordinates of a unit sphere
+
+        """
+        theta_range = [0, math.pi]
+        phi_range = [-math.pi, math.pi]
+        theta_vals = np.linspace(theta_range[0], theta_range[1], self.args.n_bins)
+        phi_vals = np.linspace(phi_range[0], phi_range[1], self.args.n_bins)
+
+        xx, yy = np.meshgrid(theta_vals, phi_vals)
+        spherical_map = tf.stack([tf.ones_like(xx), xx, yy], axis=-1)
+        cartesian_map = spherical_to_cartesian_coordinates(spherical_map)
+
+        return cartesian_map
+
+    def r_ij_to_bins(self, r_ij) -> tf.Tensor:
+        """Compute the 2D histogram in spherical coordinates while projecting
+        all values of r to a unit sphere
+
+        Parameters
+        ----------
+        r_ij: tf.Tensor
+            any  r_ij matrix with shape (..., 3)
+
+        Returns
+        -------
+        tf.Tensor:
+            bins with shape (n_bins, n_bins)
+
+        """
+        r_ij_spherical = cartesian_to_spherical_coordinates(r_ij)
+        theta_phi_pairs = tf.reshape(r_ij_spherical, (-1, 3))
+
+        theta_range = [0, math.pi]
+        phi_range = [-math.pi, math.pi]
+
+        bins = get2dHistogram(theta_phi_pairs[:, 1], theta_phi_pairs[:, 2],
+                              value_range=[theta_range, phi_range],
+                              nbins=self.args.n_bins)
+
+        return bins
 
     def _run_visualization(self, plot_data: tf.Tensor):
         """
