@@ -234,11 +234,6 @@ class DataManager:
                         d_size=data_size,
                     )
 
-        # if self.remainder == 0:
-        #     remainder = False
-
-        # if system:
-        #     return system_generator, args
         if self.minibatch:
             return atom_generator, args
         else:
@@ -287,29 +282,6 @@ class DataManager:
                 stop = start + data_range
                 yield data[:, start:stop]
 
-        def system_generator(ensemble_loop, correlation_time, data_range, data):
-            """
-            Generator for the ensemble loop
-            Parameters
-            ----------
-            ensemble_loop : int
-                    Number of ensembles to loop over
-            correlation_time : int
-                    Distance between ensembles
-            data_range : int
-                    Size of each ensemble
-            data : tf.data.Dataset
-                    Data from which to draw ensembles
-
-            Returns
-            -------
-            None
-            """
-            for ensemble in range(ensemble_loop):
-                start = ensemble * correlation_time
-                stop = start + data_range
-                yield data[start:stop]
-
         def dictionary_generator(ensemble_loop, correlation_time, data_range):
             """
             Generator for the ensemble loop
@@ -343,9 +315,4 @@ class DataManager:
 
                 yield output_dict
 
-        # if system:
-        #     return system_generator, args
-        if dictionary:
-            return dictionary_generator, args
-        else:
-            return generator, args
+        return dictionary_generator, args

@@ -337,7 +337,7 @@ class TrajectoryCalculator(Calculator, ABC):
         type_spec[str.encode("data_size")] = tf.TensorSpec(shape=(), dtype=tf.int32)
 
         batch_generator, batch_generator_args = self.data_manager.batch_generator(
-            dictionary=True, system=self.system_property, loop_array=loop_array
+            system=self.system_property, loop_array=loop_array
         )
         ds = tf.data.Dataset.from_generator(
             generator=batch_generator,
@@ -368,7 +368,7 @@ class TrajectoryCalculator(Calculator, ABC):
             ensemble_generator,
             ensemble_generators_args,
         ) = self.data_manager.ensemble_generator(
-            dictionary=True, glob_data=batch, system=self.system_property
+            glob_data=batch, system=self.system_property
         )
 
         type_spec = {}

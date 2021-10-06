@@ -566,40 +566,30 @@ class Database:
             scaling = [1 for _ in range(len(path_list))]
 
         with hf.File(self.name, "r") as database:
+            data = {}
+            for i, item in enumerate(path_list):
+                if type(select_slice) is dict:
+                    my_slice = select_slice[item]
+                else:
+                    my_slice = select_slice
 
-            if dictionary:
-                data = {}
-                for i, item in enumerate(path_list):
-                    if type(select_slice) is dict:
-                        my_slice = select_slice[item]
-                    else:
-                        my_slice = select_slice
+                data[item] = (
+                    tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
+                    * scaling[i]
+                )
+            data[str.encode("data_size")] = d_size
 
-                    data[item] = (
-                        tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
-                        * scaling[i]
-                    )
-                data[str.encode("data_size")] = d_size
+            # else:
+            #     data = []
+            #     for i, item in enumerate(path_list):
+            #         data.append(
+            #             tf.convert_to_tensor(
+            #                 database[item][select_slice], dtype=tf.float64
+            #             )
+            #             * scaling[i]
+            #         )
 
-            else:
-                data = []
-                for i, item in enumerate(path_list):
-                    data.append(
-                        tf.convert_to_tensor(
-                            database[item][select_slice], dtype=tf.float64
-                        )
-                        * scaling[i]
-                    )
-
-        if len(data) == 1:
-            if dictionary:
-                return data
-            else:
-                return data[0]
-        if dictionary:
-            return data
-        else:
-            return data
+        return data
 
     def get_load_time(self, database_path: str = None):
         """
