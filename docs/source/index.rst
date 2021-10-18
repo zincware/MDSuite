@@ -1,6 +1,8 @@
 MDSuite documentation
 =====================
 
+Docs currently out of date.
+
 This package was conceived out of the idea that scientists can
 perform computational experiments without filling their computers
 with mislabelled and arbitrary directories. Here you will find the
