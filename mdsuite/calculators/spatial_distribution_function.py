@@ -23,12 +23,13 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the spatial distribution function calculator.
 """
 from __future__ import annotations
 
 import logging
 
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
 from mdsuite.utils.tensorflow.layers import NLLayer
 from mdsuite.utils.meta_functions import join_path
 from tqdm import tqdm
@@ -140,6 +141,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         self.sample_configurations = np.linspace(
             start, stop, number_of_configurations, dtype=np.int
         )
+        self.plot = True
 
         self.args = Args(
             molecules=molecules,
@@ -241,7 +243,9 @@ class SpatialDistributionFunction(TrajectoryCalculator):
                         subjects=["System"])
 
         if self.plot:
-            self._run_visualization(sdf_values)
+            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins**2, 3])
+            colour_map = tf.reshape(sdf_values, [-1])
+            self._run_visualization(coordinates, colour_map)
 
     def _get_unit_sphere(self) -> tf.Tensor:
         """Get the coordinates on the sphere for the bins
@@ -251,7 +255,6 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         tf.Tensor:
             A Tensor with shape (n_bins, n_bins, 3) where 3 represents (x,y,z)
             for the coordinates of a unit sphere
-
         """
         theta_range = [0, math.pi]
         phi_range = [-math.pi, math.pi]
@@ -291,7 +294,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
         return bins
 
-    def _run_visualization(self, plot_data: tf.Tensor):
+    def _run_visualization(self, plot_data: tf.Tensor, colour_map: np.ndarray):
         """
         Run the visualizer.
 
@@ -299,6 +302,8 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         ----------
         plot_data : tf.Tensor
                 Data to be plot.
+        colour_map : tf.Tensor
+                A colour map to highlight density on the unit sphere
 
         """
         if self.args.species[0] in list(self.experiment.species):
@@ -313,6 +318,6 @@ class SpatialDistributionFunction(TrajectoryCalculator):
                         select_slice=np.s_[index, 0],
                     )[join_path(item, "Positions")]
         visualizer = DataVisualizer3D(
-            data=plot_data.numpy(), title="SDF", center=center
+            data=plot_data, title="SDF", center=center, colour_map=colour_map
         )
         visualizer.plot()
