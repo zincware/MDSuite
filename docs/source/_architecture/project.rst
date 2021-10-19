@@ -1,6 +1,6 @@
 Project Class
 ===========================
 
-.. autoclass:: mdsuite.project.Project
+.. autoclass:: mdsuite.project.project.Project
     :members:
     
