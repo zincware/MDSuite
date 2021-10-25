@@ -8,3 +8,4 @@ colorutils
 IPython
 pandoc
 pytest
+git+git://github.com/zincware/ZincHub.git#egg=zinchub
