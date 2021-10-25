@@ -27,46 +27,25 @@ Summary
 import pytest
 import os
 import mdsuite as mds
-import urllib.request
-import json
-import shutil
-from . import base_path
+from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
-    compressed_file = "NaCl_gk_i_q.zip"
-    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
-
-    conv_raw = "?raw=true"
-    compressed_file_path = base_path + compressed_file + conv_raw
-
     temporary_path = tmp_path_factory.getbasetemp()
-    urllib.request.urlretrieve(
-        compressed_file_path, filename=temporary_path / compressed_file
-    )
 
-    shutil.unpack_archive(
-        filename=temporary_path / compressed_file, extract_dir=temporary_path
-    )
+    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl.get_file(path=temporary_path)
 
-    return (temporary_path / uncompressed_file).as_posix()
+    return (temporary_path / NaCl.file_raw).as_posix()
 
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
-    # --- Change Me --- #
-    file = "GreenKuboIonicConductivity.json"
-    # ----------------- #
-
-    conv_raw = "?raw=true"
-
-    with urllib.request.urlopen(base_path + "analysis/" + file + conv_raw) as url:
-        out = json.loads(url.read().decode())
-
-    return out
+    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    return NaCl.get_analysis(analysis="GreenKuboIonicConductivity.json")
 
 
 def test_project(traj_file, true_values, tmp_path):
