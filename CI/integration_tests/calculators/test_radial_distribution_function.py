@@ -27,9 +27,6 @@ Summary
 import pytest
 import os
 import mdsuite as mds
-import urllib.request
-import json
-import shutil
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 from zinchub import DataHub
