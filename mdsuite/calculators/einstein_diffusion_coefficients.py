@@ -293,7 +293,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 total=self.n_batches,
                 disable=self.memory_manager.minibatch,
             ):
-                ensemble_ds = self.get_ensemble_dataset(batch, species, split=True)
+                ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
                     self.ensemble_operation(ensemble[dict_ref])
