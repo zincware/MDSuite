@@ -61,7 +61,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
-    "numpydoc",
     "sphinx_copybutton",
     "nbsphinx",
     "IPython.sphinxext.ipython_console_highlighting",
