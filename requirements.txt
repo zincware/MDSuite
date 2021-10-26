@@ -25,3 +25,4 @@ pandas >= 1.0.0
 tensorflow_probability
 open3d
 bokeh
+git+git://github.com/zincware/ZincHub.git#egg=zinchub
