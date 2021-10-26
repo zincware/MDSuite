@@ -22,10 +22,7 @@ Database Information
 .. toctree::
    :maxdepth: 1
 
-   _database/analysis_database
    _database/data_manager
-   _database/database_scheme
-   _database/properties_database
    _database/simulation_database
 
 Calculators
