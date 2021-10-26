@@ -16,3 +16,12 @@ tensorflow_probability
 open3d
 colorutils
 bokeh
+IPython
+pandoc
+pytest
+sphinxcontrib.bibtex
+pybtex
+nbsphinx
+sphinx_rtd_theme
+sphinx-copybutton
+git+git://github.com/zincware/ZincHub.git#egg=zinchub
