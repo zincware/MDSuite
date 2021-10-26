@@ -385,9 +385,9 @@ class Database:
         structure : dict
                 General structure of the dictionary with relevant dataset sizes.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6),
-                'Temperature': (5000, 1)} In this case, the last value in the tuple
-                 corresponds to the number of components that wil be parsed to the
-                 database_path.
+                'Temperature': (5000, 1)} In this case, the last value in the tupl
+                corresponds to the number of components that wil be parsed to the
+                database_path.
         Returns
         -------
 
