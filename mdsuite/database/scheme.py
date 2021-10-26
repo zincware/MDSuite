@@ -154,9 +154,7 @@ class ExperimentAttribute(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    value = Column(Float, nullable=True)
-    str_value = Column(String, nullable=True)
-    data = Column(MutableDict.as_mutable(JSONEncodedDict), nullable=True)
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
 
     experiment_id = Column(Integer, ForeignKey("experiments.id", ondelete="CASCADE"))
     experiment = relationship("Experiment", back_populates="experiment_attributes")
@@ -278,7 +276,7 @@ class Computation(Base):
         """Get the data_range stored in computation_attributes"""
         for comp_attr in self.computation_attributes:
             if comp_attr.name == "data_range":
-                return int(comp_attr.str_value)
+                return int(comp_attr.data['serialized_value'])
 
     @property
     def subjects(self) -> list:
@@ -300,8 +298,7 @@ class ComputationAttribute(Base):
     # Table data
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    value = Column(Float, nullable=True)
-    str_value = Column(String, nullable=True)
+    data = Column(MutableDict.as_mutable(JSONEncodedDict))
 
     # Relation data
     computation_id = Column(Integer, ForeignKey("computations.id", ondelete="CASCADE"))

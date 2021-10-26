@@ -30,6 +30,7 @@ import mdsuite.database.scheme as db
 from collections import Counter
 from dataclasses import dataclass, field
 from sqlalchemy import and_
+from mdsuite.utils.meta_functions import is_jsonable
 
 import logging
 from typing import TYPE_CHECKING, List
@@ -44,6 +45,16 @@ log = logging.getLogger(__name__)
 class ComputationResults:
     data: dict = field(default_factory=dict)
     subjects: dict = field(default_factory=list)
+
+
+def conv_to_db(val):
+    """Convert the given value to something that can be stored in the database"""
+    if is_jsonable(val):
+        if not isinstance(val, dict):
+            val = {"serialized_value": val}
+    else:
+        val = {"serialized_value": str(val)}
+    return val
 
 
 class CalculatorDatabase:
@@ -75,8 +86,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                .filter(db.Experiment.name == self.experiment.name)
-                .first()
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
             )
 
         self.db_computation = db.Computation(experiment=experiment)
@@ -105,8 +116,8 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                .filter(db.Experiment.name == self.experiment.name)
-                .first()
+                    .filter(db.Experiment.name == self.experiment.name)
+                    .first()
             )
 
             #  filter the correct experiment
@@ -121,7 +132,7 @@ class CalculatorDatabase:
                     db.Computation.computation_attributes.any(
                         and_(
                             db.ComputationAttribute.name == key,
-                            db.ComputationAttribute.str_value == str(val),
+                            db.ComputationAttribute.data == conv_to_db(val),
                         )
                     )
                 )
@@ -132,7 +143,9 @@ class CalculatorDatabase:
                 db.Computation.computation_attributes.any(
                     and_(
                         db.ComputationAttribute.name == "version",
-                        db.ComputationAttribute.value == self.experiment.version,
+                        db.ComputationAttribute.data == conv_to_db(
+                            self.experiment.version
+                        )
                     )
                 )
             )
@@ -156,14 +169,14 @@ class CalculatorDatabase:
         else:
             for key, val in kwargs.items():
                 computation_attribute = db.ComputationAttribute(
-                    name=key, str_value=str(val)
+                    name=key, data=conv_to_db(val)
                 )
 
                 self.db_computation_attributes.append(computation_attribute)
 
             # save the current experiment version in the ComputationAttributes
             experiment_version = db.ComputationAttribute(
-                name="version", value=self.experiment.version
+                name="version", data=conv_to_db(self.experiment.version)
             )
             self.db_computation_attributes.append(experiment_version)
 
@@ -193,8 +206,8 @@ class CalculatorDatabase:
                     # otherwise I would use .in_
                     species_list.append(
                         ses.query(db.ExperimentSpecies)
-                        .filter(db.ExperimentSpecies.name == species)
-                        .first()
+                            .filter(db.ExperimentSpecies.name == species)
+                            .first()
                     )
                 # in case of e.g. `System` species will be [None], which is then removed
                 species_list = [x for x in species_list if x is not None]
@@ -272,6 +285,5 @@ class CalculatorDatabase:
 
         # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
         # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
-
 
 #####################
