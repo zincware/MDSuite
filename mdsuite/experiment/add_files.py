@@ -141,7 +141,7 @@ class ExperimentAddingFiles:
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
-        self.read_files = trajectory_file
+        self.read_files = self.read_files + [trajectory_file]
 
     def _check_read_files(self, file_path: str):
         """

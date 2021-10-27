@@ -28,7 +28,7 @@ In order to satisfy all of the dependencies we will need to use MiniForge to cre
 
 1.) Install MiniForge
 
-    Go `here <https://github.com/conda-forge/miniforge#miniforge3>`_ and install MiniForge for your machine. Once it has
+    Go to `MiniForge <https://github.com/conda-forge/miniforge#miniforge3>`_ and install it for your machine. Once it has
     been installed you should run some checks to make sure your commands are pointing to the correct executables.
 
     .. code-block:: bash
