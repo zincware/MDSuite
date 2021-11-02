@@ -1,1 +1,3 @@
 include mdsuite/data/*.json
+include versioneer.py
+include mdsuite/_version.py

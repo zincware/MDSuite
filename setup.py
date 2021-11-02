@@ -25,13 +25,15 @@ Summary
 -------
 """
 import setuptools
+import versioneer
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="MDSuite",
-    version="0.0.1",
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
     author="Samuel Tovey",
     author_email="tovey.samuel@gmail.com",
     description="A postprocessing tool for molecular dynamics simulations.",

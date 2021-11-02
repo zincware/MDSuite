@@ -32,8 +32,10 @@ from .graph_modules import adjacency_matrix
 from .utils.report_computer_characteristics import Report
 from .utils import config
 
+from . import _version
+__version__ = _version.get_versions()['version']
+
 __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
-__version__ = "0.0.1"
 
 logger = logging.getLogger("mdsuite")
 logger.setLevel(logging.INFO)
@@ -46,3 +48,5 @@ channel.setLevel(logging.DEBUG)
 channel.setFormatter(formatter)
 
 logger.addHandler(channel)
+
+
