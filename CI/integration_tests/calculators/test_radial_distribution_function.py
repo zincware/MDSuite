@@ -28,10 +28,8 @@ import pytest
 import os
 import mdsuite as mds
 from mdsuite.utils.testing import assertDeepAlmostEqual
-import tensorflow as tf
 
 from zinchub import DataHub
-tf.config.set_visible_devices([], 'CPU')
 
 
 @pytest.fixture(scope="session")
@@ -59,7 +57,6 @@ def test_project(traj_file, true_values, tmp_path):
     project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
 
     computation = project.run.RadialDistributionFunction(plot=False)
-    true_values['x'] = 10*true_values['x']
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
 
@@ -71,6 +68,5 @@ def test_experiment(traj_file, true_values, tmp_path):
     project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
 
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
-    true_values['x'] = 10*true_values['x']
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
