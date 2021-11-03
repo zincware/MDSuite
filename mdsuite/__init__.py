@@ -34,7 +34,7 @@ from .utils import config
 
 __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 
-logger = logging.getLogger("mdsuite")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging
