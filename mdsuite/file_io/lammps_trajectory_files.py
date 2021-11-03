@@ -20,15 +20,9 @@ web: https://zincwarecode.com/
 Citation
 --------
 If you use this module please cite us with:
-
-Summary
--------
 """
-from mdsuite.file_io.trajectory_files import TrajectoryFile
-from mdsuite.utils.exceptions import NoElementInDump
-from mdsuite.utils.meta_functions import get_dimensionality
-from mdsuite.utils.meta_functions import line_counter
-from mdsuite.utils.meta_functions import optimize_batch_size
+import mdsuite.file_io.file_read
+import numpy as np
 import copy
 
 var_names = {
@@ -57,222 +51,164 @@ var_names = {
 }
 
 
-class LAMMPSTrajectoryFile(TrajectoryFile):
+class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
     """
-    Child class for the lammps file reader.
-
-    Attributes
-    ----------
-    obj : object
-            Experiment class instance to add to
-    header_lines : int
-            Number of header lines in the file format (lammps = 9)
-    file_path : str
-            Path to the trajectory file.
+    Reader for LAMMPS files
     """
 
-    def __init__(self, obj, header_lines=9, file_path=None, sort: bool = False):
+    def __init__(self, file_path: str, trajectory_is_sorted_by_ids=True):
+        self.file_path = file_path
+        self.n_header_lines = 9
+        self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
+
+        self._n_configurations_read = 0
+
+        # attributes that will be filled in by get_metadata() and are later used by get_next_n_configurations()
+        self._id_column_idx = None
+        self._n_particles = None
+        self._species_dict = None
+        self._property_dict = None
+        self._mdata = None
+
+    def get_metadata(self) -> mdsuite.file_io.file_read.TrajectoryMetadata:
         """
-        Python class constructor
+        Gets the metadata for database creation.
+        Also creates the lookup dictionaries on where to find the particles and properties in the file
         """
+        with open(self.file_path, 'r') as file:
+            header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines, start_at=0)
 
-        super().__init__(
-            obj, header_lines, file_path, sort=sort
-        )  # fill the experiment class
+            # extract data that can be directly read off the header
+            self._n_particles = int(header[3].split()[0])
+            header_boxl_lines = header[5:8]
+            box_l = [float(line.split()[1]) - float(line.split()[0]) for line in header_boxl_lines]
 
-        self.f_object = open(self.file_path)  # file object
+            # extract properties from the column names
+            header_property_names = header[8].split()[2:]
+            self._id_column_idx = header_property_names.index('id')
+            self._property_dict = mdsuite.file_io.file_read.extract_properties_from_header(
+                header_property_names, copy.deepcopy(var_names))
 
-    def _get_number_of_atoms(self):
+            # get number of configs from file length
+            file.seek(0)
+            num_lines = sum(1 for _ in file)
+            n_configs_float = num_lines / (self._n_particles + self.n_header_lines)
+            n_configs = int(round(n_configs_float))
+            assert abs(n_configs_float - n_configs) < 1e-10
+
+            # get information on which particles with which id belong to which species
+            # by analysing the first configuration
+            file.seek(0)
+            self._species_dict = self._get_species_information(file, header_property_names)
+
+            # extract sampe step information from consecutive headers
+            file.seek(0)
+            sample_step = self._get_sample_step(file)
+
+        properties_list = list()
+        for key, val in self._property_dict:
+            properties_list.append(mdsuite.file_io.file_read.PropertyInfo(name=key, n_dims=len(val)))
+
+        species_list = list()
+        for key, val in self._species_dict.items():
+            species_list.append(mdsuite.file_io.file_read.SpeciesInfo(name=key,
+                                                                      n_particles=len(val),
+                                                                      properties=properties_list))
+
+        mdata = mdsuite.file_io.file_read.TrajectoryMetadata(n_configurations=n_configs,
+                                                             species_list=species_list,
+                                                             box_l=box_l,
+                                                             sample_step=sample_step)
+        self._mdata = mdata
+        return mdata
+
+    def get_next_n_configurations(self, n_configs: int) -> dict:
+        lines_total_per_config = self.n_header_lines + self._n_particles
+        read_start = self._n_configurations_read * lines_total_per_config
+
+        ret_dict = dict()
+        for sp_info in self._mdata.species_list:
+            for prop_info in sp_info.properties:
+                ret_dict[sp_info.name][prop_info.name] = np.zeros((sp_info.n_particles, n_configs, prop_info.n_dims))
+
+        with open(self.file_path, 'r') as file:
+            file.seek(read_start)
+            for i in range(n_configs):
+                # skip the header
+                file.seek(self.n_header_lines, whence=1)
+                # read one config
+                traj_data = np.stack([np.array(list(file.readline().split())) for _ in self._n_particles])
+                # sort by id
+                if not self.trajectory_is_sorted_by_ids:
+                    traj_data = sort_array_by_column(traj_data, self._id_column_idx)
+
+                # slice by species
+                for sp_info in self._mdata.species_list:
+                    idxs = self._species_dict[sp_info.name]['line_idxs']
+                    sp_data = traj_data[idxs, :]
+                    # slice by property
+                    for prop_info in sp_info.properties:
+                        prop_column_idxs = self._property_dict[prop_info.name]
+                        ret_dict[sp_info.name][prop_info.name][:, i, :] = sp_data[:, prop_column_idxs]
+
+        self._n_configurations_read += n_configs
+
+        return ret_dict
+
+    def _get_species_information(self, file, header_property_names):
         """
-        Get the number of atoms
-
-        Returns
-        -------
-
-        # user custom names for variables.
-        if rename_cols is not None:
-            var_names.update(rename_cols)
-
-        """
-
-        header = self._read_header(self.f_object)  # get the first header tensor_values
-        self.f_object.seek(0)  # go back to the start of the file
-
-        return int(header[3][0])
-
-    def _get_number_of_configurations(self, number_of_atoms: int):
-        """
-        Get the number of configurations
-
-        Parameters
-        ----------
-        number_of_atoms : int
-                Number of atoms in each of the trajectories
-        Returns
-        -------
-
-        """
-        number_of_lines = line_counter(
-            self.file_path
-        )  # get the number of lines in the file
-
-        return int(number_of_lines / (number_of_atoms + self.header_lines))
-
-    def _get_time_information(self, number_of_atoms: int):
-        """
-        Get time information.
-
-        Parameters
-        ----------
-        number_of_atoms : int
-                Number of atoms in each trajectory
-
-        Returns
-        -------
-
-        """
-        header = self._read_header(self.f_object)  # get the first header
-        time_0 = float(header[1][0])  # Time in first configuration
-        header = self._read_header(
-            self.f_object, offset=number_of_atoms
-        )  # get the second header
-        time_1 = float(header[1][0])  # Time in second configuration
-        self.f_object.seek(0)  # return to first line in file
-
-        return time_1 - time_0
-
-    def _get_species_information(self, number_of_atoms: int):
-        """
-        Get the initial species information
+        Get the information which species are present and which particle ids/ lines in the file belong to them
 
         Parameters
         ----------
         number_of_atoms : int
                 Number of atoms in each configuration
         """
-        line_length: int = 0
-        species_summary = {}  # instantiate the species summary
-        header = self._read_header(self.f_object)  # get the header tensor_values
-
-        id_index = header[8].index("id") - 2
-
-        # Look for the element keyword
-        try:
-            # Look for element keyword in trajectory.
-            if "element" in header[8]:
-                element_index = header[8].index("element") - 2
-
-            # Look for type keyword if element is not present.
-            elif "type" in header[8]:
-                element_index = header[8].index("type") - 2
-
-            # Raise an error if no identifying keywords are found.
-            else:
-                raise NoElementInDump
-        except NoElementInDump:
+        header_id_index = header_property_names.index("id")
+        #
+        # Look for element keyword in trajectory.
+        if "element" in header_property_names:
+            header_species_index = header_property_names.index("element")
+        # Look for type keyword if element is not present.
+        elif "type" in header_property_names:
+            header_species_index = header_property_names.index("type")
+        # Raise an error if no identifying keywords are found.
+        else:
             raise ValueError("Insufficient species or type identification available.")
 
-        column_dict_properties = self._get_column_properties(
-            header[8], skip_words=2
-        )  # get properties
+        species_dict = dict()
+        file.seek(self.n_header_lines)
 
-        property_groups = self._extract_properties(
-            copy.deepcopy(var_names), column_dict_properties
-        )
+        for i in range(self._n_particles):
+            # read one configuration
+            traj_data = np.stack([np.array(list(file.readline().split())) for _ in range(self._n_particles)])
+            # sort by particle id
+            if not self.trajectory_is_sorted_by_ids:
+                traj_data = sort_array_by_column(traj_data, header_id_index)
+            # iterate over the first configuration, whenever a new species (value at species_index) is encountered,
+            # add an entry
+            for i, line in enumerate(traj_data):
+                species_name = line[header_species_index]
+                particle_id = int(line[header_id_index])
+                if species_name not in species_dict.keys():
+                    species_dict[species_name] = {'particle_ids': [particle_id],
+                                                  'line_idxs': [i]}
+                else:
+                    species_dict[species_name]['particle_ids'].append(particle_id)
+                    species_dict[species_name]['line_idxs'].append(i)
 
-        box = [
-            (float(header[5][1]) - float(header[5][0])),
-            (float(header[6][1]) - float(header[6][0])),
-            (float(header[7][1]) - float(header[7][0])),
-        ]
+        return species_dict
 
-        # Loop over atoms in first configuration.
-        for i in range(number_of_atoms):
-            line = self.f_object.readline().split()
-            line_length = len(line)
-            if line[element_index] not in species_summary:
-                species_summary[line[element_index]] = {}
-                species_summary[line[element_index]]["indices"] = []
 
-            # Update the index of the atom in the summary.
-            if self.sort:
-                species_summary[line[element_index]]["indices"].append(
-                    int(line[id_index])
-                )
-            else:
-                species_summary[line[element_index]]["indices"].append(
-                    i + self.header_lines
-                )
+    def _get_sample_step(self, file):
+        first_header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines, start_at=0)
+        time_0 = float(first_header[1])  # Time in first configuration
+        second_header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines,
+                                                               start_at=self.n_header_lines + self._n_particles)
+        time_1 = float(second_header[1])  # Time in second configuration
 
-        return species_summary, box, property_groups, line_length
+        return time_1 - time_0
 
-    def process_trajectory_file(
-        self, update_class: bool = True, rename_cols: dict = None
-    ):
-        """
-        Get additional information from the trajectory file
-
-        In this method, there are several doc string styled comments. This is included
-        as there are several components of the method that are all related to the
-        analysis of the trajectory file.
-
-        Parameters
-        ----------
-        rename_cols : dict
-                Will map some observable to keys found in the dump file.
-        update_class : bool
-                Boolean decision on whether or not to update the class. If yes, the
-                full saved class instance will be updated with new information. This is
-                necessary on the first run of tensor_values addition to the
-                database_path. After this point, when new tensor_values is added, this
-                is no longer required as other methods will take care of updating the
-                properties that change with new tensor_values. In fact, it will set the
-                number of configurations to only the new tensor_values, which will be
-                wrong.
-
-        Returns
-        -------
-        architecture : dict
-                Database architecture to be used by the class to build a new
-                database_path.
-        """
-
-        # user custom names for variables.
-        if rename_cols is not None:
-            var_names.update(rename_cols)
-        number_of_atoms = self._get_number_of_atoms()  # get the number of atoms
-        number_of_configurations = self._get_number_of_configurations(
-            number_of_atoms
-        )  # get number of configurations
-        sample_rate = self._get_time_information(number_of_atoms)  # get the sample rate
-        batch_size = optimize_batch_size(
-            self.file_path, number_of_configurations
-        )  # get the batch size
-        (
-            species_summary,
-            box,
-            property_groups,
-            line_length,
-        ) = self._get_species_information(number_of_atoms)
-        if update_class:
-            self.experiment.batch_size = batch_size
-            self.experiment.dimensions = get_dimensionality(box)
-            self.experiment.box_array = box
-            self.experiment.volume = box[0] * box[1] * box[2]
-            self.experiment.species = species_summary
-            self.experiment.number_of_atoms = number_of_atoms
-            self.experiment.number_of_configurations += number_of_configurations
-            self.experiment.sample_rate = sample_rate
-            self.experiment.property_groups = property_groups
-
-        else:
-            self.experiment.batch_size = batch_size
-            self.experiment.number_of_configurations += number_of_configurations
-
-        self.f_object.close()
-        return (
-            self._build_architecture(
-                species_summary, property_groups, number_of_configurations
-            ),
-            line_length,
-        )
+def sort_array_by_column(array: np.ndarray, column_idx):
+    # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column/35624868
+    return array[array[:, column_idx].argsort()]
