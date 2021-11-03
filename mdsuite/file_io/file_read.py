@@ -24,162 +24,177 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from __future__ import annotations
 import abc
-from typing import TextIO, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from mdsuite.experiment import Experiment
+import dataclasses
 
 
-class FileProcessor(metaclass=abc.ABCMeta):
+@dataclasses.dataclass
+class PropertyInfo:
     """
-    Parent class for file reading and processing
+    Information of a trajectory property.
+    example:
+    pos_info = PropertyInfo('Positions', 3)
+    vel_info = PropertyInfo('Velocities', 3)
 
     Attributes
     ----------
-    obj, experiment : Experiment
+    name:
+        The name of the property
+    n_dims:
+        The dimensionality of the property
+    """
+    name: str
+    n_dims: int
 
-            File object to be opened and read in.
-    header_lines : int
-            Number of header lines in the file format being read.
+
+@dataclasses.dataclass
+class SpeciesInfo:
+    """
+    Information of a species
+
+    Attributes
+    ----------
+    name
+        Name of the species (e.g. 'Na')
+    n_particles
+        Number of particles of that species
+    properties: list of PropertyInfo
+        List of the properties that were recorded for the species
+    mass and charge are optional
+    """
+    name: str
+    n_particles: int
+    properties: list
+    mass: float = 0
+    charge: float = 0
+
+
+@dataclasses.dataclass
+class TrajectoryMetadata:
+    """
+    This metadata must be extracted from trajectory files to build the database into which the trajectory will be stored
+
+    Attributes
+    ----------
+    n_configurations:
+        Number of configurations of the whole trajectory.
+    species_list: list of SpeciesInfo
+        The information about all species in the system.
+    box_l: list of float
+        The simulation box size in three dimensions
+    sample_step: optional
+        The time between consecutive configurations.
+        E.g. for a simulation with time step 0.1 where the trajectory is written every 5 steps: sample_step = 0.5
+        Does not have to be specified (e.g. configurations from Monte Carlo scheme), but is needed for all dynamic observables.
+    temperatyre: optional
+        The set temperature of the system.
+        Optional because only applicable for MD simulations with thermostat. Needed for certain observables.
+    simulation_data: optional
+        All other simulation data that can be extracted from the trajectory metadata.
+        E.g. software version, pressure in NPT simulations, time step, ...
+
+    """
+    n_configurations: int
+    species_list: list
+    box_l: list = None
+    sample_step: float = None
+    temperature: float = None
+    simulation_data: dict = dataclasses.field(default_factory=dict)
+
+
+class FileProcessor:
+    """
+    Class to handle reading from trajectory files.
+    Output is supposed to be used by the experiment class for building and populating the trajectory database.
     """
 
-    def __init__(self, obj: Experiment, header_lines, file_path):
+    def get_metadata(self) -> TrajectoryMetadata:
         """
-        Python constructor
+        Return the metadata required to build a database.
+        """
+        raise NotImplementedError('File Processors must implement metadata extraction')
 
+    def get_next_n_configurations(self, n_configs: int) -> dict:
+        """
+        Read n_configs new configurations starting from the previous state.
         Parameters
         ----------
-        obj : Experiment
-                Experiment class instance to add to.
-
-        header_lines : int
-                Number of header lines in the given file format.
-        """
-
-        self.experiment = obj  # Experiment class instance to add to.
-
-        self.header_lines = (
-            header_lines  # Number of header lines in the given file format.
-        )
-        self.file_path = file_path  # path to the file being read
-
-    @abc.abstractmethod
-    def process_trajectory_file(
-        self, rename_cols: dict = None, update_class: bool = True
-    ):
-        """
-        Get property groups from the trajectory
-        This method is dependent on the code that generated the file. So it should be
-        implemented in a grandchild class.
-        """
-
-        return
-
-    @abc.abstractmethod
-    def build_file_structure(self, batch_size: int = None):
-        """
-        Build a skeleton of the file so that the database_path class can process it
-        correctly.
-        """
-
-        return
-
-    @abc.abstractmethod
-    def read_configurations(
-        self, number_of_configurations: int, file_object: TextIO, line_length: int
-    ):
-        """
-        Read in a number of configurations from a file
-
-        Parameters
-        ----------
-        line_length : int
-             Length of each line of tensor_values to be read in. Necessary for
-             instantiation.
-        number_of_configurations : int
-                Number of configurations to be read in.
-        file_object : experiment
-                File object to be read from.
+        n_configs: int
+            Number of configurations to return
 
         Returns
         -------
-        configuration tensor_values : np.array
-                Data read in from the file object.
+        trajectory_chunk: dict
+            A dict of the form {'species_1':{'Property_1':data_array_1, 'Property_2':data_array_2, ...}
+                                'species_2': ...}
+            The names of the species must coincide with the names given in TrajectoryMetadata.species_list.
+            The names of the properties must coincide with the names given in the property list of each species.
+            The data arrays must have the shape
+            (SpeciesInfo.n_particles, n_configs, PropertyInfo.n_dims) for each species and property.
+
         """
+        raise NotImplementedError('File Processors must implement data loading')
 
-        return
 
-    @staticmethod
-    def _extract_properties(
-        database_correspondence_dict: dict, column_dict_properties: dict
-    ):
-        """
-        Construct generalized property array
+def read_n_lines(file, n_lines: int, start_at=0) -> list:
+    """
+    Get n_lines lines, starting at start
+    Returns
+    -------
+    A list of strings, one string for each line
+    """
+    file.seek(start_at)
+    return [next(file) for _ in range(n_lines)]
 
-        Takes the lammps properties dictionary and constructs an array of properties
-        which can be used by the species class.
 
-        Parameters
-        ----------
-        database_correspondence_dict : dict
-        column_dict_properties : dict
+def extract_properties_from_header(header_property_names: list,
+                                   database_correspondence_dict: dict,
+                                   ) -> dict:
+    """
+    Takes the property names from a file header, sees if there is a corresponding mdsuite property
+    in database_correspondence_dict.
+    Returns a dict that links the mdsuite property names to the column indices at which they can be found in the file.
 
-        Returns
-        -------
-        trajectory_properties : dict
-                A dictionary of the keyword labelled properties in the trajectory. The
-                values of the dictionary keys correspond to the array location of the
-                specific piece of tensor_values in the set.
-        """
-        # for each property label (position, velocity,etc) in the lammps definition
-        for property_label, property_names in database_correspondence_dict.items():
-            # for each coordinate for a given property label (position: x, y, z),
-            # get idx and the name
-            for idx, property_name in enumerate(property_names):
-                if (
-                    property_name in column_dict_properties.keys()
-                ):  # if this name (x) is in the input file properties
-                    # we change the lammps_properties_dict replacing the string of the
-                    # property name by the column name
-                    database_correspondence_dict[property_label][
-                        idx
-                    ] = column_dict_properties[property_name]
+    Parameters
+    ----------
+    header_property_names
+        The names of the columns in the data file
+    database_correspondence_dict
+        The translation between mdsuite properties and the column names of the respective file format.
+        lammps example:
+        {"Positions": ["x", "y", "z"],
+         "Unwrapped_Positions": ["xu", "yu", "zu"],
 
-        # trajectory_properties only need the labels with the integer columns, then we
-        # only copy those
-        trajectory_properties = {}
-        for property_label, properties_columns in database_correspondence_dict.items():
-            if all(
+    Returns
+    -------
+    trajectory_properties : dict
+        A dict of the form {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
+        Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
+    """
+
+    column_dict_properties = {variable: idx for idx, variable in enumerate(header_property_names)}
+    # for each property label (position, velocity,etc) in the lammps definition
+    for property_label, property_names in database_correspondence_dict.items():
+        # for each coordinate for a given property label (position: x, y, z),
+        # get idx and the name
+        for idx, property_name in enumerate(property_names):
+            if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
+                # we change the lammps_properties_dict replacing the string of the
+                # property name by the column name
+                database_correspondence_dict[property_label][
+                    idx
+                ] = column_dict_properties[property_name]
+
+    # trajectory_properties only need the labels with the integer columns, then we
+    # only copy those
+    trajectory_properties = {}
+    for property_label, properties_columns in database_correspondence_dict.items():
+        if all(
                 [
                     isinstance(property_column, int)
                     for property_column in properties_columns
                 ]
-            ):
-                trajectory_properties[property_label] = properties_columns
+        ):
+            trajectory_properties[property_label] = properties_columns
 
-        return trajectory_properties
-
-    @staticmethod
-    def _get_column_properties(header_line: str, skip_words: int = 0) -> dict:
-        """
-        Given a line of text with the header, split it, enumerate and put in a
-        dictionary. This is used to create the column - variable correspondance
-        (see self._extract_properties)
-
-        Parameters
-        ----------
-        header_line: str
-                Header line to split
-        skip_words : int
-                Skip words before reading.
-        Returns
-        -------
-        properties_summary : dict
-                properties summary as a dictionary.
-        """
-        header_line = header_line[skip_words:]
-        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
-
-        return properties_summary
+    return trajectory_properties
