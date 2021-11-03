@@ -10,7 +10,7 @@ The potential of mean force is related to the radial distribution function (RDF)
 
 .. math::
 
-    w_{\alpha \beta}^{(2)}(r) = k_{B} T ln g_{\alpha \beta}(r)
+    w_{\alpha \beta}^{(2)}(r) = k_\mathrm{B} T \mathrm{ln} g_{\alpha \beta}(r)
 
 Implementation
 --------------
