@@ -21,9 +21,13 @@ Citation
 --------
 If you use this module please cite us with:
 """
+import tqdm
+
 import mdsuite.file_io.file_read
+import mdsuite.utils.meta_functions
 import numpy as np
 import copy
+import typing
 
 var_names = {
     "Positions": ["x", "y", "z"],
@@ -63,7 +67,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
         self._n_configurations_read = 0
 
-        # attributes that will be filled in by get_metadata() and are later used by get_next_n_configurations()
+        # attributes that will be filled in by get_metadata() and are later used by get_configurations_generator()
+        self._batch_size = None
         self._id_column_idx = None
         self._n_particles = None
         self._species_dict = None
@@ -101,7 +106,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             file.seek(0)
             self._species_dict = self._get_species_information(file, header_property_names)
 
-            # extract sampe step information from consecutive headers
+            # extract sample step information from consecutive headers
             file.seek(0)
             sample_step = self._get_sample_step(file)
 
@@ -115,54 +120,72 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
                                                                       n_particles=len(val),
                                                                       properties=properties_list))
 
-        mdata = mdsuite.file_io.file_read.TrajectoryMetadata(n_configurations=n_configs,
-                                                             species_list=species_list,
-                                                             box_l=box_l,
-                                                             sample_step=sample_step)
-        self._mdata = mdata
-        return mdata
+        self._mdata = mdsuite.file_io.file_read.TrajectoryMetadata(n_configurations=n_configs,
+                                                                   species_list=species_list,
+                                                                   box_l=box_l,
+                                                                   sample_step=sample_step)
 
-    def get_next_n_configurations(self, n_configs: int) -> dict:
-        lines_total_per_config = self.n_header_lines + self._n_particles
-        read_start = self._n_configurations_read * lines_total_per_config
+        self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(filepath=self.file_path,
+                                                                            number_of_configurations=n_configs)
 
-        ret_dict = dict()
-        for sp_info in self._mdata.species_list:
-            for prop_info in sp_info.properties:
-                ret_dict[sp_info.name][prop_info.name] = np.zeros((sp_info.n_particles, n_configs, prop_info.n_dims))
+        return self._mdata
+
+    def get_configurations_generator(self) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
+        n_configs = self._mdata.n_configurations
+        n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 
         with open(self.file_path, 'r') as file:
-            file.seek(read_start)
-            for i in range(n_configs):
-                # skip the header
-                file.seek(self.n_header_lines, whence=1)
-                # read one config
-                traj_data = np.stack([np.array(list(file.readline().split())) for _ in self._n_particles])
-                # sort by id
-                if not self.trajectory_is_sorted_by_ids:
-                    traj_data = sort_array_by_column(traj_data, self._id_column_idx)
+            for _ in tqdm.tqdm(range(n_batches)):
+                yield self._read_process_n_configurations(file, self._batch_size)
+            if n_configs_remainder > 0:
+                yield self._read_process_n_configurations(file, n_configs_remainder)
 
-                # slice by species
-                for sp_info in self._mdata.species_list:
-                    idxs = self._species_dict[sp_info.name]['line_idxs']
-                    sp_data = traj_data[idxs, :]
-                    # slice by property
-                    for prop_info in sp_info.properties:
-                        prop_column_idxs = self._property_dict[prop_info.name]
-                        ret_dict[sp_info.name][prop_info.name][:, i, :] = sp_data[:, prop_column_idxs]
+    def _read_process_n_configurations(self, file, n_configs)->mdsuite.file_io.file_read.TrajectoryChunkData:
+        """
+        Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
+        Parameters
+        ----------
+        file
+            The open trajectory file. Note: Calling this function will advance the reading point in the file
+        n_configs
 
-        self._n_configurations_read += n_configs
+        Returns
+        -------
 
-        return ret_dict
+        """
+        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(self._species_dict, n_configs)
 
-    def _get_species_information(self, file, header_property_names):
+        for config_idx in range(n_configs):
+            # skip the header
+            file.seek(self.n_header_lines, whence=1)
+            # read one config
+            traj_data = np.stack([np.array(list(file.readline().split())) for _ in self._n_particles])
+            # sort by id
+            if not self.trajectory_is_sorted_by_ids:
+                traj_data = sort_array_by_column(traj_data, self._id_column_idx)
+
+            # slice by species
+            for sp_info in self._mdata.species_list:
+                idxs = self._species_dict[sp_info.name]['line_idxs']
+                sp_data = traj_data[idxs, :]
+                # slice by property
+                for prop_info in sp_info.properties:
+                    prop_column_idxs = self._property_dict[prop_info.name]
+                    chunk.add_data(sp_data[:, prop_column_idxs], config_idx, sp_info.name, prop_info.name)
+
+        return chunk
+
+    def _get_species_information(self, file, header_property_names: list):
         """
         Get the information which species are present and which particle ids/ lines in the file belong to them
 
         Parameters
         ----------
-        number_of_atoms : int
-                Number of atoms in each configuration
+        file: file object
+            the open file object to read from
+        header_property_names: list
+            list of the names of the columns in the file
+
         """
         header_id_index = header_property_names.index("id")
         #
@@ -199,7 +222,6 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
         return species_dict
 
-
     def _get_sample_step(self, file):
         first_header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines, start_at=0)
         time_0 = float(first_header[1])  # Time in first configuration
@@ -208,6 +230,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         time_1 = float(second_header[1])  # Time in second configuration
 
         return time_1 - time_0
+
 
 def sort_array_by_column(array: np.ndarray, column_idx):
     # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column/35624868

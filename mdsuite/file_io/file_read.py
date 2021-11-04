@@ -26,6 +26,8 @@ Summary
 """
 import abc
 import dataclasses
+import numpy as np
+import typing
 
 
 @dataclasses.dataclass
@@ -102,6 +104,54 @@ class TrajectoryMetadata:
     simulation_data: dict = dataclasses.field(default_factory=dict)
 
 
+class TrajectoryChunkData:
+    """
+    Class to specify the data format for transfer from the file to the database
+    """
+
+    def __init__(self, species_list: list, chunk_size: int):
+        """
+
+        Parameters
+        ----------
+        species_list:
+            List of SpeciesInfo. It contains the information, which species are there and which properties are recoreded for each
+        chunk_size:
+            The number of configurations to be stored in this chunk
+        """
+        self.chunk_size = chunk_size
+        self.species_list = species_list
+        self._data = dict()
+        for sp_info in species_list:
+            for prop_info in sp_info.properties:
+                self._data[sp_info.name][prop_info.name] = np.zeros((chunk_size, sp_info.n_particles, prop_info.n_dims))
+
+    def add_data(self, data:np.ndarray, config_idx, species_name, property_name):
+        """
+        Add configuration data to the chunk
+        Parameters
+        ----------
+        data:
+            The data to be added, with shape (n_configs, n_particles, n_dims).
+            n_particles and n_dims relates to the species and the property that is being added
+        config_idx:
+            Start index of the configs that are being added.
+        species_name
+            Name of the species to which the data belongs
+        property_name
+            Name of the property being added
+
+        example: Storing Velocity Information for Na atoms in the 17th iteration of a a loop that reads 5 configs pre loop:
+        add_data(vel_array, 16*5, 'Na', 'Velocities)
+
+        """
+        n_configs = len(data)
+        self._data[species_name][property_name][config_idx:config_idx+n_configs, ...] = data
+
+    def get_chunk(self):
+        return self._data
+
+
 class FileProcessor:
     """
     Class to handle reading from trajectory files.
@@ -114,24 +164,15 @@ class FileProcessor:
         """
         raise NotImplementedError('File Processors must implement metadata extraction')
 
-    def get_next_n_configurations(self, n_configs: int) -> dict:
+    def get_configurations_generator(self) -> typing.Iterator[TrajectoryChunkData]:
         """
-        Read n_configs new configurations starting from the previous state.
+        Yield configurations. Batch size must be determined by the FileProcessor
         Parameters
         ----------
-        n_configs: int
-            Number of configurations to return
 
         Returns
         -------
-        trajectory_chunk: dict
-            A dict of the form {'species_1':{'Property_1':data_array_1, 'Property_2':data_array_2, ...}
-                                'species_2': ...}
-            The names of the species must coincide with the names given in TrajectoryMetadata.species_list.
-            The names of the properties must coincide with the names given in the property list of each species.
-            The data arrays must have the shape
-            (SpeciesInfo.n_particles, n_configs, PropertyInfo.n_dims) for each species and property.
-
+        generator that yields TrajectoryChunkData
         """
         raise NotImplementedError('File Processors must implement data loading')
 
