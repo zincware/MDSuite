@@ -67,7 +67,7 @@ class SpeciesInfo:
     name: str
     n_particles: int
     properties: list
-    mass: float = 0
+    mass: float = None
     charge: float = 0
 
 

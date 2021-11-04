@@ -38,6 +38,7 @@ import pubchempy as pcp
 import importlib.resources
 import json
 import numpy as np
+import copy
 
 log = logging.getLogger(__name__)
 
@@ -77,20 +78,17 @@ class ExperimentAddingFiles:
         self.database_path: str = ""
         self.n_configurations_stored = 0
         self.memory_requirements = None
-        self.number_of_configurations = None
-        self.batch_size = None
-        self.number_of_atoms = None
-        self.species = None
-        self.property_groups = None
+
+        self.species_list = None
         self.read_files = None
         self.version = None
-
 
     def add_data(
             self,
             trajectory_file: str = None,
             file_format: str = "lammps_traj",
             force: bool = False,
+            update_with_pubchempy = True
     ):
         """
         Add tensor_values to the database_path
@@ -155,61 +153,18 @@ class ExperimentAddingFiles:
 
         self.version += 1
 
-        self.build_species_dictionary()
+        self.species_list = copy.deepcopy(metadata.species_list)
+        if update_with_pubchempy:
+            update_species_attributes_with_pubchempy(self.species_list)
+
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
         self.read_files = self.read_files + [traj_file_path]
 
-    def build_species_dictionary(self):
-        """
-        Add information to the species dictionary
-
-        A fundamental part of this package is species specific analysis. Therefore, the
-        Pubchempy package is used to add important species specific information to the
-        class. This will include the charge of the ions which will be used in
-        conductivity calculations.
-
-        """
-        with importlib.resources.open_text(
-                "mdsuite.data", "PubChemElements_all.json"
-        ) as json_file:
-            pse = json.loads(json_file.read())
-
-        # Try to get the species tensor_values from the Periodic System of Elements file
-        species = dict(self.species)
-        for element in self.species:
-            species[element]["charge"] = [0.0]
-            for entry in pse:
-                if pse[entry][1] == element:
-                    species[element]["mass"] = [float(pse[entry][3])]
-
-        # If gathering the tensor_values from the PSE file was not successful
-        # try to get it from Pubchem via pubchempy
-        for element in self.species:
-            if "mass" not in self.species[element]:
-                try:
-                    temp = pcp.get_compounds(element, "name")
-                    temp[0].to_dict(
-                        properties=[
-                            "atoms",
-                            "bonds",
-                            "exact_mass",
-                            "molecular_weight",
-                            "elements",
-                        ]
-                    )
-                    species[element]["mass"] = [temp[0].molecular_weight]
-                    log.debug(temp[0].exact_mass)
-                except (ElementMassAssignedZero, IndexError):
-                    species[element]["mass"] = [0.0]
-                    log.warning(f"WARNING element {element} has been assigned mass=0.0")
-        # self.save_class()
-        self.species = species
-
     def load_matrix(
             self,
-            identifier: str = None,
+            property_name: str = None,
             species: list = None,
             select_slice: np.s_ = None,
             path: list = None,
@@ -219,8 +174,8 @@ class ExperimentAddingFiles:
 
         Parameters
         ----------
-        identifier : str
-                Name of the matrix to be loaded, e.g. Unwrapped_Positions, Velocities
+        property_name : str
+                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions', 'Velocities'
         species : list
                 List of species to be loaded
         select_slice : np.slice
@@ -241,14 +196,58 @@ class ExperimentAddingFiles:
         else:
             # If no species list is given, use all species in the Experiment.
             if species is None:
-                species = list(
-                    self.species.keys()
-                )  # get list of all species available.
+                species = [sp.name for sp in self.species_list]
             # If no slice is given, load all configurations.
             if select_slice is None:
                 select_slice = np.s_[:]  # set the numpy slice object.
 
         path_list = []
         for item in species:
-            path_list.append(join_path(item, identifier))
+            path_list.append(join_path(item, property_name))
         return database.load_data(path_list=path_list, select_slice=select_slice)
+
+
+def update_species_attributes_with_pubchempy(species_list):
+    """
+    Add information to the species dictionary
+
+    A fundamental part of this package is species specific analysis. Therefore, the
+    Pubchempy package is used to add important species specific information to the
+    class. This will include the charge of the ions which will be used in
+    conductivity calculations.
+
+    """
+    with importlib.resources.open_text(
+            "mdsuite.data", "PubChemElements_all.json"
+    ) as json_file:
+        pse = json.loads(json_file.read())
+
+    # Try to get the species tensor_values from the Periodic System of Elements file
+
+    # set/find masses
+    for sp_info in species_list:
+        for entry in pse:
+            if pse[entry][1] == sp_info.name:
+                sp_info.mass = [float(pse[entry][3])]
+
+                # If gathering the tensor_values from the PSE file was not successful
+    # try to get it from Pubchem via pubchempy
+    for sp_info in species_list:
+        if sp_info.mass is None:
+            try:
+                temp = pcp.get_compounds(sp_info.name, "name")
+                temp[0].to_dict(
+                    properties=[
+                        "atoms",
+                        "bonds",
+                        "exact_mass",
+                        "molecular_weight",
+                        "elements",
+                    ]
+                )
+                sp_info.mass = [temp[0].molecular_weight]
+                log.debug(temp[0].exact_mass)
+            except (ElementMassAssignedZero, IndexError):
+                sp_info.mass = 0.0
+                log.warning(f"WARNING element {sp_info.name} has been assigned mass=0.0")
+    return species_list
