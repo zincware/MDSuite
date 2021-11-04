@@ -2,7 +2,7 @@ import mdsuite.file_io.file_read
 import typing
 
 
-class SciptInput(mdsuite.file_io.file_read.FileProcessor):
+class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     """
     For testing purposes. Does not actually process files, instead uses data given on instantiation
     """
@@ -10,7 +10,7 @@ class SciptInput(mdsuite.file_io.file_read.FileProcessor):
     def __init__(self,
                  data: mdsuite.file_io.file_read.TrajectoryChunkData,
                  metadata: mdsuite.file_io.file_read.TrajectoryMetadata,
-                 name:str):
+                 name: str):
         """
         Provide all the data needed for this class to act as a FileProcessor
         Parameters

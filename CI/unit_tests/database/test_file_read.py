@@ -1,0 +1,91 @@
+import tempfile
+
+import mdsuite
+import mdsuite.file_io.script_input as script_input
+import mdsuite.file_io.file_read as file_read
+import numpy as np
+
+
+def get_species_list(n_species=1, prop_names=['Positions'], n_particles=17, n_dims=3):
+    props = list()
+    for prop_name in prop_names:
+        props.append(file_read.PropertyInfo(name=prop_name, n_dims=n_dims))
+    ret = list()
+    for i in range(n_species):
+        ret.append(file_read.SpeciesInfo(name=f'sp_test_{i}', mass=1.1, n_particles=n_particles, properties=props))
+
+    return ret
+
+
+def test_species_info_equal():
+    properties_0 = [file_read.PropertyInfo(name='test0', n_dims=2),
+                    file_read.PropertyInfo(name='test1', n_dims=2)]
+    properties_1 = [file_read.PropertyInfo(name='test0', n_dims=2),
+                    file_read.PropertyInfo(name='test1', n_dims=987654)]
+
+    assert properties_0[0] == properties_1[0]
+
+    sp_info_0 = file_read.SpeciesInfo(name='test0', mass=3, n_particles=17, properties=properties_0)
+    sp_info_1 = file_read.SpeciesInfo(name='test0', mass=3, n_particles=17, properties=properties_0)
+    sp_info_2 = file_read.SpeciesInfo(name='test0', mass=3, n_particles=17, properties=properties_1)
+
+    assert sp_info_0 == sp_info_1
+    assert sp_info_0 != sp_info_2
+
+
+def test_traj_chunk_data():
+    prop_name = 'my_property'
+    sp_list = get_species_list(n_species=2, prop_names=[prop_name], n_particles=5, n_dims=2)
+    n_configs = 11
+    chunk_size = 83
+    sp_name = sp_list[1].name
+    data = np.random.rand(*(n_configs, 5, 2))
+
+    chunk = file_read.TrajectoryChunkData(species_list=sp_list, chunk_size=chunk_size)
+
+    # write data to the end of the chunk
+    chunk.add_data(data=data, species_name=sp_name, property_name=prop_name, config_idx=chunk_size - n_configs)
+
+    chunk_data = chunk.get_data()
+    my_prop_data = chunk_data[sp_name][prop_name]
+    assert my_prop_data.shape == (chunk_size, 5, 2)
+
+    np.testing.assert_array_almost_equal(my_prop_data[:chunk_size - n_configs, :, :],
+                                         np.zeros((chunk_size - n_configs, 5, 2)))
+    np.testing.assert_array_almost_equal(my_prop_data[chunk_size - n_configs:, :, :], data)
+
+
+def test_read_script_input():
+    n_configs = 10
+    n_parts = 4
+    n_dims = 2
+    sp_name = 'test_species'
+    positions = np.random.rand(*(n_configs, n_parts, n_dims))
+    velocities = np.random.rand(*(n_configs, n_parts, n_dims))
+
+    properties = [file_read.PropertyInfo(name='Positions', n_dims=n_dims),
+                  file_read.PropertyInfo(name='Velocities', n_dims=n_dims)]
+
+    species_list = [file_read.SpeciesInfo(name=sp_name,
+                                          n_particles=n_parts,
+                                          mass=1234,
+                                          properties=properties)]
+
+    metadata = file_read.TrajectoryMetadata(species_list=species_list,
+                                            n_configurations=n_configs,
+                                            sample_step=0.5,
+                                            box_l=3 * [1.1])
+    data = file_read.TrajectoryChunkData(species_list=species_list,
+                                         chunk_size=n_configs)
+    data.add_data(positions, 0, sp_name, 'Positions')
+    data.add_data(velocities, 0, sp_name, 'Velocities')
+
+    proc = script_input.ScriptInput(data=data,
+                                    metadata=metadata,
+                                    name='test_name')
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        project = mdsuite.Project(name='test_proj', storage_path=temp_dir)
+        project.add_experiment(experiment='test_experiment', timestep=0.1)
+        exp = project.experiments['test_experiment']
+        exp.add_data(file_processor=proc)

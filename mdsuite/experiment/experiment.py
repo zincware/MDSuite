@@ -614,5 +614,5 @@ def _species_list_to_architecture_dict(species_list, n_configurations):
             architecture[sp_info.name][prop_info.name] = (
                 sp_info.n_particles,
                 n_configurations,
-                prop_info.n_dim)
+                prop_info.n_dims)
     return architecture

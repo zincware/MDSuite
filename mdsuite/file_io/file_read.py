@@ -26,8 +26,6 @@ Summary
 """
 import abc
 import dataclasses
-import pathlib
-
 import numpy as np
 import typing
 
@@ -76,7 +74,10 @@ class SpeciesInfo:
         same = self.name == other.name and \
                self.n_particles == other.n_particles and \
                self.mass == other.mass and \
-               self.charge and other.charge
+               self.charge == other.charge
+        if len(self.properties) != len(other.properties):
+            return False
+
         for prop_s, prop_o in zip(self.properties, other.properties):
             same = same and prop_s == prop_o
         return same
@@ -109,7 +110,7 @@ class TrajectoryMetadata:
     """
     n_configurations: int
     species_list: list
-    box_l: list = None
+    box_l: list
     sample_step: float = None
     temperature: float = None
     simulation_data: dict = dataclasses.field(default_factory=dict)
@@ -119,14 +120,14 @@ class TrajectoryChunkData:
     """
     Class to specify the data format for transfer from the file to the database
     """
-
     def __init__(self, species_list: list, chunk_size: int):
         """
 
         Parameters
         ----------
         species_list:
-            List of SpeciesInfo. It contains the information, which species are there and which properties are recoreded for each
+            List of SpeciesInfo.
+            It contains the information which species are there and which properties are recoreded for each
         chunk_size:
             The number of configurations to be stored in this chunk
         """
@@ -134,6 +135,7 @@ class TrajectoryChunkData:
         self.species_list = species_list
         self._data = dict()
         for sp_info in species_list:
+            self._data[sp_info.name] = dict()
             for prop_info in sp_info.properties:
                 self._data[sp_info.name][prop_info.name] = np.zeros((chunk_size, sp_info.n_particles, prop_info.n_dims))
 
@@ -152,8 +154,10 @@ class TrajectoryChunkData:
         property_name
             Name of the property being added
 
-        example: Storing Velocity Information for Na atoms in the 17th iteration of a a loop that reads 5 configs pre loop:
-        add_data(vel_array, 16*5, 'Na', 'Velocities)
+        example:
+        Storing velocity Information for 42 Na atoms in the 17th iteration of a loop that reads 5 configs per loop:
+        add_data(vel_array, 16*5, 'Na', 'Velocities')
+        where vel.data.shape == (5,42,3)
 
         """
         n_configs = len(data)
@@ -163,7 +167,7 @@ class TrajectoryChunkData:
         return self._data
 
 
-class FileProcessor:
+class FileProcessor(abc.ABC):
     """
     Class to handle reading from trajectory files.
     Output is supposed to be used by the experiment class for building and populating the trajectory database.
