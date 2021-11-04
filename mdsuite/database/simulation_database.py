@@ -26,6 +26,8 @@ Summary
 """
 import h5py as hf
 import numpy as np
+
+import mdsuite.file_io.file_read
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
@@ -110,7 +112,7 @@ class Database:
 
     @staticmethod
     def _update_indices(
-        data: np.array, reference: np.array, batch_size: int, n_atoms: int
+            data: np.array, reference: np.array, batch_size: int, n_atoms: int
     ):
         """
         Update the indices key of the structure dictionary if the tensor_values must be
@@ -133,7 +135,7 @@ class Database:
         n_batches = ids.shape[0]
 
         return (
-            ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T
+                ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T
         ).flatten()
 
     @staticmethod
@@ -198,136 +200,36 @@ class Database:
         return hf.File(self.name, mode)
 
     def add_data(
-        self,
-        data: np.array,
-        structure: dict,
-        start_index: int,
-        batch_size: int,
-        tensor: bool = False,
-        system_tensor: bool = False,
-        flux: bool = False,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
+            self,
+            chunk: mdsuite.file_io.file_read.TrajectoryChunkData,
+            start_idx: int):
         """
-        Add a set of tensor_values to the database_path.
-
+        Add new data to the dataset.
         Parameters
         ----------
-        flux : bool
-                If true, the atom dimension is not included in the slicing.
-        system_tensor : bool
-                If true, no atom information is looked for when saving
-        tensor : bool
-                If true, this will skip the type enforcement
-        batch_size : int
-                Number of configurations in each batch
-        start_index : int
-                Point in database_path from which to start filling.
-
-        structure : dict
-                Structure of the tensor_values to be loaded into the database_path e.g.
-                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5],
-                'length': 500}}
-        data : np.array
-                Data to be loaded in.
-        sort : bool
-                If true, tensor_values is sorted before being dumped into the
-                database_path.
-        n_atoms : int
-                Necessary if the sort function is called. Total number of atoms in the
-                experiment.
-        Returns
-        -------
-        Adds tensor_values to the database_path
+        chunk:
+            a data chunk
+        start_index:
+            Configuration at which to start writing
         """
+
+        workaround_time_in_axis_1 = True
+
+        chunk_data = chunk.get_chunk()
 
         with hf.File(self.name, "r+") as database:
-            stop_index = start_index + batch_size  # get the stop index
-            for item in structure:
-                if tensor:
-                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
-                elif system_tensor:
-                    database[item][start_index:stop_index, :] = data[:, 0:3]
-                elif flux:
-                    database[item][start_index:stop_index, :] = data[
-                        structure[item]["indices"]
-                    ][
-                        np.s_[
-                            :,
-                            structure[item]["columns"][0] : structure[item]["columns"][
-                                -1
-                            ]
-                            + 1,
-                        ]
-                    ].astype(
-                        float
-                    )
-                else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(
-                        data, structure, item, batch_size, sort, n_atoms=n_atoms
-                    )
+            stop_index = self.n_configs_stored + chunk.chunk_size
 
-    def _get_data(
-        self,
-        data: np.array,
-        structure: dict,
-        item: str,
-        batch_size: int,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
-        """
-        Fetch tensor_values with some format from a large array.
+            for sp_info in chunk.species_list:
+                for prop_info in sp_info.properties:
+                    dataset_name = f'{sp_info.name}/{prop_info.name}'
+                    write_data = chunk_data[sp_info.name][prop_info.name]
+                    if workaround_time_in_axis_1:
+                        database[dataset_name][:, start_idx:stop_index, :] = np.swapaxes(write_data, 0, 1)
+                    else:
+                        database[dataset_name][start_idx:stop_index, ...] = write_data
 
-        Returns
-        -------
-
-        """
-        if sort:
-            indices = self._update_indices(
-                data, structure[item]["indices"], batch_size, n_atoms
-            )
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-        else:
-            indices = structure[item]["indices"]
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-
-    def resize_dataset(self, structure: dict):
+    def resize_datasets(self, structure: dict):
         """
         Resize a dataset so more tensor_values can be added
 
@@ -545,12 +447,12 @@ class Database:
                     db.move(item, mapping[item])
 
     def load_data(
-        self,
-        path_list: list = None,
-        select_slice: np.s_ = np.s_[:],
-        dictionary: bool = False,
-        scaling: list = None,
-        d_size: int = None,
+            self,
+            path_list: list = None,
+            select_slice: np.s_ = np.s_[:],
+            dictionary: bool = False,
+            scaling: list = None,
+            d_size: int = None,
     ):
         """
         Load tensor_values from the database_path for some operation.
@@ -626,7 +528,7 @@ class Database:
         return stop - start
 
     def get_data_size(
-        self, data_path: str, database_path: str = None, system: bool = False
+            self, data_path: str, database_path: str = None, system: bool = False
     ) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)

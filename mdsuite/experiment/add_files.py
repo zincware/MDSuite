@@ -33,7 +33,7 @@ from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 
 from tqdm import tqdm
-from pathlib import Path
+import pathlib
 import pubchempy as pcp
 import importlib.resources
 import json
@@ -42,12 +42,40 @@ import numpy as np
 log = logging.getLogger(__name__)
 
 
+def _load_trajectory_reader(file_format, trajectory_file, sort: bool = False):
+    # TODO replace by proper instantiation
+    try:
+        class_file_io, file_type = dict_file_io[
+            file_format
+        ]  # file type is per atoms or flux.
+    except KeyError:
+        raise ValueError(
+            f"{file_format} not found! \n"
+            f"Available io formats are are: {[key for key in dict_file_io.keys()]}"
+        )
+    return class_file_io(file_path=trajectory_file, sort=sort), file_type
+
+
+def _species_list_to_architecture_dict(species_list, n_configurations):
+    # TODO let the database handler use the species list directly instead of the dict
+    architecture = {}
+    for sp_info in species_list:
+        architecture[sp_info.name] = {}
+        for prop_info in sp_info.properties:
+            architecture[sp_info.name][prop_info.name] = (
+                sp_info.n_particles,
+                n_configurations,
+                prop_info.n_dim)
+    return architecture
+
+
 class ExperimentAddingFiles:
     """Parent class that handles the file additions"""
 
     def __init__(self):
         """Constructor of the ExperimentAddingFiles class"""
         self.database_path: str = ""
+        self.n_configurations_stored = 0
         self.memory_requirements = None
         self.number_of_configurations = None
         self.batch_size = None
@@ -57,13 +85,12 @@ class ExperimentAddingFiles:
         self.read_files = None
         self.version = None
 
+
     def add_data(
-        self,
-        trajectory_file: str = None,
-        file_format: str = "lammps_traj",
-        rename_cols: dict = None,
-        sort: bool = False,
-        force: bool = False,
+            self,
+            trajectory_file: str = None,
+            file_format: str = "lammps_traj",
+            force: bool = False,
     ):
         """
         Add tensor_values to the database_path
@@ -74,13 +101,6 @@ class ExperimentAddingFiles:
                 Format of the file being read in. Default is file_path
         trajectory_file : str
                 Trajectory file to be process and added to the database_path.
-        rename_cols : dict
-                If this argument is given, the columns with names in the keys of the
-                dictionary will be replaced with
-                the values.
-        sort : bool
-                If true, the tensor_values will be sorted when being entered into the
-                database_path.
         force : bool
                 If true, a file will be read regardless of if it has already
                 been seen.
@@ -88,52 +108,50 @@ class ExperimentAddingFiles:
 
         # Check if there is a trajectory file.
         if trajectory_file is None:
-            raise ValueError("No tensor_values has been given")
+            raise ValueError("You need to pass a trajectory_file for data loading")
 
-        file_check = self._check_read_files(trajectory_file)
-        if file_check:
-            if force:
-                pass
-            else:
-                log.info(
-                    "This file has already been read, skipping this now."
-                    "If this is not desired, please add force=True "
-                    "to the command."
-                )
-                return  # End the method.
+        # make absolute path
+        traj_file_path = pathlib.Path(trajectory_file)
+        traj_file_path.resolve()
 
-        # Load the file reader and the database_path object
-        trajectory_reader, file_type = self._load_trajectory_reader(
-            file_format, trajectory_file, sort=sort
+        already_read = traj_file_path in self.read_files
+        if already_read and not force:
+            log.info(
+                "This file has already been read, skipping this now."
+                "If this is not desired, please add force=True "
+                "to the command."
+            )
+            return  # End the method.
+
+        # todo trajectory_reader should be an argument of this function
+        trajectory_reader, file_type = _load_trajectory_reader(
+            file_format, trajectory_file
         )
         database = Database(
-            name=Path(self.database_path, "database.hdf5").as_posix(),
-            architecture="simulation",
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix(),
         )
 
         # Check to see if a database_path exists
-        database_path = Path(
+        # todo make method of database class
+        database_path = pathlib.Path(
             self.database_path, "database.hdf5"
         )  # get theoretical path.
 
-        if file_type == "flux":
-            flux = True
+        metadata = trajectory_reader.get_metadata()
+        architecture = _species_list_to_architecture_dict(metadata.species_list,
+                                                          metadata.n_configurations)
+        if not database_path.exists():
+            # todo store the other metadata
+            database.initialize_database(architecture)
         else:
-            flux = False
+            database.resize_datasets(architecture)
 
-        if database_path.exists():
-            self._update_database(
-                trajectory_reader, trajectory_file, database, rename_cols, sort=sort
+        for i, batch in enumerate(trajectory_reader.get_configurations_generator()):
+            database.add_data(
+                chunk=batch,
+                start_idx=self.n_configurations_stored
             )
-        else:
-            self._build_new_database(
-                trajectory_reader,
-                trajectory_file,
-                database,
-                rename_cols=rename_cols,
-                flux=flux,
-                sort=sort,
-            )
+            self.n_configurations_stored += batch.chunk_size
 
         self.version += 1
 
@@ -141,150 +159,7 @@ class ExperimentAddingFiles:
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
-        self.read_files = self.read_files + [trajectory_file]
-
-    def _check_read_files(self, file_path: str):
-        """
-        Check if a file has been read before and add it to the hidden file.
-
-        Parameters
-        ----------
-        file_path : str
-                Path to the file.
-
-        Returns
-        -------
-
-        """
-        file_path = Path(file_path)
-        if file_path in self.read_files:
-            return True
-        else:
-            return False
-
-    def _load_trajectory_reader(self, file_format, trajectory_file, sort: bool = False):
-        try:
-            class_file_io, file_type = dict_file_io[
-                file_format
-            ]  # file type is per atoms or flux.
-        except KeyError:
-            raise ValueError(
-                f"{file_format} not found! \n"
-                f"Available io formats are are: {[key for key in dict_file_io.keys()]}"
-            )
-        return class_file_io(self, file_path=trajectory_file, sort=sort), file_type
-
-    def _update_database(
-        self,
-        trajectory_reader: FileProcessor,
-        trajectory_file: str,
-        database: Database,
-        rename_cols: dict,
-        flux: bool = False,
-        sort: bool = False,
-    ):
-        """
-        Update the database rather than build a new database.
-
-        Returns
-        -------
-        Updates the current database.
-        """
-        counter = self.number_of_configurations
-        architecture, line_length = trajectory_reader.process_trajectory_file(
-            rename_cols=rename_cols, update_class=False
-        )
-        number_of_new_configurations = self.number_of_configurations - counter
-        database.resize_dataset(architecture)  # initialize the database_path
-        batch_range = int(
-            number_of_new_configurations / self.batch_size
-        )  # calculate the batch range
-        remainder = number_of_new_configurations - (batch_range * self.batch_size)
-        structure = trajectory_reader.build_file_structure()  # build the file structure
-        with open(trajectory_file, "r") as f_object:
-            for _ in tqdm(range(batch_range), ncols=70):
-                database.add_data(
-                    data=trajectory_reader.read_configurations(
-                        self.batch_size, f_object, line_length
-                    ),
-                    structure=structure,
-                    start_index=counter,
-                    batch_size=self.batch_size,
-                    flux=flux,
-                    n_atoms=self.number_of_atoms,
-                    sort=sort,
-                )
-                counter += self.batch_size
-
-            if remainder > 0:
-                structure = trajectory_reader.build_file_structure(
-                    batch_size=remainder
-                )  # build the file structure
-                database.add_data(
-                    data=trajectory_reader.read_configurations(
-                        remainder, f_object, line_length
-                    ),
-                    structure=structure,
-                    start_index=counter,
-                    batch_size=remainder,
-                    flux=flux,
-                )
-
-    def _build_new_database(
-        self,
-        trajectory_reader: FileProcessor,
-        trajectory_file: str,
-        database: Database,
-        rename_cols: dict,
-        flux: bool = False,
-        sort: bool = False,
-    ):
-        """
-        Build a new database_path
-        """
-        # get properties of the trajectory file
-        architecture, line_length = trajectory_reader.process_trajectory_file(
-            rename_cols=rename_cols
-        )
-        database.initialize_database(architecture)  # initialize the database_path
-
-        batch_range = int(
-            self.number_of_configurations / self.batch_size
-        )  # calculate the batch range
-        remainder = self.number_of_configurations - batch_range * self.batch_size
-        counter = 0  # instantiate counter
-        structure = trajectory_reader.build_file_structure()  # build the file structure
-
-        with open(trajectory_file, "r") as f_object:
-            for _ in tqdm(range(batch_range), ncols=70):
-                database.add_data(
-                    data=trajectory_reader.read_configurations(
-                        self.batch_size, f_object, line_length
-                    ),
-                    structure=structure,
-                    start_index=counter,
-                    batch_size=self.batch_size,
-                    flux=flux,
-                    n_atoms=self.number_of_atoms,
-                    sort=sort,
-                )
-                counter += self.batch_size
-
-            if remainder > 0:
-                structure = trajectory_reader.build_file_structure(
-                    batch_size=remainder
-                )  # build the file structure
-                database.add_data(
-                    data=trajectory_reader.read_configurations(
-                        remainder, f_object, line_length
-                    ),
-                    structure=structure,
-                    start_index=counter,
-                    batch_size=remainder,
-                    flux=flux,
-                    n_atoms=self.number_of_atoms,
-                    sort=sort,
-                )
+        self.read_files = self.read_files + [traj_file_path]
 
     def build_species_dictionary(self):
         """
@@ -297,7 +172,7 @@ class ExperimentAddingFiles:
 
         """
         with importlib.resources.open_text(
-            "mdsuite.data", "PubChemElements_all.json"
+                "mdsuite.data", "PubChemElements_all.json"
         ) as json_file:
             pse = json.loads(json_file.read())
 
@@ -333,11 +208,11 @@ class ExperimentAddingFiles:
         self.species = species
 
     def load_matrix(
-        self,
-        identifier: str = None,
-        species: list = None,
-        select_slice: np.s_ = None,
-        path: list = None,
+            self,
+            identifier: str = None,
+            species: list = None,
+            select_slice: np.s_ = None,
+            path: list = None,
     ):
         """
         Load a desired property matrix.
@@ -358,7 +233,7 @@ class ExperimentAddingFiles:
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
-        database = Database(name=Path(self.database_path, "database.hdf5").as_posix())
+        database = Database(name=pathlib.Path(self.database_path, "database.hdf5").as_posix())
 
         if path is not None:
             return database.load_data(path_list=path, select_slice=select_slice)
