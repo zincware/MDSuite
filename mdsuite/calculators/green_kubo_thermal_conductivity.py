@@ -23,20 +23,35 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of the thermal conductivity using the Green-Kubo
+relation.
 """
-import warnings
+from abc import ABC
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators import TrajectoryCalculator
 import tensorflow_probability as tfp
 from bokeh.models import Span
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
 
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
+
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+    data_range: int
+    correlation_time: int
+    tau_values: np.s_
+    atom_selection: np.s_
+    integration_range: int
 
 
-class GreenKuboThermalConductivity(Calculator):
+class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Green-Kubo Thermal conductivity implementation
 
@@ -73,20 +88,20 @@ class GreenKuboThermalConductivity(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = "Thermal_Flux"
-        self.database_group = "Thermal_Conductivity"
+        self.loaded_property = simulation_properties.thermal_flux
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Thermal_Conductivity"
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=False,
         data_range=500,
-        save=True,
+        tau_values: np.s_ = np.s_[:],
         correlation_time: int = 1,
         gpu: bool = False,
         integration_range: int = None,
@@ -100,61 +115,48 @@ class GreenKuboThermalConductivity(Calculator):
                 if true, plot the output.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        export : bool
-                If true, export the data directly into a csv file.
         gpu : bool
                 If true, scale the memory requirement down to the amount of
                 the biggest GPU in the system.
         integration_range : int
                 Range over which the integration should be performed.
         """
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            gpu=gpu,
-        )
-
-        self.jacf = np.zeros(self.data_range)
+        self.gpu = gpu
+        self.plot = plot
+        self.jacf: np.ndarray
         self.prefactor: float
         self.sigma = []
 
         if integration_range is None:
-            self.integration_range = self.data_range
-        else:
-            self.integration_range = integration_range
+            integration_range = data_range
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range, correlation_time=correlation_time
+        # set args that will affect the computation result
+        self.args = Args(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
+            atom_selection=np.s_[:],
+            integration_range=integration_range
         )
 
-    def _update_output_signatures(self):
+        self.time = self._handle_tau_values()
+        self.jacf = np.zeros(self.data_resolution)
+
+    def check_input(self):
         """
-        Update the output signature for the IC.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(self.batch_size, 3), dtype=tf.float64
-        )
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(self.data_range, 3), dtype=tf.float64
-        )
+        self._run_dependency_check()
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity pre-factor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -165,7 +167,7 @@ class GreenKuboThermalConductivity(Calculator):
         numerator = 1
         denominator = (
             3
-            * (self.data_range - 1)
+            * (self.args.data_range - 1)
             * self.experiment.temperature ** 2
             * self.experiment.units["boltzman"]
             * self.experiment.volume
@@ -187,7 +189,7 @@ class GreenKuboThermalConductivity(Calculator):
         """
         pass
 
-    def _apply_operation(self, ensemble: tf.Tensor, index: int):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
@@ -200,18 +202,19 @@ class GreenKuboThermalConductivity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        jacf = self.data_range * tf.reduce_sum(
+        jacf = self.args.data_range * tf.reduce_sum(
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
-                jacf[: self.integration_range], x=self.time[: self.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
 
@@ -234,7 +237,7 @@ class GreenKuboThermalConductivity(Calculator):
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1
+                    self.args.integration_range - 1
                 ],
                 dimension="height",
                 line_dash="dashed",
@@ -245,3 +248,36 @@ class GreenKuboThermalConductivity(Calculator):
                 title=f"{result[0]} +- {result[1]}",
                 layouts=[span],
             )
+
+    def run_calculator(self):
+        """
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        self.check_input()
+        # Compute the pre-factor early.
+        self._calculate_prefactor()
+
+        dict_ref = str.encode(
+            "/".join([self.loaded_property[0], self.loaded_property[0]])
+        )
+
+        batch_ds = self.get_batch_dataset([self.loaded_property[0]])
+
+        for batch in tqdm(
+            batch_ds,
+            ncols=70,
+            total=self.n_batches,
+            disable=self.memory_manager.minibatch,
+        ):
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
+
+            for ensemble in ensemble_ds:
+                self.ensemble_operation(ensemble[dict_ref])
+
+        # Scale, save, and plot the data.
+        self._apply_averaging_factor()
+        self._post_operation_processes()

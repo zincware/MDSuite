@@ -23,16 +23,38 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the computation of diffusion coefficients using the Green-Kubo approach.
 """
+from abc import ABC
+
 import numpy as np
 import tensorflow_probability as tfp
 import tensorflow as tf
 from bokeh.models import Span
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.database.scheme import Computation
+from tqdm import tqdm
+from typing import Union
+from mdsuite.calculators.calculator import call
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
+from typing import List, Any
+from mdsuite.calculators import TrajectoryCalculator
 
 
-class GreenKuboDiffusionCoefficients(Calculator):
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    tau_values: np.s_
+    molecules: bool
+    species: list
+    integration_range: int
+
+
+class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
     """
     Class for the Green-Kubo diffusion coefficient implementation
     Attributes
@@ -72,31 +94,30 @@ class GreenKuboDiffusionCoefficients(Calculator):
         """
         super().__init__(**kwargs)
 
-        self.loaded_property = "Velocities"
+        self.loaded_property = simulation_properties.velocities
         self.scale_function = {"linear": {"scale_factor": 150}}
 
-        self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
-
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "acf"]
 
+        self._dtype = tf.float64
+
     @call
     def __call__(
-        self,
-        plot: bool = True,
-        species: list = None,
-        data_range: int = 500,
-        save: bool = True,
-        correlation_time: int = 1,
-        atom_selection=np.s_[:],
-        export: bool = False,
-        molecules: bool = False,
-        gpu: bool = False,
-        integration_range: int = None,
-    ) -> Computation:
+            self,
+            plot: bool = True,
+            species: list = None,
+            data_range: int = 500,
+            correlation_time: int = 1,
+            atom_selection=np.s_[:],
+            molecules: bool = False,
+            gpu: bool = False,
+            tau_values: Union[int, List, Any] = np.s_[:],
+            integration_range: int = None,
+    ):
         """
         Constructor for the Green-Kubo diffusion coefficients class.
 
@@ -108,14 +129,10 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 List of species on which to operate.
         data_range : int
                 Data range to use in the analysis.
-        save : bool
-                if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
         atom_selection : np.s_
                 Selection of atoms to use within the HDF5 database.
-        export : bool
-                If true, export the data directly into a csv file.
         molecules : bool
                 If true, molecules are used instead of atoms.
         gpu : bool
@@ -125,57 +142,40 @@ class GreenKuboDiffusionCoefficients(Calculator):
                 Range over which to integrate. Default is to integrate over
                 the full data range.
         """
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            export=export,
-            gpu=gpu,
-        )
-
-        self.molecules = molecules
-        self.species = species  # Which species to calculate for
-
-        self.vacf = np.zeros(self.data_range)
-        self.sigma = []
-
-        if integration_range is None:
-            self.integration_range = self.data_range
-        else:
-            self.integration_range = integration_range
-
         if species is None:
             if molecules:
-                self.species = list(self.experiment.molecules)
+                species = list(self.experiment.molecules)
             else:
-                self.species = list(self.experiment.species)
+                species = list(self.experiment.species)
+        if integration_range is None:
+            integration_range = data_range
 
-        return self.update_db_entry_with_kwargs(
-            species=species,
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
+            tau_values=tau_values,
+            molecules=molecules,
+            species=species,
+            integration_range=integration_range
         )
 
-    def _update_output_signatures(self):
+        self.gpu = gpu
+        self.plot = plot
+        self.time = self._handle_tau_values()
+        self.vacf = np.zeros(self.data_resolution)
+        self.sigma = []
+
+    def check_input(self):
         """
-        After having run _prepare managers, update the output signatures.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
-        Update the class state.
-        """
-        # Update the batch update signature for database loading.
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(None, self.batch_size, 3), dtype=tf.float64
-        )
 
-        # Update ensemble output signature for ensemble loading.
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(None, self.data_range, 3), dtype=tf.float64
-        )
+        """
+        self._run_dependency_check()
 
     def _calculate_prefactor(self, species: str = None):
         """
@@ -191,35 +191,26 @@ class GreenKuboDiffusionCoefficients(Calculator):
         Updates the class state.
         """
         # Calculate the prefactor
-        if self.molecules:
+        if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * (self.integration_range - 1)
-                * len(self.experiment.molecules[species]["indices"])
+                    3
+                    * self.experiment.units["time"]
+                    * (self.args.integration_range - 1)
+                    * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * self.integration_range
-                * len(self.experiment.species[species]["indices"])
+                    3
+                    * self.experiment.units["time"]
+                    * self.args.integration_range
+                    * len(self.experiment.species[species]["indices"])
             )
             self.prefactor = numerator / denominator
 
-    def _apply_averaging_factor(self):
-        """
-        Apply the averaging factor to the msd array.
-        Returns
-        -------
-
-        """
-        pass
-
-    def _apply_operation(self, ensemble, index):
+    def ensemble_operation(self, ensemble):
         """
         Calculate and return the msd.
 
@@ -231,7 +222,7 @@ class GreenKuboDiffusionCoefficients(Calculator):
         -------
         MSD of the tensor_values.
         """
-        vacf = self.data_range * tfp.stats.auto_correlation(
+        vacf = self.args.data_range * tfp.stats.auto_correlation(
             ensemble, normalize=False, axis=1, center=False
         )
 
@@ -239,13 +230,48 @@ class GreenKuboDiffusionCoefficients(Calculator):
         self.vacf += vacf
         self.sigma.append(
             np.trapz(
-                vacf[: self.integration_range], x=self.time[: self.integration_range]
+                vacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range]
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def plot_data(self, data: dict):
         """
-        Apply post-op processes such as saving and plotting.
+        Plot the data
+
+        Parameters
+        ----------
+        data : dict
+                Data loaded from the sql database to be plotted.
+        """
+        for selected_species, val in data.items():
+            span = Span(
+                location=(
+                        np.array(val[self.result_series_keys[0]])
+                        * self.experiment.units["time"]
+                )[self.args.integration_range - 1],
+                dimension="height",
+                line_dash="dashed",
+            )
+            self.run_visualization(
+                x_data=np.array(val[self.result_series_keys[0]])
+                       * self.experiment.units["time"],
+                y_data=np.array(val[self.result_series_keys[1]]),
+                title=(
+                    f"{val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
+                ),
+                layouts=[span],
+            )
+
+    def postprocessing(self, species: str):
+        """
+        Apply post-processing to the data.
+
+        Parameters
+        ----------
+        species : str
+                Current species on which you are operating.
 
         Returns
         -------
@@ -262,24 +288,33 @@ class GreenKuboDiffusionCoefficients(Calculator):
 
         self.queue_data(data=data, subjects=[species])
 
-    def plot_data(self, data):
-        """Plot the data"""
-        for selected_species, val in data.items():
-            span = Span(
-                location=(
-                    np.array(val[self.result_series_keys[0]])
-                    * self.experiment.units["time"]
-                )[self.integration_range - 1],
-                dimension="height",
-                line_dash="dashed",
-            )
-            self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
-                y_data=np.array(val[self.result_series_keys[1]]),
-                title=(
-                    f"{val[self.result_keys[0]]: 0.3E} +-"
-                    f" {val[self.result_keys[1]]: 0.3E}"
-                ),
-                layouts=[span],
-            )
+    def run_calculator(self):
+        """
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        self.check_input()
+        # Loop over species
+        for species in self.args.species:
+            dict_ref = str.encode("/".join([species, self.loaded_property[0]]))
+            self._calculate_prefactor(species)
+
+            batch_ds = self.get_batch_dataset([species])
+
+            for batch in tqdm(
+                    batch_ds,
+                    ncols=70,
+                    desc=species,
+                    total=self.n_batches,
+                    disable=self.memory_manager.minibatch,
+            ):
+                ensemble_ds = self.get_ensemble_dataset(batch, species)
+
+                for ensemble in ensemble_ds:
+                    self.ensemble_operation(ensemble[dict_ref])
+
+            # Scale, save, and plot the data.
+            self.postprocessing(species)
