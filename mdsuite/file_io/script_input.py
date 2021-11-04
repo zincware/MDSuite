@@ -9,13 +9,26 @@ class SciptInput(mdsuite.file_io.file_read.FileProcessor):
 
     def __init__(self,
                  data: mdsuite.file_io.file_read.TrajectoryChunkData,
-                 metadata: mdsuite.file_io.file_read.TrajectoryMetadata):
+                 metadata: mdsuite.file_io.file_read.TrajectoryMetadata,
+                 name:str):
+        """
+        Provide all the data needed for this class to act as a FileProcessor
+        Parameters
+        ----------
+        data
+        metadata
+        name : A unique name for this dataset. Used to prevent multiple adding of the same data
+        """
         self.data = data
         self.metadata = metadata
+        self.name = name
 
         mdsuite.file_io.file_read.assert_species_list_consistent(data.species_list, metadata.species_list)
         if self.data.chunk_size != self.metadata.n_configurations:
             raise ValueError('Data must be provided in one chunk')
+
+    def __str__(self):
+        return self.name
 
     def get_metadata(self) -> mdsuite.file_io.file_read.TrajectoryMetadata:
         return self.metadata

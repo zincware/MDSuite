@@ -28,6 +28,7 @@ import mdsuite.utils.meta_functions
 import numpy as np
 import copy
 import typing
+import pathlib
 
 var_names = {
     "Positions": ["x", "y", "z"],
@@ -61,7 +62,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
     """
 
     def __init__(self, file_path: str, trajectory_is_sorted_by_ids=True):
-        self.file_path = file_path
+        self.file_path = pathlib.Path(file_path).resolve()
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
 
@@ -74,6 +75,9 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         self._species_dict = None
         self._property_dict = None
         self._mdata = None
+
+    def __str__(self):
+        return str(self.file_path)
 
     def get_metadata(self) -> mdsuite.file_io.file_read.TrajectoryMetadata:
         """

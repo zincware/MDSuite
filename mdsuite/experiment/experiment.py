@@ -419,8 +419,7 @@ class Experiment(ExperimentDatabase):
 
     def add_data(
             self,
-            trajectory_file: str = None,
-            file_format: str = "lammps_traj",
+            file_processor: mdsuite.file_io.file_read.FileProcessor,
             force: bool = False,
             update_with_pubchempy=True
     ):
@@ -429,10 +428,8 @@ class Experiment(ExperimentDatabase):
 
         Parameters
         ----------
-        file_format :
-                Format of the file being read in. Default is file_path
-        trajectory_file : str
-                Trajectory file to be process and added to the database_path.
+        file_processor
+            The FileProcessor that is able to provide the metadata and the trajectory to be saved
         force : bool
                 If true, a file will be read regardless of if it has already
                 been seen.
@@ -440,15 +437,7 @@ class Experiment(ExperimentDatabase):
                 Whether or not to look for the masses of the species in pubchempy
         """
 
-        # Check if there is a trajectory file.
-        if trajectory_file is None:
-            raise ValueError("You need to pass a trajectory_file for data loading")
-
-        # make absolute path
-        traj_file_path = pathlib.Path(trajectory_file)
-        traj_file_path.resolve()
-
-        already_read = traj_file_path in self.read_files
+        already_read = str(FileProcessor) in self.read_files
         if already_read and not force:
             log.info(
                 "This file has already been read, skipping this now."
@@ -457,10 +446,6 @@ class Experiment(ExperimentDatabase):
             )
             return  # End the method.
 
-        # todo trajectory_reader should be an argument of this function
-        trajectory_reader, file_type = _load_trajectory_reader(
-            file_format, trajectory_file
-        )
         database = Database(
             name=pathlib.Path(self.database_path, "database.hdf5").as_posix(),
         )
@@ -471,7 +456,7 @@ class Experiment(ExperimentDatabase):
             self.database_path, "database.hdf5"
         )  # get theoretical path.
 
-        metadata = trajectory_reader.get_metadata()
+        metadata = file_processor.get_metadata()
         architecture = _species_list_to_architecture_dict(metadata.species_list,
                                                           metadata.n_configurations)
         if not database_path.exists():
@@ -480,7 +465,7 @@ class Experiment(ExperimentDatabase):
         else:
             database.resize_datasets(architecture)
 
-        for i, batch in enumerate(trajectory_reader.get_configurations_generator()):
+        for i, batch in enumerate(file_processor.get_configurations_generator()):
             database.add_data(
                 chunk=batch,
                 start_idx=self.number_of_configurations
@@ -492,7 +477,7 @@ class Experiment(ExperimentDatabase):
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
-        self.read_files = self.read_files + [traj_file_path]
+        self.read_files = self.read_files + [str(FileProcessor)]
 
     def load_matrix(
             self,

@@ -26,6 +26,8 @@ Summary
 """
 import abc
 import dataclasses
+import pathlib
+
 import numpy as np
 import typing
 
@@ -166,6 +168,11 @@ class FileProcessor:
     Class to handle reading from trajectory files.
     Output is supposed to be used by the experiment class for building and populating the trajectory database.
     """
+    def __str__(self):
+        """
+        Return a unique string representing this FileProcessor. (The absolute file path, for example)
+        """
+        raise NotImplementedError('File Processors must implement a string')
 
     def get_metadata(self) -> TrajectoryMetadata:
         """
