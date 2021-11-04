@@ -70,6 +70,15 @@ class SpeciesInfo:
     mass: float = None
     charge: float = 0
 
+    def __eq__(self, other):
+        same = self.name == other.name and \
+               self.n_particles == other.n_particles and \
+               self.mass == other.mass and \
+               self.charge and other.charge
+        for prop_s, prop_o in zip(self.properties, other.properties):
+            same = same and prop_s == prop_o
+        return same
+
 
 @dataclasses.dataclass
 class TrajectoryMetadata:
@@ -126,7 +135,7 @@ class TrajectoryChunkData:
             for prop_info in sp_info.properties:
                 self._data[sp_info.name][prop_info.name] = np.zeros((chunk_size, sp_info.n_particles, prop_info.n_dims))
 
-    def add_data(self, data:np.ndarray, config_idx, species_name, property_name):
+    def add_data(self, data: np.ndarray, config_idx, species_name, property_name):
         """
         Add configuration data to the chunk
         Parameters
@@ -146,7 +155,7 @@ class TrajectoryChunkData:
 
         """
         n_configs = len(data)
-        self._data[species_name][property_name][config_idx:config_idx+n_configs, ...] = data
+        self._data[species_name][property_name][config_idx:config_idx + n_configs, ...] = data
 
     def get_data(self):
         return self._data
@@ -175,6 +184,12 @@ class FileProcessor:
         generator that yields TrajectoryChunkData
         """
         raise NotImplementedError('File Processors must implement data loading')
+
+
+def assert_species_list_consistent(sp_list_0, sp_list_1):
+    for sp_info_data, sp_info_mdata in zip(sp_list_0, sp_list_1):
+        if sp_info_data != sp_info_mdata:
+            raise ValueError('Species information from data and metadata are inconsistent')
 
 
 def read_n_lines(file, n_lines: int, start_at=0) -> list:
