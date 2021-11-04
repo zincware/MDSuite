@@ -148,7 +148,7 @@ class TrajectoryChunkData:
         n_configs = len(data)
         self._data[species_name][property_name][config_idx:config_idx+n_configs, ...] = data
 
-    def get_chunk(self):
+    def get_data(self):
         return self._data
 
 

@@ -209,16 +209,16 @@ class Database:
         ----------
         chunk:
             a data chunk
-        start_index:
+        start_idx:
             Configuration at which to start writing
         """
 
         workaround_time_in_axis_1 = True
 
-        chunk_data = chunk.get_chunk()
+        chunk_data = chunk.get_data()
 
         with hf.File(self.name, "r+") as database:
-            stop_index = self.n_configs_stored + chunk.chunk_size
+            stop_index = start_idx + chunk.chunk_size
 
             for sp_info in chunk.species_list:
                 for prop_info in sp_info.properties:
