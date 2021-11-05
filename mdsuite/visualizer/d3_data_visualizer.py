@@ -204,18 +204,18 @@ class DataVisualizer3D:
 
         """
         self.point_cloud.estimate_normals()
-        self.vis.add_geometry("Points", self.point_cloud)
+        #self.vis.add_geometry("Points", self.point_cloud)
 
-        with o3d.utility.VerbosityContextManager(
-                o3d.utility.VerbosityLevel.Debug) as cm:
-            mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
-                self.point_cloud, depth=2)
+        # with o3d.utility.VerbosityContextManager(
+        #         o3d.utility.VerbosityLevel.Debug) as cm:
+        #     mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+        #         self.point_cloud, depth=5)
 
-        # radii = [0.1, 0.3, 0.6, 1.0, 2.0, 5.0]
-        # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
-        #     self.point_cloud, o3d.utility.DoubleVector(radii))
-        #
-        # alpha = 0.2
+        radii = [0.1, 0.3, 0.6, 1.0, 2.0, 5.0]
+        mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
+            self.point_cloud, o3d.utility.DoubleVector(radii))
+
+        # alpha = 1.5
         #
         # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
         #     self.point_cloud,

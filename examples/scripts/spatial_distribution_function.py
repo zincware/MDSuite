@@ -79,8 +79,8 @@ def run_example():
 
     project.run.SpatialDistributionFunction(
         species=["bmim", "bf4"],
-        r_min=1.0,
-        r_max=9.0,
+        r_min=4.0,
+        r_max=4.5,
         number_of_configurations=50,
         n_bins=1000,
         start=0,
