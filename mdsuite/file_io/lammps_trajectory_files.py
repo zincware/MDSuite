@@ -30,6 +30,8 @@ import copy
 import typing
 import pathlib
 
+from mdsuite.database.simulation_database import TrajectoryMetadata, PropertyInfo, SpeciesInfo
+
 var_names = {
     "Positions": ["x", "y", "z"],
     "Scaled_Positions": ["xs", "ys", "zs"],
@@ -79,7 +81,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
     def __str__(self):
         return str(self.file_path)
 
-    def get_metadata(self) -> mdsuite.file_io.file_read.TrajectoryMetadata:
+    def get_metadata(self) -> TrajectoryMetadata:
         """
         Gets the metadata for database creation.
         Also creates the lookup dictionaries on where to find the particles and properties in the file
@@ -116,18 +118,18 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
         properties_list = list()
         for key, val in self._property_dict:
-            properties_list.append(mdsuite.file_io.file_read.PropertyInfo(name=key, n_dims=len(val)))
+            properties_list.append(PropertyInfo(name=key, n_dims=len(val)))
 
         species_list = list()
         for key, val in self._species_dict.items():
-            species_list.append(mdsuite.file_io.file_read.SpeciesInfo(name=key,
-                                                                      n_particles=len(val),
-                                                                      properties=properties_list))
+            species_list.append(SpeciesInfo(name=key,
+                                            n_particles=len(val),
+                                            properties=properties_list))
 
-        self._mdata = mdsuite.file_io.file_read.TrajectoryMetadata(n_configurations=n_configs,
-                                                                   species_list=species_list,
-                                                                   box_l=box_l,
-                                                                   sample_step=sample_step)
+        self._mdata = TrajectoryMetadata(n_configurations=n_configs,
+                                         species_list=species_list,
+                                         box_l=box_l,
+                                         sample_step=sample_step)
 
         self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(filepath=self.file_path,
                                                                             number_of_configurations=n_configs)
@@ -144,7 +146,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             if n_configs_remainder > 0:
                 yield self._read_process_n_configurations(file, n_configs_remainder)
 
-    def _read_process_n_configurations(self, file, n_configs)->mdsuite.file_io.file_read.TrajectoryChunkData:
+    def _read_process_n_configurations(self, file, n_configs) -> mdsuite.file_io.file_read.TrajectoryChunkData:
         """
         Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
         Parameters

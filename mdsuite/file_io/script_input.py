@@ -1,6 +1,8 @@
 import mdsuite.file_io.file_read
 import typing
 
+from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
+
 
 class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     """
@@ -8,8 +10,8 @@ class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     """
 
     def __init__(self,
-                 data: mdsuite.file_io.file_read.TrajectoryChunkData,
-                 metadata: mdsuite.file_io.file_read.TrajectoryMetadata,
+                 data: TrajectoryChunkData,
+                 metadata: TrajectoryMetadata,
                  name: str):
         """
         Provide all the data needed for this class to act as a FileProcessor
@@ -30,7 +32,7 @@ class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     def __str__(self):
         return self.name
 
-    def get_metadata(self) -> mdsuite.file_io.file_read.TrajectoryMetadata:
+    def get_metadata(self) -> TrajectoryMetadata:
         return self.metadata
 
     def get_configurations_generator(self) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
