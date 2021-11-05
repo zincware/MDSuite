@@ -63,32 +63,15 @@ class DataVisualizer3D:
                 A colour map to apply to the data.
         """
         self.data = data
+        print(data[0].numpy())
         self.title = title
         self.center = center
         self.colour_map = colour_map
         self.point_cloud = o3d.geometry.PointCloud()
-        self.point_cloud.points = o3d.utility.Vector3dVector(self.data)
-        self.point_cloud.colors = o3d.utility.Vector3dVector(self._build_colour_map())
-
-        plt.plot(
-            np.linspace(0, len(self.colour_map), len(self.colour_map), dtype=int),
-            self.colour_map, '.')
-        plt.show()
+        self.point_cloud.points = o3d.utility.Vector3dVector(self.data[0].numpy())
+        # self.point_cloud.colors = o3d.utility.Vector3dVector(self._build_colour_map())
 
         self._build_app()
-
-    def _build_colour_map(self):
-        """
-        Build the colour map
-        Returns
-        -------
-
-        """
-        viridis = cm.get_cmap('binary')
-
-        dat = viridis(self.colour_map)[:, :-1]
-
-        return dat
 
     def _build_app(self):
         """
@@ -220,7 +203,27 @@ class DataVisualizer3D:
         -------
 
         """
+        self.point_cloud.estimate_normals()
         self.vis.add_geometry("Points", self.point_cloud)
+
+        with o3d.utility.VerbosityContextManager(
+                o3d.utility.VerbosityLevel.Debug) as cm:
+            mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
+                self.point_cloud, depth=2)
+
+        # radii = [0.1, 0.3, 0.6, 1.0, 2.0, 5.0]
+        # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
+        #     self.point_cloud, o3d.utility.DoubleVector(radii))
+        #
+        # alpha = 0.2
+        #
+        # mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_alpha_shape(
+        #     self.point_cloud,
+        #     alpha)
+        # mesh.compute_vertex_normals()
+
+        self.vis.add_geometry('surface',
+                              mesh)
 
         # if self.center is not None:
         self._add_center()

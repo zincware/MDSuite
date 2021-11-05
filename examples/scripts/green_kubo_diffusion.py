@@ -40,7 +40,7 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    base_url = "https://github.com/zincware/ExampleData/raw/main/NaCl_gk_i_q.lammpstraj"
+    base_url = "https://github.com/zincware/DataHub/raw/main/NaCl_gk_i_q.lammpstraj"
     filename, headers = urllib.request.urlretrieve(
         f"{base_url}.gz", filename="NaCl_gk_i_q.lammpstraj.gz"
     )
@@ -65,25 +65,34 @@ def run_example():
         units="metal",
         data="NaCl_gk_i_q.lammpstraj",
     )
-    project.run.GreenKuboDiffusionCoefficients(
-        data_range=100, plot=True, correlation_time=10
+    # project.run.GreenKuboDiffusionCoefficients(
+    #     data_range=100, plot=True, correlation_time=10
+    # )
+    # project.run.EinsteinDiffusionCoefficients(
+    #     data_range=200, correlation_time=10, plot=True
+    # )
+    # project.run.EinsteinHelfandIonicConductivity(
+    #     data_range=100, correlation_time=10, plot=True
+    # )
+    #
+    # project.run.RadialDistributionFunction(
+    #     number_of_configurations=100, start=0, stop=101, plot=True
+    # )
+    # project.run.GreenKuboIonicConductivity(data_range=100)
+    #
+    # project.run.CoordinationNumbers(plot=True)
+    # project.run.PotentialOfMeanForce(plot=True)
+    # project.run.AngularDistributionFunction(number_of_configurations=3)
+    # # project.experiments.NaCl_GK.run_visualization()
+    project.run.SpatialDistributionFunction(
+        species=["Na", "Cl"],
+        r_min=4.0,
+        r_max=4.5,
+        number_of_configurations=50,
+        n_bins=1000,
+        start=0,
+        stop=80,
     )
-    project.run.EinsteinDiffusionCoefficients(
-        data_range=200, correlation_time=10, plot=True
-    )
-    project.run.EinsteinHelfandIonicConductivity(
-        data_range=100, correlation_time=10, plot=True
-    )
-
-    project.run.RadialDistributionFunction(
-        number_of_configurations=100, start=0, stop=101, plot=True
-    )
-    project.run.GreenKuboIonicConductivity(data_range=100)
-
-    project.run.CoordinationNumbers(plot=True)
-    project.run.PotentialOfMeanForce(plot=True)
-    project.run.AngularDistributionFunction(number_of_configurations=3)
-    # project.experiments.NaCl_GK.run_visualization()
     print("Tutorial complete....... Files being deleted now.")
 
 

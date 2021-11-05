@@ -141,7 +141,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         self.sample_configurations = np.linspace(
             start, stop, number_of_configurations, dtype=np.int
         )
-        self.plot = True
+        self.plot = False
 
         self.args = Args(
             molecules=molecules,
@@ -228,24 +228,23 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             mask_ = mask[:, species_length[0]:, : species_length[1]]
             r_ij_cut = r_ij[:, species_length[0]:, : species_length[1], :]
             r_ij_cut = r_ij_cut[mask_]
-            sdf_values.append(self.r_ij_to_bins(r_ij_cut))
+            #sdf_values.append(self.r_ij_to_bins(r_ij_cut))
             # and the other half (only effective if species[0] != species[1])
             mask_ = mask[:, : species_length[0], species_length[1]:]
             r_ij_cut = r_ij[:, : species_length[0], species_length[1]:, :]
             r_ij_cut = r_ij_cut[mask_]
-            sdf_values.append(self.r_ij_to_bins(r_ij_cut))
+            sdf_values.append(r_ij_cut)
 
-        sdf_values = tf.reduce_sum(sdf_values, axis=0)
+        #sdf_values = tf.reduce_sum(sdf_values, axis=0)
 
         # TODO fix subjects and maybe rename
-        self.queue_data(data={'sdf': sdf_values.numpy().tolist(),
-                              'sphere': self._get_unit_sphere().numpy().tolist()},
-                        subjects=["System"])
+        # self.queue_data(data={'sdf': sdf_values.numpy().tolist(),
+        #                       'sphere': self._get_unit_sphere().numpy().tolist()},
+        #                 subjects=["System"])
 
-        if self.plot:
-            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins**2, 3])
-            colour_map = tf.reshape(sdf_values, [-1])
-            self._run_visualization(coordinates, colour_map)
+        # coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins**2, 3])
+        # colour_map = tf.reshape(sdf_values, [-1])
+        self._run_visualization(sdf_values)
 
     def _get_unit_sphere(self) -> tf.Tensor:
         """Get the coordinates on the sphere for the bins
@@ -294,7 +293,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
         return bins
 
-    def _run_visualization(self, plot_data: tf.Tensor, colour_map: np.ndarray):
+    def _run_visualization(self, plot_data: tf.Tensor):
         """
         Run the visualizer.
 
@@ -318,6 +317,6 @@ class SpatialDistributionFunction(TrajectoryCalculator):
                         select_slice=np.s_[index, 0],
                     )[join_path(item, "Positions")]
         visualizer = DataVisualizer3D(
-            data=plot_data, title="SDF", center=center, colour_map=colour_map
+            data=plot_data, title="SDF", center=center
         )
         visualizer.plot()
