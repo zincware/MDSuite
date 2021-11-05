@@ -74,16 +74,16 @@ def test_read_script_input():
                   PropertyInfo(name='Velocities', n_dims=n_dims)]
 
     species_list = [SpeciesInfo(name=sp_name,
-                                          n_particles=n_parts,
-                                          mass=1234,
-                                          properties=properties)]
+                                n_particles=n_parts,
+                                mass=1234,
+                                properties=properties)]
 
     metadata = TrajectoryMetadata(species_list=species_list,
-                                            n_configurations=n_configs,
-                                            sample_step=sample_step,
-                                            box_l=3 * [1.1])
+                                  n_configurations=n_configs,
+                                  sample_rate=1,
+                                  box_l=3 * [1.1])
     data = TrajectoryChunkData(species_list=species_list,
-                                         chunk_size=n_configs)
+                               chunk_size=n_configs)
     data.add_data(positions, 0, sp_name, 'Positions')
     data.add_data(velocities, 0, sp_name, 'Velocities')
 
@@ -97,10 +97,8 @@ def test_read_script_input():
         exp = project.experiments['test_experiment']
         exp.add_data(file_processor=proc)
 
-        pos_loaded = np.swapaxes(exp.load_matrix(species=[sp_name], property_name='Positions'),0,1)
-        vel_loaded = np.swapaxes(exp.load_matrix(species=[sp_name], property_name='Velocities'),0,1)
+        pos_loaded = np.swapaxes(exp.load_matrix(species=[sp_name], property_name='Positions'), 0, 1)
+        vel_loaded = np.swapaxes(exp.load_matrix(species=[sp_name], property_name='Velocities'), 0, 1)
 
-        np.testing.assert_array_almost_equal(positions, pos_loaded,decimal=err_decimal)
+        np.testing.assert_array_almost_equal(positions, pos_loaded, decimal=err_decimal)
         np.testing.assert_array_almost_equal(velocities, vel_loaded, decimal=err_decimal)
-
-        assert exp.sample_rate == pytest.approx(sample_step/time_step)
