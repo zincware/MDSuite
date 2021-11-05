@@ -37,6 +37,7 @@ from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
 from mdsuite.utils import Units
+from mdsuite.utils.helpers import NoneType
 
 from typing import Dict
 
@@ -125,7 +126,7 @@ class Project(ProjectDatabase):
 
     def add_experiment(
         self,
-        experiment: str = None,
+        experiment: str = NoneType,
         timestep: float = None,
         temperature: float = None,
         units: Union[str, Units] = None,
@@ -154,7 +155,16 @@ class Project(ProjectDatabase):
                 in calculation.
         units : str
                 LAMMPS units used
+
+        Notes
+        ------
+        Using custom NoneType to raise a custom ValueError message with useful info.
         """
+        if experiment is NoneType:
+            raise ValueError(
+                "Experiment can not be empty! "
+                "Use None to automatically generate a unique name."
+            )
 
         if experiment is None:
             experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -304,7 +314,7 @@ class Project(ProjectDatabase):
         RunComputation:
             class that has all available calculators as properties
         """
-        return RunComputation(experiments=[x for x in self.experiments.values()])
+        return RunComputation(experiments=[x for x in self.active_experiments.values()])
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
@@ -335,7 +345,7 @@ class Project(ProjectDatabase):
         """Get a DotDict of instantiated experiments that are currently selected!"""
 
         active_experiment = {
-            key: val for key, val in self._experiments.items() if val.active
+            key: val for key, val in self.experiments.items() if val.active
         }
 
         return DotDict(active_experiment)

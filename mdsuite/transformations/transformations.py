@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Parent class for the transformations.
 """
 from __future__ import annotations
 

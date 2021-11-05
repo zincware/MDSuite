@@ -35,6 +35,7 @@ import time
 from typing import Union, List
 import pandas as pd
 
+
 var_names = [
     "Temperature",
     "Time",
@@ -631,42 +632,34 @@ class Database:
         -------
 
         """
-        data: Union[list, dict] = {}
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
         with hf.File(self.name, "r") as database:
-            if not dictionary:
-                data = []
-                for i, item in enumerate(path_list):
-                    data.append(
-                        tf.convert_to_tensor(
-                            database[item][select_slice], dtype=tf.float64
-                        )
-                        * scaling[i]
-                    )
+            data = {}
+            for i, item in enumerate(path_list):
+                if type(select_slice) is dict:
+                    my_slice = select_slice[item]
+                else:
+                    my_slice = select_slice
 
-            if dictionary:
-                data = {}
-                for item in path_list:
-                    if type(select_slice) is dict:
-                        my_slice = select_slice[item]
-                    else:
-                        my_slice = select_slice
-                    data[item] = tf.convert_to_tensor(
-                        database[item][my_slice], dtype=tf.float64
-                    )
-                data[str.encode("data_size")] = d_size
+                data[item] = (
+                    tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
+                    * scaling[i]
+                )
+            data[str.encode("data_size")] = d_size
 
-        if len(data) == 1:
-            if dictionary:
-                return data
-            else:
-                return data[0]
-        if dictionary:
-            return data
-        else:
-            return data
+            # else:
+            #     data = []
+            #     for i, item in enumerate(path_list):
+            #         data.append(
+            #             tf.convert_to_tensor(
+            #                 database[item][select_slice], dtype=tf.float64
+            #             )
+            #             * scaling[i]
+            #         )
+
+        return data
 
     def get_load_time(self, database_path: str = None):
         """
@@ -735,77 +728,6 @@ class Database:
                 )
 
         return data_tuple
-
-    def export_csv(self, group: str, key: str = None, sub_key: str = None):
-        """
-        Export a csv of database data.
-
-        This method is not designed for simulation databases, only for analysis
-        databases.
-
-        Parameters
-        ----------
-        group : str
-                Group in the database from which data should be loaded
-        key  : str
-                Additional identifier.
-        sub_key : str
-                Additional identifier.
-
-        Returns
-        -------
-        saves a csv to the working directory.
-        """
-        if self.architecture == "simulation":
-            print("Method cannot be called in simulation databases.")
-            return
-
-        identifier = None
-        with hf.File(self.name, "r") as database:
-            first_layer = list(database.keys())
-            for item in first_layer:
-                if group in item:
-                    identifier = item
-            if identifier is None:
-                print("This group does not seem to exist.")
-                return
-            second_layer = list(database[identifier].keys())
-            if type(database[identifier][second_layer[0]]) is hf.Dataset:
-                for item in second_layer:
-                    data = np.array(database[identifier][item])
-                    data = data.reshape((len(data[0]), 2))
-                    df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                    df.to_csv(f"{identifier}_{item}.csv")
-            else:
-                if key is None:
-                    for item in second_layer:
-                        third_layer = list(database[identifier][item].keys())
-                        for sub_item in third_layer:
-                            data = np.array(database[identifier][item][sub_item])
-                            data = data.reshape((len(data[0]), 2))
-                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                            df.to_csv(f"{identifier}_{item}.csv")
-                else:
-                    for item in second_layer:
-                        if key in item:
-                            sub_item = item
-                    if sub_key is None:
-                        for dataset in database[identifier][sub_item]:
-                            data = np.array(database[identifier][sub_item][dataset])
-                            data = data.reshape((len(data[0]), 2))
-                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                            df.to_csv(f"{identifier}_{item}_{dataset}.csv")
-                    else:
-                        last_layer = list(database[identifier][sub_item])
-                        for sub_sub_item in last_layer:
-                            if sub_key in sub_sub_item:
-                                final_identifier = sub_sub_item
-                        data = np.array(
-                            database[identifier][sub_item][final_identifier]
-                        )
-                        data = data.reshape((len(data[0]), 2))
-                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                        df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
 
     def get_database_summary(self):
         """

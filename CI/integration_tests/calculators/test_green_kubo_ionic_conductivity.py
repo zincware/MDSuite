@@ -57,4 +57,4 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.GreenKuboIonicConductivity(plot=False)
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values)
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)

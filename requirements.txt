@@ -1,13 +1,3 @@
-sphinxcontrib.bibtex
-pybtex
-nbsphinx
-sphinx_rtd_theme
-numpydoc
-sphinx-copybutton
-colorutils
-IPython
-pandoc
-pytest
 tensorflow>=2.5
 h5py
 pysmiles
@@ -24,5 +14,6 @@ sqlalchemy >= 1.4
 pandas >= 1.0.0
 tensorflow_probability
 open3d
+colorutils
 bokeh
-git+git://github.com/zincware/ZincHub.git#egg=zinchub
+pandoc
