@@ -530,7 +530,7 @@ class Experiment(ExperimentDatabase):
         self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(self.box_array)
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
-        self.sample_rate = int(round(metadata.sample_step / self.time_step))
+        self.sample_rate = metadata.sample_rate
         species_list = copy.deepcopy(metadata.species_list)
         if update_with_pubchempy:
             update_species_attributes_with_pubchempy(species_list)
@@ -539,6 +539,9 @@ class Experiment(ExperimentDatabase):
         for sp_info in species_list:
             species_dict[sp_info.name] = {'mass': sp_info.mass,
                                           'charge': sp_info.charge,
+                                          'n_particles': sp_info.n_particles,
+                                          # legacy: calculators use this list to determine the number of particles
+                                          'indices': list(range(sp_info.n_particles)),
                                           'properties': [prop_info.name for prop_info in sp_info.properties]}
         self.species = species_dict
         # assume the same property for each species

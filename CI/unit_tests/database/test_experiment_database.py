@@ -31,6 +31,8 @@ import os
 import mdsuite as mds
 from zinchub import DataHub
 
+import mdsuite.file_io.lammps_trajectory_files
+
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
@@ -47,7 +49,9 @@ def test_read_files(tmp_path, traj_file):
     """Test that read_files is saved correctly"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01", data=traj_file)
+    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(traj_file)
+    project_1.add_experiment(experiment="Exp01", timestep = 0.1) # todo bad place for time step
+    project_1.experiments['Exp01'].add_data(file_proc)
     assert len(project_1.experiments["Exp01"].read_files) == 1
 
 

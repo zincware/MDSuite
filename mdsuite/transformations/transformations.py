@@ -276,7 +276,7 @@ class Transformations:
         # data_structure is dict {'/path/to/property':{'indices':irrelevant, 'columns':deduce->deduce n_dims, 'length':n_particles}
         species_list = list()
         # data structure only has 1 element
-        key, val = next(iter(data_structure))
+        key, val = list(data_structure.items())[0]
         path = str(copy.copy(key))
         path.rstrip('/')
         path = path.split('/')
@@ -289,10 +289,11 @@ class Transformations:
                                                                              n_particles=val['length']))
         chunk = mdsuite.database.simulation_database.TrajectoryChunkData(chunk_size=batch_size,
                                                                          species_list=species_list)
-        chunk.add_data(data=data, config_idx=0, species_name=sp_name, property_name=prop_name)
+        # data comes from transformation with time in 1st axis, add_data needs it in 0th axis
+        chunk.add_data(data=np.swapaxes(data, 0, 1), config_idx=0, species_name=sp_name, property_name=prop_name)
 
         try:
-            self.database.add_data(chunk=chunk.get_data(),
+            self.database.add_data(chunk=chunk,
                                    start_idx=index + self.offset)
         except OSError:
             """
@@ -300,7 +301,7 @@ class Transformations:
             the file was still open while it should already be closed. So, we
             wait, and we add again.
             """
-            self.database.add_data(chunk=chunk.get_data(),
+            self.database.add_data(chunk=chunk,
                                    start_idx=index + self.offset)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):

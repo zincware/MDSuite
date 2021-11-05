@@ -29,6 +29,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Union
+
+import mdsuite.file_io.lammps_trajectory_files
 from mdsuite.utils.meta_functions import DotDict
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
@@ -193,18 +195,16 @@ class Project(ProjectDatabase):
                 inp: str, dict, list
                     If dict, {file:<file>, format:<format>}
                 """
+
                 if isinstance(inp, str):
-                    self.experiments[experiment].add_data(trajectory_file=inp)
+                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(inp)
+                    self.experiments[experiment].add_data(file_processor=file_proc)
                 if isinstance(inp, dict):
-                    try:
-                        self.experiments[experiment].add_data(
-                            trajectory_file=inp["file"], file_format=inp["format"]
-                        )
-                    except KeyError:
-                        raise KeyError(
-                            "passed dictionary does not contain `file` and `format`,"
-                            f" but {[x for x in inp]}"
-                        )
+                    if inp['format'] != 'lammps_traj':
+                        raise ValueError('Currently only support lammps trajectory files')
+                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(inp['file'])
+                    self.experiments[experiment].add_data(file_processor=file_proc)
+
                 if isinstance(inp, list):
                     for obj in inp:
                         handle_file_format(obj)

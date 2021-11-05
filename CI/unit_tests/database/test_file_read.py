@@ -104,12 +104,3 @@ def test_read_script_input():
         np.testing.assert_array_almost_equal(velocities, vel_loaded, decimal=err_decimal)
 
         assert exp.sample_rate == pytest.approx(sample_step/time_step)
-
-
-
-
-# todo test lammps
-
-# todo test lammps flux
-
-# todo test extxyz

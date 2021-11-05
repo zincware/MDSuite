@@ -57,6 +57,7 @@ var_names = [
     "Stress",
 ]
 
+
 @dataclasses.dataclass
 class PropertyInfo:
     """
@@ -123,6 +124,8 @@ class TrajectoryMetadata:
         The information about all species in the system.
     box_l: list of float
         The simulation box size in three dimensions
+    sample_rate: optional
+        The number of timesteps between consecutive samples # todo remove in favour of sample_step
     sample_step: optional
         The time between consecutive configurations.
         E.g. for a simulation with time step 0.1 where the trajectory is written every 5 steps: sample_step = 0.5
@@ -138,6 +141,7 @@ class TrajectoryMetadata:
     n_configurations: int
     species_list: list
     box_l: list
+    sample_rate: int = 1
     sample_step: float = None
     temperature: float = None
     simulation_data: dict = dataclasses.field(default_factory=dict)
@@ -147,6 +151,7 @@ class TrajectoryChunkData:
     """
     Class to specify the data format for transfer from the file to the database
     """
+
     def __init__(self, species_list: list, chunk_size: int):
         """
 
@@ -154,7 +159,7 @@ class TrajectoryChunkData:
         ----------
         species_list:
             List of SpeciesInfo.
-            It contains the information which species are there and which properties are recoreded for each
+            It contains the information which species are there and which properties are recorded for each
         chunk_size:
             The number of configurations to be stored in this chunk
         """
@@ -188,7 +193,7 @@ class TrajectoryChunkData:
 
         """
         n_configs = len(data)
-        self._data[species_name][property_name][config_idx:config_idx + n_configs, ...] = data
+        self._data[species_name][property_name][config_idx:config_idx + n_configs, :, :] = data
 
     def get_data(self):
         return self._data
