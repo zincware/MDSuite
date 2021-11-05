@@ -65,6 +65,7 @@ def traj_files(tmp_path_factory) -> list:
 
     return files
 
+
 # todo these need to be tested, but with the new file adding syntax
 def test_add_file_from_list(traj_files, tmp_path):
     """Check that adding files from lists does not raise an error"""

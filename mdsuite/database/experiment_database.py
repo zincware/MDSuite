@@ -161,9 +161,9 @@ class ExperimentDatabase:
             experiment = get_or_create(ses, Experiment, name=self.name)
             attribute: ExperimentAttribute = (
                 ses.query(ExperimentAttribute)
-                    .filter(ExperimentAttribute.experiment == experiment)
-                    .filter(ExperimentAttribute.name == name)
-                    .first()
+                .filter(ExperimentAttribute.experiment == experiment)
+                .filter(ExperimentAttribute.name == name)
+                .first()
             )
             try:
                 data = attribute.data

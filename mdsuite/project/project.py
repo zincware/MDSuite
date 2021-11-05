@@ -197,12 +197,18 @@ class Project(ProjectDatabase):
                 """
 
                 if isinstance(inp, str):
-                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(inp)
+                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
+                        inp
+                    )
                     self.experiments[experiment].add_data(file_processor=file_proc)
                 if isinstance(inp, dict):
-                    if inp['format'] != 'lammps_traj':
-                        raise ValueError('Currently only support lammps trajectory files')
-                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(inp['file'])
+                    if inp["format"] != "lammps_traj":
+                        raise ValueError(
+                            "Currently only support lammps trajectory files"
+                        )
+                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
+                        inp["file"]
+                    )
                     self.experiments[experiment].add_data(file_processor=file_proc)
 
                 if isinstance(inp, list):

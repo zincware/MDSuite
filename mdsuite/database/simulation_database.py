@@ -73,6 +73,7 @@ class PropertyInfo:
     n_dims:
         The dimensionality of the property
     """
+
     name: str
     n_dims: int
 
@@ -92,6 +93,7 @@ class SpeciesInfo:
         List of the properties that were recorded for the species
     mass and charge are optional
     """
+
     name: str
     n_particles: int
     properties: list
@@ -99,10 +101,12 @@ class SpeciesInfo:
     charge: float = 0
 
     def __eq__(self, other):
-        same = self.name == other.name and \
-               self.n_particles == other.n_particles and \
-               self.mass == other.mass and \
-               self.charge == other.charge
+        same = (
+            self.name == other.name
+            and self.n_particles == other.n_particles
+            and self.mass == other.mass
+            and self.charge == other.charge
+        )
         if len(self.properties) != len(other.properties):
             return False
 
@@ -138,6 +142,7 @@ class TrajectoryMetadata:
         E.g. software version, pressure in NPT simulations, time step, ...
 
     """
+
     n_configurations: int
     species_list: list
     box_l: list
@@ -169,7 +174,9 @@ class TrajectoryChunkData:
         for sp_info in species_list:
             self._data[sp_info.name] = dict()
             for prop_info in sp_info.properties:
-                self._data[sp_info.name][prop_info.name] = np.zeros((chunk_size, sp_info.n_particles, prop_info.n_dims))
+                self._data[sp_info.name][prop_info.name] = np.zeros(
+                    (chunk_size, sp_info.n_particles, prop_info.n_dims)
+                )
 
     def add_data(self, data: np.ndarray, config_idx, species_name, property_name):
         """
@@ -193,7 +200,9 @@ class TrajectoryChunkData:
 
         """
         n_configs = len(data)
-        self._data[species_name][property_name][config_idx:config_idx + n_configs, :, :] = data
+        self._data[species_name][property_name][
+            config_idx : config_idx + n_configs, :, :
+        ] = data
 
     def get_data(self):
         return self._data
@@ -253,7 +262,7 @@ class Database:
 
     @staticmethod
     def _update_indices(
-            data: np.array, reference: np.array, batch_size: int, n_atoms: int
+        data: np.array, reference: np.array, batch_size: int, n_atoms: int
     ):
         """
         Update the indices key of the structure dictionary if the tensor_values must be
@@ -276,7 +285,7 @@ class Database:
         n_batches = ids.shape[0]
 
         return (
-                ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T
+            ref_ids[:, reference - 1] + (np.arange(n_batches) * n_atoms)[None].T
         ).flatten()
 
     @staticmethod
@@ -340,10 +349,7 @@ class Database:
 
         return hf.File(self.name, mode)
 
-    def add_data(
-            self,
-            chunk: TrajectoryChunkData,
-            start_idx: int):
+    def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
         Add new data to the dataset.
         Parameters
@@ -363,20 +369,28 @@ class Database:
 
             for sp_info in chunk.species_list:
                 for prop_info in sp_info.properties:
-                    dataset_name = f'{sp_info.name}/{prop_info.name}'
+                    dataset_name = f"{sp_info.name}/{prop_info.name}"
                     write_data = chunk_data[sp_info.name][prop_info.name]
 
                     dataset_shape = database[dataset_name].shape
                     if len(dataset_shape) == 2:
                         # only one particle
-                        database[dataset_name][start_idx:stop_index, :] = np.squeeze(write_data[:,0,:])
+                        database[dataset_name][start_idx:stop_index, :] = np.squeeze(
+                            write_data[:, 0, :]
+                        )
                     elif len(dataset_shape) == 3:
                         if workaround_time_in_axis_1:
-                            database[dataset_name][:, start_idx:stop_index, :] = np.swapaxes(write_data, 0, 1)
+                            database[dataset_name][
+                                :, start_idx:stop_index, :
+                            ] = np.swapaxes(write_data, 0, 1)
                         else:
-                            database[dataset_name][start_idx:stop_index, ...] = write_data
+                            database[dataset_name][
+                                start_idx:stop_index, ...
+                            ] = write_data
                     else:
-                        raise ValueError('dataset shape must be either (n_part,n_config,n_dim) or (n_config, n_dim)')
+                        raise ValueError(
+                            "dataset shape must be either (n_part,n_config,n_dim) or (n_config, n_dim)"
+                        )
 
     def resize_datasets(self, structure: dict):
         """
@@ -596,12 +610,12 @@ class Database:
                     db.move(item, mapping[item])
 
     def load_data(
-            self,
-            path_list: list = None,
-            select_slice: np.s_ = np.s_[:],
-            dictionary: bool = False,
-            scaling: list = None,
-            d_size: int = None,
+        self,
+        path_list: list = None,
+        select_slice: np.s_ = np.s_[:],
+        dictionary: bool = False,
+        scaling: list = None,
+        d_size: int = None,
     ):
         """
         Load tensor_values from the database_path for some operation.
@@ -677,7 +691,7 @@ class Database:
         return stop - start
 
     def get_data_size(
-            self, data_path: str, database_path: str = None, system: bool = False
+        self, data_path: str, database_path: str = None, system: bool = False
     ) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)

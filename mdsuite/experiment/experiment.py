@@ -85,13 +85,13 @@ class Experiment(ExperimentDatabase):
     """
 
     def __init__(
-            self,
-            project,
-            experiment_name,
-            time_step=None,
-            temperature=None,
-            units: Union[str, Units] = None,
-            cluster_mode=False,
+        self,
+        project,
+        experiment_name,
+        time_step=None,
+        temperature=None,
+        units: Union[str, Units] = None,
+        cluster_mode=False,
     ):
         """
         Initialise the experiment class.
@@ -306,11 +306,11 @@ class Experiment(ExperimentDatabase):
         transformation_run.run_transformation()  # perform the transformation
 
     def run_visualization(
-            self,
-            species: list = None,
-            molecules: bool = False,
-            unwrapped: bool = False,
-            starting_configuration: int = None,
+        self,
+        species: list = None,
+        molecules: bool = False,
+        unwrapped: bool = False,
+        starting_configuration: int = None,
     ):
         """
         Perform a trajectory visualization.
@@ -418,10 +418,10 @@ class Experiment(ExperimentDatabase):
         self.species = species
 
     def add_data(
-            self,
-            file_processor: mdsuite.file_io.file_read.FileProcessor,
-            force: bool = False,
-            update_with_pubchempy=True
+        self,
+        file_processor: mdsuite.file_io.file_read.FileProcessor,
+        force: bool = False,
+        update_with_pubchempy=True,
     ):
         """
         Add tensor_values to the database_path
@@ -457,8 +457,9 @@ class Experiment(ExperimentDatabase):
         )  # get theoretical path.
 
         metadata = file_processor.get_metadata()
-        architecture = _species_list_to_architecture_dict(metadata.species_list,
-                                                          metadata.n_configurations)
+        architecture = _species_list_to_architecture_dict(
+            metadata.species_list, metadata.n_configurations
+        )
         if not database_path.exists():
             self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
             database.initialize_database(architecture)
@@ -466,10 +467,7 @@ class Experiment(ExperimentDatabase):
             database.resize_datasets(architecture)
 
         for i, batch in enumerate(file_processor.get_configurations_generator()):
-            database.add_data(
-                chunk=batch,
-                start_idx=self.number_of_configurations
-            )
+            database.add_data(chunk=batch, start_idx=self.number_of_configurations)
             self.number_of_configurations += batch.chunk_size
 
         self.version += 1
@@ -480,11 +478,11 @@ class Experiment(ExperimentDatabase):
         self.read_files = self.read_files + [str(FileProcessor)]
 
     def load_matrix(
-            self,
-            property_name: str = None,
-            species: list = None,
-            select_slice: np.s_ = None,
-            path: list = None,
+        self,
+        property_name: str = None,
+        species: list = None,
+        select_slice: np.s_ = None,
+        path: list = None,
     ):
         """
         Load a desired property matrix.
@@ -505,7 +503,9 @@ class Experiment(ExperimentDatabase):
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
-        database = Database(name=pathlib.Path(self.database_path, "database.hdf5").as_posix())
+        database = Database(
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+        )
 
         if path is not None:
             return database.load_data(path_list=path, select_slice=select_slice)
@@ -523,11 +523,13 @@ class Experiment(ExperimentDatabase):
             path_list.append(join_path(item, property_name))
         return database.load_data(path_list=path_list, select_slice=select_slice)
 
-    def _store_metadata(self, metadata, update_with_pubchempy = False):
+    def _store_metadata(self, metadata, update_with_pubchempy=False):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
-        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(self.box_array)
+        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+            self.box_array
+        )
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
@@ -537,15 +539,17 @@ class Experiment(ExperimentDatabase):
         # store the species information in dict format
         species_dict = dict()
         for sp_info in species_list:
-            species_dict[sp_info.name] = {'mass': sp_info.mass,
-                                          'charge': sp_info.charge,
-                                          'n_particles': sp_info.n_particles,
-                                          # legacy: calculators use this list to determine the number of particles
-                                          'indices': list(range(sp_info.n_particles)),
-                                          'properties': [prop_info.name for prop_info in sp_info.properties]}
+            species_dict[sp_info.name] = {
+                "mass": sp_info.mass,
+                "charge": sp_info.charge,
+                "n_particles": sp_info.n_particles,
+                # legacy: calculators use this list to determine the number of particles
+                "indices": list(range(sp_info.n_particles)),
+                "properties": [prop_info.name for prop_info in sp_info.properties],
+            }
         self.species = species_dict
         # assume the same property for each species
-        self.property_groups = next(iter(species_dict.values()))['properties']
+        self.property_groups = next(iter(species_dict.values()))["properties"]
 
 
 def update_species_attributes_with_pubchempy(species_list):
@@ -559,7 +563,7 @@ def update_species_attributes_with_pubchempy(species_list):
 
     """
     with importlib.resources.open_text(
-            "mdsuite.data", "PubChemElements_all.json"
+        "mdsuite.data", "PubChemElements_all.json"
     ) as json_file:
         pse = json.loads(json_file.read())
 
@@ -590,7 +594,9 @@ def update_species_attributes_with_pubchempy(species_list):
                 log.debug(temp[0].exact_mass)
             except (ElementMassAssignedZero, IndexError):
                 sp_info.mass = 0.0
-                log.warning(f"WARNING element {sp_info.name} has been assigned mass=0.0")
+                log.warning(
+                    f"WARNING element {sp_info.name} has been assigned mass=0.0"
+                )
     return species_list
 
 
@@ -617,5 +623,6 @@ def _species_list_to_architecture_dict(species_list, n_configurations):
             architecture[sp_info.name][prop_info.name] = (
                 sp_info.n_particles,
                 n_configurations,
-                prop_info.n_dims)
+                prop_info.n_dims,
+            )
     return architecture

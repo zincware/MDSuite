@@ -50,8 +50,10 @@ def test_read_files(tmp_path, traj_file):
     os.chdir(tmp_path)
     project_1 = mds.Project()
     file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(traj_file)
-    project_1.add_experiment(experiment="Exp01", timestep = 0.1) # todo bad place for time step
-    project_1.experiments['Exp01'].add_data(file_proc)
+    project_1.add_experiment(
+        experiment="Exp01", timestep=0.1
+    )  # todo bad place for time step
+    project_1.experiments["Exp01"].add_data(file_proc)
     assert len(project_1.experiments["Exp01"].read_files) == 1
 
 

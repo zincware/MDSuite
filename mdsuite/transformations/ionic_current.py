@@ -98,14 +98,7 @@ class IonicCurrent(Transformations):
             self.database.resize_dataset(
                 resize_structure
             )  # add a new dataset to the database_path
-            data_structure = {
-                path: {
-                    "indices": np.s_[
-                        :,
-                    ],
-                    "columns": [0, 1, 2],
-                }
-            }
+            data_structure = {path: {"indices": np.s_[:,], "columns": [0, 1, 2],}}
         else:
             dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
             self.database.add_dataset(

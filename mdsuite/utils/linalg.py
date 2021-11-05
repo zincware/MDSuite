@@ -80,9 +80,10 @@ def get_angles(r_ij_mat, indices, acos=True):
         r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 3]], axis=1)
     )
 
-    return angle_between(r_ij, r_ik, acos), tf.linalg.norm(
-        r_ij, axis=-1
-    ) * tf.linalg.norm(r_ik, axis=-1)
+    return (
+        angle_between(r_ij, r_ik, acos),
+        tf.linalg.norm(r_ij, axis=-1) * tf.linalg.norm(r_ik, axis=-1),
+    )
 
 
 @tf.function(experimental_relax_shapes=True)

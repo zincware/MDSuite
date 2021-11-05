@@ -40,13 +40,13 @@ class FileProcessor(abc.ABC):
         """
         Return a unique string representing this FileProcessor. (The absolute file path, for example)
         """
-        raise NotImplementedError('File Processors must implement a string')
+        raise NotImplementedError("File Processors must implement a string")
 
     def get_metadata(self) -> TrajectoryMetadata:
         """
         Return the metadata required to build a database.
         """
-        raise NotImplementedError('File Processors must implement metadata extraction')
+        raise NotImplementedError("File Processors must implement metadata extraction")
 
     def get_configurations_generator(self) -> typing.Iterator[TrajectoryChunkData]:
         """
@@ -58,13 +58,15 @@ class FileProcessor(abc.ABC):
         -------
         generator that yields TrajectoryChunkData
         """
-        raise NotImplementedError('File Processors must implement data loading')
+        raise NotImplementedError("File Processors must implement data loading")
 
 
 def assert_species_list_consistent(sp_list_0, sp_list_1):
     for sp_info_data, sp_info_mdata in zip(sp_list_0, sp_list_1):
         if sp_info_data != sp_info_mdata:
-            raise ValueError('Species information from data and metadata are inconsistent')
+            raise ValueError(
+                "Species information from data and metadata are inconsistent"
+            )
 
 
 def skip_n_lines(file, n_lines: int):
@@ -72,7 +74,7 @@ def skip_n_lines(file, n_lines: int):
         next(file)
 
 
-def read_n_lines(file, n_lines: int, start_at:int=None) -> list:
+def read_n_lines(file, n_lines: int, start_at: int = None) -> list:
     """
     Get n_lines lines, starting at line number start_at.
     If start_at is None, read from the current file state
@@ -86,9 +88,9 @@ def read_n_lines(file, n_lines: int, start_at:int=None) -> list:
     return [next(file) for _ in range(n_lines)]
 
 
-def extract_properties_from_header(header_property_names: list,
-                                   database_correspondence_dict: dict,
-                                   ) -> dict:
+def extract_properties_from_header(
+    header_property_names: list, database_correspondence_dict: dict,
+) -> dict:
     """
     Takes the property names from a file header, sees if there is a corresponding mdsuite property
     in database_correspondence_dict.
@@ -111,13 +113,17 @@ def extract_properties_from_header(header_property_names: list,
         Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
     """
 
-    column_dict_properties = {variable: idx for idx, variable in enumerate(header_property_names)}
+    column_dict_properties = {
+        variable: idx for idx, variable in enumerate(header_property_names)
+    }
     # for each property label (position, velocity,etc) in the lammps definition
     for property_label, property_names in database_correspondence_dict.items():
         # for each coordinate for a given property label (position: x, y, z),
         # get idx and the name
         for idx, property_name in enumerate(property_names):
-            if property_name in column_dict_properties.keys():  # if this name (x) is in the input file properties
+            if (
+                property_name in column_dict_properties.keys()
+            ):  # if this name (x) is in the input file properties
                 # we change the lammps_properties_dict replacing the string of the
                 # property name by the column name
                 database_correspondence_dict[property_label][
@@ -129,10 +135,7 @@ def extract_properties_from_header(header_property_names: list,
     trajectory_properties = {}
     for property_label, properties_columns in database_correspondence_dict.items():
         if all(
-                [
-                    isinstance(property_column, int)
-                    for property_column in properties_columns
-                ]
+            [isinstance(property_column, int) for property_column in properties_columns]
         ):
             trajectory_properties[property_label] = properties_columns
 
