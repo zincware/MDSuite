@@ -7,3 +7,4 @@ some resources to help you get started and avoid making some of the same mistake
     :maxdepth: 1
 
     _developer_docs/faq
+    _developer_docs/implementing_calculators

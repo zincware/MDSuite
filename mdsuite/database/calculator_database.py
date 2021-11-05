@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import mdsuite.database.scheme as db
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from sqlalchemy import and_
 from mdsuite.utils.meta_functions import is_jsonable
 
@@ -45,6 +45,13 @@ log = logging.getLogger(__name__)
 class ComputationResults:
     data: dict = field(default_factory=dict)
     subjects: dict = field(default_factory=list)
+
+
+@dataclass
+class Args:
+    """Dummy Class for type hinting"""
+
+    pass
 
 
 def conv_to_db(val):
@@ -71,14 +78,11 @@ class CalculatorDatabase:
         self.analysis_name = None
         self.load_data = None
 
+        self.args = Args()
+
         self._queued_data = []
 
         # List of computation attributes that will be added to the database
-        self.db_computation_attributes = []
-
-    def clean_cache(self):
-        """Clean the lists of computed data"""
-        self._queued_data = []
         self.db_computation_attributes = []
 
     def prepare_db_entry(self):
@@ -86,38 +90,32 @@ class CalculatorDatabase:
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
         self.db_computation = db.Computation(experiment=experiment)
         self.db_computation.name = self.analysis_name
 
-    def update_db_entry_with_kwargs(self, **kwargs):
-        """Update the database entry with the given user args/kwargs
+    def get_computation_data(self) -> db.Computation:
+        """Query the database for computation data
 
-        Parameters
-        ----------
-        kwargs: all arguments that are passed to the call method and should be stored
-        in the database
+        This method used the self.args dataclass to look for matching
+        calculator attributes and returns a db.Computation object if
+        the calculation has already been performed
 
-
-        Notes
-        -----
-        This does require kwargs, args do not work!
-
-        Returns
-        -------
-        db.Computation:
-            Either a db.Computation object if the calculation was already performed or
-            None
-
+        Return
+        ------
+        db.Computation
+            Returns the computation object from the database if available,
+            otherwise returns None
         """
+        log.debug(f"Getting data for {self.experiment.name} with args {self.args}")
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
-                    .filter(db.Experiment.name == self.experiment.name)
-                    .first()
+                .filter(db.Experiment.name == self.experiment.name)
+                .first()
             )
 
             #  filter the correct experiment
@@ -126,8 +124,10 @@ class CalculatorDatabase:
                 db.Computation.name == self.analysis_name,
             )
 
-            # filter the passed arguments and only run, if they changed
-            for key, val in kwargs.items():
+            # filter set args
+            for args_field in fields(self.args):
+                key = args_field.name
+                val = getattr(self.args, key)
                 computations = computations.filter(
                     db.Computation.computation_attributes.any(
                         and_(
@@ -143,9 +143,8 @@ class CalculatorDatabase:
                 db.Computation.computation_attributes.any(
                     and_(
                         db.ComputationAttribute.name == "version",
-                        db.ComputationAttribute.data == conv_to_db(
-                            self.experiment.version
-                        )
+                        db.ComputationAttribute.data
+                        == conv_to_db(self.experiment.version),
                     )
                 )
             )
@@ -155,6 +154,7 @@ class CalculatorDatabase:
                 log.debug("Calculation already performed! Loading it up")
             # loading data_dict to avoid DetachedInstance errors
             # this can take some time, depending on the size of the data
+            # TODO remove and use lazy call
             for computation in computations:
                 _ = computation.data_dict
                 _ = computation.data_range
@@ -166,19 +166,29 @@ class CalculatorDatabase:
                     " given arguments!"
                 )
             return computations[0]  # it should only be one value
-        else:
-            for key, val in kwargs.items():
-                computation_attribute = db.ComputationAttribute(
-                    name=key, data=conv_to_db(val)
-                )
+        return None
 
-                self.db_computation_attributes.append(computation_attribute)
+    def save_computation_args(self):
+        """Store the user args
 
-            # save the current experiment version in the ComputationAttributes
-            experiment_version = db.ComputationAttribute(
-                name="version", data=conv_to_db(self.experiment.version)
+        This method stored the user args from the self.args dataclass
+        into SQLAlchemy objects and adds them to a list which will be
+        written to the database after the calculation was successful.
+        """
+        for args_field in fields(self.args):
+            key = args_field.name
+            val = getattr(self.args, key)
+            computation_attribute = db.ComputationAttribute(
+                name=key, data=conv_to_db(val)
             )
-            self.db_computation_attributes.append(experiment_version)
+
+            self.db_computation_attributes.append(computation_attribute)
+
+        # save the current experiment version in the ComputationAttributes
+        experiment_version = db.ComputationAttribute(
+            name="version", data=conv_to_db(self.experiment.version)
+        )
+        self.db_computation_attributes.append(experiment_version)
 
     def save_db_data(self):
         """Save all the collected computationattributes and computation data to the
@@ -206,8 +216,8 @@ class CalculatorDatabase:
                     # otherwise I would use .in_
                     species_list.append(
                         ses.query(db.ExperimentSpecies)
-                            .filter(db.ExperimentSpecies.name == species)
-                            .first()
+                        .filter(db.ExperimentSpecies.name == species)
+                        .first()
                     )
                 # in case of e.g. `System` species will be [None], which is then removed
                 species_list = [x for x in species_list if x is not None]
@@ -285,5 +295,6 @@ class CalculatorDatabase:
 
         # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
         # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
+
 
 #####################
