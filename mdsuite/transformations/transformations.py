@@ -25,11 +25,15 @@ Summary
 -------
 """
 from __future__ import annotations
+
+import copy
 import time
 from typing import Union
 import os
 import numpy as np
 import tensorflow as tf
+
+import mdsuite.database.simulation_database
 from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
@@ -214,7 +218,7 @@ class Transformations:
         return dictionary
 
     def _update_species_type_dict(
-        self, dictionary: dict, path_list: list, dimension: int
+            self, dictionary: dict, path_list: list, dimension: int
     ):
         """
         Update a type spec dictionary for a species input.
@@ -252,13 +256,13 @@ class Transformations:
         return int(self.remainder > 0)
 
     def _save_coordinates(
-        self,
-        data: Union[tf.Tensor, np.array],
-        index: int,
-        batch_size: int,
-        data_structure: dict,
-        system_tensor: bool = True,
-        tensor: bool = False,
+            self,
+            data: Union[tf.Tensor, np.array],
+            index: int,
+            batch_size: int,
+            data_structure: dict,
+            system_tensor: bool = True,
+            tensor: bool = False,
     ):
         """
         Save the tensor_values into the database_path
@@ -267,30 +271,37 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
+
+        # turn data into trajectory chunk
+        # data_structure is dict {'/path/to/property':{'indices':irrelevant, 'columns':deduce->deduce n_dims, 'length':n_particles}
+        species_list = list()
+        # data structure only has 1 element
+        key, val = next(iter(data_structure))
+        path = str(copy.copy(key))
+        path.rstrip('/')
+        path = path.split('/')
+        prop_name = path[-1]
+        sp_name = path[-2]
+        prop = mdsuite.database.simulation_database.PropertyInfo(name=prop_name,
+                                                                 n_dims=len(val['columns']))
+        species_list.append(mdsuite.database.simulation_database.SpeciesInfo(name=sp_name,
+                                                                             properties=[prop],
+                                                                             n_particles=val['length']))
+        chunk = mdsuite.database.simulation_database.TrajectoryChunkData(chunk_size=batch_size,
+                                                                         species_list=species_list)
+        chunk.add_data(data=data, config_idx=0, species_name=sp_name, property_name=prop_name)
+
         try:
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
-            )
+            self.database.add_data(chunk=chunk.get_data(),
+                                   start_idx=index + self.offset)
         except OSError:
             """
             This is used because in Windows and in WSL we got the error that
             the file was still open while it should already be closed. So, we
             wait, and we add again.
             """
-            time.sleep(0.5)
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
-            )
+            self.database.add_data(chunk=chunk.get_data(),
+                                   start_idx=index + self.offset)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """
