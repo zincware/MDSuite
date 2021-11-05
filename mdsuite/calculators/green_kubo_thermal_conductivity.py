@@ -27,13 +27,12 @@ MDSuite module for the computation of the thermal conductivity using the Green-K
 relation.
 """
 from abc import ABC
-
+import tensorflow_probability as tfp
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators import TrajectoryCalculator
-import tensorflow_probability as tfp
 from bokeh.models import Span
 from dataclasses import dataclass
 from mdsuite.database import simulation_properties

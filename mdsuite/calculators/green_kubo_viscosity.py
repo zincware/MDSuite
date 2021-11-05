@@ -27,10 +27,9 @@ MDSuite module for the computation of the viscosity in a system using the Green-
 relation as applied to the momentum flux measured during a simulation.
 """
 from abc import ABC
-
+import tensorflow_probability as tfp
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators import TrajectoryCalculator

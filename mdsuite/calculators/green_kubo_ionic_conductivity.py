@@ -31,8 +31,8 @@ from electronic conductivity which is transferred by electrons.
 from abc import ABC
 
 import numpy as np
-import tensorflow as tf
 import tensorflow_probability as tfp
+import tensorflow as tf
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators import TrajectoryCalculator
