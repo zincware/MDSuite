@@ -32,7 +32,7 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
 import time
-from typing import Union
+from typing import Union, List
 import pandas as pd
 
 var_names = [
@@ -96,7 +96,7 @@ class SpeciesInfo:
 
     name: str
     n_particles: int
-    properties: list
+    properties: List[PropertyInfo]
     mass: float = None
     charge: float = 0
 
@@ -129,14 +129,18 @@ class TrajectoryMetadata:
     box_l: list of float
         The simulation box size in three dimensions
     sample_rate: optional
-        The number of timesteps between consecutive samples # todo remove in favour of sample_step
+        The number of timesteps between consecutive samples
+        # todo remove in favour of sample_step
     sample_step: optional
         The time between consecutive configurations.
-        E.g. for a simulation with time step 0.1 where the trajectory is written every 5 steps: sample_step = 0.5
-        Does not have to be specified (e.g. configurations from Monte Carlo scheme), but is needed for all dynamic observables.
-    temperatyre: optional
+        E.g. for a simulation with time step 0.1 where the trajectory is written
+        every 5 steps: sample_step = 0.5. Does not have to be specified
+        (e.g. configurations from Monte Carlo scheme), but is needed for all
+        dynamic observables.
+    temperature: optional
         The set temperature of the system.
-        Optional because only applicable for MD simulations with thermostat. Needed for certain observables.
+        Optional because only applicable for MD simulations with thermostat.
+        Needed for certain observables.
     simulation_data: optional
         All other simulation data that can be extracted from the trajectory metadata.
         E.g. software version, pressure in NPT simulations, time step, ...
@@ -144,7 +148,7 @@ class TrajectoryMetadata:
     """
 
     n_configurations: int
-    species_list: list
+    species_list: List[SpeciesInfo]
     box_l: list
     sample_rate: int = 1
     sample_step: float = None
@@ -157,7 +161,7 @@ class TrajectoryChunkData:
     Class to specify the data format for transfer from the file to the database
     """
 
-    def __init__(self, species_list: list, chunk_size: int):
+    def __init__(self, species_list: List[SpeciesInfo], chunk_size: int):
         """
 
         Parameters

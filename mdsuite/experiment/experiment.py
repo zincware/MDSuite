@@ -45,7 +45,9 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 import mdsuite.utils.meta_functions
+from mdsuite.database.simulation_database import TrajectoryMetadata, SpeciesInfo
 
+from typing import List
 import pathlib
 import pubchempy as pcp
 import importlib.resources
@@ -523,7 +525,9 @@ class Experiment(ExperimentDatabase):
             path_list.append(join_path(item, property_name))
         return database.load_data(path_list=path_list, select_slice=select_slice)
 
-    def _store_metadata(self, metadata, update_with_pubchempy=False):
+    def _store_metadata(
+        self, metadata: TrajectoryMetadata, update_with_pubchempy=False
+    ):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
@@ -552,7 +556,7 @@ class Experiment(ExperimentDatabase):
         self.property_groups = next(iter(species_dict.values()))["properties"]
 
 
-def update_species_attributes_with_pubchempy(species_list):
+def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
     """
     Add information to the species dictionary
 
