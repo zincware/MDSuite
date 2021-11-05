@@ -38,6 +38,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     savgol_order: int
     savgol_window_length: int
 

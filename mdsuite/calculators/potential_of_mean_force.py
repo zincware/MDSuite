@@ -45,6 +45,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     savgol_order: int
     savgol_window_length: int
 
@@ -172,7 +173,7 @@ class PotentialOfMeanForce(Calculator):
         filtered_data = apply_savgol_filter(
             self.pomf,
             order=self.args.savgol_order,
-            window_length=self.args.savgol_window_length
+            window_length=self.args.savgol_window_length,
         )
 
         # Find the maximums in the filtered dataset

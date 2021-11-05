@@ -141,9 +141,9 @@ def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
     return tf.boolean_mask(tensor, cutoff_mask)
 
 
-def cartesian_to_spherical_coordinates(point_cartesian,
-                                       name="cartesian_to_spherical_coordinates"
-                                       ):
+def cartesian_to_spherical_coordinates(
+    point_cartesian, name="cartesian_to_spherical_coordinates"
+):
     """
     References
     ----------
@@ -171,15 +171,14 @@ def cartesian_to_spherical_coordinates(point_cartesian,
 
         x, y, z = tf.unstack(point_cartesian, axis=-1)
         radius = tf.norm(tensor=point_cartesian, axis=-1)
-        theta = tf.acos(
-            tf.clip_by_value(tf.math.divide_no_nan(z, radius), -1., 1.))
+        theta = tf.acos(tf.clip_by_value(tf.math.divide_no_nan(z, radius), -1.0, 1.0))
         phi = tf.atan2(y, x)
         return tf.stack((radius, theta, phi), axis=-1)
 
 
-def spherical_to_cartesian_coordinates(point_spherical,
-                                       name="spherical_to_cartesian_coordinates"
-                                       ):
+def spherical_to_cartesian_coordinates(
+    point_spherical, name="spherical_to_cartesian_coordinates"
+):
     """
     References
     ----------
@@ -211,10 +210,7 @@ def spherical_to_cartesian_coordinates(point_spherical,
         return tf.stack((x, y, z), axis=-1)
 
 
-def get2dHistogram(x, y,
-                   value_range,
-                   nbins=100,
-                   dtype=tf.dtypes.int32):
+def get2dHistogram(x, y, value_range, nbins=100, dtype=tf.dtypes.int32):
     """
     Bins x, y coordinates of points onto simple square 2d histogram
 
@@ -249,5 +245,6 @@ def get2dHistogram(x, y,
 
     H = tf.map_fn(
         lambda i: tf.histogram_fixed_width(x[histy_bins == i], x_range, nbins=nbins),
-        tf.range(nbins))
+        tf.range(nbins),
+    )
     return H  # Matrix!

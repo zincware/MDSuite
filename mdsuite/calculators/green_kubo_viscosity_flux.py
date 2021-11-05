@@ -43,6 +43,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -128,7 +129,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             correlation_time=correlation_time,
             tau_values=tau_values,
             atom_selection=np.s_[:],
-            integration_range=integration_range
+            integration_range=integration_range,
         )
 
         self.time = self._handle_tau_values()
@@ -195,11 +196,11 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
-        self.jacf += jacf[int(self.args.data_range - 1):]
+        self.jacf += jacf[int(self.args.data_range - 1) :]
         self.sigma.append(
             np.trapz(
                 jacf[: self.args.integration_range],
-                x=self.time[: self.args.integration_range]
+                x=self.time[: self.args.integration_range],
             )
         )
 

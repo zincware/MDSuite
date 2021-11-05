@@ -45,7 +45,6 @@ import json
 log = logging.getLogger(__name__)
 
 
-
 # https://stackoverflow.com/questions/42033142/is-there-an-easy-way-to-check-if-an-object-is-json-serializable-in-python
 def is_jsonable(x: dict) -> bool:
     """

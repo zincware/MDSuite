@@ -43,6 +43,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     data_range: int
     correlation_time: int
     tau_values: np.s_

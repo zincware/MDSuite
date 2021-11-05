@@ -45,6 +45,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     data_range: int
     correlation_time: int
     atom_selection: np.s_
@@ -107,16 +108,16 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     @call
     def __call__(
-            self,
-            plot: bool = True,
-            species: list = None,
-            data_range: int = 500,
-            correlation_time: int = 1,
-            atom_selection=np.s_[:],
-            molecules: bool = False,
-            gpu: bool = False,
-            tau_values: Union[int, List, Any] = np.s_[:],
-            integration_range: int = None,
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        atom_selection=np.s_[:],
+        molecules: bool = False,
+        gpu: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        integration_range: int = None,
     ):
         """
         Constructor for the Green-Kubo diffusion coefficients class.
@@ -158,7 +159,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             tau_values=tau_values,
             molecules=molecules,
             species=species,
-            integration_range=integration_range
+            integration_range=integration_range,
         )
 
         self.gpu = gpu
@@ -194,19 +195,19 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                    3
-                    * self.experiment.units["time"]
-                    * (self.args.integration_range - 1)
-                    * len(self.experiment.molecules[species]["indices"])
+                3
+                * self.experiment.units["time"]
+                * (self.args.integration_range - 1)
+                * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                    3
-                    * self.experiment.units["time"]
-                    * self.args.integration_range
-                    * len(self.experiment.species[species]["indices"])
+                3
+                * self.experiment.units["time"]
+                * self.args.integration_range
+                * len(self.experiment.species[species]["indices"])
             )
             self.prefactor = numerator / denominator
 
@@ -231,7 +232,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.sigma.append(
             np.trapz(
                 vacf[: self.args.integration_range],
-                x=self.time[: self.args.integration_range]
+                x=self.time[: self.args.integration_range],
             )
         )
 
@@ -247,15 +248,15 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         for selected_species, val in data.items():
             span = Span(
                 location=(
-                        np.array(val[self.result_series_keys[0]])
-                        * self.experiment.units["time"]
+                    np.array(val[self.result_series_keys[0]])
+                    * self.experiment.units["time"]
                 )[self.args.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
-                       * self.experiment.units["time"],
+                * self.experiment.units["time"],
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
                     f"{val[self.result_keys[0]]: 0.3E} +-"
@@ -305,11 +306,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             batch_ds = self.get_batch_dataset([species])
 
             for batch in tqdm(
-                    batch_ds,
-                    ncols=70,
-                    desc=species,
-                    total=self.n_batches,
-                    disable=self.memory_manager.minibatch,
+                batch_ds,
+                ncols=70,
+                desc=species,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
             ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 

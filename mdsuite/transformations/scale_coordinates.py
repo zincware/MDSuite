@@ -169,11 +169,11 @@ class ScaleCoordinates(Transformations):
             batch_generator, batch_generator_args = self.data_manager.batch_generator(
                 dictionary=True
             )
-            type_spec = {str.encode(data_path[0]): tf.TensorSpec(
-                shape=simulation_properties.scaled_positions[1], dtype=self.dtype),
-                         str.encode("data_size"): tf.TensorSpec(
-                             shape=(), dtype=tf.int32
-                         )
+            type_spec = {
+                str.encode(data_path[0]): tf.TensorSpec(
+                    shape=simulation_properties.scaled_positions[1], dtype=self.dtype
+                ),
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
             }
             data_set = tf.data.Dataset.from_generator(
                 batch_generator,

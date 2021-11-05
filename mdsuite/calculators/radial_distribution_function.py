@@ -60,6 +60,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     number_of_bins: int
     number_of_configurations: int
     correlation_time: int
@@ -398,7 +399,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         data_out : np.ndarray
                 data_in converted to nm
         """
-        return (self.experiment.units['length'] / 1e-9) * data_in
+        return (self.experiment.units["length"] / 1e-9) * data_in
 
     def _correct_batch_properties(self):
         """

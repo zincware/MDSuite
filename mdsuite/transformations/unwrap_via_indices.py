@@ -104,13 +104,12 @@ class UnwrapViaIndices(Transformations):
         Scaled coordinates : tf.Tensor
                 Coordinates scaled by the image number.
         """
-        return (
-                data[dict_keys[0]] +
-                tf.math.multiply(data[dict_keys[1]], self.experiment.box_array)
+        return data[dict_keys[0]] + tf.math.multiply(
+            data[dict_keys[1]], self.experiment.box_array
         )
 
     def _save_unwrapped_coordinates(
-            self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict
+        self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict
     ):
         """
         Save the tensor_values into the database_path
@@ -205,8 +204,10 @@ class UnwrapViaIndices(Transformations):
             batch_generator, batch_generator_args = self.data_manager.batch_generator(
                 dictionary=True
             )
-            dict_ref = [str.encode(join_path(species, "Positions")),
-                        str.encode(join_path(species, "Box_Images"))]
+            dict_ref = [
+                str.encode(join_path(species, "Positions")),
+                str.encode(join_path(species, "Box_Images")),
+            ]
             type_spec = {
                 dict_ref[0]: tf.TensorSpec(
                     shape=simulation_properties.positions[1], dtype=self.dtype
@@ -214,7 +215,7 @@ class UnwrapViaIndices(Transformations):
                 dict_ref[1]: tf.TensorSpec(
                     shape=simulation_properties.box_images[1], dtype=self.dtype
                 ),
-                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32)
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
             }
             data_set = tf.data.Dataset.from_generator(
                 batch_generator,
@@ -223,9 +224,9 @@ class UnwrapViaIndices(Transformations):
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, batch in tqdm(
-                    enumerate(data_set),
-                    ncols=70,
-                    desc=f"{species}: Unwrapping Coordinates.",
+                enumerate(data_set),
+                ncols=70,
+                desc=f"{species}: Unwrapping Coordinates.",
             ):
                 data = self._transformation(batch, dict_ref)
                 self._save_coordinates(

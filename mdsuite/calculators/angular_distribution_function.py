@@ -55,6 +55,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     number_of_bins: int
     number_of_configurations: int
     correlation_time: int
@@ -274,7 +275,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.args.start,
             self.args.stop,
             self.args.number_of_configurations,
-            dtype=np.int
+            dtype=np.int,
         )
 
         species_indices = []
@@ -575,7 +576,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             angles = self._build_histograms(
                 positions=positions_tensor,
                 species_indices=species_indices,
-                angles=angles
+                angles=angles,
             )
 
         self._compute_adfs(angles, species_indices)

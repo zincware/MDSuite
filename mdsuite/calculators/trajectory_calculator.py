@@ -76,10 +76,11 @@ class TrajectoryCalculator(Calculator, ABC):
     _database : Database
             Simulation database from which data should be loaded.
     """
+
     def __init__(
-            self,
-            experiment: object = None,
-            experiments: List = None,
+        self,
+        experiment: object = None,
+        experiments: List = None,
     ):
         """
         Constructor for the TrajectoryCalculator class.

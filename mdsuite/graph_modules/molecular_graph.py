@@ -166,7 +166,7 @@ class MolecularGraph:
 
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data_dict =  self.database.load_data(
+        data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, 0]
         )
         data = []

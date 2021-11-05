@@ -197,9 +197,7 @@ class Calculator(CalculatorDatabase):
     """
 
     def __init__(
-        self,
-        experiment: Experiment = None,
-        experiments: List[Experiment] = None
+        self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
         """
         Constructor for the calculator class.
@@ -251,11 +249,8 @@ class Calculator(CalculatorDatabase):
         return self._dtype
 
     def run_visualization(
-            self,
-            x_data: np.ndarray,
-            y_data: np.ndarray,
-            title: str,
-            layouts: object = None):
+        self, x_data: np.ndarray, y_data: np.ndarray, title: str, layouts: object = None
+    ):
         """
         Run a visualization session on the data.
 

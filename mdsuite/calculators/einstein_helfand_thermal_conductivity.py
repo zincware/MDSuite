@@ -42,6 +42,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     data_range: int
     correlation_time: int
     tau_values: np.s_
@@ -75,6 +76,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
                                                        plot=True,
                                                        correlation_time=10)
     """
+
     def __init__(self, **kwargs):
         """
         Python constructor
@@ -102,12 +104,12 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
 
     @call
     def __call__(
-            self,
-            plot=True,
-            data_range=500,
-            correlation_time=1,
-            tau_values: np.s_ = np.s_[:],
-            gpu: bool = False,
+        self,
+        plot=True,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        gpu: bool = False,
     ):
         """
         Python constructor

@@ -30,7 +30,7 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     required = f.read().splitlines()
 
 setuptools.setup(
@@ -51,5 +51,5 @@ setuptools.setup(
     package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
     python_requires=">=3.7",
-    install_requires=required
+    install_requires=required,
 )

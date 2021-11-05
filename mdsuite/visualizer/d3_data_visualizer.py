@@ -42,11 +42,11 @@ class DataVisualizer3D:
     """
 
     def __init__(
-            self,
-            data: np.ndarray,
-            title: str,
-            center: Union[str, dict] = None,
-            colour_map: np.ndarray = None
+        self,
+        data: np.ndarray,
+        title: str,
+        center: Union[str, dict] = None,
+        colour_map: np.ndarray = None,
     ):
         """
         Constructor for the data visualizer.
@@ -72,7 +72,9 @@ class DataVisualizer3D:
 
         plt.plot(
             np.linspace(0, len(self.colour_map), len(self.colour_map), dtype=int),
-            self.colour_map, '.')
+            self.colour_map,
+            ".",
+        )
         plt.show()
 
         self._build_app()
@@ -84,7 +86,7 @@ class DataVisualizer3D:
         -------
 
         """
-        viridis = cm.get_cmap('binary')
+        viridis = cm.get_cmap("binary")
 
         dat = viridis(self.colour_map)[:, :-1]
 

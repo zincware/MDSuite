@@ -43,6 +43,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     savgol_order: int
     savgol_window_length: int
 
@@ -207,7 +208,7 @@ class CoordinationNumbers(Calculator):
         filtered_data = apply_savgol_filter(
             self.rdf,
             order=self.args.savgol_order,
-            window_length=self.args.savgol_window_length
+            window_length=self.args.savgol_window_length,
         )
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
 
