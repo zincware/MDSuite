@@ -30,6 +30,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 import mdsuite as mds
+from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +49,7 @@ def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
     NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
     return NaCl.get_analysis(analysis="RadialDistributionFunction.json")
+
 
 def test_project(traj_files, true_values, tmp_path):
     """

@@ -33,6 +33,7 @@ import pytest
 import numpy as np
 from pathlib import Path
 import mdsuite as mds
+from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")
