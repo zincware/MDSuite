@@ -35,6 +35,7 @@ from mdsuite.database.project_database import ProjectDatabase
 import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
 from mdsuite.utils import Units
+from mdsuite.utils.helpers import NoneType
 
 from typing import Dict
 
@@ -123,7 +124,7 @@ class Project(ProjectDatabase):
 
     def add_experiment(
         self,
-        experiment: str = None,
+        experiment: str = NoneType,
         timestep: float = None,
         temperature: float = None,
         units: Union[str, Units] = None,
@@ -152,7 +153,16 @@ class Project(ProjectDatabase):
                 in calculation.
         units : str
                 LAMMPS units used
+
+        Notes
+        ------
+        Using custom NoneType to raise a custom ValueError message with useful info.
         """
+        if experiment is NoneType:
+            raise ValueError(
+                "Experiment can not be empty! "
+                "Use None to automatically generate a unique name."
+            )
 
         if experiment is None:
             experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
