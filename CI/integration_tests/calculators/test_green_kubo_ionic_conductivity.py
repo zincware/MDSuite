@@ -28,6 +28,7 @@ import pytest
 import os
 import mdsuite as mds
 from zinchub import DataHub
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -56,4 +57,4 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.GreenKuboIonicConductivity(plot=False)
 
-    assert computation["NaCl"].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values)

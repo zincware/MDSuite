@@ -365,10 +365,18 @@ class Database:
                 for prop_info in sp_info.properties:
                     dataset_name = f'{sp_info.name}/{prop_info.name}'
                     write_data = chunk_data[sp_info.name][prop_info.name]
-                    if workaround_time_in_axis_1:
-                        database[dataset_name][:, start_idx:stop_index, :] = np.swapaxes(write_data, 0, 1)
+
+                    dataset_shape = database[dataset_name].shape
+                    if len(dataset_shape) == 2:
+                        # only one particle
+                        database[dataset_name][start_idx:stop_index, :] = np.squeeze(write_data[:,0,:])
+                    elif len(dataset_shape) == 3:
+                        if workaround_time_in_axis_1:
+                            database[dataset_name][:, start_idx:stop_index, :] = np.swapaxes(write_data, 0, 1)
+                        else:
+                            database[dataset_name][start_idx:stop_index, ...] = write_data
                     else:
-                        database[dataset_name][start_idx:stop_index, ...] = write_data
+                        raise ValueError('dataset shape must be either (n_part,n_config,n_dim) or (n_config, n_dim)')
 
     def resize_datasets(self, structure: dict):
         """

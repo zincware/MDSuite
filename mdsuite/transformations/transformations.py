@@ -282,11 +282,16 @@ class Transformations:
         path = path.split('/')
         prop_name = path[-1]
         sp_name = path[-2]
+        n_particles = val.get('length', 1)
+        if len(np.shape(data)) == 2:
+            # data not for multiple particles, instead one value for all
+            # -> create the n_particle axis
+            data = data[np.newaxis, :, :]
         prop = mdsuite.database.simulation_database.PropertyInfo(name=prop_name,
                                                                  n_dims=len(val['columns']))
         species_list.append(mdsuite.database.simulation_database.SpeciesInfo(name=sp_name,
                                                                              properties=[prop],
-                                                                             n_particles=val['length']))
+                                                                             n_particles=n_particles))
         chunk = mdsuite.database.simulation_database.TrajectoryChunkData(chunk_size=batch_size,
                                                                          species_list=species_list)
         # data comes from transformation with time in 1st axis, add_data needs it in 0th axis
