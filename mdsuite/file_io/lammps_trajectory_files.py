@@ -68,8 +68,6 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
 
-        self._n_configurations_read = 0
-
         # attributes that will be filled in by get_metadata() and are later used by get_configurations_generator()
         self._batch_size = None
         self._id_column_idx = None
@@ -114,22 +112,23 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
             # extract sample step information from consecutive headers
             file.seek(0)
-            sample_step = self._get_sample_step(file)
+            sample_rate = self._get_sample_rate(file)
 
+        # all species have the same properties
         properties_list = list()
-        for key, val in self._property_dict:
+        for key, val in self._property_dict.items():
             properties_list.append(PropertyInfo(name=key, n_dims=len(val)))
 
         species_list = list()
         for key, val in self._species_dict.items():
             species_list.append(SpeciesInfo(name=key,
-                                            n_particles=len(val),
+                                            n_particles=len(val['line_idxs']),
                                             properties=properties_list))
 
         self._mdata = TrajectoryMetadata(n_configurations=n_configs,
                                          species_list=species_list,
                                          box_l=box_l,
-                                         sample_step=sample_step)
+                                         sample_rate=sample_rate)
 
         self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(filepath=self.file_path,
                                                                             number_of_configurations=n_configs)
@@ -141,6 +140,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 
         with open(self.file_path, 'r') as file:
+            file.seek(0)
             for _ in tqdm.tqdm(range(n_batches)):
                 yield self._read_process_n_configurations(file, self._batch_size)
             if n_configs_remainder > 0:
@@ -159,13 +159,13 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         -------
 
         """
-        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(self._species_dict, n_configs)
+        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(self._mdata.species_list, n_configs)
 
         for config_idx in range(n_configs):
             # skip the header
-            file.seek(self.n_header_lines, whence=1)
+            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
             # read one config
-            traj_data = np.stack([np.array(list(file.readline().split())) for _ in self._n_particles])
+            traj_data = np.stack([np.array(list(file.readline().split())) for _ in range(self._n_particles)])
             # sort by id
             if not self.trajectory_is_sorted_by_ids:
                 traj_data = sort_array_by_column(traj_data, self._id_column_idx)
@@ -177,7 +177,10 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
                 # slice by property
                 for prop_info in sp_info.properties:
                     prop_column_idxs = self._property_dict[prop_info.name]
-                    chunk.add_data(sp_data[:, prop_column_idxs], config_idx, sp_info.name, prop_info.name)
+                    write_data = sp_data[:, prop_column_idxs]
+                    # add 'time' axis. we only have one configuration to write
+                    write_data = write_data[np.newaxis, :, :]
+                    chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
 
         return chunk
 
@@ -206,36 +209,35 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             raise ValueError("Insufficient species or type identification available.")
 
         species_dict = dict()
-        file.seek(self.n_header_lines)
-
-        for i in range(self._n_particles):
-            # read one configuration
-            traj_data = np.stack([np.array(list(file.readline().split())) for _ in range(self._n_particles)])
-            # sort by particle id
-            if not self.trajectory_is_sorted_by_ids:
-                traj_data = sort_array_by_column(traj_data, header_id_index)
-            # iterate over the first configuration, whenever a new species (value at species_index) is encountered,
-            # add an entry
-            for i, line in enumerate(traj_data):
-                species_name = line[header_species_index]
-                particle_id = int(line[header_id_index])
-                if species_name not in species_dict.keys():
-                    species_dict[species_name] = {'particle_ids': [particle_id],
-                                                  'line_idxs': [i]}
-                else:
-                    species_dict[species_name]['particle_ids'].append(particle_id)
-                    species_dict[species_name]['line_idxs'].append(i)
+        # skip the header
+        mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+        # read one configuration
+        traj_data = np.stack([np.array(list(file.readline().split())) for _ in range(self._n_particles)])
+        # sort by particle id
+        if not self.trajectory_is_sorted_by_ids:
+            traj_data = sort_array_by_column(traj_data, header_id_index)
+        # iterate over the first configuration, whenever a new species (value at species_index) is encountered,
+        # add an entry
+        for i, line in enumerate(traj_data):
+            species_name = line[header_species_index]
+            particle_id = int(line[header_id_index])
+            if species_name not in species_dict.keys():
+                species_dict[species_name] = {'particle_ids': [particle_id],
+                                              'line_idxs': [i]}
+            else:
+                species_dict[species_name]['particle_ids'].append(particle_id)
+                species_dict[species_name]['line_idxs'].append(i)
 
         return species_dict
 
-    def _get_sample_step(self, file):
+    def _get_sample_rate(self, file) -> int:
         first_header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines, start_at=0)
-        time_0 = float(first_header[1])  # Time in first configuration
+        time_step_0 = int(first_header[1])  # Time in first configuration
         second_header = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines,
                                                                start_at=self.n_header_lines + self._n_particles)
-        time_1 = float(second_header[1])  # Time in second configuration
+        time__step_1 = int(second_header[1])  # Time in second configuration
 
-        return time_1 - time_0
+        return time__step_1 - time_step_0
 
 
 def sort_array_by_column(array: np.ndarray, column_idx):

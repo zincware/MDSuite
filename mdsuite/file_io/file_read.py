@@ -35,6 +35,7 @@ class FileProcessor(abc.ABC):
     Class to handle reading from trajectory files.
     Output is supposed to be used by the experiment class for building and populating the trajectory database.
     """
+
     def __str__(self):
         """
         Return a unique string representing this FileProcessor. (The absolute file path, for example)
@@ -66,14 +67,22 @@ def assert_species_list_consistent(sp_list_0, sp_list_1):
             raise ValueError('Species information from data and metadata are inconsistent')
 
 
-def read_n_lines(file, n_lines: int, start_at=0) -> list:
+def skip_n_lines(file, n_lines: int):
+    for _ in range(n_lines):
+        next(file)
+
+
+def read_n_lines(file, n_lines: int, start_at:int=None) -> list:
     """
-    Get n_lines lines, starting at start
+    Get n_lines lines, starting at line number start_at.
+    If start_at is None, read from the current file state
     Returns
     -------
     A list of strings, one string for each line
     """
-    file.seek(start_at)
+    if start_at is not None:
+        file.seek(0)
+        skip_n_lines(file, start_at)
     return [next(file) for _ in range(n_lines)]
 
 
