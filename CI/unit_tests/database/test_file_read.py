@@ -90,12 +90,11 @@ def test_traj_chunk_data():
     )
 
 
-def test_read_script_input():
+def test_read_script_input(tmp_path):
     n_configs = 10
     n_parts = 4
     n_dims = 2
     time_step = 0.1
-    sample_step = 0.5
     sp_name = "test_species"
     positions = np.random.rand(*(n_configs, n_parts, n_dims))
     velocities = np.random.rand(*(n_configs, n_parts, n_dims))
@@ -121,20 +120,19 @@ def test_read_script_input():
 
     proc = script_input.ScriptInput(data=data, metadata=metadata, name="test_name")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        project = mdsuite.Project(name="test_proj", storage_path=temp_dir)
-        project.add_experiment(experiment="test_experiment", timestep=time_step)
-        exp = project.experiments["test_experiment"]
-        exp.add_data(file_processor=proc)
+    project = mdsuite.Project(name="test_proj", storage_path=tmp_path)
+    project.add_experiment(experiment="test_experiment", timestep=time_step)
+    exp = project.experiments["test_experiment"]
+    exp.add_data(file_processor=proc)
 
-        pos_loaded = np.swapaxes(
-            exp.load_matrix(species=[sp_name], property_name="Positions"), 0, 1
-        )
-        vel_loaded = np.swapaxes(
-            exp.load_matrix(species=[sp_name], property_name="Velocities"), 0, 1
-        )
+    pos_loaded = np.swapaxes(
+        exp.load_matrix(species=[sp_name], property_name="Positions")['test_species/Positions'].numpy(), 0, 1
+    )
+    vel_loaded = np.swapaxes(
+        exp.load_matrix(species=[sp_name], property_name="Velocities")['test_species/Velocities'].numpy(), 0, 1
+    )
 
-        np.testing.assert_array_almost_equal(positions, pos_loaded, decimal=err_decimal)
-        np.testing.assert_array_almost_equal(
-            velocities, vel_loaded, decimal=err_decimal
-        )
+    np.testing.assert_array_almost_equal(positions, pos_loaded, decimal=err_decimal)
+    np.testing.assert_array_almost_equal(
+        velocities, vel_loaded, decimal=err_decimal
+    )

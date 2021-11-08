@@ -441,7 +441,7 @@ class Experiment(ExperimentDatabase):
             return  # End the method.
 
         database = Database(
-            name=pathlib.Path(self.database_path, "database.hdf5").as_posix(),
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
         )
 
         # Check to see if a database_path exists

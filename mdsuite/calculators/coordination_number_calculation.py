@@ -160,8 +160,7 @@ class CoordinationNumbers(Calculator):
 
         # set args that will affect the computation result
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=savgol_order, savgol_window_length=savgol_window_length
         )
 
     def _get_density(self, species: str) -> float:

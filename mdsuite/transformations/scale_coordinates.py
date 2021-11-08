@@ -176,9 +176,7 @@ class ScaleCoordinates(Transformations):
                 str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
             }
             data_set = tf.data.Dataset.from_generator(
-                batch_generator,
-                args=batch_generator_args,
-                output_signature=type_spec,
+                batch_generator, args=batch_generator_args, output_signature=type_spec
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, x in tqdm(

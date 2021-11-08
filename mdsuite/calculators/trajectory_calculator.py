@@ -77,11 +77,7 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(
-        self,
-        experiment: object = None,
-        experiments: List = None,
-    ):
+    def __init__(self, experiment: object = None, experiments: List = None):
         """
         Constructor for the TrajectoryCalculator class.
 
@@ -166,9 +162,7 @@ class TrajectoryCalculator(Calculator, ABC):
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}

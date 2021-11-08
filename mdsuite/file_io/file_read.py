@@ -89,7 +89,7 @@ def read_n_lines(file, n_lines: int, start_at: int = None) -> list:
 
 
 def extract_properties_from_header(
-    header_property_names: list, database_correspondence_dict: dict,
+    header_property_names: list, database_correspondence_dict: dict
 ) -> dict:
     """
     Takes the property names from a file header, sees if there is a corresponding mdsuite property

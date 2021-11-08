@@ -167,9 +167,7 @@ class Transformations:
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
@@ -315,6 +313,7 @@ class Transformations:
             the file was still open while it should already be closed. So, we
             wait, and we add again.
             """
+            time.sleep(0.5)
             self.database.add_data(chunk=chunk, start_idx=index + self.offset)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):

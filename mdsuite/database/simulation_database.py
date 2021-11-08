@@ -380,9 +380,10 @@ class Database:
                     dataset_shape = database[dataset_name].shape
                     if len(dataset_shape) == 2:
                         # only one particle
-                        database[dataset_name][start_idx:stop_index, :] = np.squeeze(
-                            write_data[:, 0, :]
-                        )
+                        database[dataset_name][start_idx:stop_index, :] = write_data[
+                            :, 0, :
+                        ]
+
                     elif len(dataset_shape) == 3:
                         if workaround_time_in_axis_1:
                             database[dataset_name][

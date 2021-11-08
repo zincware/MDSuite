@@ -152,8 +152,7 @@ class PotentialOfMeanForce(Calculator):
         self.data_files = []
 
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=savgol_order, savgol_window_length=savgol_window_length
         )
 
     def _calculate_potential_of_mean_force(self):
