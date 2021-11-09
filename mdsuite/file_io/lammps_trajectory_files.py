@@ -67,10 +67,32 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
     Reader for LAMMPS files
     """
 
-    def __init__(self, file_path: str, trajectory_is_sorted_by_ids=True):
+    def __init__(
+        self,
+        file_path: str,
+        trajectory_is_sorted_by_ids=True,
+        custom_data_map: dict = None,
+    ):
+        """
+
+        Parameters
+        ----------
+        file_path:
+            path to the LAMMPS trajectory file
+        trajectory_is_sorted_by_ids:
+            Flag to indicate if the particle order in the trajectory file is the same for each configuration
+        custom_data_map
+            If your file contains columns with data that is not part of the standard set of properties (see var_names),
+            you can map the column names to the corresponding property.
+            example: custom_data_map = {"Reduced_Momentum": ["rp_x", "rp_y", "rp_z"]}, if the file contains columns
+            labelled as 'rp_{x,y,z}' for the three components of the reduced momentum vector
+        """
         self.file_path = pathlib.Path(file_path).resolve()
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
+        if custom_data_map is None:
+            custom_data_map = {}
+        self.custom_data_map = custom_data_map
 
         # attributes that will be filled in by get_metadata() and are later used by get_configurations_generator()
         self._batch_size = None
@@ -104,8 +126,10 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             # extract properties from the column names
             header_property_names = header[8].split()[2:]
             self._id_column_idx = header_property_names.index("id")
+            updated_var_names = copy.deepcopy(var_names)
+            updated_var_names.update(self.custom_data_map)
             self._property_dict = mdsuite.file_io.file_read.extract_properties_from_header(
-                header_property_names, copy.deepcopy(var_names)
+                header_property_names, updated_var_names
             )
 
             # get number of configs from file length
