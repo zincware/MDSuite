@@ -33,8 +33,7 @@ from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
 import time
 from typing import Union, List
-import pandas as pd
-
+import pathlib
 
 var_names = [
     "Temperature",
@@ -465,6 +464,13 @@ class Database:
         """
 
         self.add_dataset(structure)  # add a dataset to the groups
+
+    def database_exists(self) -> bool:
+        """
+        Check if the database file already exists
+        """
+        database_path = pathlib.Path(self.name)
+        return database_path.exists()
 
     def add_dataset(self, structure: dict):
         """

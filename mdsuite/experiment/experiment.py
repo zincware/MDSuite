@@ -444,17 +444,11 @@ class Experiment(ExperimentDatabase):
             name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
         )
 
-        # Check to see if a database_path exists
-        # todo make method of database class
-        database_path = pathlib.Path(
-            self.database_path, "database.hdf5"
-        )  # get theoretical path.
-
         metadata = file_processor.get_metadata()
         architecture = _species_list_to_architecture_dict(
             metadata.species_list, metadata.n_configurations
         )
-        if not database_path.exists():
+        if not database.database_exists():
             self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
             database.initialize_database(architecture)
         else:
