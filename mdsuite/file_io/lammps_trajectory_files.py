@@ -55,6 +55,7 @@ var_names = {
         "c_Stress[6]",
     ],
 }
+x = 25
 
 
 class LAMMPSTrajectoryFile(TrajectoryFile):
