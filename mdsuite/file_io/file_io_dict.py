@@ -26,10 +26,10 @@ Summary
 """
 from mdsuite.file_io.lammps_trajectory_files import LAMMPSTrajectoryFile
 from mdsuite.file_io.lammps_flux_files import LAMMPSFluxFile
-from mdsuite.file_io.extxyz_files import EXTXYZFileReader
+from mdsuite.file_io.extxyz_files import EXTXYZFile
 
 dict_file_io = {
     "lammps_traj": (LAMMPSTrajectoryFile, "traj"),
     "lammps_flux": (LAMMPSFluxFile, "flux"),
-    "extxyz": (EXTXYZFileReader, "traj"),
+    "extxyz": (EXTXYZFile, "traj"),
 }
