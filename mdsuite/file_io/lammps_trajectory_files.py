@@ -58,6 +58,8 @@ var_names = {
 x = 25
 
 
+
+hi
 class LAMMPSTrajectoryFile(TrajectoryFile):
     """
     Child class for the lammps file reader.
