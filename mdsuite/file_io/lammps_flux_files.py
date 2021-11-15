@@ -43,8 +43,14 @@ var_names = {
 
 
 class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
-    def __init__(self, file_path: str, sample_rate: int, box_l: list, n_header_lines: int = 2,
-                 custom_data_map: dict = None):
+    def __init__(
+        self,
+        file_path: str,
+        sample_rate: int,
+        box_l: list,
+        n_header_lines: int = 2,
+        custom_data_map: dict = None,
+    ):
         """
         Initialize the lammps flux reader. Since the flux file does not have a fixed expected content,
         you need to provide the necessary metadata (sample_rate, box_l) here manually
@@ -81,7 +87,7 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
 
     def get_metadata(self):
 
-        with open(self.file_path, 'r') as file:
+        with open(self.file_path, "r") as file:
             num_lines = sum(1 for _ in file)
             n_steps = num_lines - self.n_header_lines
 
@@ -90,19 +96,25 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
             column_header = headers[-1]
             updated_column_names = copy.deepcopy(var_names)
             updated_column_names.update(self.custom_data_map)
-            self._properties_dict = mdsuite.file_io.file_read.extract_properties_from_header(column_header.split(),
-                                                                                             updated_column_names)
+            self._properties_dict = mdsuite.file_io.file_read.extract_properties_from_header(
+                column_header.split(), updated_column_names
+            )
 
         properties_list = []
         for prop_name, prop_idxs in self._properties_dict.items():
-            properties_list.append(mdsuite.database.simulation_database.PropertyInfo(name=prop_name,
-                                                                                     n_dims=len(prop_idxs)))
-        species_list = [mdsuite.database.simulation_database.SpeciesInfo(name='Observables',
-                                                                         n_particles=1,
-                                                                         properties=properties_list)]
-        self._mdata = mdsuite.database.simulation_database.TrajectoryMetadata(n_configurations=n_steps,
-                                                                              species_list=species_list,
-                                                                              box_l=self.box_l)
+            properties_list.append(
+                mdsuite.database.simulation_database.PropertyInfo(
+                    name=prop_name, n_dims=len(prop_idxs)
+                )
+            )
+        species_list = [
+            mdsuite.database.simulation_database.SpeciesInfo(
+                name="Observables", n_particles=1, properties=properties_list
+            )
+        ]
+        self._mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
+            n_configurations=n_steps, species_list=species_list, box_l=self.box_l
+        )
 
         self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
             filepath=self.file_path, number_of_configurations=n_steps
@@ -111,7 +123,7 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
         return self._mdata
 
     def get_configurations_generator(
-            self,
+        self,
     ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
         n_configs = self._mdata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
@@ -126,7 +138,7 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
                 yield self._read_process_n_configurations(file, n_configs_remainder)
 
     def _read_process_n_configurations(
-            self, file, n_configs
+        self, file, n_configs
     ) -> mdsuite.file_io.file_read.TrajectoryChunkData:
         """
         Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
@@ -145,10 +157,7 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
         )
 
         traj_data = np.stack(
-            [
-                np.array(list(file.readline().split()))
-                for _ in range(n_configs)
-            ]
+            [np.array(list(file.readline().split())) for _ in range(n_configs)]
         )
 
         # there is only one species, containing the observable properties
@@ -162,4 +171,3 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
             chunk.add_data(write_data, 0, sp_name, prop_info.name)
 
         return chunk
-
