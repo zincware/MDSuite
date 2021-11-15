@@ -211,7 +211,7 @@ class DataVisualizer3D:
         #     mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(
         #         self.point_cloud, depth=5)
 
-        radii = [0.1, 0.3, 0.6, 1.0, 2.0, 5.0]
+        radii = [1.0, 2.0]
         mesh = o3d.geometry.TriangleMesh.create_from_point_cloud_ball_pivoting(
             self.point_cloud, o3d.utility.DoubleVector(radii))
 
