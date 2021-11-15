@@ -68,6 +68,9 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
         self._species_dict = None
         self._batch_size = None
 
+    def __str__(self):
+        return str(self.file_path)
+
     def get_metadata(self):
         with open(self.file_path, "r") as file:
             # first header line: number of particles
