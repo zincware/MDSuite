@@ -30,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.file_io.file_read
 from mdsuite.utils.meta_functions import DotDict
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
@@ -132,16 +132,18 @@ class Project(ProjectDatabase):
         units: Union[str, Units] = None,
         cluster_mode: bool = None,
         active: bool = True,
-        data: Union[str, list, dict] = None,
+        fname_or_file_processor: Union[
+            str, mdsuite.file_io.file_read.FileProcessor, list
+        ] = None,
     ):
         """
         Add an experiment to the project
 
         Parameters
         ----------
-        data:
-            data that should be added to the experiment. If dict,
-            {file:<file>, format:<format>}
+        fname_or_file_processor:
+            data that should be added to the experiment.
+            see mdsuite.experiment.add_data() for details of the file specification
         active: bool, default = True
                 Activate the experiment when added
         cluster_mode : bool
@@ -195,37 +197,8 @@ class Project(ProjectDatabase):
         # Update the internal experiment dictionary for self.experiment property
         self._experiments[experiment] = new_experiment
 
-        if data is not None:
-
-            def handle_file_format(inp):
-                """Run experiment.add_data
-
-                Parameters
-                ----------
-                inp: str, dict, list
-                    If dict, {file:<file>, format:<format>}
-                """
-
-                if isinstance(inp, str):
-                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
-                        inp
-                    )
-                    self.experiments[experiment].add_data(file_processor=file_proc)
-                if isinstance(inp, dict):
-                    if inp["format"] != "lammps_traj":
-                        raise ValueError(
-                            "Currently only support lammps trajectory files"
-                        )
-                    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
-                        inp["file"]
-                    )
-                    self.experiments[experiment].add_data(file_processor=file_proc)
-
-                if isinstance(inp, list):
-                    for obj in inp:
-                        handle_file_format(obj)
-
-            handle_file_format(data)
+        if fname_or_file_processor is not None:
+            self.experiments[experiment].add_data(fname_or_file_processor)
 
     def load_experiments(self, names: Union[str, list]):
         """Alias for activate_experiments"""
@@ -269,41 +242,26 @@ class Project(ProjectDatabase):
         for name in names:
             self.experiments[name].active = False
 
-    def add_data(self, data_sets: dict, file_format="lammps_traj"):
+    def add_data(self, data_sets: dict):
         """
-        Add data to an experiment. This is a method so that parallelization is
-        possible amongst data addition to different experiments at the same
+        Add fname_or_file_processor to a experiments. This is a method so that parallelization is
+        possible amongst fname_or_file_processor addition to different experiments at the same
         time.
 
         Parameters
         ----------
         data_sets: dict
-            Dictionary containing the name of the experiment as key and the
-            data path as value
-        file_format: dict or str
-            Dictionary containing the name of the experiment as key and the
-            file_format as value. Alternativly only a string of the
-            file_format if all files have the same format.
+            keys: the names of the experiments
+            values: str or mdsuite.file_io.file_read.FileProcessor
+                refer to mdsuite.experiment.add_data() for an explanation of the file specification options
 
         Returns
         -------
         Updates the experiment classes.
         """
-        if isinstance(file_format, dict):
-            try:
-                assert file_format.keys() == data_sets.keys()
-            except AssertionError:
-                log.error("Keys of the data_sets do not match keys of the file_format")
 
-            for item in data_sets:
-                self.experiments[item].add_data(
-                    data_sets[item], file_format=file_format[item]
-                )
-        else:
-            for item in data_sets:
-                self.experiments[item].add_data(
-                    data_sets[item], file_format=file_format
-                )
+        for key, val in data_sets.items():
+            self.experiments[key].add_data(val)
 
     @property
     def run(self) -> RunComputation:

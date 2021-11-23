@@ -42,6 +42,8 @@ log = logging.getLogger(__name__)
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.file_io.file_read import FileProcessor
+import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.file_io.extxyz_files
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 import mdsuite.utils.meta_functions
@@ -54,6 +56,32 @@ import importlib.resources
 import json
 import numpy as np
 import copy
+
+
+def _get_processor(fname_or_file_processor):
+    """
+    Read in one file
+    """
+    if isinstance(fname_or_file_processor, str):
+        ending = fname_or_file_processor.split(".")[-1]
+        if ending == "lammpstraj":
+            processor = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
+                fname_or_file_processor
+            )
+        elif ending == "extxyz":
+            processor = mdsuite.file_io.extxyz_files.EXTXYZFile(fname_or_file_processor)
+        else:
+            raise ValueError(
+                f"datafile ending '{ending}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
+            )
+    elif isinstance(fname_or_file_processor, mdsuite.file_io.file_read.FileProcessor):
+        processor = fname_or_file_processor
+    else:
+        raise ValueError(
+            f"fname_or_file_processor must be either str or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(fname_or_file_processor)}' instead"
+        )
+
+    return processor
 
 
 class Experiment(ExperimentDatabase):
@@ -413,9 +441,48 @@ class Experiment(ExperimentDatabase):
 
     def add_data(
         self,
+        fname_or_file_processor: Union[
+            str, mdsuite.file_io.file_read.FileProcessor, list
+        ],
+        force: bool = False,
+        update_with_pubchempy: bool = True,
+    ):
+        """
+        Add data to experiment. This method takes a filename or a file reader (or a list thereof).
+        If given a filename, it will try to instantiate the appropriate file reader with its default arguments.
+        If you have a custom data format with its own reader or want to use non-default arguments for your reader,
+        instantiate the reader and pass it to this method.
+        TODO reference online documentation of data loading in the error messages
+        Parameters
+        ----------
+        fname_or_file_processor : str or mdsuite.file_io.file_read.FileProcessor or list thereof
+            if str: path to the file that contains the fname_or_file_processor
+            if mdsuite.file_io.file_read.FileProcessor: An instance of a childclass of FileProcessor
+            if list : must be list of str or mdsuite.file_io.file_read.FileProcessor
+        force : bool
+            If true, a file will be read regardless of if it has already been seen. Default: False
+        update_with_pubchempy: bool
+            Whether or not to look for the masses of the species in pubchempy. Default: True
+
+        """
+
+        if isinstance(fname_or_file_processor, list):
+            for elem in fname_or_file_processor:
+                proc = _get_processor(elem)
+                self._add_data_from_file_processor(
+                    proc, force=force, update_with_pubchempy=update_with_pubchempy
+                )
+        else:
+            proc = _get_processor(fname_or_file_processor)
+            self._add_data_from_file_processor(
+                proc, force=force, update_with_pubchempy=update_with_pubchempy
+            )
+
+    def _add_data_from_file_processor(
+        self,
         file_processor: mdsuite.file_io.file_read.FileProcessor,
         force: bool = False,
-        update_with_pubchempy=True,
+        update_with_pubchempy: bool = True,
     ):
         """
         Add tensor_values to the database_path
@@ -438,7 +505,7 @@ class Experiment(ExperimentDatabase):
                 "If this is not desired, please add force=True "
                 "to the command."
             )
-            return  # End the method.
+            return
 
         database = Database(
             name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
@@ -588,20 +655,6 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
                     f"WARNING element {sp_info.name} has been assigned mass=0.0"
                 )
     return species_list
-
-
-def _load_trajectory_reader(file_format, trajectory_file, sort: bool = False):
-    # TODO replace by proper instantiation
-    try:
-        class_file_io, file_type = dict_file_io[
-            file_format
-        ]  # file type is per atoms or flux.
-    except KeyError:
-        raise ValueError(
-            f"{file_format} not found! \n"
-            f"Available io formats are are: {[key for key in dict_file_io.keys()]}"
-        )
-    return class_file_io(file_path=trajectory_file, sort=sort), file_type
 
 
 def _species_list_to_architecture_dict(species_list, n_configurations):
