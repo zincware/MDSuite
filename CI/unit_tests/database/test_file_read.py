@@ -123,7 +123,7 @@ def test_read_script_input(tmp_path):
     project = mdsuite.Project(name="test_proj", storage_path=tmp_path)
     project.add_experiment(experiment="test_experiment", timestep=time_step)
     exp = project.experiments["test_experiment"]
-    exp.add_data(file_processor=proc)
+    exp.add_data(proc)
 
     pos_loaded = np.swapaxes(
         exp.load_matrix(species=[sp_name], property_name="Positions")['test_species/Positions'].numpy(), 0, 1

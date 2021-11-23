@@ -54,7 +54,7 @@ def test_project(traj_file, true_values, tmp_path):
     """Test the rdf called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_file, timestep=0.002, temperature=1400)
 
     computation = project.run.RadialDistributionFunction(plot=False)
 
@@ -65,7 +65,7 @@ def test_experiment(traj_file, true_values, tmp_path):
     """Test the rdf called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_file, timestep=0.002, temperature=1400)
 
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 

@@ -56,7 +56,7 @@ def test_project(traj_files, true_values, tmp_path):
     """Test the einstein_helfand_thermal_kinaci called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400)
 
     project.run.EinsteinHelfandThermalKinaci(plot=False)
 
@@ -79,7 +79,7 @@ def test_experiment(traj_files, true_values, tmp_path):
     """Test the einstein_helfand_thermal_kinaci called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400)
 
     project.experiments["NaCl"].run.EinsteinHelfandThermalKinaci(plot=False)
 

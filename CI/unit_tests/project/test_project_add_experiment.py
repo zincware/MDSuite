@@ -71,7 +71,7 @@ def test_add_file_from_list(traj_files, tmp_path):
     """Check that adding files from lists does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[:1], timestep=0.1, temperature=1600)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_files[:1], timestep=0.1, temperature=1600)
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
@@ -81,20 +81,7 @@ def test_add_file_from_str(traj_files, tmp_path):
     """Check that adding files from str does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.1, temperature=1600)
-
-    print(project.experiments)
-    assert list(project.experiments) == ["NaCl"]
-
-
-def test_add_file_from_dict(traj_files, tmp_path):
-    """Check that adding files from dicts does not raise an error"""
-    os.chdir(tmp_path)
-
-    data = {"file": traj_files[0], "format": "lammps_traj"}
-
-    project = mds.Project()
-    project.add_experiment("NaCl", data=data, timestep=0.1, temperature=1600)
+    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.1, temperature=1600)
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]

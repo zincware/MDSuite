@@ -79,16 +79,16 @@ def test_add_run_load_data(project, traj_files):
     Test the run_computation and load_data method on multiple experiments
     """
     project.add_experiment(
-        "NaCl0", data=traj_files[0], timestep=0.002, temperature=1400
+        "NaCl0", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl1", data=traj_files[1], timestep=0.002, temperature=1400
+        "NaCl1", fname_or_file_processor=traj_files[1], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl2", data=traj_files[2], timestep=0.002, temperature=1400
+        "NaCl2", fname_or_file_processor=traj_files[2], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl3", data=traj_files[3], timestep=0.002, temperature=1400
+        "NaCl3", fname_or_file_processor=traj_files[3], timestep=0.002, temperature=1400
     )
 
     # Check that 4 experiments have been created
