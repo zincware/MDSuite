@@ -149,11 +149,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
-        # Memory properties
-        self.memory_requirements = (
-            {}
-        )  # TODO I think this can be removed. - Not until all calcs are updated.
-
         # Check if the experiment exists and load if it does.
         self._load_or_build()
 
@@ -171,6 +166,11 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         return RunComputation(experiment=self)
 
     def __repr__(self):
+        """
+        Representation of the class.
+
+        In our case, the representation of the class is the name of the experiment.
+        """
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
@@ -262,9 +262,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             log.info("Creating a new experiment!")
             self._build_model()
             return False
-
-    def save_class(self):
-        log.warning("Using depreciated method `save_class`!")
 
     def perform_transformation(self, transformation_name, **kwargs):
         """

@@ -23,11 +23,14 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the data manager. The data manager handles loading of data as TensorFlow
+generators. These generators allow for the full use of the TF data pipelines but can
+required special formatting rules.
 """
 import logging
-import sys
 import numpy as np
 import tensorflow as tf
+import numpy as np
 from tqdm import tqdm
 from mdsuite.database.simulation_database import Database
 
@@ -86,10 +89,18 @@ class DataManager:
         self.atom_selection = atom_selection
 
     def batch_generator(
-        self, dictionary: bool = False, system: bool = False, remainder: bool = False
+        self,
+        dictionary: bool = False,
+        system: bool = False,
+        remainder: bool = False,
+        loop_array: np.ndarray = None,
     ) -> tuple:
         """
         Build a generator object for the batch loop
+
+        Parameters
+        ----------
+
         Returns
         -------
         Returns a generator function and its arguments
@@ -131,63 +142,35 @@ class DataManager:
             database = Database(name=database)
 
             for batch in range(batch_number + int(remainder)):
+
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
+                # Handle the remainder
                 if batch == batch_number:
                     stop = int(start + self.remainder)
                     data_size = tf.cast(self.remainder, dtype=tf.int16)
-                if type(self.atom_selection) is dict:
-                    select_slice = {}
-                    for item in self.atom_selection:
-                        select_slice[item] = np.s_[
-                            self.atom_selection[item], start:stop
-                        ]
+                    # TODO make default
+
+                if loop_array is not None:
+                    select_slice = np.s_[:, loop_array[batch]]
+                elif system:
+                    select_slice = np.s_[start:stop]
                 else:
-                    select_slice = np.s_[self.atom_selection, start:stop]
+                    if type(self.atom_selection) is dict:
+                        select_slice = {}
+                        for item in self.atom_selection:
+                            select_slice[item] = np.s_[
+                                self.atom_selection[item], start:stop
+                            ]
+                    else:
+                        select_slice = np.s_[self.atom_selection, start:stop]
+
                 yield database.load_data(
                     data_path,
                     select_slice=select_slice,
                     dictionary=dictionary,
                     d_size=data_size,
-                )
-
-        def system_generator(
-            batch_number: int,
-            batch_size: int,
-            database: str,
-            data_path: list,
-            dictionary: bool,
-        ):
-            """
-            Generator function for the batch loop.
-
-            Parameters
-            ----------
-            batch_number : int
-                    Number of batches to be looped over
-            batch_size : int
-                    size of each batch to load
-            database : Database
-                    database_path from which to load the tensor_values
-            data_path : str
-                    Path to the tensor_values in the database_path
-            dictionary : bool
-                    If true, tensor_values is returned in a dictionary
-            Returns
-            -------
-
-            """
-            database = Database(name=database)
-
-            for batch in range(batch_number + int(remainder)):  # +1 for the remainder
-                start = int(batch * batch_size) + self.offset
-                stop = int(start + batch_size)
-                if batch == batch_number:
-                    stop = int(start + self.remainder)
-
-                yield database.load_data(
-                    data_path, select_slice=np.s_[start:stop], dictionary=dictionary
                 )
 
         def atom_generator(
@@ -198,7 +181,7 @@ class DataManager:
             dictionary: bool,
         ):
             """
-            Generator function for the batch loop.
+            Generator function for a mini-batched calculation.
 
             Parameters
             ----------
@@ -215,6 +198,13 @@ class DataManager:
             Returns
             -------
             """
+            # Atom selection not currently available for mini-batched calculations
+            if type(self.atom_selection) is dict:
+                raise ValueError(
+                    "Atom selection is not currently available "
+                    "for mini-batched calculations"
+                )
+
             database = Database(name=database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
@@ -235,14 +225,8 @@ class DataManager:
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
-                    if type(self.atom_selection) is dict:
-                        log.warning(
-                            "Atom selection is not available for mini-batched"
-                            " calculations"
-                        )
-                        sys.exit(1)
-                    else:
-                        select_slice = np.s_[atom_start:atom_stop, start:stop]
+
+                    select_slice = np.s_[atom_start:atom_stop, start:stop]
                     yield database.load_data(
                         data_path,
                         select_slice=select_slice,
@@ -250,18 +234,13 @@ class DataManager:
                         d_size=data_size,
                     )
 
-        if self.remainder == 0:
-            remainder = False
-
-        if system:
-            return system_generator, args
-        elif self.minibatch:
+        if self.minibatch:
             return atom_generator, args
         else:
             return generator, args
 
     def ensemble_generator(
-        self, system: bool = False, dictionary: bool = False
+        self, system: bool = False, dictionary: bool = False, glob_data: dict = None
     ) -> tuple:
         """
         Build a generator for the ensemble loop
@@ -303,7 +282,7 @@ class DataManager:
                 stop = start + data_range
                 yield data[:, start:stop]
 
-        def system_generator(ensemble_loop, correlation_time, data_range, data):
+        def dictionary_generator(ensemble_loop, correlation_time, data_range):
             """
             Generator for the ensemble loop
             Parameters
@@ -314,9 +293,6 @@ class DataManager:
                     Distance between ensembles
             data_range : int
                     Size of each ensemble
-            data : tf.data.Dataset
-                    Data from which to draw ensembles
-
             Returns
             -------
             None
@@ -324,39 +300,16 @@ class DataManager:
             for ensemble in range(ensemble_loop):
                 start = ensemble * correlation_time
                 stop = start + data_range
-                yield data[start:stop]
+                output_dict = {}
+                for item in glob_data:
+                    if item == str.encode("data_size"):
+                        pass
+                    else:
+                        if system:
+                            output_dict[item] = glob_data[item][start:stop]
+                        else:
+                            output_dict[item] = glob_data[item][:, start:stop]
 
-        def dictionary_generator(
-            ensemble_loop, correlation_time, data_range, data_dict
-        ):
-            """
-            Generator for the ensemble loop
-            Parameters
-            ----------
-            ensemble_loop : int
-                    Number of ensembles to loop over
-            correlation_time : int
-                    Distance between ensembles
-            data_range : int
-                    Size of each ensemble
-            data_dict : Dictionary
-                    Data from which to draw ensembles
-
-            Returns
-            -------
-            None
-            """
-            for ensemble in range(ensemble_loop):
-                start = ensemble * correlation_time
-                stop = start + data_range
-                output_dict = []
-                for item in data_dict[:-1]:
-                    output_dict[item] = data_dict[item][:, start:stop]
                 yield output_dict
 
-        if system:
-            return system_generator, args
-        elif dictionary:
-            return dictionary_generator, args
-        else:
-            return generator, args
+        return dictionary_generator, args

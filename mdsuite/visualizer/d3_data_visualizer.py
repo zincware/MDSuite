@@ -23,12 +23,15 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the MDSuite 3d visualizer.
 """
 import open3d as o3d
 import open3d.visualization.gui as gui
 from typing import Union
 from PIL.ImageColor import getcolor
 import importlib.resources
+from matplotlib import cm
+import matplotlib.pyplot as plt
 import numpy as np
 import json
 
@@ -38,7 +41,13 @@ class DataVisualizer3D:
     Class for the visualizer of three dimensional data.
     """
 
-    def __init__(self, data: np.ndarray, title: str, center: Union[str, dict] = None):
+    def __init__(
+        self,
+        data: np.ndarray,
+        title: str,
+        center: Union[str, dict] = None,
+        colour_map: np.ndarray = None,
+    ):
         """
         Constructor for the data visualizer.
 
@@ -50,15 +59,38 @@ class DataVisualizer3D:
                 centre molecule to be displayed (optional)
         title : str
                 title of the plot.
+        colour_map : np.ndarray
+                A colour map to apply to the data.
         """
         self.data = data
         self.title = title
         self.center = center
-
+        self.colour_map = colour_map
         self.point_cloud = o3d.geometry.PointCloud()
         self.point_cloud.points = o3d.utility.Vector3dVector(self.data)
+        self.point_cloud.colors = o3d.utility.Vector3dVector(self._build_colour_map())
+
+        plt.plot(
+            np.linspace(0, len(self.colour_map), len(self.colour_map), dtype=int),
+            self.colour_map,
+            ".",
+        )
+        plt.show()
 
         self._build_app()
+
+    def _build_colour_map(self):
+        """
+        Build the colour map
+        Returns
+        -------
+
+        """
+        viridis = cm.get_cmap("binary")
+
+        dat = viridis(self.colour_map)[:, :-1]
+
+        return dat
 
     def _build_app(self):
         """

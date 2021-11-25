@@ -23,19 +23,31 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the computation of the potential of mean force (PMF). The PMF can be used to
+better understand effective bond strength between species of a system.
 """
 import logging
 import numpy as np
 from scipy.signal import find_peaks
-from mdsuite.utils.exceptions import NotApplicableToAnalysis
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import golden_section_search
 from mdsuite.utils.meta_functions import apply_savgol_filter
 from mdsuite.utils.units import boltzmann_constant
 from bokeh.models import BoxAnnotation
-from mdsuite.database.scheme import Computation
+from dataclasses import dataclass
+
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    savgol_order: int
+    savgol_window_length: int
 
 
 class PotentialOfMeanForce(Calculator):
@@ -101,9 +113,9 @@ class PotentialOfMeanForce(Calculator):
         self.radii = None
         self.pomf = None
         self.indices = None
-        self.database_group = "Potential_Of_Mean_Force"
-        self.x_label = r"$$\text{r| /  \AA$$"
+        self.x_label = r"$$r /  nm$$"
         self.y_label = r"$$w^{(2)}(r)$$"
+        self.data_range = 1
 
         self.result_keys = ["min_pomf", "uncertainty", "left", "right"]
         self.result_series_keys = ["r", "pomf"]
@@ -115,12 +127,10 @@ class PotentialOfMeanForce(Calculator):
     def __call__(
         self,
         plot=True,
-        save=True,
         data_range=1,
-        export: bool = False,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
-    ) -> Computation:
+    ):
         """
         Python constructor for the class
 
@@ -128,38 +138,23 @@ class PotentialOfMeanForce(Calculator):
         ----------
         plot : bool (default=True)
                             Decision to plot the analysis.
-        save : bool (default=True)
-                            Decision to save the generated tensor_values arrays.
-
         data_range : int (default=500)
                             Range over which the property should be evaluated.
                             This is not applicable to the current analysis as
                             the full rdf will be calculated.
-        export : bool
-                If true, export the data directly to a csv.
         savgol_order : int
                 Order of the savgol polynomial filter
         savgol_window_length : int
                 Window length of the savgol filter.
         """
-        self.update_user_args(
-            plot=plot, save=save, data_range=data_range, export=export
-        )
-        self.data_files = []
-        self.savgol_order = savgol_order
-        self.savgol_window_length = savgol_window_length
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range,
+        self.plot = plot
+        self.data_files = []
+
+        self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
         )
-
-    def _autocorrelation_time(self):
-        """
-        Not needed in this analysis
-        """
-        raise NotApplicableToAnalysis
 
     def _calculate_potential_of_mean_force(self):
         """
@@ -169,13 +164,16 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = (
             -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
         )
+        self.pomf *= 6.242e8  # convert to eV
 
     def _get_max_values(self):
         """
         Calculate the maximums of the rdf
         """
         filtered_data = apply_savgol_filter(
-            self.pomf, order=self.savgol_order, window_length=self.savgol_window_length
+            self.pomf,
+            order=self.args.savgol_order,
+            window_length=self.args.savgol_window_length,
         )
 
         # Find the maximums in the filtered dataset
@@ -231,7 +229,7 @@ class PotentialOfMeanForce(Calculator):
 
         return pomf_value, pomf_error
 
-    def run_post_generation_analysis(self):
+    def run_calculator(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """

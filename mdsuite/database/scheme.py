@@ -276,7 +276,7 @@ class Computation(Base):
         """Get the data_range stored in computation_attributes"""
         for comp_attr in self.computation_attributes:
             if comp_attr.name == "data_range":
-                return int(comp_attr.data['serialized_value'])
+                return int(comp_attr.data["serialized_value"])
 
     @property
     def subjects(self) -> list:
