@@ -40,7 +40,6 @@ from typing import Union
 log = logging.getLogger(__name__)
 
 from mdsuite.database.simulation_database import Database
-from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.file_io.file_read import FileProcessor
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.file_io.extxyz_files

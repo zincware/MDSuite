@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 var_names = {
     "Positions": "pos",
     "Velocities": "vel",
-    "Forces": "forces",
+    "Forces": "force",
     "Stress": "stress",
     "PE": "energies",
     "Time": "time",
@@ -85,6 +85,7 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
             species_idx, property_dict = _get_property_summary(
                 header, var_names_updated
             )
+            self._properties_dict = property_dict
 
             file.seek(0)
             self._species_dict = self._get_species_information(file, species_idx)
@@ -112,11 +113,11 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
                 )
             )
         species_list = []
-        for sp_name, sp_indices in self._species_dict.items():
+        for sp_name, sp_indices_dict in self._species_dict.items():
             species_list.append(
                 mdsuite.database.simulation_database.SpeciesInfo(
                     name=sp_name,
-                    n_particles=len(sp_indices),
+                    n_particles=len(sp_indices_dict["line_idxs"]),
                     properties=properties_list,
                 )
             )
@@ -209,9 +210,9 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
         for i, line in enumerate(traj_data):
             sp_name = line[species_idx]
             if sp_name not in list(species_dict.keys()):
-                species_dict[sp_name]["indices"] = []
+                species_dict[sp_name] = {"line_idxs": []}
 
-            species_dict[sp_name]["indices"].append(i)
+            species_dict[sp_name]["line_idxs"].append(i)
 
         return species_dict
 

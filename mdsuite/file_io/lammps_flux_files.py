@@ -96,8 +96,10 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
             column_header = headers[-1]
             updated_column_names = copy.deepcopy(var_names)
             updated_column_names.update(self.custom_data_map)
-            self._properties_dict = mdsuite.file_io.file_read.extract_properties_from_header(
-                column_header.split(), updated_column_names
+            self._properties_dict = (
+                mdsuite.file_io.file_read.extract_properties_from_header(
+                    column_header.split(), updated_column_names
+                )
             )
 
         properties_list = []

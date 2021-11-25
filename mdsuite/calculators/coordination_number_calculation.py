@@ -275,12 +275,15 @@ class CoordinationNumbers(Calculator):
                 self.integral_data[self.indices[0][1]],
             ]
         )
-        first_shell_error = np.std(
-            [
-                self.integral_data[self.indices[0][0]],
-                self.integral_data[self.indices[0][1]],
-            ]
-        ) / np.sqrt(2)
+        first_shell_error = (
+            np.std(
+                [
+                    self.integral_data[self.indices[0][0]],
+                    self.integral_data[self.indices[0][1]],
+                ]
+            )
+            / np.sqrt(2)
+        )
 
         # # TODO what about second shell?!
         # second_shell = (

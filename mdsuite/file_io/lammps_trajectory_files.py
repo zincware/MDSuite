@@ -128,8 +128,10 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             self._id_column_idx = header_property_names.index("id")
             updated_var_names = copy.deepcopy(var_names)
             updated_var_names.update(self.custom_data_map)
-            self._property_dict = mdsuite.file_io.file_read.extract_properties_from_header(
-                header_property_names, updated_var_names
+            self._property_dict = (
+                mdsuite.file_io.file_read.extract_properties_from_header(
+                    header_property_names, updated_var_names
+                )
             )
 
             # get number of configs from file length
