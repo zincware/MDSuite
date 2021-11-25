@@ -50,6 +50,7 @@ class Args:
     """
     Data class for the saved properties.
     """
+
     data_range: int
     correlation_time: int
     atom_selection: np.s_
@@ -112,16 +113,16 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     @call
     def __call__(
-            self,
-            plot: bool = True,
-            species: list = None,
-            data_range: int = 500,
-            correlation_time: int = 1,
-            atom_selection=np.s_[:],
-            molecules: bool = False,
-            gpu: bool = False,
-            tau_values: Union[int, List, Any] = np.s_[:],
-            integration_range: int = None,
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        atom_selection=np.s_[:],
+        molecules: bool = False,
+        gpu: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        integration_range: int = None,
     ):
         """
         Constructor for the Green-Kubo diffusion coefficients class.
@@ -199,19 +200,19 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                    3
-                    * self.experiment.units["time"]
-                    * (self.args.integration_range - 1)
-                    * len(self.experiment.molecules[species]["indices"])
+                3
+                * self.experiment.units["time"]
+                * (self.args.integration_range - 1)
+                * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                    3
-                    * self.experiment.units["time"]
-                    * self.args.integration_range
-                    * len(self.experiment.species[species]["indices"])
+                3
+                * self.experiment.units["time"]
+                * self.args.integration_range
+                * len(self.experiment.species[species]["indices"])
             )
             self.prefactor = numerator / denominator
 
@@ -254,14 +255,16 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
-            time = np.array(val[self.result_series_keys[0]]) \
-                   * self.experiment.units["time"]
+            time = (
+                np.array(val[self.result_series_keys[0]])
+                * self.experiment.units["time"]
+            )
             vacf = np.array(val[self.result_series_keys[1]])
             # Compute the span
             span = Span(
                 location=(
-                        np.array(val[self.result_series_keys[0]])
-                        * self.experiment.units["time"]
+                    np.array(val[self.result_series_keys[0]])
+                    * self.experiment.units["time"]
                 )[self.args.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
@@ -272,21 +275,31 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 vacf,
                 color="#003f5c",
                 legend_label=f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                             f" {val[self.result_keys[1]]: 0.3E}")
+                f" {val[self.result_keys[1]]: 0.3E}",
+            )
 
-            fig.extra_y_ranges = {"Cond_range": Range1d(start=0.6*min(integral),
-                                                        end=1.3*max(integral))}
+            fig.extra_y_ranges = {
+                "Cond_range": Range1d(
+                    start=0.6 * min(integral), end=1.3 * max(integral)
+                )
+            }
             fig.line(time[1:], integral, y_range_name="Cond_range", color="#bc5090")
             fig.varea(
                 time[1:],
                 integral - integral_err,
                 integral + integral_err,
                 alpha=0.3,
-                color='#ffa600',
-                y_range_name="Cond_range"
+                color="#ffa600",
+                y_range_name="Cond_range",
             )
 
-            fig.add_layout(LinearAxis(y_range_name="Cond_range", axis_label=r"$$\text{Diffusion Coefficient} / \text{Siemens}/cm$$"), 'right')
+            fig.add_layout(
+                LinearAxis(
+                    y_range_name="Cond_range",
+                    axis_label=r"$$\text{Diffusion Coefficient} / \text{Siemens}/cm$$",
+                ),
+                "right",
+            )
 
             fig.add_tools(HoverTool())
             fig.add_layout(span)
@@ -318,7 +331,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.vacf.numpy().tolist(),
             self.result_series_keys[2]: sigma.tolist(),
-            self.result_series_keys[3]: sigma_uncertainty.tolist()
+            self.result_series_keys[3]: sigma_uncertainty.tolist(),
         }
 
         self.queue_data(data=data, subjects=[species])
@@ -340,11 +353,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             batch_ds = self.get_batch_dataset([species])
 
             for batch in tqdm(
-                    batch_ds,
-                    ncols=70,
-                    desc=species,
-                    total=self.n_batches,
-                    disable=self.memory_manager.minibatch,
+                batch_ds,
+                ncols=70,
+                desc=species,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
             ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
