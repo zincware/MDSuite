@@ -166,6 +166,11 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         return RunComputation(experiment=self)
 
     def __repr__(self):
+        """
+        Representation of the class.
+
+        In our case, the representation of the class is the name of the experiment.
+        """
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):

@@ -68,21 +68,21 @@ def run_example():
     project.run.GreenKuboDiffusionCoefficients(
         data_range=100, plot=True, correlation_time=10
     )
-    project.run.EinsteinDiffusionCoefficients(
-        data_range=200, correlation_time=10, plot=True
-    )
-    project.run.EinsteinHelfandIonicConductivity(
-        data_range=100, correlation_time=10, plot=True
-    )
-
-    project.run.RadialDistributionFunction(
-        number_of_configurations=100, start=0, stop=101, plot=True
-    )
-    project.run.GreenKuboIonicConductivity(data_range=100)
-
-    project.run.CoordinationNumbers(plot=True)
-    project.run.PotentialOfMeanForce(plot=True)
-    project.run.AngularDistributionFunction(number_of_configurations=3)
+    # project.run.EinsteinDiffusionCoefficients(
+    #     data_range=200, correlation_time=10, plot=True
+    # )
+    # project.run.EinsteinHelfandIonicConductivity(
+    #     data_range=100, correlation_time=10, plot=True
+    # )
+    #
+    # project.run.RadialDistributionFunction(
+    #     number_of_configurations=100, start=0, stop=101, plot=True
+    # )
+    # project.run.GreenKuboIonicConductivity(data_range=100)
+    #
+    # project.run.CoordinationNumbers(plot=True)
+    # project.run.PotentialOfMeanForce(plot=True)
+    # project.run.AngularDistributionFunction(number_of_configurations=3)
     # project.experiments.NaCl_GK.run_visualization()
     print("Tutorial complete....... Files being deleted now.")
 
@@ -91,9 +91,9 @@ if __name__ == "__main__":
     """
     Run the example.
     """
-    temp_dir = tempfile.TemporaryDirectory()
-    os.chdir(temp_dir.name)
-    load_data()  # load the data.
+    #temp_dir = tempfile.TemporaryDirectory()
+    #os.chdir(temp_dir.name)
+    #load_data()  # load the data.
     run_example()  # run the example.
-    os.chdir("..")
-    temp_dir.cleanup()
+    #os.chdir("..")
+    #temp_dir.cleanup()
