@@ -55,7 +55,9 @@ def test_neic_project(traj_files, true_values, tmp_path):
     """Test the nernst_einstein_ionic_conductivity called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.NernstEinsteinIonicConductivity(plot=False)
 
@@ -78,7 +80,9 @@ def test_neic_experiment(traj_files, true_values, tmp_path):
     """Test the nernst_einstein_ionic_conductivity called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.experiments["NaCl"].run.NernstEinsteinIonicConductivity(plot=False)
 

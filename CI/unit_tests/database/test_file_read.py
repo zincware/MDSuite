@@ -126,13 +126,19 @@ def test_read_script_input(tmp_path):
     exp.add_data(proc)
 
     pos_loaded = np.swapaxes(
-        exp.load_matrix(species=[sp_name], property_name="Positions")['test_species/Positions'].numpy(), 0, 1
+        exp.load_matrix(species=[sp_name], property_name="Positions")[
+            "test_species/Positions"
+        ].numpy(),
+        0,
+        1,
     )
     vel_loaded = np.swapaxes(
-        exp.load_matrix(species=[sp_name], property_name="Velocities")['test_species/Velocities'].numpy(), 0, 1
+        exp.load_matrix(species=[sp_name], property_name="Velocities")[
+            "test_species/Velocities"
+        ].numpy(),
+        0,
+        1,
     )
 
     np.testing.assert_array_almost_equal(positions, pos_loaded, decimal=err_decimal)
-    np.testing.assert_array_almost_equal(
-        velocities, vel_loaded, decimal=err_decimal
-    )
+    np.testing.assert_array_almost_equal(velocities, vel_loaded, decimal=err_decimal)

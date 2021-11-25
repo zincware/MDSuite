@@ -31,6 +31,7 @@ import pytest
 import urllib.request
 import gzip
 import shutil
+import numpy as np
 
 import mdsuite as mds
 
@@ -47,6 +48,7 @@ def traj_files(tmp_path_factory) -> list:
         "NaCl_gk_ni_nq.lammpstraj",
         "NaCl_i_q.lammpstraj",
         "NaCl_ni_nq.lammpstraj",
+        "NaCl_64_Atoms.extxyz",
     ]
 
     files = []
@@ -71,7 +73,9 @@ def test_add_file_from_list(traj_files, tmp_path):
     """Check that adding files from lists does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", fname_or_file_processor=traj_files[:1], timestep=0.1, temperature=1600)
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[:2], timestep=0.1, temperature=1600
+    )
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
@@ -81,7 +85,9 @@ def test_add_file_from_str(traj_files, tmp_path):
     """Check that adding files from str does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", fname_or_file_processor=traj_files[0], timestep=0.1, temperature=1600)
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[0], timestep=0.1, temperature=1600
+    )
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
@@ -113,3 +119,35 @@ def test_multiple_experiments(tmp_path):
         project.experiments.Test02.experiment_path
         == project_loaded.experiments.Test02.experiment_path
     )
+
+
+def test_lammps_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[0], timestep=0.1, temperature=1600
+    )
+    vels = project.experiments["NaCl"].load_matrix(
+        species=["Na"], property_name="Velocities"
+    )
+    # check one value from the file
+    # timestep 482, Na atom id 429 (line 486776 in th file)
+    vel_shouldbe = [5.2118, 6.40816, 0.988324]
+    vel_is = vels["Na/Velocities"][428, 482, :]
+    np.testing.assert_array_almost_equal(vel_is, vel_shouldbe, decimal=5)
+
+
+def test_extxyz_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", fname_or_file_processor=traj_files[-1], timestep=0.1, temperature=1600
+    )
+    forces = project.experiments["NaCl"].load_matrix(
+        species=["Na"], property_name="Forces"
+    )
+    # check one value from the file
+    # second timestep, Na atom nr 15
+    force_shouldbe = [0.48390745, -0.99956709, 1.11229777]
+    force_is = forces["Na/Forces"][15, 1, :]
+    np.testing.assert_array_almost_equal(force_is, force_shouldbe, decimal=5)
