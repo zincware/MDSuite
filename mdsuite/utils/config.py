@@ -49,3 +49,7 @@ try:
     config.jupyter = get_ipython().__class__.__name__ == "ZMQInteractiveShell"
 except NameError:
     pass
+
+if config.jupyter:
+    # change default in Jupyter Notebooks
+    config.bokeh_sizing_mode = None
