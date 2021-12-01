@@ -9,16 +9,6 @@ SOURCEDIR     = source
 BUILDDIR      = build
 APIBUILD	  = sphinx-apidoc
 
-# Copy Notebooks over from the examples directory
-define copy_notebooks
-	mkdir source/_notebooks/
-	cp ../examples/notebooks/* source/_notebooks/
-endef
-
-# Clean up after build
-define clean_generated_files
-	rm -r source/_notebooks/
-endef
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -30,6 +20,4 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 #	@$(APIBUILD) -f -o ./source/_modules ../
-	$(call copy_notebooks)
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-#	$(call clean_generated_files)

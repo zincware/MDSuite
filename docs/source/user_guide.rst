@@ -12,4 +12,4 @@ directory or in the tests.**
    :maxdepth: 1
    :caption: Notebooks:
 
-   _notebooks/NaCl_walkthrough
+   NaCl_walkthrough
