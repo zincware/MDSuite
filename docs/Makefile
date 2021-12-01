@@ -15,6 +15,11 @@ define copy_notebooks
 	cp ../examples/notebooks/* source/examples/_notebooks/
 endef
 
+# Clean up after build
+define clean_generated_files
+	rm -r source/examples/_notebooks
+endef
+
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
@@ -27,3 +32,4 @@ help:
 #	@$(APIBUILD) -f -o ./source/_modules ../
     $(call copy_notebooks)
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	$(call clean_generated_files)
