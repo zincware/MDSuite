@@ -81,7 +81,9 @@ class DataVisualizer2D:
         figure : figure
                 A bokeh figure object.
         """
-        fig = figure(x_axis_label=x_label, y_axis_label=y_label, sizing_mode="stretch_both")
+        fig = figure(
+            x_axis_label=x_label, y_axis_label=y_label, sizing_mode="stretch_both"
+        )
         fig.line(x_data, y_data, legend_label=title)
         fig.add_tools(HoverTool())
         if layouts is not None:
