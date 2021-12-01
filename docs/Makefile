@@ -32,4 +32,4 @@ help:
 #	@$(APIBUILD) -f -o ./source/_modules ../
 	$(call copy_notebooks)
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-	$(call clean_generated_files)
+#	$(call clean_generated_files)
