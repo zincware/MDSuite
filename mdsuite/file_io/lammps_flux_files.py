@@ -88,8 +88,20 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
     def get_metadata(self):
 
         with open(self.file_path, "r") as file:
-            num_lines = sum(1 for _ in file)
-            n_steps = num_lines - self.n_header_lines
+            file.seek(0)
+            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+            # lammps log files can have multiple blocks of data interrupted by blocks of log info
+            # we read only the first block starting after n_header_lines
+            # this will mess up batching if this block is significantly smaller than the total file,
+            # but it will only affect performance, not safety
+
+            first_data_line = mdsuite.file_io.file_read.read_n_lines(file, 1)[0]
+            n_columns = len(first_data_line.split())
+            n_steps = 1
+            for line in file:
+                if len(line.split()) != n_columns:
+                    break
+                n_steps += 1
 
             file.seek(0)
             headers = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines)
@@ -163,8 +175,9 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
         )
 
         # there is only one species, containing the observable properties
-        sp_name = self._mdata.species_list[0]
-        properties = self._mdata.species_list[sp_name].properties
+        obs_species = self._mdata.species_list[0]
+        sp_name = obs_species.name
+        properties = obs_species.properties
         for prop_info in properties:
             prop_column_idxs = self._properties_dict[prop_info.name]
             write_data = traj_data[:, prop_column_idxs]
