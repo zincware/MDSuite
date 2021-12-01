@@ -29,10 +29,18 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    """Collection of MDSuite configurations"""
+    """Collection of MDSuite configurations
+
+    Attributes
+    -----------
+    bokeh_sizing_mode: str
+        The way bokeh scales plots.
+        see bokeh / sizing_mode for more information
+    """
 
     jupyter: bool = False
     GPU: bool = False
+    bokeh_sizing_mode: str = "scale_both"
 
 
 config = Config()
