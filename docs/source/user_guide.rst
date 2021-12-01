@@ -5,5 +5,11 @@ analysis. We have written this into a separate section to facilitate immediate u
 about the code please see the :doc:`modules and classes <modules_and_classes>` documentation.
 
 **Our current top priority is updating these use examples as soon as possible. Expect
-updates in the coming days. In the mean time, check out the sripts in the examples
+updates in the coming days. In the mean time, check out the scripts in the examples
 directory or in the tests.**
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Notebooks:
+
+   NaCl_walkthrough
