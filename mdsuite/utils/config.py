@@ -40,7 +40,7 @@ class Config:
 
     jupyter: bool = False
     GPU: bool = False
-    bokeh_sizing_mode: str = "scale_both"
+    bokeh_sizing_mode: str = "stretch_both"
 
 
 config = Config()
