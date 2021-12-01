@@ -16,4 +16,3 @@ tensorflow_probability
 open3d
 colorutils
 bokeh
-pandoc
