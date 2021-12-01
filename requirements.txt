@@ -17,13 +17,3 @@ open3d
 colorutils
 bokeh
 pandoc
-sphinxcontrib.bibtex
-pybtex
-pytest
-nbsphinx
-sphinx_rtd_theme
-numpydoc
-sphinx-copybutton
-IPython
-pandoc
-pytest
