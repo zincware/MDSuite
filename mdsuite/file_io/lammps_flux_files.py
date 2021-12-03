@@ -31,6 +31,7 @@ import typing
 import tqdm
 import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
+import mdsuite.file_io.tabular_text_files
 from mdsuite.utils.meta_functions import optimize_batch_size, join_path
 import copy
 
@@ -42,7 +43,7 @@ var_names = {
 }
 
 
-class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
+class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     def __init__(
         self,
         file_path: str,
@@ -69,33 +70,29 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
             Dictionary connecting the name in the mdsuite database to the name of the corresponding columns
             example: {"Thermal_Flux": ["c_flux_thermal[1]", "c_flux_thermal[2]", "c_flux_thermal[3]"]}
         """
-        self.file_path = pathlib.Path(file_path).resolve()
+        super(LAMMPSFluxFile, self).__init__(file_path, custom_data_map=custom_data_map)
+
         self.sample_rate = sample_rate
         self.box_l = box_l
 
         self.n_header_lines = n_header_lines
-        if custom_data_map is None:
-            custom_data_map = {}
-        self.custom_data_map = custom_data_map
-
         self._properties_dict = None
         self._batch_size = None
         self._mdata = None
-
-    def __str__(self):
-        return str(self.file_path)
 
     def get_metadata(self):
 
         with open(self.file_path, "r") as file:
             file.seek(0)
-            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+            mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
             # lammps log files can have multiple blocks of data interrupted by blocks of log info
             # we read only the first block starting after n_header_lines
             # this will mess up batching if this block is significantly smaller than the total file,
             # but it will only affect performance, not safety
 
-            first_data_line = mdsuite.file_io.file_read.read_n_lines(file, 1)[0]
+            first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(file, 1)[
+                0
+            ]
             n_columns = len(first_data_line.split())
             n_steps = 1
             for line in file:
@@ -104,12 +101,14 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
                 n_steps += 1
 
             file.seek(0)
-            headers = mdsuite.file_io.file_read.read_n_lines(file, self.n_header_lines)
+            headers = mdsuite.file_io.tabular_text_files.read_n_lines(
+                file, self.n_header_lines
+            )
             column_header = headers[-1]
             updated_column_names = copy.deepcopy(var_names)
             updated_column_names.update(self.custom_data_map)
             self._properties_dict = (
-                mdsuite.file_io.file_read.extract_properties_from_header(
+                mdsuite.file_io.tabular_text_files.extract_properties_from_header(
                     column_header.split(), updated_column_names
                 )
             )
@@ -141,48 +140,29 @@ class LAMMPSFluxFile(mdsuite.file_io.file_read.FileProcessor):
     ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
         n_configs = self._mdata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
+        species_to_line_idx_dict = {self._mdata.species_list[0].name: [0]}
 
         with open(self.file_path, "r") as file:
             file.seek(0)
             # skip the header
-            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+            mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
             for _ in tqdm.tqdm(range(n_batches)):
-                yield self._read_process_n_configurations(file, self._batch_size)
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    self._batch_size,
+                    self._mdata.species_list,
+                    species_to_line_idx_dict,
+                    self._properties_dict,
+                    1,
+                    n_header_lines=0,
+                )
             if n_configs_remainder > 0:
-                yield self._read_process_n_configurations(file, n_configs_remainder)
-
-    def _read_process_n_configurations(
-        self, file, n_configs
-    ) -> mdsuite.file_io.file_read.TrajectoryChunkData:
-        """
-        Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
-        Parameters
-        ----------
-        file
-            The open trajectory file. Note: Calling this function will advance the reading point in the file
-        n_configs
-
-        Returns
-        -------
-
-        """
-        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(
-            self._mdata.species_list, n_configs
-        )
-
-        traj_data = np.stack(
-            [np.array(list(file.readline().split())) for _ in range(n_configs)]
-        )
-
-        # there is only one species, containing the observable properties
-        obs_species = self._mdata.species_list[0]
-        sp_name = obs_species.name
-        properties = obs_species.properties
-        for prop_info in properties:
-            prop_column_idxs = self._properties_dict[prop_info.name]
-            write_data = traj_data[:, prop_column_idxs]
-            # add 'n_particles' axis. we only have one 'particle'
-            write_data = write_data[:, np.newaxis, :]
-            chunk.add_data(write_data, 0, sp_name, prop_info.name)
-
-        return chunk
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    n_configs_remainder,
+                    self._mdata.species_list,
+                    species_to_line_idx_dict,
+                    self._properties_dict,
+                    1,
+                    n_header_lines=0,
+                )

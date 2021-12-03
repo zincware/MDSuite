@@ -28,12 +28,12 @@ import logging
 import typing
 from typing import Union, List, Dict, Tuple
 import numpy as np
-import pathlib
 import copy
 import tqdm
 
 import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
+import mdsuite.file_io.tabular_text_files
 from mdsuite.utils.meta_functions import get_dimensionality
 
 log = logging.getLogger(__name__)
@@ -50,26 +50,20 @@ var_names = {
 }
 
 
-class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
+class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     """
     Reader for extxyz files
     """
 
     def __init__(self, file_path: str, custom_data_map: dict = None):
-        self.file_path = pathlib.Path(file_path).resolve()
+        super(EXTXYZFile, self).__init__(file_path, custom_data_map=custom_data_map)
         self.n_header_lines = 2
-        if custom_data_map is None:
-            custom_data_map = {}
-        self.custom_data_map = custom_data_map
 
         self._n_particles = None
         self._mdata = None
         self._properties_dict = None
         self._species_dict = None
         self._batch_size = None
-
-    def __str__(self):
-        return str(self.file_path)
 
     def get_metadata(self):
         with open(self.file_path, "r") as file:
@@ -91,7 +85,7 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
             self._species_dict = self._get_species_information(file, species_idx)
 
             file.seek(0)
-            mdsuite.file_io.file_read.skip_n_lines(
+            mdsuite.file_io.tabular_text_files.skip_n_lines(
                 file, self._n_particles + self.n_header_lines + 1
             )
             header_1 = file.readline()
@@ -113,11 +107,11 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
                 )
             )
         species_list = []
-        for sp_name, sp_indices_dict in self._species_dict.items():
+        for sp_name, sp_indices_list in self._species_dict.items():
             species_list.append(
                 mdsuite.database.simulation_database.SpeciesInfo(
                     name=sp_name,
-                    n_particles=len(sp_indices_dict["line_idxs"]),
+                    n_particles=len(sp_indices_list),
                     properties=properties_list,
                 )
             )
@@ -143,53 +137,25 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
         with open(self.file_path, "r") as file:
             file.seek(0)
             for _ in tqdm.tqdm(range(n_batches)):
-                yield self._read_process_n_configurations(file, self._batch_size)
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    self._batch_size,
+                    self._mdata.species_list,
+                    self._species_dict,
+                    self._properties_dict,
+                    self._n_particles,
+                    n_header_lines=self.n_header_lines,
+                )
             if n_configs_remainder > 0:
-                yield self._read_process_n_configurations(file, n_configs_remainder)
-
-    def _read_process_n_configurations(
-        self, file, n_configs
-    ) -> mdsuite.file_io.file_read.TrajectoryChunkData:
-        """
-        Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
-        Parameters
-        ----------
-        file
-            The open trajectory file. Note: Calling this function will advance the reading point in the file
-        n_configs
-
-        Returns
-        -------
-
-        """
-        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(
-            self._mdata.species_list, n_configs
-        )
-
-        for config_idx in range(n_configs):
-            # skip the header
-            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
-            # read one config
-            traj_data = np.stack(
-                [
-                    np.array(list(file.readline().split()))
-                    for _ in range(self._n_particles)
-                ]
-            )
-
-            # slice by species
-            for sp_info in self._mdata.species_list:
-                idxs = self._species_dict[sp_info.name]["line_idxs"]
-                sp_data = traj_data[idxs, :]
-                # slice by property
-                for prop_info in sp_info.properties:
-                    prop_column_idxs = self._properties_dict[prop_info.name]
-                    write_data = sp_data[:, prop_column_idxs]
-                    # add 'time' axis. we only have one configuration to write
-                    write_data = write_data[np.newaxis, :, :]
-                    chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
-
-        return chunk
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    n_configs_remainder,
+                    self._mdata.species_list,
+                    self._species_dict,
+                    self._properties_dict,
+                    self._n_particles,
+                    n_header_lines=self.n_header_lines,
+                )
 
     def _get_species_information(self, file, species_idx):
         """
@@ -199,10 +165,10 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
         ----------
 
         """
-        mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+        mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
         traj_data = np.stack(
-            [np.array(list(file.readline().split())) for _ in range(self._n_particles)]
+            [list(file.readline().split()) for _ in range(self._n_particles)]
         )
 
         # Loop over atoms in first configuration.
@@ -210,9 +176,8 @@ class EXTXYZFile(mdsuite.file_io.file_read.FileProcessor):
         for i, line in enumerate(traj_data):
             sp_name = line[species_idx]
             if sp_name not in list(species_dict.keys()):
-                species_dict[sp_name] = {"line_idxs": []}
-
-            species_dict[sp_name]["line_idxs"].append(i)
+                species_dict[sp_name] = []
+            species_dict[sp_name].append(i)
 
         return species_dict
 

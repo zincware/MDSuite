@@ -23,18 +23,18 @@ If you use this module please cite us with:
 """
 import tqdm
 
-import mdsuite.file_io.file_read
+import mdsuite.file_io.tabular_text_files
 import mdsuite.utils.meta_functions
 import numpy as np
 import copy
 import typing
-import pathlib
 
 from mdsuite.database.simulation_database import (
     TrajectoryMetadata,
     PropertyInfo,
     SpeciesInfo,
 )
+from mdsuite.utils.meta_functions import sort_array_by_column
 
 var_names = {
     "Positions": ["x", "y", "z"],
@@ -62,7 +62,7 @@ var_names = {
 }
 
 
-class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
+class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     """
     Reader for LAMMPS files
     """
@@ -70,7 +70,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
     def __init__(
         self,
         file_path: str,
-        trajectory_is_sorted_by_ids=True,
+        trajectory_is_sorted_by_ids=False,
         custom_data_map: dict = None,
     ):
         """
@@ -87,12 +87,11 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             example: custom_data_map = {"Reduced_Momentum": ["rp_x", "rp_y", "rp_z"]}, if the file contains columns
             labelled as 'rp_{x,y,z}' for the three components of the reduced momentum vector
         """
-        self.file_path = pathlib.Path(file_path).resolve()
+        super(LAMMPSTrajectoryFile, self).__init__(
+            file_path, custom_data_map=custom_data_map
+        )
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
-        if custom_data_map is None:
-            custom_data_map = {}
-        self.custom_data_map = custom_data_map
 
         # attributes that will be filled in by get_metadata() and are later used by get_configurations_generator()
         self._batch_size = None
@@ -102,16 +101,13 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         self._property_dict = None
         self._mdata = None
 
-    def __str__(self):
-        return str(self.file_path)
-
     def get_metadata(self) -> TrajectoryMetadata:
         """
         Gets the metadata for database creation.
         Also creates the lookup dictionaries on where to find the particles and properties in the file
         """
         with open(self.file_path, "r") as file:
-            header = mdsuite.file_io.file_read.read_n_lines(
+            header = mdsuite.file_io.tabular_text_files.read_n_lines(
                 file, self.n_header_lines, start_at=0
             )
 
@@ -129,7 +125,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             updated_var_names = copy.deepcopy(var_names)
             updated_var_names.update(self.custom_data_map)
             self._property_dict = (
-                mdsuite.file_io.file_read.extract_properties_from_header(
+                mdsuite.file_io.tabular_text_files.extract_properties_from_header(
                     header_property_names, updated_var_names
                 )
             )
@@ -162,7 +158,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
             species_list.append(
                 SpeciesInfo(
                     name=key,
-                    n_particles=len(val["line_idxs"]),
+                    n_particles=len(val),
                     properties=properties_list,
                 )
             )
@@ -182,63 +178,38 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
     def get_configurations_generator(
         self,
-    ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
+    ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
         n_configs = self._mdata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
+
+        sort_by_column_idx = (
+            None if self.trajectory_is_sorted_by_ids else self._id_column_idx
+        )
 
         with open(self.file_path, "r") as file:
             file.seek(0)
             for _ in tqdm.tqdm(range(n_batches)):
-                yield self._read_process_n_configurations(file, self._batch_size)
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    self._batch_size,
+                    self._mdata.species_list,
+                    self._species_dict,
+                    self._property_dict,
+                    self._n_particles,
+                    n_header_lines=self.n_header_lines,
+                    sort_by_column_idx=sort_by_column_idx,
+                )
             if n_configs_remainder > 0:
-                yield self._read_process_n_configurations(file, n_configs_remainder)
-
-    def _read_process_n_configurations(
-        self, file, n_configs
-    ) -> mdsuite.file_io.file_read.TrajectoryChunkData:
-        """
-        Read n_configs configurations and bring them to the structore needed for the yield of get_configurations_generator()
-        Parameters
-        ----------
-        file
-            The open trajectory file. Note: Calling this function will advance the reading point in the file
-        n_configs
-
-        Returns
-        -------
-
-        """
-        chunk = mdsuite.file_io.file_read.TrajectoryChunkData(
-            self._mdata.species_list, n_configs
-        )
-
-        for config_idx in range(n_configs):
-            # skip the header
-            mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
-            # read one config
-            traj_data = np.stack(
-                [
-                    np.array(list(file.readline().split()))
-                    for _ in range(self._n_particles)
-                ]
-            )
-            # sort by id
-            if not self.trajectory_is_sorted_by_ids:
-                traj_data = sort_array_by_column(traj_data, self._id_column_idx)
-
-            # slice by species
-            for sp_info in self._mdata.species_list:
-                idxs = self._species_dict[sp_info.name]["line_idxs"]
-                sp_data = traj_data[idxs, :]
-                # slice by property
-                for prop_info in sp_info.properties:
-                    prop_column_idxs = self._property_dict[prop_info.name]
-                    write_data = sp_data[:, prop_column_idxs]
-                    # add 'time' axis. we only have one configuration to write
-                    write_data = write_data[np.newaxis, :, :]
-                    chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
-
-        return chunk
+                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                    file,
+                    n_configs_remainder,
+                    self._mdata.species_list,
+                    self._species_dict,
+                    self._property_dict,
+                    self._n_particles,
+                    n_header_lines=self.n_header_lines,
+                    sort_by_column_idx=sort_by_column_idx,
+                )
 
     def _get_species_information(self, file, header_property_names: list):
         """
@@ -266,7 +237,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
 
         species_dict = dict()
         # skip the header
-        mdsuite.file_io.file_read.skip_n_lines(file, self.n_header_lines)
+        mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
         traj_data = np.stack(
             [np.array(list(file.readline().split())) for _ in range(self._n_particles)]
@@ -278,31 +249,20 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.file_read.FileProcessor):
         # add an entry
         for i, line in enumerate(traj_data):
             species_name = line[header_species_index]
-            particle_id = int(line[header_id_index])
             if species_name not in species_dict.keys():
-                species_dict[species_name] = {
-                    "particle_ids": [particle_id],
-                    "line_idxs": [i],
-                }
-            else:
-                species_dict[species_name]["particle_ids"].append(particle_id)
-                species_dict[species_name]["line_idxs"].append(i)
+                species_dict[species_name] = []
+            species_dict[species_name].append(i)
 
         return species_dict
 
     def _get_sample_rate(self, file) -> int:
-        first_header = mdsuite.file_io.file_read.read_n_lines(
+        first_header = mdsuite.file_io.tabular_text_files.read_n_lines(
             file, self.n_header_lines, start_at=0
         )
         time_step_0 = int(first_header[1])  # Time in first configuration
-        second_header = mdsuite.file_io.file_read.read_n_lines(
+        second_header = mdsuite.file_io.tabular_text_files.read_n_lines(
             file, self.n_header_lines, start_at=self.n_header_lines + self._n_particles
         )
         time__step_1 = int(second_header[1])  # Time in second configuration
 
         return time__step_1 - time_step_0
-
-
-def sort_array_by_column(array: np.ndarray, column_idx):
-    # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column/35624868
-    return array[array[:, column_idx].argsort()]
