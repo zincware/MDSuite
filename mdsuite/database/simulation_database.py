@@ -28,6 +28,7 @@ import h5py as hf
 import numpy as np
 import dataclasses
 
+import mdsuite.database.simulation_data_class
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
@@ -722,6 +723,10 @@ class Database:
         summary : list
                 A list of properties that are in the database
         """
+        var_names = [
+            prop.name
+            for prop in mdsuite.database.simulation_data_class.mdsuite_properties
+        ]
         dump_list = []
         database = hf.File(self.name, "r")
         initial_list = list(database.keys())
