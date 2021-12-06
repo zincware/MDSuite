@@ -25,6 +25,7 @@ Summary
 -------
 """
 from dataclasses import dataclass
+from mdsuite.database.simulation_database import PropertyInfo
 
 
 @dataclass(frozen=True)
@@ -60,3 +61,37 @@ class SimulationProperties:
     kinetic_energy = ("KE", (None, None, 1))
     potential_energy = ("PE", (None, None, 1))
     stress = ("Stress", (None, None, 6))
+
+
+# TODO for calculator/transformator refactor: use this class instead of above
+@dataclass(frozen=True)
+class MDSuiteProperties:
+    temperature = PropertyInfo("Temperature", 1)
+    time = PropertyInfo("Time", 1)
+    thermal_flux = PropertyInfo("Thermal_Flux", 3)
+    stress_viscosity = PropertyInfo("Stress_Visc", 3)
+    momentum_flux = PropertyInfo("Momentum_Flux", 3)
+    ionic_current = PropertyInfo("Ionic_Current", 3)
+    translational_dipole_moment = PropertyInfo("Translational_Dipole_Moment", 3)
+    positions = PropertyInfo("Positions", 3)
+    scaled_positions = PropertyInfo("Scaled_Positions", 3)
+    unwrapped_positions = PropertyInfo("Unwrapped_Positions", 3)
+    scaled_unwrapped_positions = PropertyInfo("Scaled_Unwrapped_Positions", 3)
+    velocities = PropertyInfo("Velocities", 3)
+    momenta = PropertyInfo("Momenta", 3)
+    forces = PropertyInfo("Forces", 3)
+    box_images = PropertyInfo("Box_Images", 3)
+    dipole_orientation_magnitude = PropertyInfo("Dipole_Orientation_Magnitude", 1)
+    angular_velocity_spherical = PropertyInfo("Angular_Velocity_Spherical", 3)
+    angular_velocity_non_spherical = PropertyInfo("Angular_Velocity_Non_Spherical", 3)
+    torque = PropertyInfo("Torque", 3)
+    integrated_heat_current = PropertyInfo("Integrated_Heat_Current", 3)
+    kinaci_heat_current = PropertyInfo("Kinaci_Heat_Current", 3)
+    charge = PropertyInfo("Charge", 1)
+    energy = PropertyInfo("Energy", 1)
+    kinetic_energy = PropertyInfo("KE", 1)  # TODO rename, also in calculators
+    potential_energy = PropertyInfo("PE", 1)  # TODO rename, also in calculators
+    stress = PropertyInfo("Stress", 6)
+
+
+mdsuite_properties = MDSuiteProperties()

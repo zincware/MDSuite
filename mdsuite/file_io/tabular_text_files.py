@@ -1,20 +1,32 @@
-import mdsuite.file_io.file_read
 import typing
 import pathlib
-import mdsuite.database.simulation_database
 import numpy as np
-
+import mdsuite.file_io.file_read
+import mdsuite.database.simulation_database
 import mdsuite.utils.meta_functions
 
 
 class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
     def __init__(
-        self, file_path: typing.Union[str, pathlib.Path], custom_data_map: dict = None
+        self,
+        file_path: typing.Union[str, pathlib.Path],
+        file_format_column_names: typing.Dict[
+            mdsuite.database.simulation_database.PropertyInfo, list
+        ] = None,
+        custom_column_names: typing.Dict[str, list] = None,
     ):
         self.file_path = pathlib.Path(file_path).resolve()
-        if custom_data_map is None:
-            custom_data_map = {}
-        self.custom_data_map = custom_data_map
+
+        if file_format_column_names is None:
+            file_format_column_names = {}
+        str_file_format_column_names = {
+            prop.name: val for prop, val in file_format_column_names.items()
+        }
+
+        if custom_column_names is None:
+            custom_column_names = {}
+        str_file_format_column_names.update(custom_column_names)
+        self._column_name_dict = str_file_format_column_names
 
     def __str__(self):
         return str(self.file_path)
@@ -104,7 +116,7 @@ def extract_properties_from_header(
     return trajectory_properties
 
 
-def _read_process_n_configurations(
+def read_process_n_configurations(
     file,
     n_configs: int,
     species_list: typing.List[mdsuite.database.simulation_database.SpeciesInfo],

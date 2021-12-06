@@ -33,20 +33,21 @@ import tqdm
 
 import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
+from mdsuite.database.simulation_data_class import mdsuite_properties
 import mdsuite.file_io.tabular_text_files
 from mdsuite.utils.meta_functions import get_dimensionality
 
 log = logging.getLogger(__name__)
 
 var_names = {
-    "Positions": "pos",
-    "Velocities": "vel",
-    "Forces": "force",
-    "Stress": "stress",
-    "PE": "energies",
-    "Time": "time",
-    "Lattice": "Lattice",
-    "Momenta": "momenta",
+    mdsuite_properties.positions: "pos",
+    mdsuite_properties.velocities: "vel",
+    mdsuite_properties.forces: "force",
+    mdsuite_properties.stress: "stress",
+    mdsuite_properties.energy: "energies",
+    mdsuite_properties.time: "time",
+    mdsuite.database.simulation_database.PropertyInfo("Lattice", 3): "Lattice",
+    mdsuite_properties.momenta: "momenta",
 }
 
 
@@ -56,7 +57,11 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     """
 
     def __init__(self, file_path: str, custom_data_map: dict = None):
-        super(EXTXYZFile, self).__init__(file_path, custom_data_map=custom_data_map)
+        super(EXTXYZFile, self).__init__(
+            file_path,
+            file_format_column_names=var_names,
+            custom_column_names=custom_data_map,
+        )
         self.n_header_lines = 2
 
         self._n_particles = None
@@ -74,10 +79,8 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
             box_l = _get_box_l(header)
 
-            var_names_updated = copy.deepcopy(var_names)
-            var_names_updated.update(self.custom_data_map)
             species_idx, property_dict = _get_property_summary(
-                header, var_names_updated
+                header, self._column_name_dict
             )
             self._properties_dict = property_dict
 
@@ -137,7 +140,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         with open(self.file_path, "r") as file:
             file.seek(0)
             for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     self._batch_size,
                     self._mdata.species_list,
@@ -147,7 +150,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                     n_header_lines=self.n_header_lines,
                 )
             if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     n_configs_remainder,
                     self._mdata.species_list,
@@ -188,7 +191,10 @@ def _get_box_l(header: str) -> list:
     start = None
     stop = None
     for idx, item in enumerate(data):
-        if var_names["Lattice"] in item:
+        if (
+            var_names[mdsuite.database.simulation_database.PropertyInfo("Lattice", 3)]
+            in item
+        ):
             start = idx
             break
 
@@ -213,7 +219,7 @@ def _get_time(header: str):
     data = copy.deepcopy(header).split()
     time = None
     for item in data:
-        if var_names["Time"] in item:
+        if var_names[mdsuite_properties.time] in item:
             try:
                 time = float(item.split("=")[-1])
             except ValueError:

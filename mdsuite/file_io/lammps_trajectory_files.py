@@ -26,7 +26,6 @@ import tqdm
 import mdsuite.file_io.tabular_text_files
 import mdsuite.utils.meta_functions
 import numpy as np
-import copy
 import typing
 
 from mdsuite.database.simulation_database import (
@@ -34,24 +33,29 @@ from mdsuite.database.simulation_database import (
     PropertyInfo,
     SpeciesInfo,
 )
+from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.utils.meta_functions import sort_array_by_column
 
-var_names = {
-    "Positions": ["x", "y", "z"],
-    "Scaled_Positions": ["xs", "ys", "zs"],
-    "Unwrapped_Positions": ["xu", "yu", "zu"],
-    "Scaled_Unwrapped_Positions": ["xsu", "ysu", "zsu"],
-    "Velocities": ["vx", "vy", "vz"],
-    "Forces": ["fx", "fy", "fz"],
-    "Box_Images": ["ix", "iy", "iz"],
-    "Dipole_Orientation_Magnitude": ["mux", "muy", "muz"],
-    "Angular_Velocity_Spherical": ["omegax", "omegay", "omegaz"],
-    "Angular_Velocity_Non_Spherical": ["angmomx", "angmomy", "angmomz"],
-    "Torque": ["tqx", "tqy", "tqz"],
-    "Charge": ["q"],
-    "KE": ["c_KE"],
-    "PE": ["c_PE"],
-    "Stress": [
+column_names = {
+    mdsuite_properties.positions: ["x", "y", "z"],
+    mdsuite_properties.scaled_positions: ["xs", "ys", "zs"],
+    mdsuite_properties.unwrapped_positions: ["xu", "yu", "zu"],
+    mdsuite_properties.scaled_unwrapped_positions: ["xsu", "ysu", "zsu"],
+    mdsuite_properties.velocities: ["vx", "vy", "vz"],
+    mdsuite_properties.forces: ["fx", "fy", "fz"],
+    mdsuite_properties.box_images: ["ix", "iy", "iz"],
+    mdsuite_properties.dipole_orientation_magnitude: ["mux", "muy", "muz"],
+    mdsuite_properties.angular_velocity_spherical: ["omegax", "omegay", "omegaz"],
+    mdsuite_properties.angular_velocity_non_spherical: [
+        "angmomx",
+        "angmomy",
+        "angmomz",
+    ],
+    mdsuite_properties.torque: ["tqx", "tqy", "tqz"],
+    mdsuite_properties.charge: ["q"],
+    mdsuite_properties.kinetic_energy: ["c_KE"],
+    mdsuite_properties.potential_energy: ["c_PE"],
+    mdsuite_properties.stress: [
         "c_Stress[1]",
         "c_Stress[2]",
         "c_Stress[3]",
@@ -88,7 +92,9 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             labelled as 'rp_{x,y,z}' for the three components of the reduced momentum vector
         """
         super(LAMMPSTrajectoryFile, self).__init__(
-            file_path, custom_data_map=custom_data_map
+            file_path,
+            file_format_column_names=column_names,
+            custom_column_names=custom_data_map,
         )
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
@@ -122,11 +128,9 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             # extract properties from the column names
             header_property_names = header[8].split()[2:]
             self._id_column_idx = header_property_names.index("id")
-            updated_var_names = copy.deepcopy(var_names)
-            updated_var_names.update(self.custom_data_map)
             self._property_dict = (
                 mdsuite.file_io.tabular_text_files.extract_properties_from_header(
-                    header_property_names, updated_var_names
+                    header_property_names, self._column_name_dict
                 )
             )
 
@@ -189,7 +193,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         with open(self.file_path, "r") as file:
             file.seek(0)
             for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     self._batch_size,
                     self._mdata.species_list,
@@ -200,7 +204,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
                     sort_by_column_idx=sort_by_column_idx,
                 )
             if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files._read_process_n_configurations(
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     n_configs_remainder,
                     self._mdata.species_list,

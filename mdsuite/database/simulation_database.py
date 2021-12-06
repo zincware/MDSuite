@@ -35,30 +35,8 @@ import time
 from typing import Union, List
 import pathlib
 
-var_names = [
-    "Temperature",
-    "Time",
-    "Thermal_Flux",
-    "Stress_visc",
-    "Positions",
-    "Scaled_Positions",
-    "Unwrapped_Positions",
-    "Scaled_Unwrapped_Positions",
-    "Velocities",
-    "Forces",
-    "Box_Images",
-    "Dipole_Orientation_Magnitude",
-    "Angular_Velocity_Spherical",
-    "Angular_Velocity_Non_Spherical",
-    "Torque",
-    "Charge",
-    "KE",
-    "PE",
-    "Stress",
-]
 
-
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class PropertyInfo:
     """
     Information of a trajectory property.
