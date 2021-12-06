@@ -61,23 +61,25 @@ def _get_processor(fname_or_file_processor):
     """
     Read in one file
     """
-    if isinstance(fname_or_file_processor, str):
-        ending = fname_or_file_processor.split(".")[-1]
-        if ending == "lammpstraj":
+    if isinstance(fname_or_file_processor, str) or isinstance(
+        fname_or_file_processor, pathlib.Path
+    ):
+        suffix = pathlib.Path(fname_or_file_processor).suffix
+        if suffix == ".lammpstraj":
             processor = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
                 fname_or_file_processor
             )
-        elif ending == "extxyz":
+        elif suffix == ".extxyz":
             processor = mdsuite.file_io.extxyz_files.EXTXYZFile(fname_or_file_processor)
         else:
             raise ValueError(
-                f"datafile ending '{ending}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
+                f"datafile ending '{suffix}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
             )
     elif isinstance(fname_or_file_processor, mdsuite.file_io.file_read.FileProcessor):
         processor = fname_or_file_processor
     else:
         raise ValueError(
-            f"fname_or_file_processor must be either str or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(fname_or_file_processor)}' instead"
+            f"fname_or_file_processor must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(fname_or_file_processor)}' instead"
         )
 
     return processor
@@ -446,13 +448,13 @@ class Experiment(ExperimentDatabase):
     def add_data(
         self,
         fname_or_file_processor: Union[
-            str, mdsuite.file_io.file_read.FileProcessor, list
+            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ],
         force: bool = False,
         update_with_pubchempy: bool = True,
     ):
         """
-        Add data to experiment. This method takes a filename or a file reader (or a list thereof).
+        Add data to experiment. This method takes a filename, file path or a file reader (or a list thereof).
         If given a filename, it will try to instantiate the appropriate file reader with its default arguments.
         If you have a custom data format with its own reader or want to use non-default arguments for your reader,
         instantiate the reader and pass it to this method.
@@ -460,7 +462,7 @@ class Experiment(ExperimentDatabase):
         Parameters
         ----------
         fname_or_file_processor : str or mdsuite.file_io.file_read.FileProcessor or list thereof
-            if str: path to the file that contains the fname_or_file_processor
+            if str or pathlib.Path: path to the file that contains the fname_or_file_processor
             if mdsuite.file_io.file_read.FileProcessor: An instance of a childclass of FileProcessor
             if list : must be list of str or mdsuite.file_io.file_read.FileProcessor
         force : bool

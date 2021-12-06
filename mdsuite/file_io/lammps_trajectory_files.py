@@ -21,6 +21,8 @@ Citation
 --------
 If you use this module please cite us with:
 """
+import pathlib
+
 import tqdm
 
 import mdsuite.file_io.tabular_text_files
@@ -73,7 +75,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
 
     def __init__(
         self,
-        file_path: str,
+        file_path: typing.Union[str, pathlib.Path],
         trajectory_is_sorted_by_ids=False,
         custom_data_map: dict = None,
     ):

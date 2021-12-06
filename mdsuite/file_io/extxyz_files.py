@@ -26,7 +26,7 @@ Summary
 """
 import logging
 import typing
-from typing import Union, List, Dict, Tuple
+import pathlib
 import numpy as np
 import copy
 import tqdm
@@ -55,7 +55,9 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     Reader for extxyz files
     """
 
-    def __init__(self, file_path: str, custom_data_map: dict = None):
+    def __init__(
+        self, file_path: typing.Union[str, pathlib.Path], custom_data_map: dict = None
+    ):
         """
 
         Parameters
@@ -244,7 +246,7 @@ def _get_time(header: str):
 
 def _get_property_summary(
     header: str, var_names: dict
-) -> Tuple[int, Dict[str, List[int]]]:
+) -> typing.Tuple[int, typing.Dict[str, typing.List[int]]]:
     """
     Get the property summary from the header data.
 

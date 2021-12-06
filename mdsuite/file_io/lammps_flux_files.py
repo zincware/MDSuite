@@ -51,7 +51,7 @@ column_names = {
 class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     def __init__(
         self,
-        file_path: str,
+        file_path: typing.Union[str, pathlib.Path],
         sample_rate: int,
         box_l: list,
         n_header_lines: int = 2,

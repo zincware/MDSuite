@@ -27,6 +27,7 @@ Summary
 from __future__ import annotations
 import logging
 from datetime import datetime
+import pathlib
 from pathlib import Path
 from typing import Union
 
@@ -126,14 +127,14 @@ class Project(ProjectDatabase):
 
     def add_experiment(
         self,
-        experiment: str = NoneType,
+        experiment: str = NoneType,  # todo: rename to sth like 'name'
         timestep: float = None,
         temperature: float = None,
         units: Union[str, Units] = None,
         cluster_mode: bool = None,
         active: bool = True,
         fname_or_file_processor: Union[
-            str, mdsuite.file_io.file_read.FileProcessor, list
+            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,
     ):
         """
@@ -141,9 +142,6 @@ class Project(ProjectDatabase):
 
         Parameters
         ----------
-        fname_or_file_processor:
-            data that should be added to the experiment.
-            see mdsuite.experiment.add_data() for details of the file specification
         active: bool, default = True
                 Activate the experiment when added
         cluster_mode : bool
@@ -157,6 +155,10 @@ class Project(ProjectDatabase):
                 in calculation.
         units : str
                 LAMMPS units used
+        fname_or_file_processor:
+            data that should be added to the experiment.
+            see mdsuite.experiment.add_data() for details of the file specification.
+            you can also create the experiment with fname_or_file_processor == None and add data later
 
         Notes
         ------
