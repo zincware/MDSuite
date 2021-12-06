@@ -31,6 +31,7 @@ import typing
 import tqdm
 import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
+import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.file_io.tabular_text_files
 from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.utils.meta_functions import optimize_batch_size
@@ -85,94 +86,65 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         self.box_l = box_l
 
         self.n_header_lines = n_header_lines
-        self._properties_dict = None
-        self._batch_size = None
+
+    def _get_tabular_text_reader_mdata(
+        self,
+    ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
+        """
+        Implement abstract parent method
+        """
+        with open(self.file_path, "r") as file:
+            with open(self.file_path, "r") as file:
+                file.seek(0)
+                mdsuite.file_io.tabular_text_files.skip_n_lines(
+                    file, self.n_header_lines
+                )
+                # lammps log files can have multiple blocks of data interrupted by blocks of log info
+                # we read only the first block starting after n_header_lines
+                # this will mess up batching if this block is significantly smaller than the total file,
+                # but it will only affect performance, not safety
+
+                first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(
+                    file, 1
+                )[0]
+                n_columns = len(first_data_line.split())
+                n_steps = 1
+                for line in file:
+                    if len(line.split()) != n_columns:
+                        break
+                    n_steps += 1
+
+                file.seek(0)
+                headers = mdsuite.file_io.tabular_text_files.read_n_lines(
+                    file, self.n_header_lines
+                )
+                column_header = headers[-1]
+                properties_dict = mdsuite.file_io.lammps_trajectory_files.extract_properties_from_header(
+                    column_header.split(), self._column_name_dict
+                )
+
+            species_dict = {"Observables": [0]}
+            return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(
+                n_configs=n_steps,
+                species_name_to_line_idx_dict=species_dict,
+                property_to_column_idx_dict=properties_dict,
+                n_header_lines=self.n_header_lines,
+                n_partilces=1,
+                header_lines_for_each_config=False,
+            )
 
     def _get_metadata(self):
         """
         Gets the metadata for database creation as an implementation of the parent class virtual function.
-        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
         """
-
-        with open(self.file_path, "r") as file:
-            file.seek(0)
-            mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
-            # lammps log files can have multiple blocks of data interrupted by blocks of log info
-            # we read only the first block starting after n_header_lines
-            # this will mess up batching if this block is significantly smaller than the total file,
-            # but it will only affect performance, not safety
-
-            first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(file, 1)[
-                0
-            ]
-            n_columns = len(first_data_line.split())
-            n_steps = 1
-            for line in file:
-                if len(line.split()) != n_columns:
-                    break
-                n_steps += 1
-
-            file.seek(0)
-            headers = mdsuite.file_io.tabular_text_files.read_n_lines(
-                file, self.n_header_lines
-            )
-            column_header = headers[-1]
-            self._properties_dict = (
-                mdsuite.file_io.tabular_text_files.extract_properties_from_header(
-                    column_header.split(), self._column_name_dict
-                )
-            )
-
-        properties_list = []
-        for prop_name, prop_idxs in self._properties_dict.items():
-            properties_list.append(
-                mdsuite.database.simulation_database.PropertyInfo(
-                    name=prop_name, n_dims=len(prop_idxs)
-                )
-            )
-        species_list = [
-            mdsuite.database.simulation_database.SpeciesInfo(
-                name="Observables", n_particles=1, properties=properties_list
-            )
-        ]
-        mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
-            n_configurations=n_steps, species_list=species_list, box_l=self.box_l
+        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+            self.tabular_text_reader_data
         )
 
-        self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
-            filepath=self.file_path, number_of_configurations=n_steps
+        mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
+            n_configurations=self.tabular_text_reader_data.n_configs,
+            species_list=species_list,
+            box_l=self.box_l,
         )
 
         return mdata
-
-    def get_configurations_generator(
-        self,
-    ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
-        n_configs = self.metadata.n_configurations
-        n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
-        species_to_line_idx_dict = {self.metadata.species_list[0].name: [0]}
-
-        with open(self.file_path, "r") as file:
-            file.seek(0)
-            # skip the header
-            mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
-            for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    self._batch_size,
-                    self.metadata.species_list,
-                    species_to_line_idx_dict,
-                    self._properties_dict,
-                    1,
-                    n_header_lines=0,
-                )
-            if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    n_configs_remainder,
-                    self.metadata.species_list,
-                    species_to_line_idx_dict,
-                    self._properties_dict,
-                    1,
-                    n_header_lines=0,
-                )

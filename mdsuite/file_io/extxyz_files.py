@@ -35,7 +35,6 @@ import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
 from mdsuite.database.simulation_data_class import mdsuite_properties
 import mdsuite.file_io.tabular_text_files
-from mdsuite.utils.meta_functions import get_dimensionality
 
 log = logging.getLogger(__name__)
 
@@ -77,110 +76,73 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         )
         self.n_header_lines = 2
 
-        self._n_particles = None
-        self._properties_dict = None
-        self._species_dict = None
-        self._batch_size = None
-
-    def _get_metadata(self):
+    def _get_tabular_text_reader_mdata(
+        self,
+    ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function.
-        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
+        Implement abstract parent method
         """
         with open(self.file_path, "r") as file:
             # first header line: number of particles
-            self._n_particles = int(file.readline())
-            # second header line: properties
+            n_particles = int(file.readline())
+            # second line: other info
             header = file.readline()
-
-            box_l = _get_box_l(header)
 
             species_idx, property_dict = _get_property_summary(
                 header, self._column_name_dict
             )
-            self._properties_dict = property_dict
 
             file.seek(0)
-            self._species_dict = self._get_species_information(file, species_idx)
-
-            file.seek(0)
-            mdsuite.file_io.tabular_text_files.skip_n_lines(
-                file, self._n_particles + self.n_header_lines + 1
-            )
-            header_1 = file.readline()
-            sample_rate = int(round(_get_time(header_1) - _get_time(header)))
+            species_dict = self._get_species_information(file, species_idx, n_particles)
 
             # get number of configs from file length
             file.seek(0)
             num_lines = sum(1 for _ in file)
-            n_configs_float = num_lines / (self._n_particles + self.n_header_lines)
+            n_configs_float = num_lines / (n_particles + self.n_header_lines)
             n_configs = int(round(n_configs_float))
             assert abs(n_configs_float - n_configs) < 1e-10
 
-        # same properties for all species
-        properties_list = []
-        for prop_name, prop_col_idxs in self._properties_dict.items():
-            properties_list.append(
-                mdsuite.database.simulation_database.PropertyInfo(
-                    name=prop_name, n_dims=len(prop_col_idxs)
-                )
-            )
-        species_list = []
-        for sp_name, sp_indices_list in self._species_dict.items():
-            species_list.append(
-                mdsuite.database.simulation_database.SpeciesInfo(
-                    name=sp_name,
-                    n_particles=len(sp_indices_list),
-                    properties=properties_list,
-                )
+            return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(
+                n_configs=n_configs,
+                species_name_to_line_idx_dict=species_dict,
+                property_to_column_idx_dict=property_dict,
+                n_header_lines=self.n_header_lines,
+                n_partilces=n_particles,
+                header_lines_for_each_config=True,
             )
 
+    def _get_metadata(self):
+        """
+        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        """
+        with open(self.file_path, "r") as file:
+            file.readline()
+            # box_l in second header line
+            header = file.readline()
+            box_l = _get_box_l(header)
+
+            file.seek(0)
+            mdsuite.file_io.tabular_text_files.skip_n_lines(
+                file,
+                self.tabular_text_reader_data.n_partilces + self.n_header_lines + 1,
+            )
+            header_1 = file.readline()
+            sample_rate = int(round(_get_time(header_1) - _get_time(header)))
+
+        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+            self.tabular_text_reader_data
+        )
+
         mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
-            n_configurations=n_configs,
+            n_configurations=self.tabular_text_reader_data.n_configs,
             box_l=box_l,
             sample_rate=sample_rate,
             species_list=species_list,
         )
-        self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
-            filepath=self.file_path, number_of_configurations=n_configs
-        )
 
         return mdata
 
-    def get_configurations_generator(
-        self,
-    ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
-        """
-        Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
-        The file is closed when all chunks are yielded.
-        """
-        n_configs = self.metadata.n_configurations
-        n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
-
-        with open(self.file_path, "r") as file:
-            file.seek(0)
-            for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    self._batch_size,
-                    self.metadata.species_list,
-                    self._species_dict,
-                    self._properties_dict,
-                    self._n_particles,
-                    n_header_lines=self.n_header_lines,
-                )
-            if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    n_configs_remainder,
-                    self.metadata.species_list,
-                    self._species_dict,
-                    self._properties_dict,
-                    self._n_particles,
-                    n_header_lines=self.n_header_lines,
-                )
-
-    def _get_species_information(self, file, species_idx):
+    def _get_species_information(self, file, species_idx: int, n_particles: int):
         """
         Get the initial species information
 
@@ -191,7 +153,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
         traj_data = np.stack(
-            [list(file.readline().split()) for _ in range(self._n_particles)]
+            [list(file.readline().split()) for _ in range(n_particles)]
         )
 
         # Loop over atoms in first configuration.

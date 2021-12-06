@@ -1,9 +1,27 @@
+import dataclasses
 import typing
 import pathlib
 import numpy as np
 import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
 import mdsuite.utils.meta_functions
+import abc
+import tqdm
+
+
+@dataclasses.dataclass
+class TabularTextFileReaderMData:
+    """
+    Class to hold the data that needs to be extracted from tabular text files before reading them
+    """
+
+    n_configs: int
+    species_name_to_line_idx_dict: typing.Dict[str, list]
+    n_partilces: int
+    property_to_column_idx_dict: typing.Dict[str, list]
+    n_header_lines: int
+    header_lines_for_each_config: bool = False
+    sort_by_column_idx: int = None
 
 
 class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
@@ -17,20 +35,21 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         file_format_column_names: typing.Dict[
             mdsuite.database.simulation_database.PropertyInfo, list
         ] = None,
-        custom_column_names: typing.Dict[str, list] = None,
+        custom_column_names: typing.Dict[str, typing.Any] = None,
     ):
         """
-        Init, also handles the combination of file_format_column_names and custom_column_names
+        Init, also handles the combination of file_format_column_names and custom_column_names.
+        The result, self._column_name_dict is supposed to be used by child functions to create their TabularTextFileReaderData
         Parameters
         ----------
         file_path:
             Path to the tabular text file.
         file_format_column_names
             Dict connecting mdsuite properties (as defined in mdsuite.database.simulation_data_class.mdsuite_properties)
-            the columns of the file format. To be provided by the TabularTextFileProcessor that derives from self.
+            the columns of the file format. Constant to be provided by the child classes.
             Example: {mdsuite_properties.positions: ["x", "y", "z"]}
         custom_column_names:
-            Dict connecting user-defined properties the column names. To be provided when called by the user.
+            Dict connecting user-defined properties the column names. To be provided by the user.
             Example: {'MyMagicProperty':['MMP1', 'MMP2']}
         """
         self.file_path = pathlib.Path(file_path).resolve()
@@ -46,8 +65,73 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         str_file_format_column_names.update(custom_column_names)
         self._column_name_dict = str_file_format_column_names
 
+        self._tabular_text_reader_mdata: TabularTextFileReaderMData = None
+
+    @abc.abstractmethod
+    def _get_tabular_text_reader_mdata(self) -> TabularTextFileReaderMData:
+        """
+        Child classes of TabularTextFileProcessor must implement this function, so its output can be used in get_configurations_generator.
+        See TabularTextFileReaderData for the data that needs to be provided
+        """
+        raise NotImplementedError("Tabular text files must implement this function")
+
+    @property
+    def tabular_text_reader_data(self) -> TabularTextFileReaderMData:
+        if self._tabular_text_reader_mdata is None:
+            self._tabular_text_reader_mdata = self._get_tabular_text_reader_mdata()
+        return self._tabular_text_reader_mdata
+
     def __str__(self):
         return str(self.file_path)
+
+    def get_configurations_generator(
+        self,
+    ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
+        """
+        TabularTextFiles implement the parent function,
+        but requires its children to provide the necessary information about the table contents, see self._get_tabular_text_reader_data
+        Returns
+        -------
+
+        """
+        n_configs = self.tabular_text_reader_data.n_configs
+
+        batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
+            filepath=self.file_path, number_of_configurations=n_configs
+        )
+        n_batches, n_configs_remainder = divmod(int(n_configs), int(batch_size))
+
+        with open(self.file_path, "r") as file:
+            file.seek(0)
+            # skip header either once in the beginning or for each config
+            if self.tabular_text_reader_data.header_lines_for_each_config:
+                n_header_lines_in_config = self.tabular_text_reader_data.n_header_lines
+            else:
+                skip_n_lines(file, self.tabular_text_reader_data.n_header_lines)
+                n_header_lines_in_config = 0
+
+            for _ in tqdm.tqdm(range(n_batches)):
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
+                    file,
+                    batch_size,
+                    self.metadata.species_list,
+                    self.tabular_text_reader_data.species_name_to_line_idx_dict,
+                    self.tabular_text_reader_data.property_to_column_idx_dict,
+                    self.tabular_text_reader_data.n_partilces,
+                    n_header_lines=n_header_lines_in_config,
+                    sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
+                )
+            if n_configs_remainder > 0:
+                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
+                    file,
+                    n_configs_remainder,
+                    self.metadata.species_list,
+                    self.tabular_text_reader_data.species_name_to_line_idx_dict,
+                    self.tabular_text_reader_data.property_to_column_idx_dict,
+                    self.tabular_text_reader_data.n_partilces,
+                    n_header_lines=n_header_lines_in_config,
+                    sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
+                )
 
 
 def read_n_lines(file, n_lines: int, start_at: int = None) -> list:
@@ -80,66 +164,12 @@ def skip_n_lines(file, n_lines: int) -> None:
         next(file)
 
 
-def extract_properties_from_header(
-    header_property_names: list, database_correspondence_dict: dict
-) -> dict:
-    """
-    Takes the property names from a file header, sees if there is a corresponding mdsuite property
-    in database_correspondence_dict.
-    Returns a dict that links the mdsuite property names to the column indices at which they can be found in the file.
-
-    Parameters
-    ----------
-    header_property_names
-        The names of the columns in the data file
-    database_correspondence_dict
-        The translation between mdsuite properties and the column names of the respective file format.
-        lammps example:
-        {"Positions": ["x", "y", "z"],
-         "Unwrapped_Positions": ["xu", "yu", "zu"],
-
-    Returns
-    -------
-    trajectory_properties : dict
-        A dict of the form {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
-        Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
-    """
-
-    column_dict_properties = {
-        variable: idx for idx, variable in enumerate(header_property_names)
-    }
-    # for each property label (position, velocity,etc) in the lammps definition
-    for property_label, property_names in database_correspondence_dict.items():
-        # for each coordinate for a given property label (position: x, y, z),
-        # get idx and the name
-        for idx, property_name in enumerate(property_names):
-            if (
-                property_name in column_dict_properties.keys()
-            ):  # if this name (x) is in the input file properties
-                # we change the lammps_properties_dict replacing the string of the
-                # property name by the column name
-                database_correspondence_dict[property_label][
-                    idx
-                ] = column_dict_properties[property_name]
-
-    # trajectory_properties only need the labels with the integer columns, then we
-    # only copy those
-    trajectory_properties = {}
-    for property_label, properties_columns in database_correspondence_dict.items():
-        if all(
-            [isinstance(property_column, int) for property_column in properties_columns]
-        ):
-            trajectory_properties[property_label] = properties_columns
-
-    return trajectory_properties
-
-
 def read_process_n_configurations(
     file,
     n_configs: int,
     species_list: typing.List[mdsuite.database.simulation_database.SpeciesInfo],
-    species_to_line_idx_dict: dict,
-    property_to_column_idx_dict: dict,
+    species_to_line_idx_dict: typing.Dict[str, list],
+    property_to_column_idx_dict: typing.Dict[str, list],
     n_lines_per_config: int,
     n_header_lines: int = 0,
     sort_by_column_idx: int = None,
@@ -168,7 +198,6 @@ def read_process_n_configurations(
         if None (default): no effect
         if int: sort the lines in the config by the column with this index
         (e.g., use to sort by particle id in unsorted config output)
-
     Returns
     -------
         The chunk for your reader output
@@ -203,3 +232,33 @@ def read_process_n_configurations(
                 chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
 
     return chunk
+
+
+def get_species_list_from_tabular_text_reader_data(
+    tabular_text_reader_data: TabularTextFileReaderMData,
+) -> typing.List[mdsuite.database.simulation_database.SpeciesInfo]:
+    """
+    Use the data collected in TabularTextFileProcessor._get_tabular_text_reader_data() to get the values necessary for
+    TabularTextFileProcessor.metadata
+    """
+    # all species have the same properties
+    properties_list = list()
+    for (
+        key,
+        val,
+    ) in tabular_text_reader_data.property_to_column_idx_dict.items():
+        properties_list.append(
+            mdsuite.database.simulation_database.PropertyInfo(name=key, n_dims=len(val))
+        )
+
+    species_list = list()
+    for key, val in tabular_text_reader_data.species_name_to_line_idx_dict.items():
+        species_list.append(
+            mdsuite.database.simulation_database.SpeciesInfo(
+                name=key,
+                n_particles=len(val),
+                properties=properties_list,
+            )
+        )
+
+    return species_list

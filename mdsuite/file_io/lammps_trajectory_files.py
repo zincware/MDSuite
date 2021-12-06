@@ -21,20 +21,15 @@ Citation
 --------
 If you use this module please cite us with:
 """
-import pathlib
 
-import tqdm
-
-import mdsuite.file_io.tabular_text_files
-import mdsuite.utils.meta_functions
 import numpy as np
 import typing
+import pathlib
+import mdsuite.file_io.tabular_text_files
+import mdsuite.utils.meta_functions
 
-from mdsuite.database.simulation_database import (
-    TrajectoryMetadata,
-    PropertyInfo,
-    SpeciesInfo,
-)
+
+from mdsuite.database.simulation_database import TrajectoryMetadata
 from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.utils.meta_functions import sort_array_by_column
 
@@ -101,17 +96,11 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         self.n_header_lines = 9
         self.trajectory_is_sorted_by_ids = trajectory_is_sorted_by_ids
 
-        # attributes that will be filled in by get_metadata() and are later used by get_configurations_generator()
-        self._batch_size = None
-        self._id_column_idx = None
-        self._n_particles = None
-        self._species_dict = None
-        self._property_dict = None
-
-    def _get_metadata(self) -> TrajectoryMetadata:
+    def _get_tabular_text_reader_mdata(
+        self,
+    ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function.
-        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
+        Implement abstract parent method
         """
         with open(self.file_path, "r") as file:
             header = mdsuite.file_io.tabular_text_files.read_n_lines(
@@ -119,108 +108,76 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             )
 
             # extract data that can be directly read off the header
-            self._n_particles = int(header[3].split()[0])
-            header_boxl_lines = header[5:8]
-            box_l = [
-                float(line.split()[1]) - float(line.split()[0])
-                for line in header_boxl_lines
-            ]
+            n_particles = int(header[3].split()[0])
 
             # extract properties from the column names
             header_property_names = header[8].split()[2:]
-            self._id_column_idx = header_property_names.index("id")
-            self._property_dict = (
-                mdsuite.file_io.tabular_text_files.extract_properties_from_header(
-                    header_property_names, self._column_name_dict
-                )
+            id_column_idx = header_property_names.index("id")
+            property_dict = extract_properties_from_header(
+                header_property_names, self._column_name_dict
             )
 
             # get number of configs from file length
             file.seek(0)
             num_lines = sum(1 for _ in file)
-            n_configs_float = num_lines / (self._n_particles + self.n_header_lines)
+            n_configs_float = num_lines / (n_particles + self.n_header_lines)
             n_configs = int(round(n_configs_float))
             assert abs(n_configs_float - n_configs) < 1e-10
 
             # get information on which particles with which id belong to which species
             # by analysing the first configuration
             file.seek(0)
-            self._species_dict = self._get_species_information(
-                file, header_property_names
+            species_dict = self._get_species_information(
+                file, header_property_names, n_particles
             )
 
+        return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(
+            n_configs=n_configs,
+            species_name_to_line_idx_dict=species_dict,
+            property_to_column_idx_dict=property_dict,
+            n_header_lines=self.n_header_lines,
+            n_partilces=n_particles,
+            header_lines_for_each_config=True,
+            sort_by_column_idx=None
+            if self.trajectory_is_sorted_by_ids
+            else id_column_idx,
+        )
+
+    def _get_metadata(self) -> TrajectoryMetadata:
+        """
+        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        """
+        with open(self.file_path, "r") as file:
+            header = mdsuite.file_io.tabular_text_files.read_n_lines(
+                file, self.n_header_lines, start_at=0
+            )
+            header_boxl_lines = header[5:8]
+            box_l = [
+                float(line.split()[1]) - float(line.split()[0])
+                for line in header_boxl_lines
+            ]
             # extract sample step information from consecutive headers
             file.seek(0)
-            sample_rate = self._get_sample_rate(file)
-
-        # all species have the same properties
-        properties_list = list()
-        for key, val in self._property_dict.items():
-            properties_list.append(PropertyInfo(name=key, n_dims=len(val)))
-
-        species_list = list()
-        for key, val in self._species_dict.items():
-            species_list.append(
-                SpeciesInfo(
-                    name=key,
-                    n_particles=len(val),
-                    properties=properties_list,
-                )
+            sample_rate = self._get_sample_rate(
+                file, self.tabular_text_reader_data.n_partilces
             )
 
+        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+            self.tabular_text_reader_data
+        )
+
         mdata = TrajectoryMetadata(
-            n_configurations=n_configs,
+            n_configurations=self.tabular_text_reader_data.n_configs,
             species_list=species_list,
             box_l=box_l,
             sample_rate=sample_rate,
         )
 
-        self._batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
-            filepath=self.file_path, number_of_configurations=n_configs
-        )
-
         return mdata
 
-    def get_configurations_generator(
-        self,
-    ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
-        """
-        Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
-        The file is closed when all chunks are yielded.
-        """
-        n_configs = self.metadata.n_configurations
-        n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
-
-        sort_by_column_idx = (
-            None if self.trajectory_is_sorted_by_ids else self._id_column_idx
-        )
-
-        with open(self.file_path, "r") as file:
-            file.seek(0)
-            for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    self._batch_size,
-                    self.metadata.species_list,
-                    self._species_dict,
-                    self._property_dict,
-                    self._n_particles,
-                    n_header_lines=self.n_header_lines,
-                    sort_by_column_idx=sort_by_column_idx,
-                )
-            if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
-                    file,
-                    n_configs_remainder,
-                    self.metadata.species_list,
-                    self._species_dict,
-                    self._property_dict,
-                    self._n_particles,
-                    n_header_lines=self.n_header_lines,
-                    sort_by_column_idx=sort_by_column_idx,
-                )
-
-    def _get_species_information(self, file, header_property_names: list):
+    def _get_species_information(
+        self, file, header_property_names: list, n_particles: int
+    ):
         """
         Get the information which species are present and which particle ids/ lines in the file belong to them
 
@@ -249,7 +206,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
         traj_data = np.stack(
-            [np.array(list(file.readline().split())) for _ in range(self._n_particles)]
+            [np.array(list(file.readline().split())) for _ in range(n_particles)]
         )
         # sort by particle id
         if not self.trajectory_is_sorted_by_ids:
@@ -264,14 +221,68 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
 
         return species_dict
 
-    def _get_sample_rate(self, file) -> int:
+    def _get_sample_rate(self, file, n_particles: int) -> int:
         first_header = mdsuite.file_io.tabular_text_files.read_n_lines(
             file, self.n_header_lines, start_at=0
         )
         time_step_0 = int(first_header[1])  # Time in first configuration
         second_header = mdsuite.file_io.tabular_text_files.read_n_lines(
-            file, self.n_header_lines, start_at=self.n_header_lines + self._n_particles
+            file, self.n_header_lines, start_at=self.n_header_lines + n_particles
         )
         time__step_1 = int(second_header[1])  # Time in second configuration
 
         return time__step_1 - time_step_0
+
+
+def extract_properties_from_header(
+    header_property_names: list, database_correspondence_dict: dict
+) -> dict:
+    """
+    Takes the property names from a file header, sees if there is a corresponding mdsuite property
+    in database_correspondence_dict.
+    Returns a dict that links the mdsuite property names to the column indices at which they can be found in the file.
+
+    Parameters
+    ----------
+    header_property_names
+        The names of the columns in the data file
+    database_correspondence_dict
+        The translation between mdsuite properties and the column names of the respective file format.
+        lammps example:
+        {"Positions": ["x", "y", "z"],
+         "Unwrapped_Positions": ["xu", "yu", "zu"],
+
+    Returns
+    -------
+    trajectory_properties : dict
+        A dict of the form {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
+        Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
+    """
+
+    column_dict_properties = {
+        variable: idx for idx, variable in enumerate(header_property_names)
+    }
+    # for each property label (position, velocity,etc) in the lammps definition
+    for property_label, property_names in database_correspondence_dict.items():
+        # for each coordinate for a given property label (position: x, y, z),
+        # get idx and the name
+        for idx, property_name in enumerate(property_names):
+            if (
+                property_name in column_dict_properties.keys()
+            ):  # if this name (x) is in the input file properties
+                # we change the lammps_properties_dict replacing the string of the
+                # property name by the column name
+                database_correspondence_dict[property_label][
+                    idx
+                ] = column_dict_properties[property_name]
+
+    # trajectory_properties only need the labels with the integer columns, then we
+    # only copy those
+    trajectory_properties = {}
+    for property_label, properties_columns in database_correspondence_dict.items():
+        if all(
+            [isinstance(property_column, int) for property_column in properties_columns]
+        ):
+            trajectory_properties[property_label] = properties_columns
+
+    return trajectory_properties
