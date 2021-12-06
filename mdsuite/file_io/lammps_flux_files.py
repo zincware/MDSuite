@@ -87,9 +87,8 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         self.n_header_lines = n_header_lines
         self._properties_dict = None
         self._batch_size = None
-        self._mdata = None
 
-    def get_metadata(self):
+    def _get_metadata(self):
         """
         Gets the metadata for database creation as an implementation of the parent class virtual function.
         Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
@@ -136,7 +135,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                 name="Observables", n_particles=1, properties=properties_list
             )
         ]
-        self._mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
+        mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
             n_configurations=n_steps, species_list=species_list, box_l=self.box_l
         )
 
@@ -144,14 +143,14 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
             filepath=self.file_path, number_of_configurations=n_steps
         )
 
-        return self._mdata
+        return mdata
 
     def get_configurations_generator(
         self,
     ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
-        n_configs = self._mdata.n_configurations
+        n_configs = self.metadata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
-        species_to_line_idx_dict = {self._mdata.species_list[0].name: [0]}
+        species_to_line_idx_dict = {self.metadata.species_list[0].name: [0]}
 
         with open(self.file_path, "r") as file:
             file.seek(0)
@@ -161,7 +160,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     self._batch_size,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     species_to_line_idx_dict,
                     self._properties_dict,
                     1,
@@ -171,7 +170,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     n_configs_remainder,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     species_to_line_idx_dict,
                     self._properties_dict,
                     1,

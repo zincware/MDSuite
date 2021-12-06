@@ -36,19 +36,30 @@ class FileProcessor(abc.ABC):
     Output is supposed to be used by the experiment class for building and populating the trajectory database.
     """
 
+    _metadata: TrajectoryMetadata = None
+
+    @abc.abstractmethod
     def __str__(self):
         """
         Return a unique string representing this FileProcessor. (The absolute file path, for example)
         """
         raise NotImplementedError("File Processors must implement a string")
 
-    def get_metadata(self) -> TrajectoryMetadata:
+    @abc.abstractmethod
+    def _get_metadata(self) -> TrajectoryMetadata:
         """
         Return the metadata required to build a database.
         See mdsuite.database.simulation_database.TrajectoryMetadata to see the details of which values must be extracted from the file
         """
         raise NotImplementedError("File Processors must implement metadata extraction")
 
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            self._metadata = self._get_metadata()
+        return self._metadata
+
+    @abc.abstractmethod
     def get_configurations_generator(self) -> typing.Iterator[TrajectoryChunkData]:
         """
         Yield configurations as chunks. Batch size must be determined by the FileProcessor.

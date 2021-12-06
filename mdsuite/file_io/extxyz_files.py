@@ -76,12 +76,11 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         self.n_header_lines = 2
 
         self._n_particles = None
-        self._mdata = None
         self._properties_dict = None
         self._species_dict = None
         self._batch_size = None
 
-    def get_metadata(self):
+    def _get_metadata(self):
         """
         Gets the metadata for database creation as an implementation of the parent class virtual function.
         Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
@@ -134,7 +133,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                 )
             )
 
-        self._mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
+        mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
             n_configurations=n_configs,
             box_l=box_l,
             sample_rate=sample_rate,
@@ -144,7 +143,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
             filepath=self.file_path, number_of_configurations=n_configs
         )
 
-        return self._mdata
+        return mdata
 
     def get_configurations_generator(
         self,
@@ -153,7 +152,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
         The file is closed when all chunks are yielded.
         """
-        n_configs = self._mdata.n_configurations
+        n_configs = self.metadata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 
         with open(self.file_path, "r") as file:
@@ -162,7 +161,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     self._batch_size,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     self._species_dict,
                     self._properties_dict,
                     self._n_particles,
@@ -172,7 +171,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     n_configs_remainder,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     self._species_dict,
                     self._properties_dict,
                     self._n_particles,

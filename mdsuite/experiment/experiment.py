@@ -515,7 +515,7 @@ class Experiment(ExperimentDatabase):
             name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
         )
 
-        metadata = file_processor.get_metadata()
+        metadata = file_processor.metadata
         architecture = _species_list_to_architecture_dict(
             metadata.species_list, metadata.n_configurations
         )

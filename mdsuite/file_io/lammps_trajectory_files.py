@@ -105,9 +105,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         self._n_particles = None
         self._species_dict = None
         self._property_dict = None
-        self._mdata = None
 
-    def get_metadata(self) -> TrajectoryMetadata:
+    def _get_metadata(self) -> TrajectoryMetadata:
         """
         Gets the metadata for database creation as an implementation of the parent class virtual function.
         Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
@@ -167,7 +166,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
                 )
             )
 
-        self._mdata = TrajectoryMetadata(
+        mdata = TrajectoryMetadata(
             n_configurations=n_configs,
             species_list=species_list,
             box_l=box_l,
@@ -178,7 +177,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             filepath=self.file_path, number_of_configurations=n_configs
         )
 
-        return self._mdata
+        return mdata
 
     def get_configurations_generator(
         self,
@@ -187,7 +186,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
         The file is closed when all chunks are yielded.
         """
-        n_configs = self._mdata.n_configurations
+        n_configs = self.metadata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 
         sort_by_column_idx = (
@@ -200,7 +199,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     self._batch_size,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     self._species_dict,
                     self._property_dict,
                     self._n_particles,
@@ -211,7 +210,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
                 yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
                     file,
                     n_configs_remainder,
-                    self._mdata.species_list,
+                    self.metadata.species_list,
                     self._species_dict,
                     self._property_dict,
                     self._n_particles,

@@ -21,7 +21,7 @@ class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
         name : A unique name for this dataset. Used to prevent multiple adding of the same data
         """
         self.data = data
-        self.metadata = metadata
+        self.mdata = metadata
         self.name = name
 
         mdsuite.file_io.file_read.assert_species_list_consistent(
@@ -33,8 +33,8 @@ class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     def __str__(self):
         return self.name
 
-    def get_metadata(self) -> TrajectoryMetadata:
-        return self.metadata
+    def _get_metadata(self) -> TrajectoryMetadata:
+        return self.mdata
 
     def get_configurations_generator(
         self,
