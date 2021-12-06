@@ -1,3 +1,4 @@
+import copy
 import dataclasses
 import typing
 import pathlib
@@ -53,11 +54,11 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
             Example: {'MyMagicProperty':['MMP1', 'MMP2']}
         """
         self.file_path = pathlib.Path(file_path).resolve()
-
-        if file_format_column_names is None:
-            file_format_column_names = {}
+        my_file_format_column_names = copy.deepcopy(file_format_column_names)
+        if my_file_format_column_names is None:
+            my_file_format_column_names = {}
         str_file_format_column_names = {
-            prop.name: val for prop, val in file_format_column_names.items()
+            prop.name: val for prop, val in my_file_format_column_names.items()
         }
 
         if custom_column_names is None:
