@@ -7,6 +7,10 @@ import mdsuite.utils.meta_functions
 
 
 class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
+    """
+    Parent class for all file readers that are based on tabular text data (e.g. lammps, extxyz,...)
+    """
+
     def __init__(
         self,
         file_path: typing.Union[str, pathlib.Path],
@@ -15,6 +19,20 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         ] = None,
         custom_column_names: typing.Dict[str, list] = None,
     ):
+        """
+        Init, also handles the combination of file_format_column_names and custom_column_names
+        Parameters
+        ----------
+        file_path:
+            Path to the tabular text file.
+        file_format_column_names
+            Dict connecting mdsuite properties (as defined in mdsuite.database.simulation_data_class.mdsuite_properties)
+            the columns of the file format. To be provided by the TabularTextFileProcessor that derives from self.
+            Example: {mdsuite_properties.positions: ["x", "y", "z"]}
+        custom_column_names:
+            Dict connecting user-defined properties the column names. To be provided when called by the user.
+            Example: {'MyMagicProperty':['MMP1', 'MMP2']}
+        """
         self.file_path = pathlib.Path(file_path).resolve()
 
         if file_format_column_names is None:
@@ -149,11 +167,11 @@ def read_process_n_configurations(
     sort_by_column_idx:
         if None (default): no effect
         if int: sort the lines in the config by the column with this index
-        (use to sort by particle id in unsorted config output)
+        (e.g., use to sort by particle id in unsorted config output)
 
     Returns
     -------
-        The chunk for you reader output
+        The chunk for your reader output
     """
     chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
         species_list, n_configs

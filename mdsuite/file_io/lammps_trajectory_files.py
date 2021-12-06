@@ -86,7 +86,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         trajectory_is_sorted_by_ids:
             Flag to indicate if the particle order in the trajectory file is the same for each configuration
         custom_data_map
-            If your file contains columns with data that is not part of the standard set of properties (see var_names),
+            If your file contains columns with data that is not part of the standard set of properties (see column_names in this file),
             you can map the column names to the corresponding property.
             example: custom_data_map = {"Reduced_Momentum": ["rp_x", "rp_y", "rp_z"]}, if the file contains columns
             labelled as 'rp_{x,y,z}' for the three components of the reduced momentum vector
@@ -109,8 +109,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
 
     def get_metadata(self) -> TrajectoryMetadata:
         """
-        Gets the metadata for database creation.
-        Also creates the lookup dictionaries on where to find the particles and properties in the file
+        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
         """
         with open(self.file_path, "r") as file:
             header = mdsuite.file_io.tabular_text_files.read_n_lines(
@@ -183,6 +183,10 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
     def get_configurations_generator(
         self,
     ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
+        """
+        Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
+        The file is closed when all chunks are yielded.
+        """
         n_configs = self._mdata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 

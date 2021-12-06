@@ -45,15 +45,14 @@ class FileProcessor(abc.ABC):
     def get_metadata(self) -> TrajectoryMetadata:
         """
         Return the metadata required to build a database.
+        See mdsuite.database.simulation_database.TrajectoryMetadata to see the details of which values must be extracted from the file
         """
         raise NotImplementedError("File Processors must implement metadata extraction")
 
     def get_configurations_generator(self) -> typing.Iterator[TrajectoryChunkData]:
         """
-        Yield configurations. Batch size must be determined by the FileProcessor
-        Parameters
-        ----------
-
+        Yield configurations as chunks. Batch size must be determined by the FileProcessor.
+        See mdsuite.database.simulation_database.TrajectoryChunkData for the format in which to provide the trajectory chunk.
         Returns
         -------
         generator that yields TrajectoryChunkData

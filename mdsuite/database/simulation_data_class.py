@@ -66,6 +66,12 @@ class SimulationProperties:
 # TODO for calculator/transformator refactor: use this class instead of above
 @dataclass(frozen=True)
 class MDSuiteProperties:
+    """
+    The names of properties used by MDSuite.
+    Intended for use as a global constant by file readers, transformations and calculations
+    to access the respective entries in the database.
+    """
+
     temperature = PropertyInfo("Temperature", 1)
     time = PropertyInfo("Time", 1)
     thermal_flux = PropertyInfo("Thermal_Flux", 3)
@@ -75,6 +81,7 @@ class MDSuiteProperties:
     translational_dipole_moment = PropertyInfo("Translational_Dipole_Moment", 3)
     positions = PropertyInfo("Positions", 3)
     scaled_positions = PropertyInfo("Scaled_Positions", 3)
+    box_lengths = PropertyInfo("Box_Lengths", 3)
     unwrapped_positions = PropertyInfo("Unwrapped_Positions", 3)
     scaled_unwrapped_positions = PropertyInfo("Scaled_Unwrapped_Positions", 3)
     velocities = PropertyInfo("Velocities", 3)

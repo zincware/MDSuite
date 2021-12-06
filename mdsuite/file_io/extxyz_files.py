@@ -46,7 +46,6 @@ var_names = {
     mdsuite_properties.stress: "stress",
     mdsuite_properties.energy: "energies",
     mdsuite_properties.time: "time",
-    mdsuite.database.simulation_database.PropertyInfo("Lattice", 3): "Lattice",
     mdsuite_properties.momenta: "momenta",
 }
 
@@ -57,6 +56,18 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     """
 
     def __init__(self, file_path: str, custom_data_map: dict = None):
+        """
+
+        Parameters
+        ----------
+        file_path
+            Path to the extxyz file
+        custom_data_map:
+            If your file contains columns with data that is not part of the standard set of properties (see var_names in this file),
+            you can map the column names to the corresponding property.
+            example: custom_data_map = {"Reduced_Momentum": "redmom"},
+            if the file header contains "redmom:R:3" to point to the correct 3 columns containing the reduced momentum values
+        """
         super(EXTXYZFile, self).__init__(
             file_path,
             file_format_column_names=var_names,
@@ -71,6 +82,10 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         self._batch_size = None
 
     def get_metadata(self):
+        """
+        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
+        """
         with open(self.file_path, "r") as file:
             # first header line: number of particles
             self._n_particles = int(file.readline())
@@ -134,6 +149,10 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     def get_configurations_generator(
         self,
     ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
+        """
+        Open the file and yield the trajectory chunks as an implementation of the parent class virtual function.
+        The file is closed when all chunks are yielded.
+        """
         n_configs = self._mdata.n_configurations
         n_batches, n_configs_remainder = divmod(int(n_configs), int(self._batch_size))
 
@@ -191,10 +210,7 @@ def _get_box_l(header: str) -> list:
     start = None
     stop = None
     for idx, item in enumerate(data):
-        if (
-            var_names[mdsuite.database.simulation_database.PropertyInfo("Lattice", 3)]
-            in item
-        ):
+        if "Lattice" in item:
             start = idx
             break
 

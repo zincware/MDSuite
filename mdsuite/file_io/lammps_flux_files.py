@@ -90,6 +90,10 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         self._mdata = None
 
     def get_metadata(self):
+        """
+        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Side effect: Also creates the lookup dictionaries on where to find the particles and properties in the file for later use when actually reading the file
+        """
 
         with open(self.file_path, "r") as file:
             file.seek(0)
