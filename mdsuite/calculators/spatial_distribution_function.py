@@ -39,8 +39,11 @@ from tqdm import tqdm
 from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
 from mdsuite.database import simulation_properties
-from mdsuite.utils.linalg import (cartesian_to_spherical_coordinates, get2dHistogram,
-                                  spherical_to_cartesian_coordinates)
+from mdsuite.utils.linalg import (
+    cartesian_to_spherical_coordinates,
+    get2dHistogram,
+    spherical_to_cartesian_coordinates,
+)
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.tensorflow.layers import NLLayer
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D

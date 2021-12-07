@@ -28,8 +28,11 @@ import copy
 
 from mdsuite.file_io.trajectory_files import TrajectoryFile
 from mdsuite.utils.exceptions import NoElementInDump
-from mdsuite.utils.meta_functions import (get_dimensionality, line_counter,
-                                          optimize_batch_size)
+from mdsuite.utils.meta_functions import (
+    get_dimensionality,
+    line_counter,
+    optimize_batch_size,
+)
 
 var_names = {
     "Positions": ["x", "y", "z"],

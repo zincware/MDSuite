@@ -32,13 +32,15 @@ from .angular_distribution_function import AngularDistributionFunction
 from .calculator import Calculator
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
-from .einstein_distinct_diffusion_coefficients import \
-    EinsteinDistinctDiffusionCoefficients
+from .einstein_distinct_diffusion_coefficients import (
+    EinsteinDistinctDiffusionCoefficients,
+)
 from .einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from .einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
-from .green_kubo_distinct_diffusion_coefficients import \
-    GreenKuboDistinctDiffusionCoefficients
+from .green_kubo_distinct_diffusion_coefficients import (
+    GreenKuboDistinctDiffusionCoefficients,
+)
 from .green_kubo_ionic_conductivity import GreenKuboIonicConductivity
 from .green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from .green_kubo_thermal_conductivity import GreenKuboThermalConductivity

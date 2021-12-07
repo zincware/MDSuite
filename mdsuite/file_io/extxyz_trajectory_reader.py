@@ -30,8 +30,11 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 
 from mdsuite.file_io.trajectory_files import TrajectoryFile
-from mdsuite.utils.meta_functions import (get_dimensionality, line_counter,
-                                          optimize_batch_size)
+from mdsuite.utils.meta_functions import (
+    get_dimensionality,
+    line_counter,
+    optimize_batch_size,
+)
 
 log = logging.getLogger(__name__)
 
