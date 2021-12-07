@@ -24,12 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import copy
+
 from mdsuite.file_io.trajectory_files import TrajectoryFile
 from mdsuite.utils.exceptions import NoElementInDump
-from mdsuite.utils.meta_functions import get_dimensionality
-from mdsuite.utils.meta_functions import line_counter
-from mdsuite.utils.meta_functions import optimize_batch_size
-import copy
+from mdsuite.utils.meta_functions import (
+    get_dimensionality,
+    line_counter,
+    optimize_batch_size,
+)
 
 var_names = {
     "Positions": ["x", "y", "z"],

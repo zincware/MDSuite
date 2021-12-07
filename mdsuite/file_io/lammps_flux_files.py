@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import numpy as np
-from mdsuite.file_io.flux_files import FluxFile
-from mdsuite.utils.meta_functions import optimize_batch_size, join_path
 import copy
+
+import numpy as np
+
+from mdsuite.file_io.flux_files import FluxFile
+from mdsuite.utils.meta_functions import join_path, optimize_batch_size
 
 var_names = {
     "Temperature": ["temp"],

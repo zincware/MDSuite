@@ -24,8 +24,8 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from .simulation_data_class import SimulationProperties
 from .data_manager import DataManager
+from .simulation_data_class import SimulationProperties
 
 simulation_properties = SimulationProperties()
 

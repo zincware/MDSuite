@@ -25,14 +25,15 @@ Summary
 -------
 """
 from __future__ import annotations
-from mdsuite.database.simulation_database import Database
+
+from pathlib import Path
+from typing import TYPE_CHECKING
+
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
-
 import tensorflow as tf
 
-from typing import TYPE_CHECKING
+from mdsuite.database.simulation_database import Database
 
 if TYPE_CHECKING:
     from mdsuite import Experiment

@@ -25,19 +25,19 @@ Summary
 -------
 """
 from __future__ import annotations
+
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Union
-from mdsuite.utils.meta_functions import DotDict
+from typing import Dict, Union
+
+import mdsuite.database.scheme as db
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
-import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
 from mdsuite.utils import Units
 from mdsuite.utils.helpers import NoneType
-
-from typing import Dict
+from mdsuite.utils.meta_functions import DotDict
 
 log = logging.getLogger(__name__)
 

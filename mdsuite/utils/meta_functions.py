@@ -25,8 +25,8 @@ Summary
 -------
 """
 
+import json
 import logging
-
 import os
 from functools import wraps
 from time import time
@@ -39,8 +39,6 @@ from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
-import json
-
 
 log = logging.getLogger(__name__)
 

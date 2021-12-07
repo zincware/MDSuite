@@ -26,23 +26,21 @@ Summary
 Module for the computation of diffusion coefficients using the Green-Kubo approach.
 """
 from abc import ABC
+from dataclasses import dataclass
+from typing import Any, List, Union
 
 import numpy as np
-import tensorflow_probability as tfp
 import tensorflow as tf
-from bokeh.models import Span
-from tqdm import tqdm
-from scipy.integrate import cumtrapz
-from typing import Union
-from mdsuite.calculators.calculator import call
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from typing import List, Any
-from mdsuite.calculators import TrajectoryCalculator
-from bokeh.models import HoverTool
-from bokeh.models import LinearAxis
+import tensorflow_probability as tfp
+from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
+from scipy.integrate import cumtrapz
+from tqdm import tqdm
+
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.calculator import call
+from mdsuite.database import simulation_properties
 
 
 @dataclass

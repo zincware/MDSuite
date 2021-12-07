@@ -28,26 +28,25 @@ Module for the spatial distribution function calculator.
 from __future__ import annotations
 
 import logging
-
-from mdsuite.calculators.calculator import call
-from mdsuite.utils.tensorflow.layers import NLLayer
-from mdsuite.utils.meta_functions import join_path
-from tqdm import tqdm
 import math
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
 import numpy as np
 import tensorflow as tf
-from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
+from tqdm import tqdm
 
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.calculator import call
+from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import (
-    spherical_to_cartesian_coordinates,
     cartesian_to_spherical_coordinates,
     get2dHistogram,
+    spherical_to_cartesian_coordinates,
 )
-
-from typing import TYPE_CHECKING
+from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.tensorflow.layers import NLLayer
+from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 
 if TYPE_CHECKING:
     from mdsuite import Experiment

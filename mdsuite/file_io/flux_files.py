@@ -26,11 +26,13 @@ Summary
 """
 import abc
 import os
+from typing import TextIO
+
 import h5py as hf
 import numpy as np
 from tqdm import tqdm
+
 from mdsuite.file_io.file_read import FileProcessor
-from typing import TextIO
 
 
 class FluxFile(FileProcessor, metaclass=abc.ABCMeta):

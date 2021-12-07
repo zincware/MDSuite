@@ -25,15 +25,16 @@ Summary
 -------
 Module for the MDSuite 3d visualizer.
 """
-import open3d as o3d
-import open3d.visualization.gui as gui
-from typing import Union
-from PIL.ImageColor import getcolor
 import importlib.resources
-from matplotlib import cm
+import json
+from typing import Union
+
 import matplotlib.pyplot as plt
 import numpy as np
-import json
+import open3d as o3d
+import open3d.visualization.gui as gui
+from matplotlib import cm
+from PIL.ImageColor import getcolor
 
 
 class DataVisualizer3D:
