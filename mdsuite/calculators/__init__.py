@@ -26,8 +26,13 @@ Summary
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, List
+
+# isort: off
 from .calculator import Calculator
 from .trajectory_calculator import TrajectoryCalculator
+# isort: on
+
 from .angular_distribution_function import AngularDistributionFunction
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
@@ -51,8 +56,6 @@ from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
 from .spatial_distribution_function import SpatialDistributionFunction
 from .structure_factor import StructureFactor
-
-from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
