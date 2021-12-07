@@ -25,9 +25,10 @@ Summary
 -------
 Static methods used in calculators are kept here rather than polluting the parent class.
 """
+import random
+
 import numpy as np
 from scipy.optimize import curve_fit
-import random
 
 
 def fit_einstein_curve(data: list) -> list:

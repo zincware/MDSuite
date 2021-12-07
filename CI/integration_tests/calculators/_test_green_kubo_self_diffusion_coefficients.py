@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import pytest
 import os
-import mdsuite as mds
+
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 

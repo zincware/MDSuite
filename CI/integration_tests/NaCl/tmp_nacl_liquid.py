@@ -24,13 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import mdsuite as mds
-import unittest
-import urllib.request
 import gzip
 import os
-import numpy as np
 import shutil
+import unittest
+import urllib.request
+
+import numpy as np
+
+import mdsuite as mds
 
 # TODO run in temporary directory!
 

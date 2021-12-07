@@ -24,12 +24,14 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import List, Union
+
 import numpy as np
-from bokeh.plotting import figure, show
+from bokeh.io import output_file, output_notebook
 from bokeh.layouts import gridplot
-from bokeh.io import output_notebook, output_file
 from bokeh.models import HoverTool
-from typing import Union, List
+from bokeh.plotting import figure, show
+
 from mdsuite.utils import config
 
 

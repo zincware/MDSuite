@@ -25,12 +25,14 @@ Summary
 -------
 """
 import os
+
 import numpy as np
-from pysmiles import read_smiles
-from mdsuite.utils.meta_functions import join_path
-from mdsuite.database.simulation_database import Database
-from tqdm import tqdm
 import tensorflow as tf
+from pysmiles import read_smiles
+from tqdm import tqdm
+
+from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import join_path
 
 
 class MolecularGraph:

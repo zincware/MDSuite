@@ -25,17 +25,19 @@ Summary
 -------
 """
 import logging
-from mdsuite.utils.meta_functions import get_machine_properties
+from typing import Tuple
+
+import numpy as np
+import tensorflow as tf
+
 from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
     linearithmic_scale_function,
     polynomial_scale_function,
     quadratic_scale_function,
 )
-import numpy as np
-from typing import Tuple
-import tensorflow as tf
 
 log = logging.getLogger(__name__)
 
