@@ -1,11 +1,11 @@
-name: Check black coding style
+name: Check isort
 
 on:
   push:
   pull_request:
 
 jobs:
-  doc:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
