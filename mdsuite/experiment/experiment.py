@@ -26,17 +26,17 @@ Summary
 """
 import logging
 from pathlib import Path
+from typing import Union
+
 from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import units_dict, Units
-from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.utils.units import Units, units_dict
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
 from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
-
-from typing import Union
 
 log = logging.getLogger(__name__)
 

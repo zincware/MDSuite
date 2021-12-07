@@ -26,14 +26,15 @@ Summary
 """
 from __future__ import annotations
 
-import mdsuite.database.scheme as db
+import logging
 from collections import Counter
 from dataclasses import dataclass, field, fields
-from sqlalchemy import and_
-from mdsuite.utils.meta_functions import is_jsonable
-
-import logging
 from typing import TYPE_CHECKING, List
+
+from sqlalchemy import and_
+
+import mdsuite.database.scheme as db
+from mdsuite.utils.meta_functions import is_jsonable
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment

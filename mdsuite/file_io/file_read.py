@@ -25,8 +25,9 @@ Summary
 -------
 """
 from __future__ import annotations
+
 import abc
-from typing import TextIO, TYPE_CHECKING
+from typing import TYPE_CHECKING, TextIO
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment

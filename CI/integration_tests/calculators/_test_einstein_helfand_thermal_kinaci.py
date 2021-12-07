@@ -27,11 +27,13 @@ Summary
 
 import json
 import os
-import pytest
-import numpy as np
 from pathlib import Path
-import mdsuite as mds
+
+import numpy as np
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
 
 
 @pytest.fixture(scope="session")

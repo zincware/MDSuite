@@ -26,9 +26,11 @@ Summary
 """
 import abc
 from typing import TextIO
+
 import numpy as np
-from mdsuite.utils.meta_functions import join_path
+
 from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.utils.meta_functions import join_path
 
 
 class TrajectoryFile(FileProcessor, metaclass=abc.ABCMeta):

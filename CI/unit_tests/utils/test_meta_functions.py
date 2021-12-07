@@ -24,22 +24,18 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import unittest
-from mdsuite.utils.meta_functions import (
-    join_path,
-    get_dimensionality,
-    get_machine_properties,
-    line_counter,
-    optimize_batch_size,
-    linear_fitting_function,
-    simple_file_read,
-    round_down,
-    split_array,
-    find_item,
-    golden_section_search,
-)
 import os
+import unittest
+
 import numpy as np
+
+from mdsuite.utils.meta_functions import (find_item, get_dimensionality,
+                                          get_machine_properties,
+                                          golden_section_search, join_path,
+                                          line_counter,
+                                          linear_fitting_function,
+                                          optimize_batch_size, round_down,
+                                          simple_file_read, split_array)
 
 
 class TestMetaFunction(unittest.TestCase):

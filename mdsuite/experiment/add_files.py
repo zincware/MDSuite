@@ -24,20 +24,20 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import importlib.resources
+import json
 import logging
+from pathlib import Path
+
+import numpy as np
+import pubchempy as pcp
+from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.file_io.file_io_dict import dict_file_io
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
-
-from tqdm import tqdm
-from pathlib import Path
-import pubchempy as pcp
-import importlib.resources
-import json
-import numpy as np
 
 log = logging.getLogger(__name__)
 

@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import Tuple
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from typing import Tuple
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
