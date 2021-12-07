@@ -31,6 +31,7 @@ from .calculator import Calculator
 from typing import TYPE_CHECKING, List
 from mdsuite.memory_management import MemoryManager
 from mdsuite.database import DataManager
+from typing import Union
 from pathlib import Path
 from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database.simulation_database import Database
@@ -236,6 +237,8 @@ class TrajectoryCalculator(Calculator, ABC):
         data_path : list
                 List of tensor_values paths to load from the hdf5
                 database_path.
+        correct : bool
+
 
         Returns
         -------
@@ -302,13 +305,13 @@ class TrajectoryCalculator(Calculator, ABC):
 
         Parameters
         ----------
-        correct
+        correct : bool
+                If true, a calculator specific method is called to correct some
+                of the batching properties. For example, the RDF code will over-ride
+                the data range in favour of number of configurations as it does not
+                require dynamic properties.
         subject_list : list (default = None)
-                A str of subjects to collect data for in case this is necessary. The
-                method will first try to split this string by an '_' in the case where
-                tuples have been parsed. If None, the method assumes that this is a
-                system calculator and returns a generator appropriate to such an
-                analysis.
+                A str of subjects to collect data for in case this is necessary.
                 e.g. subject = ['Na']
                      subject = ['Na', 'Cl', 'K']
                      subject = ['Ionic_Current']
@@ -348,14 +351,14 @@ class TrajectoryCalculator(Calculator, ABC):
 
         return ds.prefetch(tf.data.AUTOTUNE)
 
-    def get_ensemble_dataset(self, batch: dict, subject: str):
+    def get_ensemble_dataset(self, batch: dict, subject: Union[str, list]):
         """
         Collect the ensemble loop dataset.
 
         Parameters
         ----------
-        split
-        subject
+        subject : str
+                What object to loop over.
         batch : tf.Tensor
                 A batch of data to be looped over in ensembles.
 
@@ -373,8 +376,10 @@ class TrajectoryCalculator(Calculator, ABC):
         )
 
         type_spec = {}
-
-        loop_list = [subject]
+        if type(subject) is str:
+            loop_list = [subject]
+        else:
+            loop_list = subject
         for item in loop_list:
             dict_ref = "/".join([item, self.loaded_property[0]])
             type_spec[str.encode(dict_ref)] = tf.TensorSpec(

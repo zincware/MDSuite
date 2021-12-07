@@ -240,7 +240,7 @@ class DataManager:
             return generator, args
 
     def ensemble_generator(
-        self, system: bool = False, dictionary: bool = False, glob_data: dict = None
+        self, system: bool = False, glob_data: dict = None
     ) -> tuple:
         """
         Build a generator for the ensemble loop
@@ -249,8 +249,6 @@ class DataManager:
         ----------
         system : bool
                 If true, the system generator is returned.
-        dictionary : bool
-                If true, data is expected as a dictionary and returned as one.
 
         Returns
         -------
@@ -258,29 +256,6 @@ class DataManager:
         """
 
         args = (self.ensemble_loop, self.correlation_time, self.data_range)
-
-        def generator(ensemble_loop, correlation_time, data_range, data):
-            """
-            Generator for the ensemble loop
-            Parameters
-            ----------
-            ensemble_loop : int
-                    Number of ensembles to loop over
-            correlation_time : int
-                    Distance between ensembles
-            data_range : int
-                    Size of each ensemble
-            data : tf.data.Dataset
-                    Data from which to draw ensembles
-
-            Returns
-            -------
-            None
-            """
-            for ensemble in range(ensemble_loop):
-                start = ensemble * correlation_time
-                stop = start + data_range
-                yield data[:, start:stop]
 
         def dictionary_generator(ensemble_loop, correlation_time, data_range):
             """
