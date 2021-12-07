@@ -99,7 +99,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.loaded_property = simulation_properties.ionic_current
         self.system_property = True
 
-        self.x_label = r"$$\text{Time} / s"
+        self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 

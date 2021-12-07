@@ -30,7 +30,6 @@ import sys
 import sphinx_rtd_theme
 
 sys.path.insert(0, "..")
-# sys.path.insert(0, '../..')
 
 # for x in os.walk('../..'):
 #  sys.path.insert(0, os.path.abspath(x[0]))
@@ -65,6 +64,7 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "sphinx_copybutton",
     "nbsphinx",
+    "nbsphinx_link",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
     "sphinx.ext.autosectionlabel",

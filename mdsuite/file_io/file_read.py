@@ -24,6 +24,8 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from __future__ import annotations
+
 import abc
 import typing
 

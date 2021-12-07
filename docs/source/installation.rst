@@ -18,13 +18,13 @@ and run
 
 .. code-block:: bash
         
-   pip3 install . --user
+   pip3 install .
 
 Or if you want to install as developer:
 
 .. code-block:: bash
 
-   pip3 install -e . --user
+   pip3 install -e .
 
 which will install the mdsuite package as a python library. Once this has
 been done, you can simply call mdsuite from any of your python projects with

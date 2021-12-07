@@ -269,6 +269,34 @@ class Computation(Base):
 
         return species_dict
 
+    def __getitem__(self, item):
+        """Allow for subscription
+
+        Parameters
+        ----------
+        item: str
+            The key of self.data_dict to access
+
+        Returns
+        -------
+        The value inside self.data_dict[item], usually a dict or single value.
+            raises a KeyError if the given key is not available
+
+        Examples
+        --------
+        >>> Computation["Na"]
+        instead of
+        >>> Computation.data_dict["Na"]
+
+
+        """
+        try:
+            return self.data_dict[item]
+        except KeyError:
+            raise KeyError(
+                f"Could not find {item} - available keys are {self.data_dict.keys()}"
+            )
+
     @property
     def data_range(self) -> int:
         """Get the data_range stored in computation_attributes"""
