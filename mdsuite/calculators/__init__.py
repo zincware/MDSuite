@@ -31,6 +31,7 @@ from typing import TYPE_CHECKING, List
 # isort: off
 from .calculator import Calculator
 from .trajectory_calculator import TrajectoryCalculator
+
 # isort: on
 
 from .angular_distribution_function import AngularDistributionFunction
