@@ -34,6 +34,7 @@ from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.units import Units, units_dict
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+from mdsuite.transformations import Transformations
 
 from .run_module import RunModule
 
@@ -257,6 +258,11 @@ class Experiment(ExperimentDatabase):
 
         # self.save_class()  # save the class state.
         log.info(f"** An experiment has been added titled {self.name} **")
+
+    def cls_transformation_run(self, transformation: Transformations):
+        transformation.experiment = self
+        transformation.update_from_experiment()
+        transformation.run_transformation()
 
     @staticmethod
     def units_to_si(units_system):
