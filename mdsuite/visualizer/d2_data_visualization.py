@@ -40,7 +40,7 @@ class DataVisualizer2D:
     Visualizer for two-dimensional data.
     """
 
-    def __init__(self, title: str):
+    def __init__(self, title: str, path: str):
         """
         Constructor for the data visualizer.
 
@@ -48,11 +48,14 @@ class DataVisualizer2D:
         ----------
         title : str
                 title of the plot.
+        path : str
+                path to the saving directory of the plot
         """
+
         if config.jupyter:
             output_notebook()
         else:
-            output_file(f"{title}.html", title=title)
+            output_file(f"{path / title}.html")
 
     def construct_plot(
         self,

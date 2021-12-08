@@ -134,7 +134,9 @@ def call(func):
 
             if cls.plot:
                 """Plot the data"""
-                cls.plotter = DataVisualizer2D(title=cls.analysis_name)
+                cls.plotter = DataVisualizer2D(
+                    title=cls.analysis_name, path=experiment.figures_path
+                )
                 cls.plot_data(data.data_dict)
                 cls.plotter.grid_show(cls.plot_array)
 
