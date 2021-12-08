@@ -28,29 +28,29 @@ describes the probability of finding a particle of species b at a distance r of
 species a.
 """
 from __future__ import annotations
+
+import itertools
 import logging
 from abc import ABC
-from typing import Union
-import numpy as np
 from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
+from timeit import default_timer as timer
+from typing import Union
+
+import numpy as np
+import tensorflow as tf
 
 # Import user packages
 from tqdm import tqdm
-import tensorflow as tf
-import itertools
-from mdsuite.utils.meta_functions import join_path
 
+from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
-from mdsuite.utils.meta_functions import split_array
+from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import (
     apply_minimum_image,
-    get_partial_triu_indices,
     apply_system_cutoff,
+    get_partial_triu_indices,
 )
-
-from timeit import default_timer as timer
+from mdsuite.utils.meta_functions import join_path, split_array
 
 log = logging.getLogger(__name__)
 

@@ -26,16 +26,17 @@ Summary
 MDSuite module for the computation of ionic conductivity using the Einstein method.
 """
 from abc import ABC
+from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import call
-from mdsuite.utils.units import elementary_charge, boltzmann_constant
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
+
 from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.calculator import call
+from mdsuite.database import simulation_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
 @dataclass

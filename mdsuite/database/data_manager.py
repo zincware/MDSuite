@@ -28,10 +28,11 @@ generators. These generators allow for the full use of the TF data pipelines but
 required special formatting rules.
 """
 import logging
+
 import numpy as np
 import tensorflow as tf
-import numpy as np
 from tqdm import tqdm
+
 from mdsuite.database.simulation_database import Database
 
 log = logging.getLogger(__name__)

@@ -24,11 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
-import pytest
-import urllib.request
 import gzip
+import os
 import shutil
+import urllib.request
+
+import pytest
 
 import mdsuite as mds
 

@@ -27,19 +27,18 @@ Parent class for the calculators.
 """
 from __future__ import annotations
 
+import functools
 import logging
+import warnings
+from typing import TYPE_CHECKING, Dict, List, Union
+
 import numpy as np
 import tensorflow as tf
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
-from mdsuite.database.calculator_database import CalculatorDatabase
-import mdsuite.database.scheme as db
 from tqdm import tqdm
-from typing import Union, List, Dict
-import warnings
 
-import functools
-
-from typing import TYPE_CHECKING
+import mdsuite.database.scheme as db
+from mdsuite.database.calculator_database import CalculatorDatabase
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 if TYPE_CHECKING:
     from mdsuite import Experiment

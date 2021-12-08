@@ -26,35 +26,39 @@ Summary
 """
 import logging
 from pathlib import Path
+from typing import Union
+
 from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import units_dict, Units
-from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.utils.units import Units, units_dict
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
 from .run_module import RunModule
 
-from typing import Union
-
 log = logging.getLogger(__name__)
 
-from mdsuite.database.simulation_database import Database
-from mdsuite.file_io.file_read import FileProcessor
-import mdsuite.file_io.lammps_trajectory_files
-import mdsuite.file_io.extxyz_files
-from mdsuite.utils.exceptions import ElementMassAssignedZero
-from mdsuite.utils.meta_functions import join_path
-import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_database import TrajectoryMetadata, SpeciesInfo
-
-from typing import List
-import pathlib
-import pubchempy as pcp
+import copy
 import importlib.resources
 import json
+import pathlib
+from typing import List
+
 import numpy as np
-import copy
+import pubchempy as pcp
+
+import mdsuite.file_io.extxyz_files
+import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.utils.meta_functions
+from mdsuite.database.simulation_database import (
+    Database,
+    SpeciesInfo,
+    TrajectoryMetadata,
+)
+from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.utils.exceptions import ElementMassAssignedZero
+from mdsuite.utils.meta_functions import join_path
 
 
 def _get_processor(fname_or_file_processor):
@@ -587,6 +591,14 @@ class Experiment(ExperimentDatabase):
     def _store_metadata(
         self, metadata: TrajectoryMetadata, update_with_pubchempy=False
     ):
+        """Save Metadata in the SQL DB
+
+        Parameters
+        ----------
+        metadata: TrajectoryMetadata
+        update_with_pubchempy: bool
+            Load data from pubchempy and add it to fill missing infomration
+        """
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l

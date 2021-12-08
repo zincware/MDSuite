@@ -29,17 +29,18 @@ electrical charge due to the mobility of the ions contained within it. This diff
 from electronic conductivity which is transferred by electrons.
 """
 from abc import ABC
+from dataclasses import dataclass
 
 import numpy as np
-import tensorflow_probability as tfp
 import tensorflow as tf
-from mdsuite.utils.units import boltzmann_constant, elementary_charge
-from mdsuite.calculators.calculator import call
-from mdsuite.calculators import TrajectoryCalculator
+import tensorflow_probability as tfp
 from bokeh.models import Span
 from tqdm import tqdm
-from dataclasses import dataclass
+
+from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.calculator import call
 from mdsuite.database import simulation_properties
+from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
 @dataclass
@@ -98,7 +99,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.loaded_property = simulation_properties.ionic_current
         self.system_property = True
 
-        self.x_label = r"$$\text{Time} / s"
+        self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / C^{2}\cdot m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
