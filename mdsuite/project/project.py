@@ -269,8 +269,7 @@ class Project(ProjectDatabase):
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
-        """Get a DotDict of instantiated experiments!
-        """
+        """Get a DotDict of instantiated experiments!"""
 
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).all()
