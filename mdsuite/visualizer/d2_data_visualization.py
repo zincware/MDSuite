@@ -48,6 +48,8 @@ class DataVisualizer2D:
         ----------
         title : str
                 title of the plot.
+        path : str
+                path to the saving directory of the plot
         """
         if config.jupyter:
             output_notebook()
