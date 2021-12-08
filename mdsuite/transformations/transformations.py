@@ -30,6 +30,7 @@ from __future__ import annotations
 import copy
 import time
 from typing import TYPE_CHECKING, Union
+
 import numpy as np
 import tensorflow as tf
 
@@ -99,6 +100,10 @@ class Transformations:
 
     @property
     def database(self):
+        """Update the database
+
+        replace for https://github.com/zincware/MDSuite/issues/404
+        """
         if self._database is None:
             self._database = Database(
                 name=(self.experiment.database_path / "database.hdf5").as_posix(),
@@ -108,6 +113,7 @@ class Transformations:
 
     @property
     def experiment(self) -> Experiment:
+        """TODO replace for https://github.com/zincware/MDSuite/issues/404"""
         return self._experiment
 
     @experiment.setter
@@ -238,7 +244,7 @@ class Transformations:
         return dictionary
 
     def _update_species_type_dict(
-            self, dictionary: dict, path_list: list, dimension: int
+        self, dictionary: dict, path_list: list, dimension: int
     ):
         """
         Update a type spec dictionary for a species input.
@@ -276,13 +282,13 @@ class Transformations:
         return int(self.remainder > 0)
 
     def _save_coordinates(
-            self,
-            data: Union[tf.Tensor, np.array],
-            index: int,
-            batch_size: int,
-            data_structure: dict,
-            system_tensor: bool = True,
-            tensor: bool = False,
+        self,
+        data: Union[tf.Tensor, np.array],
+        index: int,
+        batch_size: int,
+        data_structure: dict,
+        system_tensor: bool = True,
+        tensor: bool = False,
     ):
         """
         Save the tensor_values into the database_path

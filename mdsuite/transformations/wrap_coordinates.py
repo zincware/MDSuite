@@ -71,9 +71,7 @@ class CoordinateWrapper(Transformations):
             of the transformation.
     """
 
-    def __init__(
-            self, species: list = None, center_box: bool = True
-    ):
+    def __init__(self, species: list = None, center_box: bool = True):
         """
         Standard constructor
 
