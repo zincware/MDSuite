@@ -159,7 +159,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             # extract sample step information from consecutive headers
             file.seek(0)
             sample_rate = self._get_sample_rate(
-                file, self.tabular_text_reader_data.n_partilces
+                file, self.tabular_text_reader_data.n_particles
             )
 
         species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(

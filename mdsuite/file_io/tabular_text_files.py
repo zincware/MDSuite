@@ -18,7 +18,7 @@ class TabularTextFileReaderMData:
 
     n_configs: int
     species_name_to_line_idx_dict: typing.Dict[str, list]
-    n_partilces: int
+    n_particles: int
     property_to_column_idx_dict: typing.Dict[str, list]
     n_header_lines: int
     header_lines_for_each_config: bool = False
@@ -118,7 +118,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
                     self.metadata.species_list,
                     self.tabular_text_reader_data.species_name_to_line_idx_dict,
                     self.tabular_text_reader_data.property_to_column_idx_dict,
-                    self.tabular_text_reader_data.n_partilces,
+                    self.tabular_text_reader_data.n_particles,
                     n_header_lines=n_header_lines_in_config,
                     sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
                 )
@@ -129,7 +129,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
                     self.metadata.species_list,
                     self.tabular_text_reader_data.species_name_to_line_idx_dict,
                     self.tabular_text_reader_data.property_to_column_idx_dict,
-                    self.tabular_text_reader_data.n_partilces,
+                    self.tabular_text_reader_data.n_particles,
                     n_header_lines=n_header_lines_in_config,
                     sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
                 )

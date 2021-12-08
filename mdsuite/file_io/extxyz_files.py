@@ -124,7 +124,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
             file.seek(0)
             mdsuite.file_io.tabular_text_files.skip_n_lines(
                 file,
-                self.tabular_text_reader_data.n_partilces + self.n_header_lines + 1,
+                self.tabular_text_reader_data.n_particles + self.n_header_lines + 1,
             )
             header_1 = file.readline()
             sample_rate = int(round(_get_time(header_1) - _get_time(header)))
