@@ -174,9 +174,7 @@ class CoordinationNumbers(Calculator):
         """
 
         species = species.split("_")  # get an array of the species being studied
-        rdf_number_of_atoms = len(
-            self.experiment.species[species[0]]["indices"]
-        )  # get the number of atoms in the RDF
+        rdf_number_of_atoms = self.experiment.species[species[0]].n_particles
 
         return rdf_number_of_atoms / self.experiment.volume
 

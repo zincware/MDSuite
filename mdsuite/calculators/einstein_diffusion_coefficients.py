@@ -36,8 +36,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
@@ -195,7 +195,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             numerator = self.experiment.units["length"] ** 2
             denominator = (
                 self.experiment.units["time"]
-                * len(self.experiment.species[species]["indices"])
+                * self.experiment.species[species].n_particles
             ) * 6
 
         self.prefactor = numerator / denominator

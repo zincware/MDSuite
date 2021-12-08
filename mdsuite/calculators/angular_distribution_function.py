@@ -37,8 +37,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
@@ -261,7 +261,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += len(reference[item]["indices"])
+            number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
 
@@ -283,7 +283,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.args.species:
-            stop_index += len(self.experiment.species.get(species).get("indices"))
+            stop_index += self.experiment.species[species].n_particles
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 

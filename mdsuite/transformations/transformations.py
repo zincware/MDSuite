@@ -236,7 +236,7 @@ class Transformations:
         """
         for item in path_list:
             species = item.split("/")[0]
-            n_atoms = len(self.experiment.species[species]["indices"])
+            n_atoms = self.experiment.species[species].n_particles
             dictionary[str.encode(item)] = tf.TensorSpec(
                 shape=(n_atoms, None, dimension), dtype=tf.float64
             )
