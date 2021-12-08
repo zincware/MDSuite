@@ -24,52 +24,54 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import gzip
 import os
-import shutil
-import urllib.request
 
+import numpy as np
 import pytest
+from zinchub import DataHub
 
 import mdsuite as mds
+import mdsuite.file_io.lammps_flux_files
 
 
 @pytest.fixture(scope="session")
-def traj_files(tmp_path_factory) -> list:
+def traj_files(tmp_path_factory) -> dict:
     """Download files into a temporary directory and keep them for all tests"""
-    # time_step = 0.002
-    # temperature = 1400.0
-    base_url = "https://github.com/zincware/ExampleData/raw/main/"
+    base_url = "https://github.com/zincware/DataHub/tree/main"
 
-    files_in_url = [
+    files_to_load = [
         "NaCl_gk_i_q.lammpstraj",
         "NaCl_gk_ni_nq.lammpstraj",
         "NaCl_i_q.lammpstraj",
         "NaCl_ni_nq.lammpstraj",
+        "NaCl_64_Atoms.extxyz",
+        "NaClLog.log",
     ]
 
-    files = []
     temporary_path = tmp_path_factory.getbasetemp()
+    file_paths = dict()
+    for fname in files_to_load:
+        folder = fname.split(".")[0]
+        url = f"{base_url}/{folder}"
+        print(url)
+        dhub_file = DataHub(url=url)
+        dhub_file.get_file(temporary_path)
+        file_paths[fname] = (temporary_path / dhub_file.file_raw).as_posix()
 
-    for item in files_in_url:
-        filename, headers = urllib.request.urlretrieve(
-            f"{base_url}{item}.gz", filename=f"{temporary_path / item}.gz"
-        )
-        with gzip.open(filename, "rb") as f_in:
-            new_file = temporary_path / item
-            with open(new_file, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-
-            files.append(new_file.as_posix())
-
-    return files
+    return file_paths
 
 
 def test_add_file_from_list(traj_files, tmp_path):
     """Check that adding files from lists does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[:1], timestep=0.1, temperature=1600)
+    file_names = [
+        traj_files["NaCl_gk_i_q.lammpstraj"],
+        traj_files["NaCl_gk_ni_nq.lammpstraj"],
+    ]
+    project.add_experiment(
+        "NaCl", simulation_data=file_names, timestep=0.1, temperature=1600
+    )
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
@@ -79,20 +81,12 @@ def test_add_file_from_str(traj_files, tmp_path):
     """Check that adding files from str does not raise an error"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.1, temperature=1600)
-
-    print(project.experiments)
-    assert list(project.experiments) == ["NaCl"]
-
-
-def test_add_file_from_dict(traj_files, tmp_path):
-    """Check that adding files from dicts does not raise an error"""
-    os.chdir(tmp_path)
-
-    data = {"file": traj_files[0], "format": "lammps_traj"}
-
-    project = mds.Project()
-    project.add_experiment("NaCl", data=data, timestep=0.1, temperature=1600)
+    project.add_experiment(
+        "NaCl",
+        simulation_data=traj_files["NaCl_gk_i_q.lammpstraj"],
+        timestep=0.1,
+        temperature=1600,
+    )
 
     print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
@@ -124,3 +118,70 @@ def test_multiple_experiments(tmp_path):
         project.experiments.Test02.experiment_path
         == project_loaded.experiments.Test02.experiment_path
     )
+
+
+def test_lammps_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl",
+        simulation_data=traj_files["NaCl_gk_i_q.lammpstraj"],
+        timestep=0.1,
+        temperature=1600,
+    )
+    vels = project.experiments["NaCl"].load_matrix(
+        species=["Na"], property_name="Velocities"
+    )
+    # check one value from the file
+    # timestep 482, Na atom id 429 (line 486776 in th file)
+    vel_shouldbe = [5.2118, 6.40816, 0.988324]
+    vel_is = vels["Na/Velocities"][428, 482, :]
+    np.testing.assert_array_almost_equal(vel_is, vel_shouldbe, decimal=5)
+
+
+def test_extxyz_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl",
+        simulation_data=traj_files["NaCl_64_Atoms.extxyz"],
+        timestep=0.1,
+        temperature=1600,
+    )
+    forces = project.experiments["NaCl"].load_matrix(
+        species=["Na"], property_name="Forces"
+    )
+    # check one value from the file
+    # second timestep, Na atom nr 15
+    force_shouldbe = [0.48390745, -0.99956709, 1.11229777]
+    force_is = forces["Na/Forces"][15, 1, :]
+    np.testing.assert_array_almost_equal(force_is, force_shouldbe, decimal=5)
+
+
+def test_lammpsflux_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    custom_headers = {
+        "Time": ["Time"],
+        "Temperature": ["Temp"],
+        "Density": ["Density"],
+        "Pressure": ["Press"],
+    }
+    file_reader = mds.file_io.lammps_flux_files.LAMMPSFluxFile(
+        file_path=traj_files["NaClLog.log"],
+        sample_rate=1000,
+        box_l=3 * [42.17],
+        n_header_lines=29,
+        custom_data_map=custom_headers,
+    )
+    project.add_experiment(
+        "NaCl_flux", simulation_data=file_reader, timestep=0.1, temperature=1600
+    )
+    pressures = project.experiments["NaCl_flux"].load_matrix(
+        species=["Observables"], property_name="Pressure"
+    )
+    # check one value from the file
+    # line 87
+    press_shouldbe = -153.75652
+    force_is = pressures["Observables/Pressure"][0, 57, 0].numpy()
+    assert force_is == pytest.approx(press_shouldbe, rel=1e-5)

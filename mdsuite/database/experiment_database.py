@@ -306,7 +306,7 @@ class ExperimentDatabase:
 
         Returns
         -------
-        read_files: list[Path]
+        read_files: list[str]
             A List of all files that were added to the database already
 
         """

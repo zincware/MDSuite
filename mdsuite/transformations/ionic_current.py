@@ -105,6 +105,7 @@ class IonicCurrent(Transformations):
                         :,
                     ],
                     "columns": [0, 1, 2],
+                    "length": 1,
                 }
             }
         else:
@@ -112,7 +113,9 @@ class IonicCurrent(Transformations):
             self.database.add_dataset(
                 dataset_structure
             )  # add a new dataset to the database_path
-            data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+            data_structure = {
+                path: {"indices": np.s_[:], "columns": [0, 1, 2], "length": 1}
+            }
 
         return data_structure
 
