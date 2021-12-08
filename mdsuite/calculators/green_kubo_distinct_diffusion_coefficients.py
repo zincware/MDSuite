@@ -34,7 +34,7 @@ import itertools
 from dataclasses import dataclass
 from scipy import signal
 from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from bokeh.models import Span
 from mdsuite.calculators.calculator import call
 from typing import List, Any
@@ -239,6 +239,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             self._calculate_prefactor(combination)
             self._post_operation_processes(combination)
             self._return_arrays[str(combination)] = self.vacf
+
         return self._return_arrays
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):

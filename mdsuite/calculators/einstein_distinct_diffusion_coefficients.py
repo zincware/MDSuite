@@ -30,14 +30,33 @@ import warnings
 from tqdm import tqdm
 import tensorflow as tf
 import itertools
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import call
+from mdsuite.database import simulation_properties
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.utils.meta_functions import join_path
+from dataclasses import dataclass
+from typing import List, Any
+
+
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    tau_values: np.s_
+    molecules: bool
+    species: list
+    integration_range: int
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class EinsteinDistinctDiffusionCoefficients(Calculator):
+class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
     Attributes
@@ -78,9 +97,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 10}}
-        self.loaded_property = (  # Property to be loaded for the analysis
-            "Unwrapped_Positions"
-        )
+        self.loaded_property = simulation_properties.unwrapped_positions
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s $$"
@@ -100,6 +117,8 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         data_range: int = 500,
         save: bool = True,
         correlation_time: int = 1,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
         gpu: bool = False,
@@ -132,38 +151,23 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         """
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
+        if species is None:
+            species = list(self.experiment.species)
         self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
+            itertools.combinations_with_replacement(species, 2)
         )
 
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            export=export,
-            gpu=gpu,
-        )
-
-        self.species = species  # Which species to calculate for
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
-        self.species = species  # Which species to calculate for
-        if self.species is None:
-            self.species = list(self.experiment.species)
-
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
-
-        return self.update_db_entry_with_kwargs(
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
+            tau_values=tau_values,
+            molecules=molecules,
             species=species,
         )
+
+        self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
@@ -179,26 +183,21 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
-            start = ensemble * self.correlation_time
-            stop = start + self.data_range
-            msd_a = self._msd_operation(
-                data[str.encode(data_path[0])][:, start:stop], square=False
-            )
-            msd_b = self._msd_operation(
-                data[str.encode(data_path[0])][:, start:stop], square=False
-            )
+        msd_a = self._msd_operation(
+            data[str.encode(data_path[0])], square=False
+        )
+        msd_b = self._msd_operation(
+            data[str.encode(data_path[0])], square=False
+        )
 
-            for i in range(len(data[str.encode(data_path[0])])):
-                for j in range(i + 1, len(data[str.encode(data_path[1])])):
-                    if i == j:
-                        continue
-                    else:
-                        self.msd_array += self.prefactor * np.array(
-                            tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
-                        )
+        for i in range(len(data[str.encode(data_path[0])])):
+            for j in range(i + 1, len(data[str.encode(data_path[1])])):
+                if i == j:
+                    continue
+                else:
+                    self.msd_array += self.prefactor * np.array(
+                        tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
+                    )
 
     def run_experimental_analysis(self):
         """
@@ -313,3 +312,26 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         """
         pass
+
+    def run_calculator(self):
+        """
+        Perform the distinct coefficient analysis analysis
+        """
+        self.check_input()
+        for combination in self.combinations:
+            species_values = list(combination)
+            dict_ref = [
+                str.encode("/".join([species, self.loaded_property[0]])) for species in species_values
+            ]
+            batch_ds = self.get_batch_dataset(species_values)
+
+            for batch in batch_ds:
+                ensemble_ds = self.get_ensemble_dataset(batch, species_values)
+                for ensemble in ensemble_ds:
+                    self.ensemble_operation(ensemble, dict_ref)
+
+            self._calculate_prefactor(combination)
+            self._post_operation_processes(combination)
+            self._return_arrays[str(combination)] = self.vacf
+
+        return self._return_arrays
