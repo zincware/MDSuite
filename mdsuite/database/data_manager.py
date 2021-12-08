@@ -199,6 +199,7 @@ class DataManager:
             Returns
             -------
             """
+            print("HEY")
             # Atom selection not currently available for mini-batched calculations
             if type(self.atom_selection) is dict:
                 raise ValueError(
@@ -209,8 +210,8 @@ class DataManager:
             database = Database(name=database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
-            for i, atom_batch in tqdm(
-                enumerate(self.n_atom_batches + _atom_remainder),
+            for atom_batch in tqdm(
+                range(self.n_atom_batches + _atom_remainder),
                 total=self.n_atom_batches + _atom_remainder,
                 ncols=70,
                 desc=f"batch loop",
@@ -226,8 +227,7 @@ class DataManager:
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
-
-                    select_slice = np.s_[atom_start:atom_stop, start:stop]
+                    select_slice = np.s_[int(atom_start):int(atom_stop), start:stop]
                     yield database.load_data(
                         data_path,
                         select_slice=select_slice,
@@ -241,7 +241,7 @@ class DataManager:
             return generator, args
 
     def ensemble_generator(
-        self, system: bool = False, dictionary: bool = False, glob_data: dict = None
+        self, system: bool = False, glob_data: dict = None
     ) -> tuple:
         """
         Build a generator for the ensemble loop
@@ -250,8 +250,12 @@ class DataManager:
         ----------
         system : bool
                 If true, the system generator is returned.
-        dictionary : bool
-                If true, data is expected as a dictionary and returned as one.
+        glob_data : dict
+                data to be loaded in ensembles from a tensorflow generator.
+                e.g. {b'Na/Positions': tf.Tensor}.
+                Will usually include a b'data_size' key which is checked in the
+                loop and ignored. All keys are in byte arrays. This appears when you
+                pass a dict to the tensorflow generator.
 
         Returns
         -------
@@ -259,29 +263,6 @@ class DataManager:
         """
 
         args = (self.ensemble_loop, self.correlation_time, self.data_range)
-
-        def generator(ensemble_loop, correlation_time, data_range, data):
-            """
-            Generator for the ensemble loop
-            Parameters
-            ----------
-            ensemble_loop : int
-                    Number of ensembles to loop over
-            correlation_time : int
-                    Distance between ensembles
-            data_range : int
-                    Size of each ensemble
-            data : tf.data.Dataset
-                    Data from which to draw ensembles
-
-            Returns
-            -------
-            None
-            """
-            for ensemble in range(ensemble_loop):
-                start = ensemble * correlation_time
-                stop = start + data_range
-                yield data[:, start:stop]
 
         def dictionary_generator(ensemble_loop, correlation_time, data_range):
             """

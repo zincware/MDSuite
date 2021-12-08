@@ -212,7 +212,7 @@ class MemoryManager:
 
         return batch_size, number_of_batches, remainder
 
-    def hdf5_load_time(self, N):
+    def hdf5_load_time(self, N: int):
         """
         Describes the load time of a hdf5 database i.e. O(log N)
 
