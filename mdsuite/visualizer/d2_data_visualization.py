@@ -56,7 +56,6 @@ class DataVisualizer2D:
         else:
             output_file(f"{path}/{title}.html", title=title)
 
-
     def construct_plot(
         self,
         x_data: Union[list, np.ndarray],
