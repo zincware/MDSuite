@@ -219,7 +219,6 @@ class DataManager:
             Returns
             -------
             """
-            print("HEY")
             # Atom selection not currently available for mini-batched calculations
             if type(self.atom_selection) is dict:
                 raise ValueError(
