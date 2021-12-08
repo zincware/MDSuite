@@ -675,6 +675,17 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
 
 def _species_list_to_architecture_dict(species_list, n_configurations):
     # TODO let the database handler use the species list directly instead of the dict
+    """
+    converter from species list to leacy architecture dict
+    Parameters
+    ----------
+    species_list
+    n_configurations
+
+    Returns
+    -------
+    dict like architecture = {'Na':{'Positions':(n_part, n_config, n_dim)}}
+    """
     architecture = {}
     for sp_info in species_list:
         architecture[sp_info.name] = {}
