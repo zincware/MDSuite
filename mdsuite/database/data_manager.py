@@ -73,18 +73,31 @@ class DataManager:
         database : Database
                 Database object from which tensor_values should be loaded
         data_path : list
+                Path in the HDF5 database to be loaded.
         data_range : int
+                Data range used in the calculator.
         n_batches : int
+                Number of batches required.
         batch_size : int
+                Size of a batch.
         ensemble_loop : int
+                Number of ensembles to be looped over.
         correlation_time : int
+                Correlation time used in the calculator.
         remainder : int
+                Remainder used in the batching.
         atom_remainder : int
+                Atom-wise remainder used in the atom-wise batching.
         minibatch : bool
+                If true, atom-wise batching is required.
         atom_batch_size : int
+                Size of an atom-wise batch.
         n_atom_batches : int
+                Number of atom-wise batches.
         atom_selection : int
+                Selection of atoms in the calculation.
         offset : int
+                Offset in the data loading if it should not be loaded from the start.
         """
         self.database = database
         self.data_path = data_path
