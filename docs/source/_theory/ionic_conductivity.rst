@@ -53,7 +53,7 @@ Nernst-Einstein equation of ionic conductivity as
 .. math::
 
     \sigma_{DS} = \rho q^{2} \frac{1}{k_{B} T} \Bigg ( x_{\alpha} z^{2}_{\alpha} D_{\alpha} +
-                                                        x_{\beta} z^{2}_{\beta} D_{\beta} +
+                                                        x_{\beta} z^{2}_{\beta} D_{\beta}
                                                 \Bigg )
 
 The Nernst-Einstein equation can be used to determine how the ions within a system interact with each other, and how

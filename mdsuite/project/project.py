@@ -1,26 +1,20 @@
 """
 MDSuite: A Zincwarecode package.
-
 License
 -------
 This program and the accompanying materials are made available under the terms
 of the Eclipse Public License v2.0 which accompanies this distribution, and is
 available at https://www.eclipse.org/legal/epl-v20.html
-
 SPDX-License-Identifier: EPL-2.0
-
 Copyright Contributors to the Zincwarecode Project.
-
 Contact Information
 -------------------
 email: zincwarecode@gmail.com
 github: https://github.com/zincware
 web: https://zincwarecode.com/
-
 Citation
 --------
 If you use this module please cite us with:
-
 Summary
 -------
 """
@@ -47,21 +41,33 @@ log = logging.getLogger(__name__)
 class Project(ProjectDatabase):
     """
     Class for the main container of all experiments.
-
     The Project class acts as the encompassing class for analysis with MDSuite.
     It contains all method required to add and analyze new experiments. These
     experiments may then be compared with one another quickly. The state of the
     class is saved and updated after each operation in order to retain the
     most current state of the analysis.
 
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.add_experiment(
+            name="NaCl",
+            timestep=0.002,
+            temperature=1400.0,
+            units="metal",
+            simulation_data="NaCl_gk_i_q.lammpstraj",
+            active=False
+            )
+        print(project.experiments)
+        print(project.active_experiments)
+        project.run.RadialDistributionFunction(number_of_configurations=500)
+
     Attributes
     ----------
     name : str
             The name of the project
-
     description : str
             A short description of the project
-
     storage_path : str
             Where to store the tensor_values and databases. This may not simply
             be the current directory if the databases are expected to be
@@ -76,12 +82,10 @@ class Project(ProjectDatabase):
     ):
         """
         Project class constructor
-
         The constructor will check to see if the project already exists, if so,
         it will load the state of each of the classes so that they can be used
         again. If the project is new, the constructor will build the necessary
         file structure for the project.
-
         Parameters
         ----------
         name : str
@@ -115,12 +119,10 @@ class Project(ProjectDatabase):
 
     def __str__(self):
         """
-
         Returns
         -------
         str:
             A list of all available experiments like "1.) Exp01\n2.) Exp02\n3.) Exp03"
-
         """
         return "\n".join([f"{exp.id}.) {exp.name}" for exp in self.db_experiments])
 
@@ -138,7 +140,6 @@ class Project(ProjectDatabase):
     ):
         """
         Add an experiment to the project
-
         Parameters
         ----------
         active: bool, default = True
@@ -158,7 +159,6 @@ class Project(ProjectDatabase):
             data that should be added to the experiment.
             see mdsuite.experiment.add_data() for details of the file specification.
             you can also create the experiment with simulation_data == None and add data later
-
         Notes
         ------
         Using custom NoneType to raise a custom ValueError message with useful info.
@@ -207,12 +207,10 @@ class Project(ProjectDatabase):
 
     def activate_experiments(self, names: Union[str, list]):
         """Load experiments, such that they are used for the computations
-
         Parameters
         ----------
         names: Name or list of names of experiments that should be instantiated
                and loaded into self.experiments.
-
         Returns
         -------
         Updates the class state.
@@ -226,15 +224,12 @@ class Project(ProjectDatabase):
 
     def disable_experiments(self, names: Union[str, list]):
         """Disable experiments
-
         Parameters
         ----------
         names: Name or list of names of experiments that should be instantiated
                and loaded into self.experiments
-
         Returns
         -------
-
         """
 
         if isinstance(names, str):
@@ -248,14 +243,12 @@ class Project(ProjectDatabase):
         Add simulation_data to a experiments. This is a method so that parallelization is
         possible amongst simulation_data addition to different experiments at the same
         time.
-
         Parameters
         ----------
         data_sets: dict
             keys: the names of the experiments
             values: str or mdsuite.file_io.file_read.FileProcessor
                 refer to mdsuite.experiment.add_data() for an explanation of the file specification options
-
         Returns
         -------
         Updates the experiment classes.
@@ -267,7 +260,6 @@ class Project(ProjectDatabase):
     @property
     def run(self) -> RunComputation:
         """Method to access the available calculators
-
         Returns
         -------
         RunComputation:
@@ -278,13 +270,6 @@ class Project(ProjectDatabase):
     @property
     def experiments(self) -> Dict[str, Experiment]:
         """Get a DotDict of instantiated experiments!
-
-        Examples
-        --------
-        Either use
-            >>> Project().experiments.<experiment_name>.run_compution.<Computation>
-        Or use
-            >>> Project.experiments["<experiment_name"].run_computation.<Computation>
         """
 
         with self.session as ses:
