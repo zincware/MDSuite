@@ -56,11 +56,11 @@ class Project(ProjectDatabase):
             temperature=1400.0,
             units="metal",
             simulation_data="NaCl_gk_i_q.lammpstraj",
-            active=False
+            active=False # calculations are only performed on active experiments
             )
-        print(project.experiments)
-        print(project.active_experiments)
+        project.activate_experiments("NaCl") # set experiment state to active
         project.run.RadialDistributionFunction(number_of_configurations=500)
+        project.disable_experiments("NaCl") # set experiment state to inactive
 
     Attributes
     ----------

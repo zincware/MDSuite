@@ -99,11 +99,12 @@ class Experiment(ExperimentDatabase):
             timestep=0.002,
             temperature=1400.0,
             units="metal",
-            simulation_data="NaCl_gk_i_q.lammpstraj",
-            active=True # calculations are only performed on active experiments
+            simulation_data="NaCl_gk_i_q.lammpstraj"
             )
-        print(project.experiments)
-        print(project.active_experiments)
+        project.experiments.NaCl.run.RadialDistributionFunction(
+            number_of_configurations=500
+        )
+
 
     Attributes
     ----------
