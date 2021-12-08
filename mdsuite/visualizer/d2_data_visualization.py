@@ -51,10 +51,11 @@ class DataVisualizer2D:
         path : str
                 path to the saving directory of the plot
         """
+
         if config.jupyter:
             output_notebook()
         else:
-            output_file(f"{path}/{title}.html", title=title)
+            output_file(f"{path / title}.html")
 
     def construct_plot(
         self,
