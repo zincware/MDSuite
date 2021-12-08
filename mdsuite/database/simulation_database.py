@@ -24,18 +24,17 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import dataclasses
-import pathlib
-import time
-from typing import List, Union
-
 import h5py as hf
 import numpy as np
-import tensorflow as tf
+import dataclasses
 
 import mdsuite.database.simulation_data_class
-from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.exceptions import DatabaseDoesNotExist
+import tensorflow as tf
+import time
+from typing import Union, List
+import pathlib
 
 
 @dataclasses.dataclass(frozen=True)

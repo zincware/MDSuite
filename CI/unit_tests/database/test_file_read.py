@@ -1,10 +1,11 @@
 import tempfile
 
+import mdsuite
+import mdsuite.file_io.script_input as script_input
+
 import numpy as np
 import pytest
 
-import mdsuite
-import mdsuite.file_io.script_input as script_input
 from mdsuite.database.simulation_database import (
     PropertyInfo,
     SpeciesInfo,

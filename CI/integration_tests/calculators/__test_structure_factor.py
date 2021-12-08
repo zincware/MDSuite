@@ -26,12 +26,10 @@ Summary
 """
 import json
 import os
-from pathlib import Path
-
-import numpy as np
 import pytest
+import numpy as np
+from pathlib import Path
 from zinchub import DataHub
-
 import mdsuite as mds
 
 

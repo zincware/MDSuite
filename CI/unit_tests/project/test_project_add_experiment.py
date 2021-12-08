@@ -25,13 +25,12 @@ Summary
 -------
 """
 import os
-
-import numpy as np
 import pytest
-from zinchub import DataHub
+import numpy as np
 
 import mdsuite as mds
 import mdsuite.file_io.lammps_flux_files
+from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")

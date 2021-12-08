@@ -24,15 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import itertools
 from typing import Union
-
 import numpy as np
-import tensorflow as tf
-from bokeh.models import Span
-from scipy import signal
 from tqdm import tqdm
-
+import tensorflow as tf
+import itertools
+from scipy import signal
+from bokeh.models import Span
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 

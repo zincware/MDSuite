@@ -25,7 +25,6 @@ Summary
 -------
 """
 from dataclasses import dataclass
-
 from mdsuite.database.simulation_database import PropertyInfo
 
 

@@ -27,26 +27,25 @@ Module to perform the calculation of the angular distribution function (ADF). Th
 describes the average distribution of angles between three particles of species a, b,
 and c. Note that a, b, and c may all be the same species, e.g. Na-Na-Na.
 """
-import itertools
-import logging
 from abc import ABC
-from dataclasses import dataclass
-from typing import Union
-
-import numpy as np
+import logging
 import tensorflow as tf
+import itertools
+import numpy as np
 from tqdm import tqdm
-
-from mdsuite.calculators import TrajectoryCalculator
+from typing import Union
 from mdsuite.calculators.calculator import call
-from mdsuite.database import simulation_properties
-from mdsuite.utils.linalg import get_angles
-from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.neighbour_list import (
     get_neighbour_list,
-    get_triplets,
     get_triu_indicies,
+    get_triplets,
 )
+from mdsuite.utils.linalg import get_angles
+from mdsuite.utils.meta_functions import join_path
+from dataclasses import dataclass
+from mdsuite.database import simulation_properties
+from mdsuite.calculators import TrajectoryCalculator
+
 
 log = logging.getLogger(__name__)
 

@@ -24,14 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
 from tempfile import TemporaryDirectory
-
 import numpy as np
 import pytest
+import os
+import mdsuite as mds
 from zinchub import DataHub
 
-import mdsuite as mds
 import mdsuite.file_io.lammps_trajectory_files
 
 
@@ -194,7 +193,7 @@ def test_experiment_simulation_data_nested(tmp_path):
 
 def test_experiment_units(tmp_path):
     """Test that the experiment simulation data is stored correctly in the database"""
-    from mdsuite.utils.units import Units, si
+    from mdsuite.utils.units import si, Units
 
     os.chdir(tmp_path)
     custom_units = Units(

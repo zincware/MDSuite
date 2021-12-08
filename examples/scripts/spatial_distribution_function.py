@@ -24,13 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import mdsuite as mds
+import urllib.request
+import shutil
 import gzip
 import os
-import shutil
 import tempfile
-import urllib.request
-
-import mdsuite as mds
 from mdsuite.transformations.map_molecules import MolecularMap
 
 

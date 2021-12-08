@@ -25,10 +25,10 @@ Summary
 -------
 """
 
-import json
-
+from sqlalchemy.types import TypeDecorator, VARCHAR
 from sqlalchemy.ext.mutable import Mutable
-from sqlalchemy.types import VARCHAR, TypeDecorator
+
+import json
 
 
 class JSONEncodedDict(TypeDecorator):

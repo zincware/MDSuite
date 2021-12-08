@@ -26,9 +26,7 @@ Summary
 """
 import os
 from tempfile import TemporaryDirectory
-
 import pytest
-
 import mdsuite as mds
 
 temp_dir = TemporaryDirectory()

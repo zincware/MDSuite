@@ -24,14 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import itertools
-import warnings
 from typing import Union
-
 import numpy as np
-import tensorflow as tf
+import warnings
 from tqdm import tqdm
-
+import tensorflow as tf
+import itertools
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 

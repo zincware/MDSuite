@@ -25,11 +25,9 @@ Summary
 -------
 """
 import os
-
-import numpy as np
 import pytest
+import numpy as np
 from zinchub import DataHub
-
 import mdsuite as mds
 
 

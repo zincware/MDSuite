@@ -25,11 +25,10 @@ Summary
 -------
 """
 import logging
+import numpy as np
+from mdsuite.calculators.calculator import Calculator, call
 from dataclasses import dataclass
 
-import numpy as np
-
-from mdsuite.calculators.calculator import Calculator, call
 
 log = logging.getLogger(__name__)
 

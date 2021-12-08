@@ -25,12 +25,12 @@ Summary
 -------
 """
 import logging
-from pathlib import Path
 
 import sqlalchemy as sa
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.orm.session import Session
+from sqlalchemy.engine import Engine
+from pathlib import Path
 
 from .scheme import Base
 

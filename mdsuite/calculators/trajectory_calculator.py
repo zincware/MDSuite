@@ -26,19 +26,18 @@ Summary
 A parent class for calculators that operate on the trajectory.
 """
 from abc import ABC
-from pathlib import Path
-from typing import TYPE_CHECKING, List
-
-import numpy as np
-import tensorflow as tf
-
-from mdsuite.calculators.transformations_reference import switcher_transformations
-from mdsuite.database import DataManager
-from mdsuite.database.simulation_database import Database
-from mdsuite.memory_management import MemoryManager
-from mdsuite.utils.meta_functions import join_path
 
 from .calculator import Calculator
+from typing import TYPE_CHECKING, List
+from mdsuite.memory_management import MemoryManager
+from mdsuite.database import DataManager
+from pathlib import Path
+from mdsuite.calculators.transformations_reference import switcher_transformations
+from mdsuite.database.simulation_database import Database
+import numpy as np
+from mdsuite.utils.meta_functions import join_path
+import tensorflow as tf
+
 
 if TYPE_CHECKING:
     from mdsuite import Experiment

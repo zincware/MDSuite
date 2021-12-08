@@ -26,7 +26,6 @@ Summary
 """
 import logging
 import operator
-
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 

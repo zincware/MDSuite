@@ -24,12 +24,10 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from typing import List
-
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
+from typing import List
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path

@@ -22,15 +22,15 @@ Citation
 If you use this module please cite us with:
 """
 
-import pathlib
-import typing
-
 import numpy as np
-
+import typing
+import pathlib
 import mdsuite.file_io.tabular_text_files
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_data_class import mdsuite_properties
+
+
 from mdsuite.database.simulation_database import TrajectoryMetadata
+from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.utils.meta_functions import sort_array_by_column
 
 column_names = {

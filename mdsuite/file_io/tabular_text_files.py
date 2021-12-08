@@ -1,15 +1,13 @@
-import abc
 import copy
 import dataclasses
-import pathlib
 import typing
-
+import pathlib
 import numpy as np
-import tqdm
-
-import mdsuite.database.simulation_database
 import mdsuite.file_io.file_read
+import mdsuite.database.simulation_database
 import mdsuite.utils.meta_functions
+import abc
+import tqdm
 
 
 @dataclasses.dataclass

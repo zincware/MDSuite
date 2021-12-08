@@ -24,15 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import sys
-
-import numpy as np
-import tensorflow as tf
-from tqdm import tqdm
-
-from mdsuite.database import simulation_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+import sys
+from mdsuite.database import simulation_properties
+import tensorflow as tf
+import numpy as np
+from tqdm import tqdm
 
 
 class UnwrapViaIndices(Transformations):

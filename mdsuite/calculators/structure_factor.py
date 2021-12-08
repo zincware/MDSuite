@@ -25,16 +25,16 @@ Summary
 -------
 """
 import logging
-from dataclasses import dataclass
-from importlib.resources import open_text
-
 import numpy as np
 import pandas as pd
-from scipy.integrate import cumtrapz, simps
+from scipy.integrate import simps
+from scipy.integrate import cumtrapz
 from tqdm import tqdm
-
-from mdsuite import data
 from mdsuite.calculators.calculator import Calculator
+from mdsuite import data
+from importlib.resources import open_text
+from dataclasses import dataclass
+
 
 log = logging.getLogger(__name__)
 

@@ -25,7 +25,6 @@ Summary
 -------
 """
 import tensorflow as tf
-
 from .helpers import triu_indices as compute_triu
 
 

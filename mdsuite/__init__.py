@@ -26,12 +26,11 @@ Summary
 """
 import logging
 import sys
-
+from .project import Project
 from .experiment import Experiment
 from .graph_modules import adjacency_matrix
-from .project import Project
-from .utils import config
 from .utils.report_computer_characteristics import Report
+from .utils import config
 
 __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 __version__ = "0.0.1"

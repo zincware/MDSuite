@@ -27,16 +27,14 @@ MDSuite module for the computation of viscosity using the Green-Kubo relation as
 to the stress on a system.
 """
 from abc import ABC
-from dataclasses import dataclass
-
-import numpy as np
-import tensorflow as tf
 import tensorflow_probability as tfp
-from bokeh.models import Span
+import numpy as np
 from tqdm import tqdm
-
+import tensorflow as tf
 from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from bokeh.models import Span
+from dataclasses import dataclass
 from mdsuite.database import simulation_properties
 
 

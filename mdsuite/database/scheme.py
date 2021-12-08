@@ -26,10 +26,12 @@ Summary
 """
 import logging
 
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy.orm import relationship
 
-from .types import JSONEncodedDict, MutableDict
+from .types import MutableDict, JSONEncodedDict
+
 
 log = logging.getLogger(__name__)
 

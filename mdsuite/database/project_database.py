@@ -25,12 +25,11 @@ Summary
 -------
 """
 import logging
-from pathlib import Path
-
-from mdsuite.utils.database import get_or_create
+from .scheme import Project, Experiment
 
 from .database_base import DatabaseBase
-from .scheme import Experiment, Project
+from mdsuite.utils.database import get_or_create
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
