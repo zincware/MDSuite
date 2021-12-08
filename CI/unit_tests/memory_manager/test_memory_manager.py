@@ -20,8 +20,10 @@ Summary
 Test for the memory manager module.
 """
 import unittest
-from mdsuite.memory_management.memory_manager import MemoryManager
+
 import numpy as np
+
+from mdsuite.memory_management.memory_manager import MemoryManager
 
 
 class TestDatabase:
