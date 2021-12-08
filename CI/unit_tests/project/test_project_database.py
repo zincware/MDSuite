@@ -25,10 +25,12 @@ Summary
 -------
 """
 import os
-from tempfile import TemporaryDirectory
-import pytest
-import mdsuite as mds
 from pathlib import Path
+from tempfile import TemporaryDirectory
+
+import pytest
+
+import mdsuite as mds
 
 temp_dir = TemporaryDirectory()
 cwd = os.getcwd()

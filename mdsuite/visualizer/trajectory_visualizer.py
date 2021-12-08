@@ -24,14 +24,16 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from mdsuite.database.simulation_database import Database
-from PIL.ImageColor import getcolor
 import importlib.resources
 import json
+
 import numpy as np
-from mdsuite.utils.meta_functions import join_path
 import open3d as o3d
 import open3d.visualization.gui as gui
+from PIL.ImageColor import getcolor
+
+from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import join_path
 
 
 class SimulationVisualizer:

@@ -25,17 +25,16 @@ Summary
 -------
 """
 import pathlib
-
-
 import typing
+
 import tqdm
-import mdsuite.file_io.file_read
+
 import mdsuite.database.simulation_database
+import mdsuite.file_io.file_read
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.file_io.tabular_text_files
 from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.utils.meta_functions import optimize_batch_size
-
 
 column_names = {
     mdsuite_properties.temperature: ["temp"],

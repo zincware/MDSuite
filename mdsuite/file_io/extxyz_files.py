@@ -24,17 +24,18 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import logging
-import typing
-import pathlib
-import numpy as np
 import copy
+import logging
+import pathlib
+import typing
+
+import numpy as np
 import tqdm
 
-import mdsuite.file_io.file_read
 import mdsuite.database.simulation_database
-from mdsuite.database.simulation_data_class import mdsuite_properties
+import mdsuite.file_io.file_read
 import mdsuite.file_io.tabular_text_files
+from mdsuite.database.simulation_data_class import mdsuite_properties
 
 log = logging.getLogger(__name__)
 

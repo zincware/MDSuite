@@ -24,11 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import re
 from os import path
 from pathlib import Path
+
 import GPUtil
 import scooby
-import re
+
 from mdsuite.utils.exceptions import NoGPUInSystem
 
 

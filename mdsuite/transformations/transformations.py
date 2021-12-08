@@ -28,19 +28,18 @@ Parent class for the transformations.
 from __future__ import annotations
 
 import copy
-import time
-from typing import Union
 import os
+import time
+from typing import TYPE_CHECKING, Union
+
 import numpy as np
 import tensorflow as tf
 
 import mdsuite.database.simulation_database
-from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
+from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.utils.meta_functions import join_path
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment

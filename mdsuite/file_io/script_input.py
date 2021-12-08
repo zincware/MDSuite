@@ -1,6 +1,6 @@
-import mdsuite.file_io.file_read
 import typing
 
+import mdsuite.file_io.file_read
 from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
 
 
