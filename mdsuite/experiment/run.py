@@ -110,47 +110,47 @@ class RunComputation:
     #######################
 
     @property
-    def CoordinateWrapper(self) -> CoordinateWrapper:
+    def CoordinateWrapper(self) -> Type[CoordinateWrapper]:
         return self.transformation_wrapper(CoordinateWrapper)
 
     @property
-    def CoordinateUnwrapper(self) -> CoordinateUnwrapper:
+    def CoordinateUnwrapper(self) -> Type[CoordinateUnwrapper]:
         return self.transformation_wrapper(CoordinateUnwrapper)
 
     @property
-    def IntegratedHeatCurrent(self) -> IntegratedHeatCurrent:
+    def IntegratedHeatCurrent(self) -> Type[IntegratedHeatCurrent]:
         return self.transformation_wrapper(IntegratedHeatCurrent)
 
     @property
-    def IonicCurrent(self) -> IonicCurrent:
+    def IonicCurrent(self) -> Type[IonicCurrent]:
         return self.transformation_wrapper(IonicCurrent)
 
     @property
-    def KinaciIntegratedHeatCurrent(self) -> KinaciIntegratedHeatCurrent:
+    def KinaciIntegratedHeatCurrent(self) -> Type[KinaciIntegratedHeatCurrent]:
         return self.transformation_wrapper(KinaciIntegratedHeatCurrent)
 
     @property
-    def MolecularMap(self) -> MolecularMap:
+    def MolecularMap(self) -> Type[MolecularMap]:
         return self.transformation_wrapper(MolecularMap)
 
     @property
-    def MomentumFlux(self) -> MomentumFlux:
+    def MomentumFlux(self) -> Type[MomentumFlux]:
         return self.transformation_wrapper(MomentumFlux)
 
     @property
-    def ScaleCoordinates(self) -> ScaleCoordinates:
+    def ScaleCoordinates(self) -> Type[ScaleCoordinates]:
         return self.transformation_wrapper(ScaleCoordinates)
 
     @property
-    def ThermalFlux(self) -> ThermalFlux:
+    def ThermalFlux(self) -> Type[ThermalFlux]:
         return self.transformation_wrapper(ThermalFlux)
 
     @property
-    def TranslationalDipoleMoment(self) -> TranslationalDipoleMoment:
+    def TranslationalDipoleMoment(self) -> Type[TranslationalDipoleMoment]:
         return self.transformation_wrapper(TranslationalDipoleMoment)
 
     @property
-    def UnwrapViaIndices(self) -> UnwrapViaIndices:
+    def UnwrapViaIndices(self) -> Type[UnwrapViaIndices]:
         return self.transformation_wrapper(UnwrapViaIndices)
 
     #####################
