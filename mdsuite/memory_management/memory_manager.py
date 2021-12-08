@@ -194,7 +194,7 @@ class MemoryManager:
                 number of elements that will be left unloaded after a loop over all
                 batches. This amount can then be loaded to collect unused tensor_values.
         """
-        if not self.data_path:
+        if self.data_path is None:
             raise ValueError("No tensor_values have been requested.")
 
         per_configuration_memory: float = 0.0

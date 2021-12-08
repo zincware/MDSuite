@@ -150,7 +150,7 @@ class TestMemoryManager(unittest.TestCase):
 
         """
         # Test the exception catch.
-        self.memory_manager.data_path = []
+        self.memory_manager.data_path = None
         self.assertRaises(ValueError, self.memory_manager.get_batch_size)
 
         # Test correct returns for 1 batch
