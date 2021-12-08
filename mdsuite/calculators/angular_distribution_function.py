@@ -283,7 +283,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.args.species:
-            stop_index += len(self.experiment.species.get(species).get("indices"))
+            stop_index += self.experiment.species[species].n_particles
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 

@@ -37,6 +37,7 @@ import pandas as pd
 import mdsuite.database.scheme as db
 from mdsuite.database.scheme import Experiment, ExperimentAttribute, Project
 from mdsuite.utils.database import get_or_create
+from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
 
 if TYPE_CHECKING:
@@ -193,13 +194,15 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self):
+    def species(self) -> Dict[str, DotDict]:
         """Get species
 
         Returns
         -------
 
-        dict:
+        # TODO replace DotDict with dataclass
+
+        DotDict:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
             charge: [0]}}
         """
@@ -208,7 +211,9 @@ class ExperimentDatabase:
                 experiment = (
                     ses.query(Experiment).filter(Experiment.name == self.name).first()
                 )
-                self._species = experiment.get_species()
+                self._species = {
+                    key: DotDict(val) for key, val in experiment.get_species().items()
+                }
 
         return self._species
 

@@ -123,7 +123,7 @@ class ScaleCoordinates(Transformations):
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             resize_structure = {
                 path: (
                     species_length,
@@ -143,7 +143,7 @@ class ScaleCoordinates(Transformations):
                 }
             }
         else:
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             number_of_configurations = self.experiment.number_of_configurations
             dataset_structure = {path: (species_length, number_of_configurations, 3)}
             self.database.add_dataset(dataset_structure)

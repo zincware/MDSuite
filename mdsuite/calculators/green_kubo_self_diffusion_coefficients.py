@@ -210,7 +210,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 3
                 * self.experiment.units["time"]
                 * self.args.integration_range
-                * len(self.experiment.species[species]["indices"])
+                * self.experiment.species[species].n_particles
             )
             self.prefactor = numerator / denominator
 

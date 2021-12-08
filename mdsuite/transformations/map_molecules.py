@@ -322,7 +322,7 @@ class MolecularMap(Transformations):
         indices_dict = {}
         lengths = []
         for i, item in enumerate(species):
-            length = len(self.experiment.species[item]["indices"])
+            length = self.experiment.species[item].n_particles
             if i == 0:
                 lengths.append(length)
             else:

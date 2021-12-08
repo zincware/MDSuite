@@ -336,7 +336,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         else:
             # Density of all atoms / total volume
             rho = (
-                len(self.experiment.species[species_split[1]]["indices"])
+                self.experiment.species[species_split[1]].n_particles
                 / self.experiment.volume
             )
             numerator = species_scale_factor
@@ -344,7 +344,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 self.args.number_of_configurations
                 * rho
                 * self.ideal_correction
-                * len(self.experiment.species[species_split[0]]["indices"])
+                * self.experiment.species[species_split[0]].n_particles
             )
         prefactor = numerator / denominator
 
@@ -704,7 +704,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             ]
         else:
             particles_list = [
-                len(self.experiment.species[item]["indices"])
+                self.experiment.species[item].n_particles
                 for item in self.experiment.species
             ]
 
