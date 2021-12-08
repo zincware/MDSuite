@@ -37,6 +37,7 @@ import pandas as pd
 import mdsuite.database.scheme as db
 from mdsuite.database.scheme import Experiment, ExperimentAttribute, Project
 from mdsuite.utils.database import get_or_create
+from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
 
 if TYPE_CHECKING:
@@ -193,13 +194,15 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self):
+    def species(self) -> Dict[str, DotDict]:
         """Get species
 
         Returns
         -------
 
-        dict:
+        # TODO replace DotDict with dataclass
+
+        DotDict:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
             charge: [0]}}
         """
@@ -208,7 +211,9 @@ class ExperimentDatabase:
                 experiment = (
                     ses.query(Experiment).filter(Experiment.name == self.name).first()
                 )
-                self._species = experiment.get_species()
+                self._species = {
+                    key: DotDict(val) for key, val in experiment.get_species().items()
+                }
 
         return self._species
 
@@ -223,11 +228,16 @@ class ExperimentDatabase:
         Notes
         -----
 
-        species = {C: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+        species = {C: {mass: [12.0], charge: [0]}}
 
         """
         if value is None:
             return
+
+        # Do not allow the key "indices" in the SQL database!
+        for single_species in value.values():
+            single_species.pop("indices", None)
+
         self._species = None
         with self.project.session as ses:
             experiment = (
@@ -243,6 +253,8 @@ class ExperimentDatabase:
     @property
     def molecules(self):
         """Get the molecules dict"""
+
+        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
