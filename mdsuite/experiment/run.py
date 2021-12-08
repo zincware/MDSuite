@@ -11,7 +11,7 @@ Description: Collection of calculators / transformations for exp.run
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, List, Type, Union, Any
+from typing import TYPE_CHECKING, Any, List, Type, Union
 
 from mdsuite.calculators import (
     AngularDistributionFunction,
@@ -34,8 +34,11 @@ from mdsuite.calculators import (
     SpatialDistributionFunction,
     StructureFactor,
 )
-
-from mdsuite.transformations import CoordinateWrapper, Transformations, CoordinateUnwrapper
+from mdsuite.transformations import (
+    CoordinateUnwrapper,
+    CoordinateWrapper,
+    Transformations,
+)
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -74,6 +77,12 @@ class RunComputation:
         return wrapper
 
     def transformation_wrapper(self, func: Union[Type[Transformations], Any]):
+        """Run the transformation for every selected experiment
+
+        Parameters
+        ----------
+        func: a transformation to be attached to the experiment/s
+        """
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -81,10 +90,15 @@ class RunComputation:
                 self.experiments = [self.experiment]
             for experiment in self.experiments:
                 func_instance = func(*args, **kwargs)
+                # attach the transformation to the experiment
                 experiment.cls_transformation_run(func_instance)
             return None
+
         return wrapper
 
+    #######################
+    ### Transformations ###
+    #######################
 
     @property
     def CoordinateWrapper(self) -> CoordinateWrapper:
@@ -94,101 +108,85 @@ class RunComputation:
     def CoordinateUnwrapper(self) -> CoordinateUnwrapper:
         return self.transformation_wrapper(CoordinateUnwrapper)
 
+    #####################
+    #### Calculators ####
+    #####################
     @property
     def AngularDistributionFunction(self) -> AngularDistributionFunction:
-        """Calculator Property"""
         return self.exp_wrapper(AngularDistributionFunction)(**self.kwargs)
 
     @property
     def CoordinationNumbers(self) -> CoordinationNumbers:
-        """Calculator Property"""
         return self.exp_wrapper(CoordinationNumbers)(**self.kwargs)
 
     @property
     def EinsteinDiffusionCoefficients(self) -> EinsteinDiffusionCoefficients:
-        """Calculator Property"""
         return self.exp_wrapper(EinsteinDiffusionCoefficients)(**self.kwargs)
 
     @property
     def EinsteinDistinctDiffusionCoefficients(
         self,
     ) -> EinsteinDistinctDiffusionCoefficients:
-        """Calculator Property"""
         return self.exp_wrapper(EinsteinDistinctDiffusionCoefficients)(**self.kwargs)
 
     @property
     def EinsteinHelfandIonicConductivity(self) -> EinsteinHelfandIonicConductivity:
-        """Calculator Property"""
         return self.exp_wrapper(EinsteinHelfandIonicConductivity)(**self.kwargs)
 
     @property
     def EinsteinHelfandThermalKinaci(self) -> EinsteinHelfandThermalKinaci:
-        """Calculator Property"""
         return self.exp_wrapper(EinsteinHelfandThermalKinaci)(**self.kwargs)
 
     @property
     def GreenKuboViscosityFlux(self) -> GreenKuboViscosityFlux:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboViscosityFlux)(**self.kwargs)
 
     @property
     def GreenKuboDistinctDiffusionCoefficients(
         self,
     ) -> GreenKuboDistinctDiffusionCoefficients:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboDistinctDiffusionCoefficients)(**self.kwargs)
 
     @property
     def GreenKuboIonicConductivity(self) -> GreenKuboIonicConductivity:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboIonicConductivity)(**self.kwargs)
 
     @property
     def GreenKuboDiffusionCoefficients(self) -> GreenKuboDiffusionCoefficients:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboDiffusionCoefficients)(**self.kwargs)
 
     @property
     def GreenKuboThermalConductivity(self) -> GreenKuboThermalConductivity:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboThermalConductivity)(**self.kwargs)
 
     @property
     def GreenKuboViscosity(self) -> GreenKuboViscosity:
-        """Calculator Property"""
         return self.exp_wrapper(GreenKuboViscosity)(**self.kwargs)
 
     @property
     def KirkwoodBuffIntegral(self) -> KirkwoodBuffIntegral:
-        """Calculator Property"""
         return self.exp_wrapper(KirkwoodBuffIntegral)(**self.kwargs)
 
     @property
     def NernstEinsteinIonicConductivity(self) -> NernstEinsteinIonicConductivity:
-        """Calculator Property"""
         return self.exp_wrapper(NernstEinsteinIonicConductivity)(**self.kwargs)
 
     @property
     def PotentialOfMeanForce(self) -> PotentialOfMeanForce:
-        """Calculator Property"""
         return self.exp_wrapper(PotentialOfMeanForce)(**self.kwargs)
 
     @property
     def RadialDistributionFunction(self) -> RadialDistributionFunction:
-        """Calculator Property"""
         return self.exp_wrapper(RadialDistributionFunction)(**self.kwargs)
 
     @property
     def StructureFactor(self) -> StructureFactor:
-        """Calculator Property"""
         return self.exp_wrapper(StructureFactor)(**self.kwargs)
 
     @property
     def EinsteinHelfandThermalConductivity(self) -> EinsteinHelfandThermalConductivity:
-        """Calculator Property"""
         return self.exp_wrapper(EinsteinHelfandThermalConductivity)(**self.kwargs)
 
     @property
     def SpatialDistributionFunction(self) -> SpatialDistributionFunction:
-        """Calculator Property"""
         return self.exp_wrapper(SpatialDistributionFunction)(**self.kwargs)

@@ -31,10 +31,10 @@ from typing import Union
 from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.experiment.run import RunComputation
 from mdsuite.time_series import time_series_dict
+from mdsuite.transformations import Transformations
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.units import Units, units_dict
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
-from mdsuite.transformations import Transformations
 
 from .run_module import RunModule
 
@@ -258,6 +258,16 @@ class Experiment(ExperimentDatabase):
         log.info(f"** An experiment has been added titled {self.name} **")
 
     def cls_transformation_run(self, transformation: Transformations):
+        """Run the transformation
+
+        The Transformation class is updated with this experiment and afterwards
+        performs the transformation.
+        Preliminary work in accordance to https://github.com/zincware/MDSuite/issues/404
+
+        Parameters
+        ----------
+        transformation: Transformations
+        """
         transformation.experiment = self
         transformation.update_from_experiment()
         transformation.run_transformation()
