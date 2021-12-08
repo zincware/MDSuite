@@ -95,7 +95,13 @@ class CoordinateUnwrapper(Transformations):
             )
         }
         self.database.add_dataset(dataset_structure)
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": np.s_[:],
+                "columns": [0, 1, 2],
+                "length": len(self.experiment.species[species]["indices"]),
+            }
+        }
 
         return data_structure
 
