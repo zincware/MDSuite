@@ -42,8 +42,8 @@ import tensorflow as tf
 # Import user packages
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import (
     apply_minimum_image,
