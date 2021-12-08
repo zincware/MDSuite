@@ -377,25 +377,6 @@ class ExperimentDatabase:
             return
         self._set_db(name="read_files", value=value)
 
-    @property
-    def radial_distribution_function_state(self) -> bool:
-        """Get the radial_distribution_function_state of the experiment
-
-        Returns
-        -------
-        bool:
-            the state of the RDF
-        # TODO this method could potentially be replaced by a quick query of the
-           database
-        """
-        return self._get_db(name="radial_distribution_function_state", default=False)
-
-    @radial_distribution_function_state.setter
-    def radial_distribution_function_state(self, value):
-        """Set the radial_distribution_function_state of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="radial_distribution_function_state", value=value)
 
     @property
     def simulation_data(self) -> dict:
