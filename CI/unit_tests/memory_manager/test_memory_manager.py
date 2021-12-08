@@ -17,8 +17,8 @@ Citation
 If you use this module please cite us with:
 Summary
 -------
+Test for the memory manager module.
 """
-import os
 import unittest
 from mdsuite.memory_management.memory_manager import MemoryManager
 import numpy as np

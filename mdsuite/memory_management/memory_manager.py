@@ -291,7 +291,6 @@ class MemoryManager:
             per_atom_memory += per_configuration_memory / n_rows
             total_rows += n_rows
 
-        # This does not seem to be used anywhere?
         # per_configuration_memory = self.scale_function(per_configuration_memory,
         # **self.scale_function_parameters)
         per_atom_memory = self.scale_function(

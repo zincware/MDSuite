@@ -72,6 +72,19 @@ class DataManager:
         ----------
         database : Database
                 Database object from which tensor_values should be loaded
+        data_path : list
+        data_range : int
+        n_batches : int
+        batch_size : int
+        ensemble_loop : int
+        correlation_time : int
+        remainder : int
+        atom_remainder : int
+        minibatch : bool
+        atom_batch_size : int
+        n_atom_batches : int
+        atom_selection : int
+        offset : int
         """
         self.database = database
         self.data_path = data_path
@@ -101,6 +114,13 @@ class DataManager:
 
         Parameters
         ----------
+        dictionary : bool
+                If true return a dict. This is default now and could be removed.
+        system : bool
+                If true, a system parameter is being called for.
+        remainder : bool
+                If true, a remainder batch must be computed.
+        loop_array : np.ndarray
 
         Returns
         -------
