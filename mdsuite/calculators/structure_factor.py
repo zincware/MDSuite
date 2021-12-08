@@ -243,9 +243,7 @@ class StructureFactor(Calculator):
         """
         species_densities = {}
         for el in self.experiment.species:
-            species_densities[el] = self.experiment.species[
-                el
-            ].n_particles / (
+            species_densities[el] = self.experiment.species[el].n_particles / (
                 self.experiment.box_array[0]
                 * self.experiment.box_array[1]
                 * self.experiment.box_array[2]

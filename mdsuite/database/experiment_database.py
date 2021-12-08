@@ -228,11 +228,16 @@ class ExperimentDatabase:
         Notes
         -----
 
-        species = {C: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+        species = {C: {mass: [12.0], charge: [0]}}
 
         """
         if value is None:
             return
+
+        # Do not allow the key "indices" in the SQL database!
+        for single_species in value.values():
+            single_species.pop("indices", None)
+
         self._species = None
         with self.project.session as ses:
             experiment = (
@@ -248,6 +253,8 @@ class ExperimentDatabase:
     @property
     def molecules(self):
         """Get the molecules dict"""
+
+        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (

@@ -211,9 +211,7 @@ class CoordinateUnwrapper(Transformations):
         )
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
         state = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
-        last_conf = tf.zeros(
-            shape=(self.experiment.species[species].n_particles, 3)
-        )
+        last_conf = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
         loop_correction = self._remainder_to_binary()
         for index, x in tqdm(
             enumerate(data_set),

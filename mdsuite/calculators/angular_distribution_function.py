@@ -261,7 +261,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += len(reference[item]["indices"])
+            number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
 
