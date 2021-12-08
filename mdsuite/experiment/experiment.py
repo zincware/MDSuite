@@ -91,6 +91,20 @@ class Experiment(ExperimentDatabase):
     """
     The central experiment class fundamental to all analysis.
 
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.add_experiment(
+            name="NaCl",
+            timestep=0.002,
+            temperature=1400.0,
+            units="metal",
+            simulation_data="NaCl_gk_i_q.lammpstraj",
+            active=True # calculations are only performed on active experiments
+            )
+        print(project.experiments)
+        print(project.active_experiments)
+
     Attributes
     ----------
     name : str
