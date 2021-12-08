@@ -302,7 +302,13 @@ class Transformations:
         path = path.split("/")
         prop_name = path[-1]
         sp_name = path[-2]
-        n_particles = val.get("length", 1)
+        n_particles = val.get("length")
+        if n_particles is None:
+            try:
+                # if length is not available try indices next
+                n_particles = len(val.get("indices"))
+            except TypeError:
+                raise TypeError("Could not determine number of particles")
         if len(np.shape(data)) == 2:
             # data not for multiple particles, instead one value for all
             # -> create the n_particle axis
