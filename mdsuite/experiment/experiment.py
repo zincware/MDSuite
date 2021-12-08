@@ -591,6 +591,14 @@ class Experiment(ExperimentDatabase):
     def _store_metadata(
         self, metadata: TrajectoryMetadata, update_with_pubchempy=False
     ):
+        """Save Metadata in the SQL DB
+
+        Parameters
+        ----------
+        metadata: TrajectoryMetadata
+        update_with_pubchempy: bool
+            Load data from pubchempy and add it to fill missing infomration
+        """
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
