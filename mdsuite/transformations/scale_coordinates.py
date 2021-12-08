@@ -52,22 +52,20 @@ class ScaleCoordinates(Transformations):
             Box vectors to multiply the indices by
     """
 
-    def __init__(self, experiment: object, species: list = None):
-        """
-        Constructor for the Ionic current calculator.
+    def __init__(self, species: list = None):
+        """Constructor for the Ionic current calculator.
 
         Parameters
         ----------
-        experiment : object
-                Experiment this transformation is attached to.
         species : list
                 Species on which this transformation should be applied.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.species = species
         self.scale_function = {"linear": {"scale_factor": 2}}
-        self.dtype = tf.float64
+        self.dtype = tf.float64  # TODO should be a property that is immutable?
 
+    def update_from_experiment(self):
         if self.species is None:
             self.species = list(self.experiment.species)
 

@@ -120,14 +120,13 @@ class Transformations:
     def experiment(self, value):
         self._experiment = value
 
-    # TODO make abstract!
     def update_from_experiment(self):
         """Update all self attributes that depend on the experiment
 
         Temporary method until https://github.com/zincware/MDSuite/issues/404
-        is solved
+        is solved.
         """
-        raise NotImplementedError
+        pass
 
     def _run_dataset_check(self, path: str):
         """
