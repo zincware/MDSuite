@@ -225,9 +225,7 @@ class Experiment(ExperimentDatabase):
         self.experiment_path = Path(
             self.storage_path, self.name
         )  # path to the experiment files
-        self.database_path = Path(
-            self.experiment_path, "databases"
-        )  # path to the databases
+        self.database_path = Path(self.experiment_path)  # path to the databases
         self.figures_path = Path(
             self.experiment_path, "figures"
         )  # path to the figures directory
