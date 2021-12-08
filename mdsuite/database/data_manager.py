@@ -247,7 +247,7 @@ class DataManager:
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
-                    select_slice = np.s_[int(atom_start):int(atom_stop), start:stop]
+                    select_slice = np.s_[int(atom_start) : int(atom_stop), start:stop]
                     yield database.load_data(
                         data_path,
                         select_slice=select_slice,
@@ -260,9 +260,7 @@ class DataManager:
         else:
             return generator, args
 
-    def ensemble_generator(
-        self, system: bool = False, glob_data: dict = None
-    ) -> tuple:
+    def ensemble_generator(self, system: bool = False, glob_data: dict = None) -> tuple:
         """
         Build a generator for the ensemble loop
 

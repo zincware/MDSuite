@@ -28,6 +28,7 @@ class TestDatabase:
     """
     Test database for the unit testing.
     """
+
     def __init__(self, data_size: int = 500, rows: int = 10, columns: int = 10):
         """
         Constructor for the test database.
@@ -51,6 +52,7 @@ class TestMemoryManager(unittest.TestCase):
     """
     Test the memory manager module.
     """
+
     @classmethod
     def setUpClass(cls) -> None:
         """
@@ -76,7 +78,7 @@ class TestMemoryManager(unittest.TestCase):
         function, parameters = self.memory_manager._select_scale_function(
             scale_function
         )
-        self.assertEqual(parameters['scale_factor'], 2)
+        self.assertEqual(parameters["scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 20)
 
     def test_log_linear_scale_function(self):
@@ -93,7 +95,7 @@ class TestMemoryManager(unittest.TestCase):
         function, parameters = self.memory_manager._select_scale_function(
             scale_function
         )
-        self.assertEqual(parameters['scale_factor'], 2)
+        self.assertEqual(parameters["scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 20 * np.log(10))
 
     def test_quadratic_scale_function(self):
@@ -112,8 +114,8 @@ class TestMemoryManager(unittest.TestCase):
         function, parameters = self.memory_manager._select_scale_function(
             scale_function
         )
-        self.assertEqual(parameters['inner_scale_factor'], 2)
-        self.assertEqual(parameters['outer_scale_factor'], 2)
+        self.assertEqual(parameters["inner_scale_factor"], 2)
+        self.assertEqual(parameters["outer_scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 800)
 
     def test_polynomial_scale_function(self):
@@ -127,16 +129,14 @@ class TestMemoryManager(unittest.TestCase):
         """
         # Test polynomial function
         scale_function = {
-            "polynomial": {
-                "inner_scale_factor": 2, "outer_scale_factor": 2, "order": 3
-            }
+            "polynomial": {"inner_scale_factor": 2, "outer_scale_factor": 2, "order": 3}
         }
         function, parameters = self.memory_manager._select_scale_function(
             scale_function
         )
-        self.assertEqual(parameters['inner_scale_factor'], 2)
-        self.assertEqual(parameters['outer_scale_factor'], 2)
-        self.assertEqual(parameters['order'], 3)
+        self.assertEqual(parameters["inner_scale_factor"], 2)
+        self.assertEqual(parameters["outer_scale_factor"], 2)
+        self.assertEqual(parameters["order"], 3)
         self.assertEqual(function(10, **parameters), 16000)
 
     def test_get_batch_size(self):
@@ -149,16 +149,13 @@ class TestMemoryManager(unittest.TestCase):
         """
         # Test the exception catch.
         self.memory_manager.data_path = []
-        self.assertRaises(
-            ValueError,
-            self.memory_manager.get_batch_size
-        )
+        self.assertRaises(ValueError, self.memory_manager.get_batch_size)
 
         # Test correct returns for 1 batch
         self.memory_manager.database = TestDatabase(data_size=500, rows=10, columns=10)
         self.memory_manager.data_path = ["Test/Path"]
         self.memory_manager.memory_fraction = 0.5
-        self.memory_manager.machine_properties['memory'] = 50000
+        self.memory_manager.machine_properties["memory"] = 50000
         batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size(
             system=False
         )
@@ -170,7 +167,7 @@ class TestMemoryManager(unittest.TestCase):
         self.memory_manager.database = TestDatabase(data_size=500, rows=11, columns=13)
         self.memory_manager.data_path = ["Test/Path"]
         self.memory_manager.memory_fraction = 1.0
-        self.memory_manager.machine_properties['memory'] = 50
+        self.memory_manager.machine_properties["memory"] = 50
         batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size(
             system=False
         )
