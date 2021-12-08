@@ -11,7 +11,7 @@ Description: Collection of calculators / transformations for exp.run
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Type, Union, Any
 
 from mdsuite.calculators import (
     AngularDistributionFunction,
@@ -34,6 +34,8 @@ from mdsuite.calculators import (
     SpatialDistributionFunction,
     StructureFactor,
 )
+
+from mdsuite.transformations import CoordinateWrapper, Transformations, CoordinateUnwrapper
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -70,6 +72,27 @@ class RunComputation:
             return func_instance
 
         return wrapper
+
+    def transformation_wrapper(self, func: Union[Type[Transformations], Any]):
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if self.experiments is None:
+                self.experiments = [self.experiment]
+            for experiment in self.experiments:
+                func_instance = func(*args, **kwargs)
+                experiment.cls_transformation_run(func_instance)
+            return None
+        return wrapper
+
+
+    @property
+    def CoordinateWrapper(self) -> CoordinateWrapper:
+        return self.transformation_wrapper(CoordinateWrapper)
+
+    @property
+    def CoordinateUnwrapper(self) -> CoordinateUnwrapper:
+        return self.transformation_wrapper(CoordinateUnwrapper)
 
     @property
     def AngularDistributionFunction(self) -> AngularDistributionFunction:

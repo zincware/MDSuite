@@ -223,6 +223,7 @@ class Database:
         name : str
                 The name of the database_path in question.
         """
+        # TODO support pathlib
 
         self.architecture = architecture  # architecture of database_path
         self.name = name  # name of the database_path

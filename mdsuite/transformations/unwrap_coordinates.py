@@ -55,7 +55,7 @@ class CoordinateUnwrapper(Transformations):
     """
 
     def __init__(
-        self, experiment: object, species: list = None, center_box: bool = True
+            self, species: list = None, center_box: bool = True
     ):
         """
         Constructor for the Ionic current calculator.
@@ -69,14 +69,15 @@ class CoordinateUnwrapper(Transformations):
         center_box : bool
                 If true, the origin of the coordinates will be centered.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 3}}
         self.center_box = center_box
 
-        if species is None:
+        self.species = species
+
+    def update_from_experiment(self):
+        if self.species is None:
             self.species = list(self.experiment.species)
-        else:
-            self.species = self.species
 
     def _prepare_database_entry(self, species: str):
         """
@@ -169,7 +170,7 @@ class CoordinateUnwrapper(Transformations):
         return data - scaled_mask  # apply the scaling
 
     def _transformation(
-        self, data: np.array, state: tf.Tensor, last_conf: tf.Tensor = None
+            self, data: np.array, state: tf.Tensor, last_conf: tf.Tensor = None
     ):
         """
         Perform the unwrapping transformation on the data.
@@ -216,10 +217,10 @@ class CoordinateUnwrapper(Transformations):
         )
         loop_correction = self._remainder_to_binary()
         for index, x in tqdm(
-            enumerate(data_set),
-            ncols=70,
-            desc=f"{species} unwrapping",
-            total=self.n_batches + loop_correction,
+                enumerate(data_set),
+                ncols=70,
+                desc=f"{species} unwrapping",
+                total=self.n_batches + loop_correction,
         ):
             if index == 0:
                 data, state, last_conf = self._transformation(

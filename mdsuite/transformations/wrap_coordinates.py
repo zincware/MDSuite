@@ -72,32 +72,31 @@ class CoordinateWrapper(Transformations):
     """
 
     def __init__(
-        self, experiment: object, species: list = None, center_box: bool = True
+            self, species: list = None, center_box: bool = True
     ):
         """
         Standard constructor
 
         Parameters
         ----------
-        experiment : object
-                Experiment object to use and update.
         species : list
                 List of species to perform unwrapping on
         center_box : bool
                 If true, the box coordinates will be centered before the
                 unwrapping occurs
         """
-        super().__init__(experiment)
+        super().__init__()
 
         self.scale_function = {"linear": {"scale_factor": 5}}
+        self.center_box = center_box
+        self.species = species  # re-assign species
 
+    def update_from_experiment(self):
         self.storage_path = self.experiment.storage_path
         self.analysis_name = self.experiment.name
-        self.center_box = center_box
 
         self.box_array = self.experiment.box_array
-        self.species = species  # re-assign species
-        if species is None:
+        if self.species is None:
             self.species = list(self.experiment.species)
 
         self.data = None
