@@ -56,7 +56,7 @@ def test_project(traj_file, true_values, tmp_path):
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
-        "NaCl", fname_or_file_processor=traj_file, timestep=0.002, temperature=1400
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
     computation = project.run.PotentialOfMeanForce(plot=False)
@@ -69,7 +69,7 @@ def test_experiment(traj_file, true_values, tmp_path):
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
-        "NaCl", fname_or_file_processor=traj_file, timestep=0.002, temperature=1400
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
     computation = project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)

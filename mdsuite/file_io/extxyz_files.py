@@ -89,7 +89,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
             # second line: other info
             header = file.readline()
 
-            species_idx, property_dict = _get_property_summary(
+            species_idx, property_dict = _get_property_to_column_idx_dict(
                 header, self._column_name_dict
             )
 
@@ -108,13 +108,14 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                 species_name_to_line_idx_dict=species_dict,
                 property_to_column_idx_dict=property_dict,
                 n_header_lines=self.n_header_lines,
-                n_partilces=n_particles,
+                n_particles=n_particles,
                 header_lines_for_each_config=True,
             )
 
     def _get_metadata(self):
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Gets the metadata for database creation as an implementation of the parent class virtual function
+        by analysing the header lines and one full configuration.
         """
         with open(self.file_path, "r") as file:
             file.readline()
@@ -149,6 +150,12 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
         Parameters
         ----------
+        file:
+            An opened extxyz file
+        species_idx:
+            The index of the column in which the species name is stored
+        n_particles:
+            The total number of particles
 
         """
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
@@ -169,6 +176,20 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
 
 def _get_box_l(header: str) -> list:
+    """
+    Get the box lengths from the Lattice property in the header
+
+    Parameters
+    ----------
+    header:
+        The extxyz header line as one string
+
+    Returns
+    -------
+    [box_l_x, box_l_y, box_l_z]
+        The tree sides of the box cuboid
+
+    """
     data = copy.deepcopy(header).split()
     lattice = None
     start = None
@@ -195,7 +216,15 @@ def _get_box_l(header: str) -> list:
     return [lattice[0], lattice[4], lattice[8]]
 
 
-def _get_time(header: str):
+def _get_time(header: str) -> float:
+    """
+    Retrieve the time value from a header line.
+    Can be used to infer the sampling step by calling on consecutive config headers.
+    Parameters
+    ----------
+    header
+        The extxyz header line as one string
+    """
     data = copy.deepcopy(header).split()
     time = None
     for item in data:
@@ -207,7 +236,7 @@ def _get_time(header: str):
     return time
 
 
-def _get_property_summary(
+def _get_property_to_column_idx_dict(
     header: str, var_names: dict
 ) -> typing.Tuple[int, typing.Dict[str, typing.List[int]]]:
     """
@@ -221,6 +250,8 @@ def _get_property_summary(
         dict of translations from MDsuite property names to extxyz property names
     Returns
     -------
+    species_index: int
+        The index of the column in which the species names are stored
     property_summary : dict
             A dictionary of properties and their location in the data file.
     """

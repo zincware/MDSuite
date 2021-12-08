@@ -136,7 +136,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             species_name_to_line_idx_dict=species_dict,
             property_to_column_idx_dict=property_dict,
             n_header_lines=self.n_header_lines,
-            n_partilces=n_particles,
+            n_particles=n_particles,
             header_lines_for_each_config=True,
             sort_by_column_idx=None
             if self.trajectory_is_sorted_by_ids

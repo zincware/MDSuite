@@ -126,13 +126,13 @@ class Project(ProjectDatabase):
 
     def add_experiment(
         self,
-        experiment: str = NoneType,  # todo: rename to sth like 'name'
+        name: str = NoneType,
         timestep: float = None,
         temperature: float = None,
         units: Union[str, Units] = None,
         cluster_mode: bool = None,
         active: bool = True,
-        fname_or_file_processor: Union[
+        simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,
     ):
@@ -145,48 +145,48 @@ class Project(ProjectDatabase):
                 Activate the experiment when added
         cluster_mode : bool
                 If true, cluster mode is parsed to the experiment class.
-        experiment : str
-                Name to use for the experiment class.
+        name : str
+                Name to use for the experiment.
         timestep : float
                 Timestep used during the simulation.
         temperature : float
                 Temperature the simulation was performed at and is to be used
                 in calculation.
         units : str
-                LAMMPS units used
-        fname_or_file_processor:
+                units used
+        simulation_data:
             data that should be added to the experiment.
             see mdsuite.experiment.add_data() for details of the file specification.
-            you can also create the experiment with fname_or_file_processor == None and add data later
+            you can also create the experiment with simulation_data == None and add data later
 
         Notes
         ------
         Using custom NoneType to raise a custom ValueError message with useful info.
         """
-        if experiment is NoneType:
+        if name is NoneType:
             raise ValueError(
-                "Experiment can not be empty! "
+                "Experiment name can not be empty! "
                 "Use None to automatically generate a unique name."
             )
 
-        if experiment is None:
-            experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        if name is None:
+            name = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
             # set the experiment name to the current date and time if None is provided
 
         # Run a query to see if that experiment already exists
         with self.session as ses:
             experiments = (
-                ses.query(db.Experiment).filter(db.Experiment.name == experiment).all()
+                ses.query(db.Experiment).filter(db.Experiment.name == name).all()
             )
         if len(experiments) > 0:
             log.info("This experiment already exists")
-            self.load_experiments(experiment)
+            self.load_experiments(name)
             return
 
         # If the experiment does not exists, instantiate a new Experiment
         new_experiment = Experiment(
             project=self,
-            experiment_name=experiment,
+            experiment_name=name,
             time_step=timestep,
             units=units,
             temperature=temperature,
@@ -196,10 +196,10 @@ class Project(ProjectDatabase):
         new_experiment.active = active
 
         # Update the internal experiment dictionary for self.experiment property
-        self._experiments[experiment] = new_experiment
+        self._experiments[name] = new_experiment
 
-        if fname_or_file_processor is not None:
-            self.experiments[experiment].add_data(fname_or_file_processor)
+        if simulation_data is not None:
+            self.experiments[name].add_data(simulation_data)
 
     def load_experiments(self, names: Union[str, list]):
         """Alias for activate_experiments"""
@@ -245,8 +245,8 @@ class Project(ProjectDatabase):
 
     def add_data(self, data_sets: dict):
         """
-        Add fname_or_file_processor to a experiments. This is a method so that parallelization is
-        possible amongst fname_or_file_processor addition to different experiments at the same
+        Add simulation_data to a experiments. This is a method so that parallelization is
+        possible amongst simulation_data addition to different experiments at the same
         time.
 
         Parameters

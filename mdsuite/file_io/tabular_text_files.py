@@ -16,6 +16,27 @@ import mdsuite.utils.meta_functions
 class TabularTextFileReaderMData:
     """
     Class to hold the data that needs to be extracted from tabular text files before reading them
+
+    Attributes
+    ----------
+    n_configs:
+        Number of configs in the file
+    n_particles:
+        Total number of particles
+    species_name_to_line_idx_dict:
+        A dict that links the species name to the line idxs at which the particles can be found within a configuration.
+        Example: {"Na":[0,2,4], "Cl":[1,3,5]} for a file in which Na and Cl are written alternatingly.
+    property_to_column_idx_dict
+        A dict that links the property name to the column idxs at which the property is listed.
+        Usually the output of mdsuite.file_io.tabular_text_files.extract_properties_from_header
+    n_header_lines:
+        Number of header lines PER CONFIG
+    header_lines_for_each_config:
+        Flag to indicate wether each config has its own header or if there is just one header at the top of the file.
+    sort_by_column_idx:
+        if None (default): no sorting needed (the particles are always in the same order within a config
+        if int: sort the lines in the config by the column with this index
+        (e.g., use to sort by particle id in unsorted config output)
     """
 
     n_configs: int
@@ -91,11 +112,9 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         self,
     ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
         """
-        TabularTextFiles implement the parent function,
-        but requires its children to provide the necessary information about the table contents, see self._get_tabular_text_reader_data
-        Returns
-        -------
-
+        TabularTextFiles implements the parent virtual function,
+        but requires its children to provide the necessary information about the table contents,
+        see self._get_tabular_text_reader_data
         """
         n_configs = self.tabular_text_reader_data.n_configs
 
@@ -189,10 +208,9 @@ def read_process_n_configurations(
         Species and property information as required by mdsuite.database.simulation_database.TrajectoryMetaData
     species_to_line_idx_dict:
         A dict that links the species name to the line idxs at which the particles can be found within a configuration.
-        Example {"Na":[0,2,4], "Cl":[2,3,5]}
+        Example {"Na":[0,2,4], "Cl":[1,3,5]}
     property_to_column_idx_dict
         A dict that links the property name to the column idxs at which the property is listed.
-        Usually the output of mdsuite.file_io.tabular_text_files.extract_properties_from_header
     n_lines_per_config
         Number of lines per config (= number of particles)
     n_header_lines:

@@ -61,29 +61,27 @@ from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 
 
-def _get_processor(fname_or_file_processor):
+def _get_processor(simulation_data):
     """
     Read in one file
     """
-    if isinstance(fname_or_file_processor, str) or isinstance(
-        fname_or_file_processor, pathlib.Path
-    ):
-        suffix = pathlib.Path(fname_or_file_processor).suffix
+    if isinstance(simulation_data, str) or isinstance(simulation_data, pathlib.Path):
+        suffix = pathlib.Path(simulation_data).suffix
         if suffix == ".lammpstraj":
             processor = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
-                fname_or_file_processor
+                simulation_data
             )
         elif suffix == ".extxyz":
-            processor = mdsuite.file_io.extxyz_files.EXTXYZFile(fname_or_file_processor)
+            processor = mdsuite.file_io.extxyz_files.EXTXYZFile(simulation_data)
         else:
             raise ValueError(
                 f"datafile ending '{suffix}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
             )
-    elif isinstance(fname_or_file_processor, mdsuite.file_io.file_read.FileProcessor):
-        processor = fname_or_file_processor
+    elif isinstance(simulation_data, mdsuite.file_io.file_read.FileProcessor):
+        processor = simulation_data
     else:
         raise ValueError(
-            f"fname_or_file_processor must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(fname_or_file_processor)}' instead"
+            f"simulation_data must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}' instead"
         )
 
     return processor
@@ -446,12 +444,12 @@ class Experiment(ExperimentDatabase):
                 New mass/es of the element
         """
         species = self.species
-        species[element]["mass"] = mass  # update the mass
+        species[element]["mass"] = mass
         self.species = species
 
     def add_data(
         self,
-        fname_or_file_processor: Union[
+        simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ],
         force: bool = False,
@@ -465,10 +463,10 @@ class Experiment(ExperimentDatabase):
         TODO reference online documentation of data loading in the error messages
         Parameters
         ----------
-        fname_or_file_processor : str or mdsuite.file_io.file_read.FileProcessor or list thereof
-            if str or pathlib.Path: path to the file that contains the fname_or_file_processor
-            if mdsuite.file_io.file_read.FileProcessor: An instance of a childclass of FileProcessor
-            if list : must be list of str or mdsuite.file_io.file_read.FileProcessor
+        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor or list thereof
+            if str or pathlib.Path: path to the file that contains the simulation_data
+            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file reader from mdsuite.file_io
+            if list : must be list of any of the above (can be mixed).
         force : bool
             If true, a file will be read regardless of if it has already been seen. Default: False
         update_with_pubchempy: bool
@@ -476,14 +474,14 @@ class Experiment(ExperimentDatabase):
 
         """
 
-        if isinstance(fname_or_file_processor, list):
-            for elem in fname_or_file_processor:
+        if isinstance(simulation_data, list):
+            for elem in simulation_data:
                 proc = _get_processor(elem)
                 self._add_data_from_file_processor(
                     proc, force=force, update_with_pubchempy=update_with_pubchempy
                 )
         else:
-            proc = _get_processor(fname_or_file_processor)
+            proc = _get_processor(simulation_data)
             self._add_data_from_file_processor(
                 proc, force=force, update_with_pubchempy=update_with_pubchempy
             )

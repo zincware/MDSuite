@@ -120,7 +120,7 @@ def test_read_script_input(tmp_path):
     proc = script_input.ScriptInput(data=data, metadata=metadata, name="test_name")
 
     project = mdsuite.Project(name="test_proj", storage_path=tmp_path)
-    project.add_experiment(experiment="test_experiment", timestep=time_step)
+    project.add_experiment(name="test_experiment", timestep=time_step)
     exp = project.experiments["test_experiment"]
     exp.add_data(proc)
 

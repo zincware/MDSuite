@@ -50,6 +50,7 @@ column_names = {
 
 class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     """LAMMPS Flux file reader"""
+
     def __init__(
         self,
         file_path: typing.Union[str, pathlib.Path],
@@ -129,7 +130,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                 species_name_to_line_idx_dict=species_dict,
                 property_to_column_idx_dict=properties_dict,
                 n_header_lines=self.n_header_lines,
-                n_partilces=1,
+                n_particles=1,
                 header_lines_for_each_config=False,
             )
 

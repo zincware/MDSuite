@@ -51,9 +51,7 @@ def test_read_files(tmp_path, traj_file):
     os.chdir(tmp_path)
     project_1 = mds.Project()
     file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(traj_file)
-    project_1.add_experiment(
-        experiment="Exp01", timestep=0.1
-    )  # todo bad place for time step
+    project_1.add_experiment(name="Exp01", timestep=0.1)  # todo bad place for time step
     project_1.experiments["Exp01"].add_data(file_proc)
     assert len(project_1.experiments["Exp01"].read_files) == 1
 
@@ -62,7 +60,7 @@ def test_project_temperature(tmp_path):
     """Test that the project description is stored correctly in the database"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].temperature = 9000
 
     project_2 = mds.Project()
@@ -74,7 +72,7 @@ def test_project_time_step(tmp_path):
     """Test that the project description is stored correctly in the database"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].time_step = 1
 
     project_2 = mds.Project()
@@ -86,7 +84,7 @@ def test_project_number_of_configurations(tmp_path):
     """Test that the project description is stored correctly in the database"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].number_of_configurations = 100
 
     project_2 = mds.Project()
@@ -98,7 +96,7 @@ def test_project_number_of_atoms(tmp_path):
     """Test that the project description is stored correctly in the database"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].number_of_atoms = 100
 
     project_2 = mds.Project()
@@ -115,7 +113,7 @@ def test_species(tmp_path):
     }
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].species = species
 
     project_2 = mds.Project()
@@ -132,7 +130,7 @@ def test_molecules(tmp_path):
     }
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].molecules = molecule
 
     project_2 = mds.Project()
@@ -146,7 +144,7 @@ def test_project_box_array(tmp_path):
     box_array = np.array([1.0, 1.414, 1.732])
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].box_array = box_array
 
     project_2 = mds.Project()
@@ -164,7 +162,7 @@ def test_experiment_simulation_data(tmp_path):
     }  # can only handle float and str
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
@@ -182,7 +180,7 @@ def test_experiment_simulation_data_nested(tmp_path):
     simulation_data = {"a": {"one": [1.0, 2.0, 3.0], "two": [4.0, 5.0, 6.0]}}
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
@@ -208,8 +206,8 @@ def test_experiment_units(tmp_path):
     )
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01", units="si")
-    project_1.add_experiment(experiment="Exp02", units=custom_units)
+    project_1.add_experiment(name="Exp01", units="si")
+    project_1.add_experiment(name="Exp02", units=custom_units)
 
     project_2 = mds.Project()
 

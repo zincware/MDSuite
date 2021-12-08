@@ -70,7 +70,7 @@ def test_add_file_from_list(traj_files, tmp_path):
         traj_files["NaCl_gk_ni_nq.lammpstraj"],
     ]
     project.add_experiment(
-        "NaCl", fname_or_file_processor=file_names, timestep=0.1, temperature=1600
+        "NaCl", simulation_data=file_names, timestep=0.1, temperature=1600
     )
 
     print(project.experiments)
@@ -83,7 +83,7 @@ def test_add_file_from_str(traj_files, tmp_path):
     project = mds.Project()
     project.add_experiment(
         "NaCl",
-        fname_or_file_processor=traj_files["NaCl_gk_i_q.lammpstraj"],
+        simulation_data=traj_files["NaCl_gk_i_q.lammpstraj"],
         timestep=0.1,
         temperature=1600,
     )
@@ -125,7 +125,7 @@ def test_lammps_read(traj_files, tmp_path):
     project = mds.Project()
     project.add_experiment(
         "NaCl",
-        fname_or_file_processor=traj_files["NaCl_gk_i_q.lammpstraj"],
+        simulation_data=traj_files["NaCl_gk_i_q.lammpstraj"],
         timestep=0.1,
         temperature=1600,
     )
@@ -144,7 +144,7 @@ def test_extxyz_read(traj_files, tmp_path):
     project = mds.Project()
     project.add_experiment(
         "NaCl",
-        fname_or_file_processor=traj_files["NaCl_64_Atoms.extxyz"],
+        simulation_data=traj_files["NaCl_64_Atoms.extxyz"],
         timestep=0.1,
         temperature=1600,
     )
@@ -175,7 +175,7 @@ def test_lammpsflux_read(traj_files, tmp_path):
         custom_data_map=custom_headers,
     )
     project.add_experiment(
-        "NaCl_flux", fname_or_file_processor=file_reader, timestep=0.1, temperature=1600
+        "NaCl_flux", simulation_data=file_reader, timestep=0.1, temperature=1600
     )
     pressures = project.experiments["NaCl_flux"].load_matrix(
         species=["Observables"], property_name="Pressure"
