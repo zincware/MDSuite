@@ -87,7 +87,6 @@ class ExperimentDatabase:
     sample_rate = LazyProperty()
     volume = LazyProperty()
     property_groups = LazyProperty()
-    radial_distribution_function_state = LazyProperty()
 
     def __init__(self, project: Project, experiment_name):
         self.project = project
@@ -307,7 +306,7 @@ class ExperimentDatabase:
 
         Returns
         -------
-        read_files: list[Path]
+        read_files: list[str]
             A List of all files that were added to the database already
 
         """

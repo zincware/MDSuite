@@ -27,6 +27,7 @@ Parent class for the transformations.
 """
 from __future__ import annotations
 
+import copy
 import os
 import time
 from typing import TYPE_CHECKING, Union
@@ -34,6 +35,7 @@ from typing import TYPE_CHECKING, Union
 import numpy as np
 import tensorflow as tf
 
+import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management.memory_manager import MemoryManager
@@ -164,9 +166,7 @@ class Transformations:
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
@@ -269,15 +269,49 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
-        try:
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
+
+        # turn data into trajectory chunk
+        # data_structure is dict {'/path/to/property':{'indices':irrelevant, 'columns':deduce->deduce n_dims, 'length':n_particles}
+        species_list = list()
+        # data structure only has 1 element
+        key, val = list(data_structure.items())[0]
+        path = str(copy.copy(key))
+        path.rstrip("/")
+        path = path.split("/")
+        prop_name = path[-1]
+        sp_name = path[-2]
+        n_particles = val.get("length")
+        if n_particles is None:
+            try:
+                # if length is not available try indices next
+                n_particles = len(val.get("indices"))
+            except TypeError:
+                raise TypeError("Could not determine number of particles")
+        if len(np.shape(data)) == 2:
+            # data not for multiple particles, instead one value for all
+            # -> create the n_particle axis
+            data = data[np.newaxis, :, :]
+        prop = mdsuite.database.simulation_database.PropertyInfo(
+            name=prop_name, n_dims=len(val["columns"])
+        )
+        species_list.append(
+            mdsuite.database.simulation_database.SpeciesInfo(
+                name=sp_name, properties=[prop], n_particles=n_particles
             )
+        )
+        chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
+            chunk_size=batch_size, species_list=species_list
+        )
+        # data comes from transformation with time in 1st axis, add_data needs it in 0th axis
+        chunk.add_data(
+            data=np.swapaxes(data, 0, 1),
+            config_idx=0,
+            species_name=sp_name,
+            property_name=prop_name,
+        )
+
+        try:
+            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
         except OSError:
             """
             This is used because in Windows and in WSL we got the error that
@@ -285,14 +319,7 @@ class Transformations:
             wait, and we add again.
             """
             time.sleep(0.5)
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
-            )
+            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """

@@ -24,37 +24,172 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
+import pathlib
 import time
+from typing import List, Union
 
 import h5py as hf
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 
+import mdsuite.database.simulation_data_class
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
 
-var_names = [
-    "Temperature",
-    "Time",
-    "Thermal_Flux",
-    "Stress_visc",
-    "Positions",
-    "Scaled_Positions",
-    "Unwrapped_Positions",
-    "Scaled_Unwrapped_Positions",
-    "Velocities",
-    "Forces",
-    "Box_Images",
-    "Dipole_Orientation_Magnitude",
-    "Angular_Velocity_Spherical",
-    "Angular_Velocity_Non_Spherical",
-    "Torque",
-    "Charge",
-    "KE",
-    "PE",
-    "Stress",
-]
+
+@dataclasses.dataclass(frozen=True)
+class PropertyInfo:
+    """
+    Information of a trajectory property.
+    example:
+    pos_info = PropertyInfo('Positions', 3)
+    vel_info = PropertyInfo('Velocities', 3)
+
+    Attributes
+    ----------
+    name:
+        The name of the property
+    n_dims:
+        The dimensionality of the property
+    """
+
+    name: str
+    n_dims: int
+
+
+@dataclasses.dataclass
+class SpeciesInfo:
+    """
+    Information of a species
+
+    Attributes
+    ----------
+    name
+        Name of the species (e.g. 'Na')
+    n_particles
+        Number of particles of that species
+    properties: list of PropertyInfo
+        List of the properties that were recorded for the species
+    mass and charge are optional
+    """
+
+    name: str
+    n_particles: int
+    properties: List[PropertyInfo]
+    mass: float = None
+    charge: float = 0
+
+    def __eq__(self, other):
+        same = (
+            self.name == other.name
+            and self.n_particles == other.n_particles
+            and self.mass == other.mass
+            and self.charge == other.charge
+        )
+        if len(self.properties) != len(other.properties):
+            return False
+
+        for prop_s, prop_o in zip(self.properties, other.properties):
+            same = same and prop_s == prop_o
+        return same
+
+
+@dataclasses.dataclass
+class TrajectoryMetadata:
+    """
+    This metadata must be extracted from trajectory files to build the database into which the trajectory will be stored
+
+    Attributes
+    ----------
+    n_configurations:
+        Number of configurations of the whole trajectory.
+    species_list: list of SpeciesInfo
+        The information about all species in the system.
+    box_l: list of float
+        The simulation box size in three dimensions
+    sample_rate: optional
+        The number of timesteps between consecutive samples
+        # todo remove in favour of sample_step
+    sample_step: optional
+        The time between consecutive configurations.
+        E.g. for a simulation with time step 0.1 where the trajectory is written
+        every 5 steps: sample_step = 0.5. Does not have to be specified
+        (e.g. configurations from Monte Carlo scheme), but is needed for all
+        dynamic observables.
+    temperature: optional
+        The set temperature of the system.
+        Optional because only applicable for MD simulations with thermostat.
+        Needed for certain observables.
+    simulation_data: optional
+        All other simulation data that can be extracted from the trajectory metadata.
+        E.g. software version, pressure in NPT simulations, time step, ...
+
+    """
+
+    n_configurations: int
+    species_list: List[SpeciesInfo]
+    box_l: list
+    sample_rate: int = 1
+    sample_step: float = None
+    temperature: float = None
+    simulation_data: dict = dataclasses.field(default_factory=dict)
+
+
+class TrajectoryChunkData:
+    """
+    Class to specify the data format for transfer from the file to the database
+    """
+
+    def __init__(self, species_list: List[SpeciesInfo], chunk_size: int):
+        """
+
+        Parameters
+        ----------
+        species_list:
+            List of SpeciesInfo.
+            It contains the information which species are there and which properties are recorded for each
+        chunk_size:
+            The number of configurations to be stored in this chunk
+        """
+        self.chunk_size = chunk_size
+        self.species_list = species_list
+        self._data = dict()
+        for sp_info in species_list:
+            self._data[sp_info.name] = dict()
+            for prop_info in sp_info.properties:
+                self._data[sp_info.name][prop_info.name] = np.zeros(
+                    (chunk_size, sp_info.n_particles, prop_info.n_dims)
+                )
+
+    def add_data(self, data: np.ndarray, config_idx, species_name, property_name):
+        """
+        Add configuration data to the chunk
+        Parameters
+        ----------
+        data:
+            The data to be added, with shape (n_configs, n_particles, n_dims).
+            n_particles and n_dims relates to the species and the property that is being added
+        config_idx:
+            Start index of the configs that are being added.
+        species_name
+            Name of the species to which the data belongs
+        property_name
+            Name of the property being added
+
+        example:
+        Storing velocity Information for 42 Na atoms in the 17th iteration of a loop that reads 5 configs per loop:
+        add_data(vel_array, 16*5, 'Na', 'Velocities')
+        where vel.data.shape == (5,42,3)
+
+        """
+        n_configs = len(data)
+        self._data[species_name][property_name][
+            config_idx : config_idx + n_configs, :, :
+        ] = data
+
+    def get_data(self):
+        return self._data
 
 
 class Database:
@@ -198,137 +333,51 @@ class Database:
 
         return hf.File(self.name, mode)
 
-    def add_data(
-        self,
-        data: np.array,
-        structure: dict,
-        start_index: int,
-        batch_size: int,
-        tensor: bool = False,
-        system_tensor: bool = False,
-        flux: bool = False,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
+    def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
-        Add a set of tensor_values to the database_path.
-
+        Add new data to the dataset.
         Parameters
         ----------
-        flux : bool
-                If true, the atom dimension is not included in the slicing.
-        system_tensor : bool
-                If true, no atom information is looked for when saving
-        tensor : bool
-                If true, this will skip the type enforcement
-        batch_size : int
-                Number of configurations in each batch
-        start_index : int
-                Point in database_path from which to start filling.
-
-        structure : dict
-                Structure of the tensor_values to be loaded into the database_path e.g.
-                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5],
-                'length': 500}}
-        data : np.array
-                Data to be loaded in.
-        sort : bool
-                If true, tensor_values is sorted before being dumped into the
-                database_path.
-        n_atoms : int
-                Necessary if the sort function is called. Total number of atoms in the
-                experiment.
-        Returns
-        -------
-        Adds tensor_values to the database_path
+        chunk:
+            a data chunk
+        start_idx:
+            Configuration at which to start writing
         """
+
+        workaround_time_in_axis_1 = True
+
+        chunk_data = chunk.get_data()
 
         with hf.File(self.name, "r+") as database:
-            stop_index = start_index + batch_size  # get the stop index
-            for item in structure:
-                if tensor:
-                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
-                elif system_tensor:
-                    database[item][start_index:stop_index, :] = data[:, 0:3]
-                elif flux:
-                    database[item][start_index:stop_index, :] = data[
-                        structure[item]["indices"]
-                    ][
-                        np.s_[
-                            :,
-                            structure[item]["columns"][0] : structure[item]["columns"][
-                                -1
-                            ]
-                            + 1,
+            stop_index = start_idx + chunk.chunk_size
+
+            for sp_info in chunk.species_list:
+                for prop_info in sp_info.properties:
+                    dataset_name = f"{sp_info.name}/{prop_info.name}"
+                    write_data = chunk_data[sp_info.name][prop_info.name]
+
+                    dataset_shape = database[dataset_name].shape
+                    if len(dataset_shape) == 2:
+                        # only one particle
+                        database[dataset_name][start_idx:stop_index, :] = write_data[
+                            :, 0, :
                         ]
-                    ].astype(
-                        float
-                    )
-                else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(
-                        data, structure, item, batch_size, sort, n_atoms=n_atoms
-                    )
 
-    def _get_data(
-        self,
-        data: np.array,
-        structure: dict,
-        item: str,
-        batch_size: int,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
-        """
-        Fetch tensor_values with some format from a large array.
+                    elif len(dataset_shape) == 3:
+                        if workaround_time_in_axis_1:
+                            database[dataset_name][
+                                :, start_idx:stop_index, :
+                            ] = np.swapaxes(write_data, 0, 1)
+                        else:
+                            database[dataset_name][
+                                start_idx:stop_index, ...
+                            ] = write_data
+                    else:
+                        raise ValueError(
+                            "dataset shape must be either (n_part,n_config,n_dim) or (n_config, n_dim)"
+                        )
 
-        Returns
-        -------
-
-        """
-        if sort:
-            indices = self._update_indices(
-                data, structure[item]["indices"], batch_size, n_atoms
-            )
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-        else:
-            indices = structure[item]["indices"]
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-
-    def resize_dataset(self, structure: dict):
+    def resize_datasets(self, structure: dict):
         """
         Resize a dataset so more tensor_values can be added
 
@@ -395,6 +444,13 @@ class Database:
         """
 
         self.add_dataset(structure)  # add a dataset to the groups
+
+    def database_exists(self) -> bool:
+        """
+        Check if the database file already exists
+        """
+        database_path = pathlib.Path(self.name)
+        return database_path.exists()
 
     def add_dataset(self, structure: dict):
         """
@@ -668,6 +724,10 @@ class Database:
         summary : list
                 A list of properties that are in the database
         """
+        var_names = [
+            prop.name
+            for prop in mdsuite.database.simulation_data_class.mdsuite_properties
+        ]
         dump_list = []
         database = hf.File(self.name, "r")
         initial_list = list(database.keys())

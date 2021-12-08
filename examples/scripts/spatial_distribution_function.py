@@ -61,7 +61,7 @@ def run_example():
     """
     project = mds.Project("bmim_bf4_example")
     project.add_experiment(
-        experiment="bmim_bf4",
+        name="bmim_bf4",
         timestep=0.1,
         temperature=100.0,
         units="real",

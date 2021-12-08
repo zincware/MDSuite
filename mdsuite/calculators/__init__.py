@@ -90,9 +90,7 @@ class RunComputation:
     """Collection of all calculators that can be used by an experiment"""
 
     def __init__(
-        self,
-        experiment: Experiment = None,
-        experiments: List[Experiment] = None,
+        self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
         """Collection of all calculators
 
@@ -107,10 +105,7 @@ class RunComputation:
         self.experiment = experiment
         self.experiments = experiments
 
-        self.kwargs = {
-            "experiment": experiment,
-            "experiments": experiments,
-        }
+        self.kwargs = {"experiment": experiment, "experiments": experiments}
 
     @property
     def AngularDistributionFunction(self):

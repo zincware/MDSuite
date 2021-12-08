@@ -69,7 +69,7 @@ class TestLiquidNaCl(unittest.TestCase):
                 with open(item, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             cls.project.add_experiment(
-                experiment=item[:-11],
+                name=item[:-11],
                 timestep=time_step,
                 temperature=temperature,
                 units="metal",

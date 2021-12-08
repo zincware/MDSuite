@@ -27,160 +27,53 @@ Summary
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, TextIO
+import typing
 
-if TYPE_CHECKING:
-    from mdsuite.experiment import Experiment
+from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
 
 
-class FileProcessor(metaclass=abc.ABCMeta):
+class FileProcessor(abc.ABC):
     """
-    Parent class for file reading and processing
-
-    Attributes
-    ----------
-    obj, experiment : Experiment
-
-            File object to be opened and read in.
-    header_lines : int
-            Number of header lines in the file format being read.
+    Class to handle reading from trajectory files.
+    Output is supposed to be used by the experiment class for building and populating the trajectory database.
     """
 
-    def __init__(self, obj: Experiment, header_lines, file_path):
-        """
-        Python constructor
-
-        Parameters
-        ----------
-        obj : Experiment
-                Experiment class instance to add to.
-
-        header_lines : int
-                Number of header lines in the given file format.
-        """
-
-        self.experiment = obj  # Experiment class instance to add to.
-
-        self.header_lines = (
-            header_lines  # Number of header lines in the given file format.
-        )
-        self.file_path = file_path  # path to the file being read
+    _metadata: TrajectoryMetadata = None
 
     @abc.abstractmethod
-    def process_trajectory_file(
-        self, rename_cols: dict = None, update_class: bool = True
-    ):
+    def __str__(self):
         """
-        Get property groups from the trajectory
-        This method is dependent on the code that generated the file. So it should be
-        implemented in a grandchild class.
+        Return a unique string representing this FileProcessor. (The absolute file path, for example)
         """
-
-        return
+        raise NotImplementedError("File Processors must implement a string")
 
     @abc.abstractmethod
-    def build_file_structure(self, batch_size: int = None):
+    def _get_metadata(self) -> TrajectoryMetadata:
         """
-        Build a skeleton of the file so that the database_path class can process it
-        correctly.
+        Return the metadata required to build a database.
+        See mdsuite.database.simulation_database.TrajectoryMetadata to see the details of which values must be extracted from the file
         """
+        raise NotImplementedError("File Processors must implement metadata extraction")
 
-        return
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            self._metadata = self._get_metadata()
+        return self._metadata
 
     @abc.abstractmethod
-    def read_configurations(
-        self, number_of_configurations: int, file_object: TextIO, line_length: int
-    ):
+    def get_configurations_generator(self) -> typing.Iterator[TrajectoryChunkData]:
         """
-        Read in a number of configurations from a file
-
-        Parameters
-        ----------
-        line_length : int
-             Length of each line of tensor_values to be read in. Necessary for
-             instantiation.
-        number_of_configurations : int
-                Number of configurations to be read in.
-        file_object : experiment
-                File object to be read from.
-
+        Yield configurations as chunks. Batch size must be determined by the FileProcessor.
+        See mdsuite.database.simulation_database.TrajectoryChunkData for the format in which to provide the trajectory chunk.
         Returns
         -------
-        configuration tensor_values : np.array
-                Data read in from the file object.
+        generator that yields TrajectoryChunkData
         """
+        raise NotImplementedError("File Processors must implement data loading")
 
-        return
 
-    @staticmethod
-    def _extract_properties(
-        database_correspondence_dict: dict, column_dict_properties: dict
-    ):
-        """
-        Construct generalized property array
-
-        Takes the lammps properties dictionary and constructs an array of properties
-        which can be used by the species class.
-
-        Parameters
-        ----------
-        database_correspondence_dict : dict
-        column_dict_properties : dict
-
-        Returns
-        -------
-        trajectory_properties : dict
-                A dictionary of the keyword labelled properties in the trajectory. The
-                values of the dictionary keys correspond to the array location of the
-                specific piece of tensor_values in the set.
-        """
-        # for each property label (position, velocity,etc) in the lammps definition
-        for property_label, property_names in database_correspondence_dict.items():
-            # for each coordinate for a given property label (position: x, y, z),
-            # get idx and the name
-            for idx, property_name in enumerate(property_names):
-                if (
-                    property_name in column_dict_properties.keys()
-                ):  # if this name (x) is in the input file properties
-                    # we change the lammps_properties_dict replacing the string of the
-                    # property name by the column name
-                    database_correspondence_dict[property_label][
-                        idx
-                    ] = column_dict_properties[property_name]
-
-        # trajectory_properties only need the labels with the integer columns, then we
-        # only copy those
-        trajectory_properties = {}
-        for property_label, properties_columns in database_correspondence_dict.items():
-            if all(
-                [
-                    isinstance(property_column, int)
-                    for property_column in properties_columns
-                ]
-            ):
-                trajectory_properties[property_label] = properties_columns
-
-        return trajectory_properties
-
-    @staticmethod
-    def _get_column_properties(header_line: str, skip_words: int = 0) -> dict:
-        """
-        Given a line of text with the header, split it, enumerate and put in a
-        dictionary. This is used to create the column - variable correspondance
-        (see self._extract_properties)
-
-        Parameters
-        ----------
-        header_line: str
-                Header line to split
-        skip_words : int
-                Skip words before reading.
-        Returns
-        -------
-        properties_summary : dict
-                properties summary as a dictionary.
-        """
-        header_line = header_line[skip_words:]
-        properties_summary = {variable: idx for idx, variable in enumerate(header_line)}
-
-        return properties_summary
+def assert_species_list_consistent(sp_list_0, sp_list_1):
+    for sp_info_data, sp_info_mdata in zip(sp_list_0, sp_list_1):
+        if sp_info_data != sp_info_mdata:
+            raise ValueError("Species information in the two lists is inconsistent")
