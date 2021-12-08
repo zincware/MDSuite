@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import pathlib
 from typing import List, Union
 
 import numpy as np
@@ -31,8 +32,6 @@ from bokeh.io import output_file, output_notebook
 from bokeh.layouts import gridplot
 from bokeh.models import HoverTool
 from bokeh.plotting import figure, show
-
-import pathlib
 
 from mdsuite.utils import config
 

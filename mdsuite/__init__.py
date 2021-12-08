@@ -37,13 +37,13 @@ __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 __version__ = "0.0.1"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 # Formatter for advanced logging
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
 
 channel = logging.StreamHandler(sys.stdout)
-channel.setLevel(logging.DEBUG)
+channel.setLevel(logging.WARNING)
 channel.setFormatter(formatter)
 
 logger.addHandler(channel)
