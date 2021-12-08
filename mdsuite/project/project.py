@@ -72,7 +72,10 @@ class Project(ProjectDatabase):
     """
 
     def __init__(
-        self, name: str = None, storage_path: str = "./", description: str = None
+        self,
+        name: str = None,
+        storage_path: Union[str, Path] = "./",
+        description: str = None,
     ):
         """
         Project class constructor
@@ -95,7 +98,7 @@ class Project(ProjectDatabase):
             self.name = f"MDSuite_Project"
         else:
             self.name = name
-        self.storage_path = storage_path
+        self.storage_path = Path(storage_path).as_posix()
 
         # Properties
         self._experiments = {}
@@ -134,7 +137,7 @@ class Project(ProjectDatabase):
         active: bool = True,
         simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
-        ] = None,
+        ] = None,  # TODO make this the second argument, (name, data, ...)
     ):
         """
         Add an experiment to the project
