@@ -63,16 +63,6 @@ instructions below.
    cd build/html
    firefox index.html
 
-HINT
-====
-
-Check out the MDSuite code through a jupyter notebook for a more user friendly
-experience. You can take full advantage of the autocomplete features that are available
-for the calculators.
-
-.. image:: docs/source/images/test_einstein_record_3.gif
-    :width: 600
-
 .. badges
 
 .. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat
