@@ -54,7 +54,7 @@ class DataVisualizer2D:
         if config.jupyter:
             output_notebook()
         else:
-            print(f'\n the path {path} \n')
+            print(f"\n the path {path} \n")
             output_file(f"{path}/{title}.html", title=title)
 
     def construct_plot(
