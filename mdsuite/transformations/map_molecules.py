@@ -57,14 +57,11 @@ class MolecularMap(Transformations):
             would be the input for the emim-PF6 ionic liquid.
     """
 
-    def __init__(self, experiment: object, molecules: dict):
-        """
-        Constructor for the MolecularMap class.
+    def __init__(self, molecules: dict):
+        """Constructor for the MolecularMap class.
 
         Parameters
         ----------
-        experiment : object
-                Experiment object to work within.
         molecules : dict
                 Molecule dictionary to use as reference. e.g, the input for
                 emim-PF6 ionic liquid would be.
@@ -75,7 +72,7 @@ class MolecularMap(Transformations):
                    'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
 
         """
-        super().__init__(experiment)
+        super().__init__()
         self.molecules = molecules
         self.reference_molecules = {}
         self.adjacency_graphs = {}

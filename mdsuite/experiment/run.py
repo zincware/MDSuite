@@ -37,7 +37,16 @@ from mdsuite.calculators import (
 from mdsuite.transformations import (
     CoordinateUnwrapper,
     CoordinateWrapper,
+    IntegratedHeatCurrent,
+    IonicCurrent,
+    KinaciIntegratedHeatCurrent,
+    MolecularMap,
+    MomentumFlux,
+    ScaleCoordinates,
+    ThermalFlux,
     Transformations,
+    TranslationalDipoleMoment,
+    UnwrapViaIndices,
 )
 
 if TYPE_CHECKING:
@@ -107,6 +116,42 @@ class RunComputation:
     @property
     def CoordinateUnwrapper(self) -> CoordinateUnwrapper:
         return self.transformation_wrapper(CoordinateUnwrapper)
+
+    @property
+    def IntegratedHeatCurrent(self) -> IntegratedHeatCurrent:
+        return self.transformation_wrapper(IntegratedHeatCurrent)
+
+    @property
+    def IonicCurrent(self) -> IonicCurrent:
+        return self.transformation_wrapper(IonicCurrent)
+
+    @property
+    def KinaciIntegratedHeatCurrent(self) -> KinaciIntegratedHeatCurrent:
+        return self.transformation_wrapper(KinaciIntegratedHeatCurrent)
+
+    @property
+    def MolecularMap(self) -> MolecularMap:
+        return self.transformation_wrapper(MolecularMap)
+
+    @property
+    def MomentumFlux(self) -> MomentumFlux:
+        return self.transformation_wrapper(MomentumFlux)
+
+    @property
+    def ScaleCoordinates(self) -> ScaleCoordinates:
+        return self.transformation_wrapper(ScaleCoordinates)
+
+    @property
+    def ThermalFlux(self) -> ThermalFlux:
+        return self.transformation_wrapper(ThermalFlux)
+
+    @property
+    def TranslationalDipoleMoment(self) -> TranslationalDipoleMoment:
+        return self.transformation_wrapper(TranslationalDipoleMoment)
+
+    @property
+    def UnwrapViaIndices(self) -> UnwrapViaIndices:
+        return self.transformation_wrapper(UnwrapViaIndices)
 
     #####################
     #### Calculators ####
