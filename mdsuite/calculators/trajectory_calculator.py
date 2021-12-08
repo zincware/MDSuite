@@ -37,6 +37,8 @@ from mdsuite.database import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management import MemoryManager
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.transformations.unwrap_coordinates import CoordinateUnwrapper
+from mdsuite.transformations.unwrap_via_indices import UnwrapViaIndices
 
 from .calculator import Calculator
 
@@ -169,12 +171,12 @@ class TrajectoryCalculator(Calculator, ABC):
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
             choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
+                argument, lambda: "Data not in database and cannot be generated."
             )
             return choice
 
-        transformation = _string_to_function(dependency)
-        self.experiment.perform_transformation(transformation)
+        transformation = getattr(self.experiment.run, _string_to_function(dependency))
+        transformation()
 
     def _unwrap_choice(self):
         """
@@ -187,7 +189,7 @@ class TrajectoryCalculator(Calculator, ABC):
         if indices:
             return "UnwrapViaIndices"
         else:
-            return "UnwrapCoordinates"
+            return "CoordinateUnwrapper"
 
     def _handle_tau_values(self) -> np.array:
         """
