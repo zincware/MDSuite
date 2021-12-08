@@ -28,8 +28,8 @@ import logging
 from pathlib import Path
 from typing import Union
 
-from mdsuite.calculators import RunComputation
 from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.experiment.run import RunComputation
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.units import Units, units_dict

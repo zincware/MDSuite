@@ -34,9 +34,9 @@ from typing import Dict, Union
 
 import mdsuite.database.scheme as db
 import mdsuite.file_io.file_read
-from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
 from mdsuite.experiment import Experiment
+from mdsuite.experiment.run import RunComputation
 from mdsuite.utils import Units
 from mdsuite.utils.helpers import NoneType
 from mdsuite.utils.meta_functions import DotDict
