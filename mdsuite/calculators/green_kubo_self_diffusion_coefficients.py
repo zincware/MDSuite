@@ -38,8 +38,8 @@ from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 
 
@@ -210,7 +210,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 3
                 * self.experiment.units["time"]
                 * self.args.integration_range
-                * len(self.experiment.species[species]["indices"])
+                * self.experiment.species[species].n_particles
             )
             self.prefactor = numerator / denominator
 
