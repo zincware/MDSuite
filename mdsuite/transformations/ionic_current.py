@@ -89,7 +89,7 @@ class IonicCurrent(Transformations):
                 path: (self.experiment.number_of_configurations - old_shape[0], 3)
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(
+            self.database.resize_datasets(
                 resize_structure
             )  # add a new dataset to the database_path
             data_structure = {

@@ -23,7 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
-Test unwrapping via indices.
+Test the ionic current transformation.
 """
 import unittest
 import os
@@ -35,9 +35,9 @@ import tempfile
 import mdsuite as mds
 
 
-class TestUnwrapViaIndices(unittest.TestCase):
+class TestIonicCurrent(unittest.TestCase):
     """
-    Test the unwrap via indices module.
+    Test the ionic current module.
     """
 
     @classmethod
@@ -71,13 +71,13 @@ class TestUnwrapViaIndices(unittest.TestCase):
         This test will only check that the transformation runs and does not check any
         specific information about the unwrapping.
         """
-        project = mds.Project()
+        project = mds.Project(name='my_poject_5')
         project.add_experiment("NaCl", simulation_data='NaCl_gk_i_q.lammpstraj')
-        project.run.UnwrapViaIndices()
+        project.run.IonicCurrent()
 
     def test_from_experiment(self):
         """
-        Test that the unwrapping runs from experiments.
+        Test that the transformation runs from experiments.
 
         Notes
         -----
@@ -86,20 +86,20 @@ class TestUnwrapViaIndices(unittest.TestCase):
         """
         project = mds.Project()
         project.add_experiment("NaCl1", simulation_data='NaCl_gk_i_q.lammpstraj')
-        project.experiments.NaCl1.run.UnwrapViaIndices()
+        project.experiments.NaCl1.run.IonicCurrent()
 
-    def test_new_data_unwrapping(self):
+    def test_new_data_transformation(self):
         """
         Test how the transformation works if new data is added.
 
         Notes
         -----
-        Checks if the inital unwrapping works, adds new data, and checks that the
-        unwrapping occurs again. No explicit test for if the datasets in the hdf5
+        Checks if the initial transformation works, adds new data, and checks that the
+        transformation occurs again. No explicit test for if the datasets in the hdf5
         database have been correctly resized.
         """
         project = mds.Project()
         project.add_experiment("NaCl2", simulation_data='NaCl_gk_i_q.lammpstraj')
-        project.experiments.NaCl2.run.UnwrapViaIndices()
+        project.experiments.NaCl2.run.IonicCurrent()
         project.experiments.NaCl2.add_data('NaCl_gk_i_q.lammpstraj', force=True)
-        project.experiments.NaCl2.run.UnwrapViaIndices()
+        project.experiments.NaCl2.run.IonicCurrent()
