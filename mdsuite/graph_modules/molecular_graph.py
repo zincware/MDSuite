@@ -24,8 +24,6 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
-
 import numpy as np
 import tensorflow as tf
 from pysmiles import read_smiles
@@ -33,6 +31,11 @@ from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 
 class MolecularGraph:
@@ -42,7 +45,7 @@ class MolecularGraph:
 
     def __init__(
         self,
-        experiment: object,
+        experiment: Experiment,
         from_smiles: bool = False,
         from_configuration: bool = True,
         smiles_string: str = None,
@@ -53,7 +56,7 @@ class MolecularGraph:
 
         Parameters
         ----------
-        experiment : object
+        experiment : Experiment
                 Experiment object from which to read.
         from_smiles : bool
                 Build graphs from a smiles string.
@@ -72,7 +75,7 @@ class MolecularGraph:
         self.species = species
 
         self.database = Database(
-            name=os.path.join(self.experiment.database_path, "database.hdf5"),
+            name=(self.experiment.database_path / "database.hdf5").as_posix(),
             architecture="simulation",
         )
 

@@ -189,10 +189,10 @@ class Experiment(ExperimentDatabase):
         )
 
         # Internal File paths
-        self.experiment_path: str
-        self.database_path: str
-        self.figures_path: str
-        self.logfile_path: str
+        self.experiment_path: Path
+        self.database_path: Path
+        self.figures_path: Path
+        self.logfile_path: Path
         self._create_internal_file_paths()  # fill the path attributes
 
         # Check if the experiment exists and load if it does.

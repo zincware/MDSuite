@@ -572,7 +572,7 @@ class Database:
             keys = []
             database_object.visit(
                 lambda item: keys.append(database_object[item].name)
-                if type(database_object[item]) is hf.Dataset
+                if isinstance(database_object[item], hf.Dataset)
                 else None
             )
             path = f"/{path}"  # add the / to avoid name overlapping
