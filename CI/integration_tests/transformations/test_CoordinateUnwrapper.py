@@ -33,7 +33,7 @@ def traj_file(tmp_path_factory) -> str:
 @pytest.fixture()
 def mdsuite_project(traj_file, tmp_path) -> mdsuite.Project:
     project = mdsuite.Project(storage_path=tmp_path.as_posix())
-    project.add_experiment("NaCl", fname_or_file_processor=traj_file)
+    project.add_experiment("NaCl", simulation_data=traj_file)
 
     return project
 
