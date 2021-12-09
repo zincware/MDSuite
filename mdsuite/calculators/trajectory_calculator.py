@@ -36,9 +36,9 @@ from mdsuite.calculators.transformations_reference import switcher_transformatio
 from mdsuite.database import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management import MemoryManager
-from mdsuite.utils.meta_functions import join_path
 from mdsuite.transformations.unwrap_coordinates import CoordinateUnwrapper
 from mdsuite.transformations.unwrap_via_indices import UnwrapViaIndices
+from mdsuite.utils.meta_functions import join_path
 
 from .calculator import Calculator
 

@@ -25,12 +25,11 @@ Summary
 -------
 Test the translational dipole moment modules.
 """
-import unittest
 import os
+import tempfile
+import unittest
 
 from zinchub import DataHub
-
-import tempfile
 
 import mdsuite as mds
 
