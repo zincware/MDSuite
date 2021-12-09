@@ -75,8 +75,8 @@ class TestMapMolecules(unittest.TestCase):
         project.experiments.bmim_bf4.run.UnwrapViaIndices()
         project.run.MolecularMap(
             molecules={
-                'bmim': {'smiles': 'CCCCN1C=C[N+](+C1)C', "amount": 50, "cutoff": 1.9},
-                'bf4': {'smiles': '[B-](F)(F)(F)F', "amount": 50, "cutoff": 2.4}
+                "bmim": {"smiles": "CCCCN1C=C[N+](+C1)C", "amount": 50, "cutoff": 1.9},
+                "bf4": {"smiles": "[B-](F)(F)(F)F", "amount": 50, "cutoff": 2.4},
             }
         )
-        project.run.CoordinateWrapper(species=['bmim', 'bf4'])
+        project.run.CoordinateWrapper(species=["bmim", "bf4"])

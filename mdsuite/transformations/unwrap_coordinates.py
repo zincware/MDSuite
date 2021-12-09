@@ -24,10 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import os
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-import os
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
