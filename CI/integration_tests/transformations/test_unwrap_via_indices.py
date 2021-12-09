@@ -52,14 +52,14 @@ class TestUnwrapViaIndices(unittest.TestCase):
         cls.temp_dir = tempfile.TemporaryDirectory()
         os.chdir(cls.temp_dir.name)
         NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
-        NaCl.get_file(path='./')
+        NaCl.get_file(path="./")
 
     @classmethod
     def tearDownClass(cls) -> None:
         """
         Remove files after testing.
         """
-        os.chdir('../')
+        os.chdir("../")
         cls.temp_dir.cleanup()
 
     def test_from_project(self):
@@ -72,7 +72,7 @@ class TestUnwrapViaIndices(unittest.TestCase):
         specific information about the unwrapping.
         """
         project = mds.Project()
-        project.add_experiment("NaCl", simulation_data='NaCl_gk_i_q.lammpstraj')
+        project.add_experiment("NaCl", simulation_data="NaCl_gk_i_q.lammpstraj")
         project.run.UnwrapViaIndices()
 
     def test_from_experiment(self):
@@ -85,7 +85,7 @@ class TestUnwrapViaIndices(unittest.TestCase):
         specific information about the unwrapping.
         """
         project = mds.Project()
-        project.add_experiment("NaCl1", simulation_data='NaCl_gk_i_q.lammpstraj')
+        project.add_experiment("NaCl1", simulation_data="NaCl_gk_i_q.lammpstraj")
         project.experiments.NaCl1.run.UnwrapViaIndices()
 
     def test_new_data_unwrapping(self):
@@ -99,7 +99,7 @@ class TestUnwrapViaIndices(unittest.TestCase):
         database have been correctly resized.
         """
         project = mds.Project()
-        project.add_experiment("NaCl2", simulation_data='NaCl_gk_i_q.lammpstraj')
+        project.add_experiment("NaCl2", simulation_data="NaCl_gk_i_q.lammpstraj")
         project.experiments.NaCl2.run.UnwrapViaIndices()
-        project.experiments.NaCl2.add_data('NaCl_gk_i_q.lammpstraj', force=True)
+        project.experiments.NaCl2.add_data("NaCl_gk_i_q.lammpstraj", force=True)
         project.experiments.NaCl2.run.UnwrapViaIndices()
