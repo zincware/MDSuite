@@ -97,7 +97,12 @@ class MolecularMap(Transformations):
         self.database.add_dataset(
             dataset_structure
         )  # add a new dataset to the database_path
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        # data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": [i for i in range(number_of_molecules)], "columns": [0, 1, 2]
+            }
+        }
 
         return data_structure
 

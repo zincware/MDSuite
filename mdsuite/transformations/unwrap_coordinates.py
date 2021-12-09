@@ -27,6 +27,7 @@ Summary
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+import os
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
@@ -253,5 +254,13 @@ class CoordinateUnwrapper(Transformations):
 
         """
         for item in self.species:
-            self._unwrap_coordinates(item)  # run the transformation.
+            exists = self.database.check_existence(os.path.join(item, "Positions"))
+            # Check if the tensor_values has already been unwrapped
+            if exists:
+                print(
+                    f"Unwrapped positions exists for {item}, "
+                    "using the saved coordinates"
+                )
+            else:
+                self._unwrap_coordinates(item)  # run the transformation.
             self.experiment.memory_requirements = self.database.get_memory_information()

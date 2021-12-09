@@ -39,24 +39,57 @@ def mdsuite_project(traj_file, tmp_path) -> mdsuite.Project:
 
 
 def test_from_project(mdsuite_project):
+    """
+    Test the unwrapping call from the project class.
+
+    Notes
+    -----
+    Does not check actual values just runs the transformation.
+    """
     mdsuite_project.run.CoordinateUnwrapper()
 
 
-def _test_from_project_twice(mdsuite_project):
+def test_from_project_twice(mdsuite_project):
+    """
+    Test the unwrapping call from the project class twice to ensure that it prevents
+    attempted creation of a database group twice.
+
+    Notes
+    -----
+    Does not check actual values just runs the transformation.
+    """
     mdsuite_project.run.CoordinateUnwrapper()
     mdsuite_project.run.CoordinateUnwrapper()
 
 
 def test_from_experiment(mdsuite_project):
+    """
+    Test the unwrapping call from the experiment class.
+
+    Notes
+    -----
+    Does not check actual values just runs the transformation.
+    """
     mdsuite_project.experiments.NaCl.run.CoordinateUnwrapper()
 
 
-def _test_from_experiment_twice(mdsuite_project):
+def test_from_experiment_twice(mdsuite_project):
+    """
+    Test the unwrapping call from the experiment class twice to ensure that it prevents
+    attempted creation of a database group twice.
+
+    Notes
+    -----
+    Does not check actual values just runs the transformation.
+    """
     mdsuite_project.experiments.NaCl.run.CoordinateUnwrapper()
     mdsuite_project.experiments.NaCl.run.CoordinateUnwrapper()
 
 
 def test_pass_instance_to_exp(mdsuite_project):
+    """
+    Test passing the transformation to the experiment class.
+    """
     mdsuite_project.experiments.NaCl.cls_transformation_run(
         mdsuite.transformations.CoordinateUnwrapper()
     )

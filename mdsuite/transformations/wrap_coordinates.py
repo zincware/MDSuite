@@ -90,6 +90,13 @@ class CoordinateWrapper(Transformations):
         self.species = species  # re-assign species
 
     def update_from_experiment(self):
+        """
+        Update information from the experiment.
+
+        Returns
+        -------
+        Updates the class state.
+        """
         self.storage_path = self.experiment.storage_path
         self.analysis_name = self.experiment.name
 
