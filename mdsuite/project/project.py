@@ -104,17 +104,37 @@ class Project(ProjectDatabase):
         self._experiments = {}
 
         # Check for project directory, if none exist, create a new one
-        project_dir = Path(f"{self.storage_path}/{self.name}")
-        if project_dir.exists():
+        self.project_dir = Path(f"{self.storage_path}/{self.name}")
+
+        if self.project_dir.exists():
+            self.attach_file_logger()
             log.info("Loading the class state")
             log.info(f"Available experiments are: {self.db_experiments}")
         else:
-            project_dir.mkdir(parents=True, exist_ok=True)
+            self.project_dir.mkdir(parents=True, exist_ok=True)
+            self.attach_file_logger()
+            log.info(f"Creating new project {self.name}")
 
         self.build_database()
 
         # Database Properties
         self.description = description
+
+    def attach_file_logger(self):
+        """Attach a file logger for this project"""
+
+        logger = logging.getLogger("mdsuite")
+        formatter = logging.Formatter(
+            f"%(asctime)s %(levelname)s (%(module)s): %(message)s"
+        )
+        # TODO this will potentially log two mds.Projects into the same file
+        #   maybe there are some conditional logging Handlers that can check
+        #   project.name, but for now this should be fine.
+        channel = logging.FileHandler(self.project_dir / "mdsuite.log")
+        channel.setLevel(logging.DEBUG)
+        channel.setFormatter(formatter)
+
+        logger.addHandler(channel)
 
     def __str__(self):
         """
