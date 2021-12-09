@@ -127,7 +127,7 @@ class TranslationalDipoleMoment(Transformations):
                 path: (self.experiment.number_of_configurations - old_shape[0], 3)
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)
+            self.database.resize_datasets(resize_structure)
             data_structure = {
                 path: {
                     "indices": np.s_[
@@ -139,7 +139,7 @@ class TranslationalDipoleMoment(Transformations):
             }
         else:
             dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
-            self.database.add_datasets(dataset_structure)
+            self.database.add_dataset(dataset_structure)
             data_structure = {
                 path: {"indices": np.s_[:], "columns": [0, 1, 2], "length": 1}
             }
