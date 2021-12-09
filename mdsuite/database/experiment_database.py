@@ -235,8 +235,8 @@ class ExperimentDatabase:
             return
 
         # Do not allow the key "indices" in the SQL database!
-        for single_species in value.values():
-            single_species.pop("indices", None)
+        # for single_species in value.values():
+        #    single_species.pop("indices", None)
 
         self._species = None
         with self.project.session as ses:
