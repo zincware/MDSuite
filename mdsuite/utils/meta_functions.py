@@ -25,9 +25,11 @@ Summary
 -------
 """
 
+import json
 import logging
-
 import os
+import pathlib
+import typing
 from functools import wraps
 from time import time
 from typing import Callable
@@ -39,11 +41,8 @@ from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
-import json
-
 
 log = logging.getLogger(__name__)
-
 
 
 # https://stackoverflow.com/questions/42033142/is-there-an-easy-way-to-check-if-an-object-is-json-serializable-in-python
@@ -180,7 +179,7 @@ def line_counter(filename: str) -> int:
 
 
 def optimize_batch_size(
-    filepath: str,
+    filepath: typing.Union[str, pathlib.Path],
     number_of_configurations: int,
     _file_size: int = None,
     _memory: int = None,
@@ -533,3 +532,13 @@ class DotDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
     __dir__ = dict.keys
+
+
+def sort_array_by_column(array: np.ndarray, column_idx: int):
+    # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column/35624868
+    # make sure that the column to sort by is number type
+    # culprit: if we read in a lammps file, one line will be str, so the whole array is str.
+    # sorting by id will invoke str sorting rules (i.e. '10' < '2'), even though the id column
+    # could have number type.
+    to_sort_by_column = np.asarray(array[:, column_idx], dtype=float)
+    return array[to_sort_by_column.argsort()]

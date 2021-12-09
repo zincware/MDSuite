@@ -25,8 +25,9 @@ Summary
 -------
 """
 import numpy as np
-from tqdm import tqdm
 import tensorflow as tf
+from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -104,6 +105,7 @@ class IonicCurrent(Transformations):
                         :,
                     ],
                     "columns": [0, 1, 2],
+                    "length": 1,
                 }
             }
         else:
@@ -111,7 +113,9 @@ class IonicCurrent(Transformations):
             self.database.add_dataset(
                 dataset_structure
             )  # add a new dataset to the database_path
-            data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+            data_structure = {
+                path: {"indices": np.s_[:], "columns": [0, 1, 2], "length": 1}
+            }
 
         return data_structure
 

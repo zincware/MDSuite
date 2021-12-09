@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import Tuple
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from typing import Tuple
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -140,13 +142,15 @@ class KinaciIntegratedHeatCurrent(Transformations):
             (positions_path, velocities_path, forces_path, pe_path)
         )
 
-        self._prepare_monitors(data_path)
+        self._prepare_monitors(data_path)  # create the data and memory managers.
+
         # update the dictionary (mutable object)
         type_spec = self._update_species_type_dict(type_spec, positions_path, 3)
         type_spec = self._update_species_type_dict(type_spec, velocities_path, 3)
         type_spec = self._update_species_type_dict(type_spec, forces_path, 3)
         type_spec = self._update_species_type_dict(type_spec, pe_path, 1)
         type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=tf.int16)
+
         batch_generator, batch_generator_args = self.data_manager.batch_generator(
             dictionary=True, remainder=True
         )

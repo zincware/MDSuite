@@ -25,12 +25,12 @@ Summary
 -------
 """
 import logging
+from pathlib import Path
 
 import sqlalchemy as sa
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.orm.session import Session
 from sqlalchemy.engine import Engine
-from pathlib import Path
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.orm.session import Session
 
 from .scheme import Base
 
@@ -69,9 +69,7 @@ class DatabaseBase:
         if self._engine is None:
             engine_path = Path(self.storage_path, self.name, self.database_name)
             self._engine = sa.create_engine(
-                f"sqlite+pysqlite:///{engine_path}",
-                echo=False,
-                future=True,
+                f"sqlite+pysqlite:///{engine_path}", echo=False, future=True
             )
         return self._engine
 

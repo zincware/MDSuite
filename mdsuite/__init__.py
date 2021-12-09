@@ -26,18 +26,19 @@ Summary
 """
 import logging
 import sys
-from .project import Project
+
 from .experiment import Experiment
 from .graph_modules import adjacency_matrix
-from .utils.report_computer_characteristics import Report
+from .project import Project
 from .utils import config
+from .utils.report_computer_characteristics import Report
 
 from . import _version
 __version__ = _version.get_versions()['version']
 
 __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 
-logger = logging.getLogger("mdsuite")
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging

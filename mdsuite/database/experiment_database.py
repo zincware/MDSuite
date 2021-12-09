@@ -27,17 +27,18 @@ Summary
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List
+
+import numpy as np
+import pandas as pd
 
 import mdsuite.database.scheme as db
-from mdsuite.database.scheme import Project, Experiment, ExperimentAttribute
+from mdsuite.database.scheme import Experiment, ExperimentAttribute, Project
 from mdsuite.utils.database import get_or_create
-import pandas as pd
-import numpy as np
-from dataclasses import asdict
+from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
-
-from pathlib import Path
-from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from mdsuite import Project
@@ -45,7 +46,49 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
+class LazyProperty:
+    """Property preset for I/O with the database
+
+    References
+    ----------
+    https://realpython.com/python-descriptors/
+    """
+
+    def __set_name__(self, owner, name):
+        """See https://www.python.org/dev/peps/pep-0487/"""
+        self.name = name
+
+    def __get__(self, instance: ExperimentDatabase, owner):
+        """Get the value either from memory or from the database
+
+        Try to get the value from memory, if not write it to memory
+        """
+        try:
+            return instance.__dict__[self.name]
+        except KeyError:
+            instance.__dict__[self.name] = instance.get_db(self.name)
+            return self.__get__(instance, owner)
+
+    def __set__(self, instance: ExperimentDatabase, value):
+        """Write value to the database
+
+        Write the given value to the database and remove it from memory
+        """
+        if value is None:
+            return
+        instance.set_db(self.name, value)
+        instance.__dict__.pop(self.name, None)
+
+
 class ExperimentDatabase:
+    temperature = LazyProperty()
+    time_step = LazyProperty()
+    number_of_configurations = LazyProperty()
+    number_of_atoms = LazyProperty()
+    sample_rate = LazyProperty()
+    volume = LazyProperty()
+    property_groups = LazyProperty()
+
     def __init__(self, project: Project, experiment_name):
         self.project = project
         self.name = experiment_name
@@ -73,7 +116,7 @@ class ExperimentDatabase:
             "This function has been removed and replaced by queue_database"
         )
 
-    def _set_db(self, name: str, value):
+    def set_db(self, name: str, value):
         """Store values in the database
 
         Parameters
@@ -93,7 +136,7 @@ class ExperimentDatabase:
             attribute.data = value
             ses.commit()
 
-    def _get_db(self, name: str, default=None):
+    def get_db(self, name: str, default=None):
         """Load values from the database
 
         Parameters
@@ -151,13 +194,15 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self):
+    def species(self) -> Dict[str, DotDict]:
         """Get species
 
         Returns
         -------
 
-        dict:
+        # TODO replace DotDict with dataclass
+
+        DotDict:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
             charge: [0]}}
         """
@@ -166,7 +211,9 @@ class ExperimentDatabase:
                 experiment = (
                     ses.query(Experiment).filter(Experiment.name == self.name).first()
                 )
-                self._species = experiment.get_species()
+                self._species = {
+                    key: DotDict(val) for key, val in experiment.get_species().items()
+                }
 
         return self._species
 
@@ -181,11 +228,16 @@ class ExperimentDatabase:
         Notes
         -----
 
-        species = {C: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+        species = {C: {mass: [12.0], charge: [0]}}
 
         """
         if value is None:
             return
+
+        # Do not allow the key "indices" in the SQL database!
+        for single_species in value.values():
+            single_species.pop("indices", None)
+
         self._species = None
         with self.project.session as ses:
             experiment = (
@@ -201,6 +253,8 @@ class ExperimentDatabase:
     @property
     def molecules(self):
         """Get the molecules dict"""
+
+        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
@@ -234,7 +288,7 @@ class ExperimentDatabase:
     @property
     def box_array(self):
         """Get the sample_rate of the experiment"""
-        return self._get_db(name="box_array")
+        return self.get_db(name="box_array")
 
     @box_array.setter
     def box_array(self, value):
@@ -244,110 +298,19 @@ class ExperimentDatabase:
         if isinstance(value, np.ndarray):
             value = value.tolist()
 
-        self._set_db(name="box_array", value=value)
-
-    # Lazy Properties:
-    @property
-    def temperature(self):
-        """Get the temperature of the experiment"""
-        return self._get_db(name="temperature")
-
-    @temperature.setter
-    def temperature(self, value):
-        """Set the temperature of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="temperature", value=value)
-
-    @property
-    def time_step(self):
-        """Get the time_step of the experiment"""
-        return self._get_db(name="time_step")
-
-    @time_step.setter
-    def time_step(self, value):
-        """Set the time_step of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="time_step", value=value)
+        self.set_db(name="box_array", value=value)
 
     @property
     def units(self) -> Dict[str, float]:
         """Get the units of the experiment"""
-        return self._get_db(name="units")
+        return self.get_db(name="units")
 
     @units.setter
     def units(self, value: Units):
         """Set the units of the experiment"""
         if value is None:
             return
-        self._set_db(name="units", value=asdict(value))
-
-    @property
-    def number_of_configurations(self) -> int:
-        """Get the time_step of the experiment"""
-        return self._get_db(name="number_of_configurations")
-
-    @number_of_configurations.setter
-    def number_of_configurations(self, value):
-        """Set the time_step of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="number_of_configurations", value=value)
-
-    @property
-    def number_of_atoms(self) -> int:
-        """Get the time_step of the experiment"""
-        return self._get_db(name="number_of_atoms")
-
-    @number_of_atoms.setter
-    def number_of_atoms(self, value):
-        """Set the time_step of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="number_of_atoms", value=value)
-
-    @property
-    def sample_rate(self):
-        """Get the sample_rate of the experiment"""
-        return self._get_db(name="sample_rate")
-
-    @sample_rate.setter
-    def sample_rate(self, value):
-        """Set the time_step of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="sample_rate", value=value)
-
-    @property
-    def volume(self):
-        """Get the volume of the experiment"""
-        return self._get_db(name="volume")
-
-    @volume.setter
-    def volume(self, value):
-        """Set the volume of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="volume", value=value)
-
-    @property
-    def property_groups(self):
-        """Get the property groups from the database
-
-        Returns
-        -------
-        property_groups: dict
-                Example: {'Positions': [3, 4, 5], 'Velocities': [6, 7, 8], ...}
-        """
-        return self._get_db(name="property_groups")
-
-    @property_groups.setter
-    def property_groups(self, value):
-        """Write the property groups to the database"""
-        if value is None:
-            return
-        self._set_db(name="property_groups", value=value)
+        self.set_db(name="units", value=asdict(value))
 
     @property
     def read_files(self):
@@ -355,11 +318,11 @@ class ExperimentDatabase:
 
         Returns
         -------
-        read_files: list[Path]
+        read_files: list[str]
             A List of all files that were added to the database already
 
         """
-        return self._get_db(name="read_files", default=[])
+        return self.get_db(name="read_files", default=[])
 
     @read_files.setter
     def read_files(self, value):
@@ -375,27 +338,7 @@ class ExperimentDatabase:
         """
         if value is None:
             return
-        self._set_db(name="read_files", value=value)
-
-    @property
-    def radial_distribution_function_state(self) -> bool:
-        """Get the radial_distribution_function_state of the experiment
-
-        Returns
-        -------
-        bool:
-            the state of the RDF
-        # TODO this method could potentially be replaced by a quick query of the
-           database
-        """
-        return self._get_db(name="radial_distribution_function_state", default=False)
-
-    @radial_distribution_function_state.setter
-    def radial_distribution_function_state(self, value):
-        """Set the radial_distribution_function_state of the experiment"""
-        if value is None:
-            return
-        self._set_db(name="radial_distribution_function_state", value=value)
+        self.set_db(name="read_files", value=value)
 
     @property
     def simulation_data(self) -> dict:
@@ -408,7 +351,7 @@ class ExperimentDatabase:
         dict: A dictionary containing all simulation_data
 
         """
-        return self._get_db(name="simulation_data", default={})
+        return self.get_db(name="simulation_data", default={})
 
     @simulation_data.setter
     def simulation_data(self, value: dict):
@@ -429,7 +372,7 @@ class ExperimentDatabase:
         """
         if value is None:
             return
-        self._set_db(name="simulation_data", value=value)
+        self.set_db(name="simulation_data", value=value)
 
     @property
     def version(self) -> int:
@@ -437,7 +380,7 @@ class ExperimentDatabase:
 
         Versioning starts at 0 and can be increased by +1 for every added file
         """
-        return self._get_db(name="version", default=0)
+        return self.get_db(name="version", default=0)
 
     @version.setter
     def version(self, value: int):
@@ -448,4 +391,4 @@ class ExperimentDatabase:
         """
         if value is None:
             return
-        self._set_db(name="version", value=value)
+        self.set_db(name="version", value=value)

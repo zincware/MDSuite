@@ -25,8 +25,9 @@ Summary
 -------
 """
 import numpy as np
-from tqdm import tqdm
 import tensorflow as tf
+from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -140,12 +141,15 @@ class TranslationalDipoleMoment(Transformations):
                         :,
                     ],
                     "columns": [0, 1, 2],
+                    "length": 1,
                 }
             }
         else:
             dataset_structure = {path: (self.experiment.number_of_configurations, 3)}
             self.database.add_dataset(dataset_structure)
-            data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+            data_structure = {
+                path: {"indices": np.s_[:], "columns": [0, 1, 2], "length": 1}
+            }
 
         return data_structure
 

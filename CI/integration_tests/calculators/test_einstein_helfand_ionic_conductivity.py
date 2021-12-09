@@ -24,11 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import pytest
 import os
+
+import pytest
+from zinchub import DataHub
+
 import mdsuite as mds
 from mdsuite.utils.testing import assertDeepAlmostEqual
-from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")
@@ -58,7 +60,9 @@ def test_project(traj_file, true_values, tmp_path):
     """
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
 
     computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
 

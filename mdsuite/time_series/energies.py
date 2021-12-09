@@ -25,9 +25,10 @@ Summary
 -------
 """
 from __future__ import annotations
-from .base import TimeSeries
 
 from typing import TYPE_CHECKING
+
+from .base import TimeSeries
 
 if TYPE_CHECKING:
     from mdsuite import Experiment

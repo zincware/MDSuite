@@ -25,8 +25,9 @@ Summary
 -------
 """
 import numpy as np
-from tqdm import tqdm
 import tensorflow as tf
+from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -88,13 +89,19 @@ class CoordinateUnwrapper(Transformations):
         path = join_path(species, "Unwrapped_Positions")
         dataset_structure = {
             path: (
-                len(self.experiment.species[species]["indices"]),
+                self.experiment.species[species].n_particles,
                 self.experiment.number_of_configurations,
                 3,
             )
         }
         self.database.add_dataset(dataset_structure)
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": np.s_[:],
+                "columns": [0, 1, 2],
+                "length": self.experiment.species[species].n_particles,
+            }
+        }
 
         return data_structure
 
@@ -203,10 +210,8 @@ class CoordinateUnwrapper(Transformations):
             batch_generator, args=batch_generator_args, output_signature=type_spec
         )
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        state = tf.zeros(shape=(len(self.experiment.species[species]["indices"]), 3))
-        last_conf = tf.zeros(
-            shape=(len(self.experiment.species[species]["indices"]), 3)
-        )
+        state = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
+        last_conf = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
         loop_correction = self._remainder_to_binary()
         for index, x in tqdm(
             enumerate(data_set),

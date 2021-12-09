@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import List
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from typing import List
+
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
@@ -215,9 +217,13 @@ class MolecularMap(Transformations):
         data : tf.Tensor
                 A tensor of stacked data.
         """
-        data = self.database.load_data(
-            path_list=path_list, select_slice=slice, scaling=factor
+        data_dict = self.database.load_data(
+            path_list=path_list, select_slice=slice, scaling=factor, dictionary=True
         )
+        data = []
+        for item in path_list:
+            data.append(data_dict[item])
+
         return tf.concat(data, axis=0)
 
     def _prepare_mass_array(self, species: list) -> list:
@@ -255,7 +261,6 @@ class MolecularMap(Transformations):
             )
             path_list = [join_path(s, "Unwrapped_Positions") for s in species]
             self._prepare_monitors(data_path=path_list)
-            # TODO for #338
             scaling_factor = self.reference_molecules[item]["mass"]
             molecules = self.experiment.molecules
             molecules[item] = {}
@@ -317,7 +322,7 @@ class MolecularMap(Transformations):
         indices_dict = {}
         lengths = []
         for i, item in enumerate(species):
-            length = len(self.experiment.species[item]["indices"])
+            length = self.experiment.species[item].n_particles
             if i == 0:
                 lengths.append(length)
             else:
@@ -354,4 +359,3 @@ class MolecularMap(Transformations):
         self.experiment.perform_transformation(
             "WrapCoordinates", species=[item for item in self.molecules]
         )
-        self.experiment.save_class()

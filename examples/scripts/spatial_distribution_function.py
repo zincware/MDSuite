@@ -24,12 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import mdsuite as mds
-import urllib.request
-import shutil
 import gzip
 import os
+import shutil
 import tempfile
+import urllib.request
+
+import mdsuite as mds
 from mdsuite.transformations.map_molecules import MolecularMap
 
 
@@ -41,7 +42,7 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    base_url = "https://github.com/zincware/ExampleData/raw/main/bmim_bf4.lammpstrj"
+    base_url = "https://github.com/zincware/Datahub/raw/main/bmim_bf4.lammpstrj"
     filename, headers = urllib.request.urlretrieve(
         f"{base_url}.gz", filename="bmim_bf4.lammpstrj.gz"
     )
@@ -60,7 +61,7 @@ def run_example():
     """
     project = mds.Project("bmim_bf4_example")
     project.add_experiment(
-        experiment="bmim_bf4",
+        name="bmim_bf4",
         timestep=0.1,
         temperature=100.0,
         units="real",
@@ -80,13 +81,14 @@ def run_example():
     project.run.SpatialDistributionFunction(
         species=["bmim", "bf4"],
         r_min=1.0,
-        r_max=3.0,
-        number_of_configurations=5,
+        r_max=9.0,
+        number_of_configurations=50,
+        n_bins=1000,
         start=0,
-        stop=40,
+        stop=80,
     )
 
-    project.experiments.bmim_bf4.run_visualization(molecules=True)
+    # project.experiments.bmim_bf4.run_visualization(molecules=True)
 
     print("Tutorial complete....... Files being deleted now.")
 

@@ -24,9 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -105,10 +107,10 @@ class CoordinateWrapper(Transformations):
         """
         Load the tensor_values to be unwrapped
         """
-        path = join_path(species, "Unwrapped_Positions")
-        self.data = np.array(
-            self.experiment.load_matrix(path=[path], select_slice=np.s_[:])
-        )
+        path_list = [join_path(species, "Unwrapped_Positions")]
+        self.data = self.database.load_data(
+            path_list=path_list, select_slice=np.s_[:], dictionary=True
+        )[path_list[0]]
 
     def _center_box(self):
         """
@@ -193,7 +195,6 @@ class CoordinateWrapper(Transformations):
                 )
 
         self.experiment.memory_requirements = self.database.get_memory_information()
-        self.experiment.save_class()
 
     def run_transformation(self):
         """

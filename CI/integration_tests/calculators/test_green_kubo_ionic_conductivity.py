@@ -24,10 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import pytest
 import os
-import mdsuite as mds
+
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -52,8 +55,10 @@ def test_project(traj_file, true_values, tmp_path):
     """Test the green_kubo_ionic_conductivity called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_file, timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
 
     computation = project.run.GreenKuboIonicConductivity(plot=False)
 
-    assert computation["NaCl"].data_dict == true_values
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)

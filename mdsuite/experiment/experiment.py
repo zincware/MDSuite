@@ -26,22 +26,68 @@ Summary
 """
 import logging
 from pathlib import Path
+from typing import Union
+
 from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import units_dict, Units
-from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.utils.units import Units, units_dict
 from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
-from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
-
-from typing import Union
 
 log = logging.getLogger(__name__)
 
+import copy
+import importlib.resources
+import json
+import pathlib
+from typing import List
 
-class Experiment(ExperimentDatabase, ExperimentAddingFiles):
+import numpy as np
+import pubchempy as pcp
+
+import mdsuite.file_io.extxyz_files
+import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.utils.meta_functions
+from mdsuite.database.simulation_database import (
+    Database,
+    SpeciesInfo,
+    TrajectoryMetadata,
+)
+from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.utils.exceptions import ElementMassAssignedZero
+from mdsuite.utils.meta_functions import join_path
+
+
+def _get_processor(simulation_data):
+    """
+    Read in one file
+    """
+    if isinstance(simulation_data, str) or isinstance(simulation_data, pathlib.Path):
+        suffix = pathlib.Path(simulation_data).suffix
+        if suffix == ".lammpstraj":
+            processor = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
+                simulation_data
+            )
+        elif suffix == ".extxyz":
+            processor = mdsuite.file_io.extxyz_files.EXTXYZFile(simulation_data)
+        else:
+            raise ValueError(
+                f"datafile ending '{suffix}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
+            )
+    elif isinstance(simulation_data, mdsuite.file_io.file_read.FileProcessor):
+        processor = simulation_data
+    else:
+        raise ValueError(
+            f"simulation_data must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}' instead"
+        )
+
+    return processor
+
+
+class Experiment(ExperimentDatabase):
     """
     The central experiment class fundamental to all analysis.
 
@@ -135,7 +181,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.sample_rate = (
             None  # Rate at which configurations are dumped in the trajectory.
         )
-        self.batch_size = None  # Number of configurations in each batch.
         self.volume = None
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = (
@@ -148,11 +193,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.figures_path: str
         self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
-
-        # Memory properties
-        self.memory_requirements = (
-            {}
-        )  # TODO I think this can be removed. - Not until all calcs are updated.
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
@@ -171,6 +211,11 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         return RunComputation(experiment=self)
 
     def __repr__(self):
+        """
+        Representation of the class.
+
+        In our case, the representation of the class is the name of the experiment.
+        """
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
@@ -180,9 +225,7 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.experiment_path = Path(
             self.storage_path, self.name
         )  # path to the experiment files
-        self.database_path = Path(
-            self.experiment_path, "databases"
-        )  # path to the databases
+        self.database_path = Path(self.experiment_path)  # path to the databases
         self.figures_path = Path(
             self.experiment_path, "figures"
         )  # path to the figures directory
@@ -262,9 +305,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             log.info("Creating a new experiment!")
             self._build_model()
             return False
-
-    def save_class(self):
-        log.warning("Using depreciated method `save_class`!")
 
     def perform_transformation(self, transformation_name, **kwargs):
         """
@@ -402,5 +442,257 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
                 New mass/es of the element
         """
         species = self.species
-        species[element]["mass"] = mass  # update the mass
+        species[element]["mass"] = mass
         self.species = species
+
+    def add_data(
+        self,
+        simulation_data: Union[
+            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
+        ],
+        force: bool = False,
+        update_with_pubchempy: bool = True,
+    ):
+        """
+        Add data to experiment. This method takes a filename, file path or a file reader (or a list thereof).
+        If given a filename, it will try to instantiate the appropriate file reader with its default arguments.
+        If you have a custom data format with its own reader or want to use non-default arguments for your reader,
+        instantiate the reader and pass it to this method.
+        TODO reference online documentation of data loading in the error messages
+        Parameters
+        ----------
+        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor or list thereof
+            if str or pathlib.Path: path to the file that contains the simulation_data
+            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file reader from mdsuite.file_io
+            if list : must be list of any of the above (can be mixed).
+        force : bool
+            If true, a file will be read regardless of if it has already been seen. Default: False
+        update_with_pubchempy: bool
+            Whether or not to look for the masses of the species in pubchempy. Default: True
+
+        """
+
+        if isinstance(simulation_data, list):
+            for elem in simulation_data:
+                proc = _get_processor(elem)
+                self._add_data_from_file_processor(
+                    proc, force=force, update_with_pubchempy=update_with_pubchempy
+                )
+        else:
+            proc = _get_processor(simulation_data)
+            self._add_data_from_file_processor(
+                proc, force=force, update_with_pubchempy=update_with_pubchempy
+            )
+
+    def _add_data_from_file_processor(
+        self,
+        file_processor: mdsuite.file_io.file_read.FileProcessor,
+        force: bool = False,
+        update_with_pubchempy: bool = True,
+    ):
+        """
+        Add tensor_values to the database_path
+
+        Parameters
+        ----------
+        file_processor
+            The FileProcessor that is able to provide the metadata and the trajectory to be saved
+        force : bool
+                If true, a file will be read regardless of if it has already
+                been seen.
+        update_with_pubchempy: bool
+                Whether or not to look for the masses of the species in pubchempy
+        """
+
+        already_read = str(FileProcessor) in self.read_files
+        if already_read and not force:
+            log.info(
+                "This file has already been read, skipping this now."
+                "If this is not desired, please add force=True "
+                "to the command."
+            )
+            return
+
+        database = Database(
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+        )
+
+        metadata = file_processor.metadata
+        architecture = _species_list_to_architecture_dict(
+            metadata.species_list, metadata.n_configurations
+        )
+        if not database.database_exists():
+            self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
+            database.initialize_database(architecture)
+        else:
+            database.resize_datasets(architecture)
+
+        for i, batch in enumerate(file_processor.get_configurations_generator()):
+            database.add_data(chunk=batch, start_idx=self.number_of_configurations)
+            self.number_of_configurations += batch.chunk_size
+
+        self.version += 1
+
+        self.memory_requirements = database.get_memory_information()
+
+        # set at the end, because if something fails, the file was not properly read.
+        self.read_files = self.read_files + [str(FileProcessor)]
+
+    def load_matrix(
+        self,
+        property_name: str = None,
+        species: list = None,
+        select_slice: np.s_ = None,
+        path: list = None,
+    ):
+        """
+        Load a desired property matrix.
+
+        Parameters
+        ----------
+        property_name : str
+                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions', 'Velocities'
+        species : list
+                List of species to be loaded
+        select_slice : np.slice
+                A slice to select from the database_path.
+        path : str
+                optional path to the database_path.
+
+        Returns
+        -------
+        property_matrix : np.array, tf.tensor
+                Tensor of the property to be studied. Format depends on kwargs.
+        """
+        database = Database(
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+        )
+
+        if path is not None:
+            return database.load_data(path_list=path, select_slice=select_slice)
+
+        else:
+            # If no species list is given, use all species in the Experiment.
+            if species is None:
+                species = list(self.species.keys())
+            # If no slice is given, load all configurations.
+            if select_slice is None:
+                select_slice = np.s_[:]  # set the numpy slice object.
+
+        path_list = []
+        for item in species:
+            path_list.append(join_path(item, property_name))
+        return database.load_data(path_list=path_list, select_slice=select_slice)
+
+    def _store_metadata(
+        self, metadata: TrajectoryMetadata, update_with_pubchempy=False
+    ):
+        """Save Metadata in the SQL DB
+
+        Parameters
+        ----------
+        metadata: TrajectoryMetadata
+        update_with_pubchempy: bool
+            Load data from pubchempy and add it to fill missing infomration
+        """
+        # new trajectory: store all metadata and construct a new database
+        self.temperature = metadata.temperature
+        self.box_array = metadata.box_l
+        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+            self.box_array
+        )
+        self.volume = np.prod(self.box_array)
+        # todo look into replacing these properties
+        self.sample_rate = metadata.sample_rate
+        species_list = copy.deepcopy(metadata.species_list)
+        if update_with_pubchempy:
+            update_species_attributes_with_pubchempy(species_list)
+        # store the species information in dict format
+        species_dict = dict()
+        for sp_info in species_list:
+            species_dict[sp_info.name] = {
+                # look here
+                "mass": sp_info.mass,
+                "charge": sp_info.charge,
+                "n_particles": sp_info.n_particles,
+                # legacy: calculators use this list to determine the number of particles
+                # TODO fix this, Christoph!
+                "indices": list(range(sp_info.n_particles)),
+                "properties": [prop_info.name for prop_info in sp_info.properties],
+            }
+        self.species = species_dict
+        # assume the same property for each species
+        self.property_groups = next(iter(species_dict.values()))["properties"]
+
+
+def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
+    """
+    Add information to the species dictionary
+
+    A fundamental part of this package is species specific analysis. Therefore, the
+    Pubchempy package is used to add important species specific information to the
+    class. This will include the charge of the ions which will be used in
+    conductivity calculations.
+
+    """
+    with importlib.resources.open_text(
+        "mdsuite.data", "PubChemElements_all.json"
+    ) as json_file:
+        pse = json.loads(json_file.read())
+
+    # Try to get the species tensor_values from the Periodic System of Elements file
+
+    # set/find masses
+    for sp_info in species_list:
+        for entry in pse:
+            if pse[entry][1] == sp_info.name:
+                sp_info.mass = [float(pse[entry][3])]
+
+                # If gathering the tensor_values from the PSE file was not successful
+    # try to get it from Pubchem via pubchempy
+    for sp_info in species_list:
+        if sp_info.mass is None:
+            try:
+                temp = pcp.get_compounds(sp_info.name, "name")
+                temp[0].to_dict(
+                    properties=[
+                        "atoms",
+                        "bonds",
+                        "exact_mass",
+                        "molecular_weight",
+                        "elements",
+                    ]
+                )
+                sp_info.mass = [temp[0].molecular_weight]
+                log.debug(temp[0].exact_mass)
+            except (ElementMassAssignedZero, IndexError):
+                sp_info.mass = 0.0
+                log.warning(
+                    f"WARNING element {sp_info.name} has been assigned mass=0.0"
+                )
+    return species_list
+
+
+def _species_list_to_architecture_dict(species_list, n_configurations):
+    # TODO let the database handler use the species list directly instead of the dict
+    """
+    converter from species list to leacy architecture dict
+    Parameters
+    ----------
+    species_list
+    n_configurations
+
+    Returns
+    -------
+    dict like architecture = {'Na':{'Positions':(n_part, n_config, n_dim)}}
+    """
+    architecture = {}
+    for sp_info in species_list:
+        architecture[sp_info.name] = {}
+        for prop_info in sp_info.properties:
+            architecture[sp_info.name][prop_info.name] = (
+                sp_info.n_particles,
+                n_configurations,
+                prop_info.n_dims,
+            )
+    return architecture

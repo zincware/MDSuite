@@ -25,17 +25,19 @@ Summary
 -------
 """
 import logging
-from mdsuite.utils.meta_functions import get_machine_properties
+from typing import Tuple
+
+import numpy as np
+import tensorflow as tf
+
 from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import get_machine_properties
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
     linearithmic_scale_function,
     polynomial_scale_function,
     quadratic_scale_function,
 )
-import numpy as np
-from typing import Tuple
-import tensorflow as tf
 
 log = logging.getLogger(__name__)
 
@@ -79,12 +81,23 @@ class MemoryManager:
         Parameters
         ----------
         data_path : list
+                Path to the data to be used in a calculator. This is used when
+                asking the database how big a dataset is.
+                ["Na/Positions", "Ionic_Current/Ionic_Current"]
         database : Database
+                Database class to be used for checking size parameters.
         parallel : bool
+                If true, the memory should be computed for parallel processes.
         memory_fraction : float
+                How much memory is the calculator allowed to use.
         scale_function : dict
+                Scaling function to compute the memory scaling of a calculator.
         gpu : bool
+                If true, gpu should be used.
         offset : int
+                If data is being loaded from a non-zero point in the database the
+                offset is used to take this into account. For example, expanding a
+                transformation.
         """
         if scale_function is None:
             scale_function = {"linear": {"scale_factor": 10}}
@@ -181,10 +194,10 @@ class MemoryManager:
                 number of elements that will be left unloaded after a loop over all
                 batches. This amount can then be loaded to collect unused tensor_values.
         """
-        if self.data_path is []:
+        if self.data_path is None:
             raise ValueError("No tensor_values have been requested.")
 
-        per_configuration_memory: float = 0
+        per_configuration_memory: float = 0.0
         for item in self.data_path:
             n_rows, n_columns, n_bytes = self.database.get_data_size(
                 item, system=system
@@ -210,22 +223,25 @@ class MemoryManager:
 
         return batch_size, number_of_batches, remainder
 
-    def hdf5_load_time(self, N):
+    @staticmethod
+    def hdf5_load_time(n: int):
         """
         Describes the load time of a hdf5 database i.e. O(log N)
 
         Parameters
         ----------
-        N : int
+        n : int
                 Amount of data to be loaded
 
         Returns
         -------
-
+        load_time : float
+                Load time of N data points from a hdf5 database.
         """
-        yield np.log(N)
+        return np.log(n)
 
-    def _get_optimal_batch_size(self, naive_size):
+    @staticmethod
+    def _get_optimal_batch_size(naive_size):
         """
         Use the open/close and read speeds of the hdf5 database_path as well as the
         operation being performed to get an optimal batch size.
@@ -246,9 +262,25 @@ class MemoryManager:
     def _compute_atomwise_minibatch(self, data_range: int):
         """
         Compute the number of atoms which can be loaded in at one time.
+
+        Parameters
+        ----------
+        data_range : int
+                Data range used in the calculator.
+
         Returns
         -------
-
+        Updates the following class attributes:
+            self.batch_size : int
+                    Size of each batch.
+            self.n_batches : int
+                    Number of batches to be looped over.
+            self.remainder :
+                    Remainder of batches after looping.
+            self.n_atom_batches : int
+                    Number of batches over atoms.
+            self.atom_remainder : int
+                    Remainder atoms after even batching.
         """
         per_atom_memory = 0  # memory usage per atom within ONE configuration
         per_configuration_memory = 0  # per configuration memory usage
@@ -259,7 +291,6 @@ class MemoryManager:
             per_atom_memory += per_configuration_memory / n_rows
             total_rows += n_rows
 
-        # This does not seem to be used anywhere?
         # per_configuration_memory = self.scale_function(per_configuration_memory,
         # **self.scale_function_parameters)
         per_atom_memory = self.scale_function(

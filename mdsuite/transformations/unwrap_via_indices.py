@@ -24,12 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import sys
+
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+
+from mdsuite.database import simulation_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
-import sys
-import tensorflow as tf
-import numpy as np
-from tqdm import tqdm
 
 
 class UnwrapViaIndices(Transformations):
@@ -61,6 +64,8 @@ class UnwrapViaIndices(Transformations):
         super().__init__(experiment)
         self.scale_function = {"linear": {"scale_factor": 2}}
 
+        self.dtype = tf.float64
+
         self.species = species
         if self.species is None:
             self.species = list(self.experiment.species)
@@ -85,7 +90,7 @@ class UnwrapViaIndices(Transformations):
             )
             sys.exit(1)
 
-    def _transformation(self, data: tf.Tensor):
+    def _transformation(self, data: tf.Tensor, dict_keys: list):
         """
         Apply the transformation to a batch of tensor_values.
 
@@ -93,13 +98,17 @@ class UnwrapViaIndices(Transformations):
         ----------
         data : tf.Tensor
                 Data on which to operate.
+        dict_keys : list
+                Dict reference keys to use when selecting data.
 
         Returns
         -------
         Scaled coordinates : tf.Tensor
                 Coordinates scaled by the image number.
         """
-        return data[0] + tf.math.multiply(data[1], self.experiment.box_array)
+        return data[dict_keys[0]] + tf.math.multiply(
+            data[dict_keys[1]], self.experiment.box_array
+        )
 
     def _save_unwrapped_coordinates(
         self, data: tf.Tensor, index: int, batch_size: int, data_structure: dict
@@ -146,7 +155,7 @@ class UnwrapViaIndices(Transformations):
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             resize_structure = {
                 path: (
                     species_length,
@@ -166,7 +175,7 @@ class UnwrapViaIndices(Transformations):
                 }
             }
         else:
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             number_of_configurations = self.experiment.number_of_configurations
             dataset_structure = {path: (species_length, number_of_configurations, 3)}
             self.database.add_dataset(dataset_structure)
@@ -194,13 +203,24 @@ class UnwrapViaIndices(Transformations):
                 join_path(species, "Box_Images"),
             ]
             self._prepare_monitors(data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
-            data_set = tf.data.Dataset.from_generator(
-                batch_generator,
-                args=batch_generator_args,
-                output_signature=tf.TensorSpec(
-                    shape=(2, None, self.batch_size, 3), dtype=tf.float64
+            batch_generator, batch_generator_args = self.data_manager.batch_generator(
+                dictionary=True
+            )
+            dict_ref = [
+                str.encode(join_path(species, "Positions")),
+                str.encode(join_path(species, "Box_Images")),
+            ]
+            type_spec = {
+                dict_ref[0]: tf.TensorSpec(
+                    shape=simulation_properties.positions[1], dtype=self.dtype
                 ),
+                dict_ref[1]: tf.TensorSpec(
+                    shape=simulation_properties.box_images[1], dtype=self.dtype
+                ),
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+            }
+            data_set = tf.data.Dataset.from_generator(
+                batch_generator, args=batch_generator_args, output_signature=type_spec
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, batch in tqdm(
@@ -208,7 +228,7 @@ class UnwrapViaIndices(Transformations):
                 ncols=70,
                 desc=f"{species}: Unwrapping Coordinates.",
             ):
-                data = self._transformation(batch)
+                data = self._transformation(batch, dict_ref)
                 self._save_coordinates(
                     data=data,
                     data_structure=data_structure,

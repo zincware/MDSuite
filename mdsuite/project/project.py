@@ -25,18 +25,21 @@ Summary
 -------
 """
 from __future__ import annotations
+
 import logging
+import pathlib
 from datetime import datetime
 from pathlib import Path
-from typing import Union
-from mdsuite.utils.meta_functions import DotDict
+from typing import Dict, Union
+
+import mdsuite.database.scheme as db
+import mdsuite.file_io.file_read
 from mdsuite.calculators import RunComputation
 from mdsuite.database.project_database import ProjectDatabase
-import mdsuite.database.scheme as db
 from mdsuite.experiment import Experiment
 from mdsuite.utils import Units
-
-from typing import Dict
+from mdsuite.utils.helpers import NoneType
+from mdsuite.utils.meta_functions import DotDict
 
 log = logging.getLogger(__name__)
 
@@ -123,55 +126,67 @@ class Project(ProjectDatabase):
 
     def add_experiment(
         self,
-        experiment: str = None,
+        name: str = NoneType,
         timestep: float = None,
         temperature: float = None,
         units: Union[str, Units] = None,
         cluster_mode: bool = None,
         active: bool = True,
-        data: Union[str, list, dict] = None,
+        simulation_data: Union[
+            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
+        ] = None,
     ):
         """
         Add an experiment to the project
 
         Parameters
         ----------
-        data:
-            data that should be added to the experiment. If dict,
-            {file:<file>, format:<format>}
         active: bool, default = True
                 Activate the experiment when added
         cluster_mode : bool
                 If true, cluster mode is parsed to the experiment class.
-        experiment : str
-                Name to use for the experiment class.
+        name : str
+                Name to use for the experiment.
         timestep : float
                 Timestep used during the simulation.
         temperature : float
                 Temperature the simulation was performed at and is to be used
                 in calculation.
         units : str
-                LAMMPS units used
-        """
+                units used
+        simulation_data:
+            data that should be added to the experiment.
+            see mdsuite.experiment.add_data() for details of the file specification.
+            you can also create the experiment with simulation_data == None and add data later
 
-        if experiment is None:
-            experiment = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        Notes
+        ------
+        Using custom NoneType to raise a custom ValueError message with useful info.
+        """
+        if name is NoneType:
+            raise ValueError(
+                "Experiment name can not be empty! "
+                "Use None to automatically generate a unique name."
+            )
+
+        if name is None:
+            name = f"Experiment_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
             # set the experiment name to the current date and time if None is provided
 
         # Run a query to see if that experiment already exists
         with self.session as ses:
             experiments = (
-                ses.query(db.Experiment).filter(db.Experiment.name == experiment).all()
+                ses.query(db.Experiment).filter(db.Experiment.name == name).all()
             )
         if len(experiments) > 0:
             log.info("This experiment already exists")
-            self.load_experiments(experiment)
+            self.load_experiments(name)
             return
 
         # If the experiment does not exists, instantiate a new Experiment
         new_experiment = Experiment(
             project=self,
-            experiment_name=experiment,
+            experiment_name=name,
             time_step=timestep,
             units=units,
             temperature=temperature,
@@ -181,35 +196,10 @@ class Project(ProjectDatabase):
         new_experiment.active = active
 
         # Update the internal experiment dictionary for self.experiment property
-        self._experiments[experiment] = new_experiment
+        self._experiments[name] = new_experiment
 
-        if data is not None:
-
-            def handle_file_format(inp):
-                """Run experiment.add_data
-
-                Parameters
-                ----------
-                inp: str, dict, list
-                    If dict, {file:<file>, format:<format>}
-                """
-                if isinstance(inp, str):
-                    self.experiments[experiment].add_data(trajectory_file=inp)
-                if isinstance(inp, dict):
-                    try:
-                        self.experiments[experiment].add_data(
-                            trajectory_file=inp["file"], file_format=inp["format"]
-                        )
-                    except KeyError:
-                        raise KeyError(
-                            "passed dictionary does not contain `file` and `format`,"
-                            f" but {[x for x in inp]}"
-                        )
-                if isinstance(inp, list):
-                    for obj in inp:
-                        handle_file_format(obj)
-
-            handle_file_format(data)
+        if simulation_data is not None:
+            self.experiments[name].add_data(simulation_data)
 
     def load_experiments(self, names: Union[str, list]):
         """Alias for activate_experiments"""
@@ -253,41 +243,26 @@ class Project(ProjectDatabase):
         for name in names:
             self.experiments[name].active = False
 
-    def add_data(self, data_sets: dict, file_format="lammps_traj"):
+    def add_data(self, data_sets: dict):
         """
-        Add data to an experiment. This is a method so that parallelization is
-        possible amongst data addition to different experiments at the same
+        Add simulation_data to a experiments. This is a method so that parallelization is
+        possible amongst simulation_data addition to different experiments at the same
         time.
 
         Parameters
         ----------
         data_sets: dict
-            Dictionary containing the name of the experiment as key and the
-            data path as value
-        file_format: dict or str
-            Dictionary containing the name of the experiment as key and the
-            file_format as value. Alternativly only a string of the
-            file_format if all files have the same format.
+            keys: the names of the experiments
+            values: str or mdsuite.file_io.file_read.FileProcessor
+                refer to mdsuite.experiment.add_data() for an explanation of the file specification options
 
         Returns
         -------
         Updates the experiment classes.
         """
-        if isinstance(file_format, dict):
-            try:
-                assert file_format.keys() == data_sets.keys()
-            except AssertionError:
-                log.error("Keys of the data_sets do not match keys of the file_format")
 
-            for item in data_sets:
-                self.experiments[item].add_data(
-                    data_sets[item], file_format=file_format[item]
-                )
-        else:
-            for item in data_sets:
-                self.experiments[item].add_data(
-                    data_sets[item], file_format=file_format
-                )
+        for key, val in data_sets.items():
+            self.experiments[key].add_data(val)
 
     @property
     def run(self) -> RunComputation:
@@ -298,7 +273,7 @@ class Project(ProjectDatabase):
         RunComputation:
             class that has all available calculators as properties
         """
-        return RunComputation(experiments=[x for x in self.experiments.values()])
+        return RunComputation(experiments=[x for x in self.active_experiments.values()])
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
@@ -329,7 +304,7 @@ class Project(ProjectDatabase):
         """Get a DotDict of instantiated experiments that are currently selected!"""
 
         active_experiment = {
-            key: val for key, val in self._experiments.items() if val.active
+            key: val for key, val in self.experiments.items() if val.active
         }
 
         return DotDict(active_experiment)

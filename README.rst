@@ -1,4 +1,4 @@
-|madewithpython| |build| |docs| |license|
+|madewithpython| |build| |docs| |license| |coverage|
 
 Introduction
 ------------
@@ -88,3 +88,7 @@ for the calculators.
 
 .. |license| image:: https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat
     :alt: Project license
+
+.. |coverage| image:: https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main
+    :alt: Coverage Report
+    :target: https://coveralls.io/github/zincware/MDSuite?branch=main

@@ -25,12 +25,14 @@ Summary
 -------
 """
 import os
+
 import numpy as np
-from pysmiles import read_smiles
-from mdsuite.utils.meta_functions import join_path
-from mdsuite.database.simulation_database import Database
-from tqdm import tqdm
 import tensorflow as tf
+from pysmiles import read_smiles
+from tqdm import tqdm
+
+from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import join_path
 
 
 class MolecularGraph:
@@ -166,10 +168,13 @@ class MolecularGraph:
 
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        configuration_tensor = tf.concat(
-            self.database.load_data(path_list=path_list, select_slice=np.s_[:, 0]),
-            axis=0,
+        data_dict = self.database.load_data(
+            path_list=path_list, select_slice=np.s_[:, 0]
         )
+        data = []
+        for item in path_list:
+            data.append(data_dict[item])
+        configuration_tensor = tf.concat(data, axis=0)
         distance_matrix = self.get_neighbour_list(
             configuration_tensor, cell=self.experiment.box_array
         )

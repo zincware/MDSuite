@@ -30,6 +30,10 @@ import versioneer
 with open("README.rst", "r") as fh:
     long_description = fh.read()
 
+
+with open("requirements.txt") as f:
+    required = f.read().splitlines()
+
 setuptools.setup(
     name="MDSuite",
     version=versioneer.get_version(),
@@ -49,23 +53,5 @@ setuptools.setup(
     package_data={"": ["form_fac_coeffs.csv"]},
     include_package_data=True,
     python_requires=">=3.7",
-    install_requires=[
-        "tensorflow>=2.5",
-        "h5py",
-        "pysmiles",
-        "matplotlib",
-        "scipy",
-        "tqdm",
-        "psutil>=5.6.6",
-        "numpy",
-        "gputil",
-        "pubchempy",
-        "PyYAML>=5.4",
-        "scooby",
-        "sqlalchemy >= 1.4",
-        "pandas >= 1.0.0",
-        "tensorflow_probability",
-        "open3d",
-        "bokeh",
-    ],
+    install_requires=required,
 )

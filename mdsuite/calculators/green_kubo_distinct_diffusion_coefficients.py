@@ -24,13 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from typing import Union
-import numpy as np
-from tqdm import tqdm
-import tensorflow as tf
 import itertools
-from scipy import signal
+from typing import Union
+
+import numpy as np
+import tensorflow as tf
 from bokeh.models import Span
+from scipy import signal
+from tqdm import tqdm
+
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
@@ -235,12 +237,13 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
         numerator = self.experiment.units["length"] ** 2
         denominator = (

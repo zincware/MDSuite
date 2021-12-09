@@ -24,3 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+# isort: off
+from .simulation_data_class import SimulationProperties
+from .data_manager import DataManager
+
+# isort: on
+
+simulation_properties = SimulationProperties()
+
+__all__ = ["simulation_properties", "DataManager"]
