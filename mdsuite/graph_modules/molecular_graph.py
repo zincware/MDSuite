@@ -24,6 +24,8 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import TYPE_CHECKING
+
 import numpy as np
 import tensorflow as tf
 from pysmiles import read_smiles
@@ -31,8 +33,6 @@ from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
