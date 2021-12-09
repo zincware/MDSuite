@@ -8,8 +8,9 @@ Copyright Contributors to the Zincware Project.
 
 Description:
 """
-from mdsuite.experiment.run import RunComputation
 from unittest.mock import Mock
+
+from mdsuite.experiment.run import RunComputation
 
 
 class MockTransformation:
