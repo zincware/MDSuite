@@ -24,13 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
+import logging
 
 import numpy as np
 import tensorflow as tf
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class CoordinateWrapper(Transformations):
@@ -165,10 +167,10 @@ class CoordinateWrapper(Transformations):
 
         for species in self.species:
 
-            exists = self.database.check_existence(os.path.join(species, "Positions"))
+            exists = self.database.check_existence(join_path(species, "Positions"))
             # Check if the tensor_values has already been unwrapped
             if exists:
-                print(
+                log.info(
                     f"Wrapped positions exists for {species}, "
                     "using the saved coordinates"
                 )

@@ -24,7 +24,6 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
 
 import numpy as np
 import tensorflow as tf
@@ -255,7 +254,7 @@ class CoordinateUnwrapper(Transformations):
 
         """
         for item in self.species:
-            exists = self.database.check_existence(os.path.join(item, "Positions"))
+            exists = self.database.check_existence(join_path(item, "Positions"))
             # Check if the tensor_values has already been unwrapped
             if exists:
                 print(
