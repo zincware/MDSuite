@@ -75,13 +75,16 @@ def _get_processor(simulation_data):
             processor = mdsuite.file_io.extxyz_files.EXTXYZFile(simulation_data)
         else:
             raise ValueError(
-                f"datafile ending '{suffix}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
+                f"datafile ending '{suffix}' not recognized. If there is a reader for"
+                " your file type, you will find it in mdsuite.file_io."
             )
     elif isinstance(simulation_data, mdsuite.file_io.file_read.FileProcessor):
         processor = simulation_data
     else:
         raise ValueError(
-            f"simulation_data must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}' instead"
+            "simulation_data must be either str, pathlib.Path or instance of"
+            f" mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}'"
+            " instead"
         )
 
     return processor
@@ -285,7 +288,7 @@ class Experiment(ExperimentDatabase):
                 )
         else:
             raise ValueError(
-                f"units has to be of type Units or str,"
+                "units has to be of type Units or str,"
                 f" found {type(units_system)} instead"
             )
         return units
@@ -454,21 +457,26 @@ class Experiment(ExperimentDatabase):
         update_with_pubchempy: bool = True,
     ):
         """
-        Add data to experiment. This method takes a filename, file path or a file reader (or a list thereof).
-        If given a filename, it will try to instantiate the appropriate file reader with its default arguments.
-        If you have a custom data format with its own reader or want to use non-default arguments for your reader,
+        Add data to experiment. This method takes a filename, file path or a file
+        reader (or a list thereof). If given a filename, it will try to instantiate the
+        appropriate file reader with its default arguments. If you have a custom data
+        format with its own reader or want to use non-default arguments for your reader,
         instantiate the reader and pass it to this method.
         TODO reference online documentation of data loading in the error messages
         Parameters
         ----------
-        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor or list thereof
+        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor
+            or list thereof
             if str or pathlib.Path: path to the file that contains the simulation_data
-            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file reader from mdsuite.file_io
+            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file
+            reader from mdsuite.file_io
             if list : must be list of any of the above (can be mixed).
         force : bool
-            If true, a file will be read regardless of if it has already been seen. Default: False
+            If true, a file will be read regardless of if it has already been seen.
+            Default: False
         update_with_pubchempy: bool
-            Whether or not to look for the masses of the species in pubchempy. Default: True
+            Whether or not to look for the masses of the species in pubchempy.
+            Default: True
 
         """
 
@@ -496,7 +504,8 @@ class Experiment(ExperimentDatabase):
         Parameters
         ----------
         file_processor
-            The FileProcessor that is able to provide the metadata and the trajectory to be saved
+            The FileProcessor that is able to provide the metadata and the trajectory
+            to be saved
         force : bool
                 If true, a file will be read regardless of if it has already
                 been seen.
@@ -551,7 +560,8 @@ class Experiment(ExperimentDatabase):
         Parameters
         ----------
         property_name : str
-                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions', 'Velocities'
+                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions',
+                'Velocities'
         species : list
                 List of species to be loaded
         select_slice : np.slice

@@ -476,7 +476,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{selected_species} - Max:" f" {title_value:.3f} degrees ",
+                title=f"{selected_species} - Max: {title_value:.3f} degrees ",
             )
 
     def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:

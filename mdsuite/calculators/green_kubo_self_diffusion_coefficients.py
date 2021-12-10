@@ -272,8 +272,10 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 time,
                 vacf,
                 color="#003f5c",
-                legend_label=f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                f" {val[self.result_keys[1]]: 0.3E}",
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
+                ),
             )
 
             fig.extra_y_ranges = {
