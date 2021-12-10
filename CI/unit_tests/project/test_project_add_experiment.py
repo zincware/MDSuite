@@ -29,9 +29,11 @@ import os
 import numpy as np
 import pytest
 from zinchub import DataHub
+import MDAnalysis
 
 import mdsuite as mds
 import mdsuite.file_io.lammps_flux_files
+import mdsuite.file_io.chemfiles_read
 
 
 @pytest.fixture(scope="session")
@@ -46,6 +48,7 @@ def traj_files(tmp_path_factory) -> dict:
         "NaCl_ni_nq.lammpstraj",
         "NaCl_64_Atoms.extxyz",
         "NaClLog.log",
+        "GromacsTest.gro"
     ]
 
     temporary_path = tmp_path_factory.getbasetemp()
@@ -56,7 +59,10 @@ def traj_files(tmp_path_factory) -> dict:
         print(url)
         dhub_file = DataHub(url=url)
         dhub_file.get_file(temporary_path)
-        file_paths[fname] = (temporary_path / dhub_file.file_raw).as_posix()
+        if isinstance(dhub_file.file_raw, list):
+            file_paths[fname] = [(temporary_path / f).as_posix() for f in dhub_file.file_raw]
+        else:
+            file_paths[fname] = (temporary_path / dhub_file.file_raw).as_posix()
 
     return file_paths
 
@@ -111,12 +117,12 @@ def test_multiple_experiments(tmp_path):
     project_loaded = mds.Project()
 
     assert (
-        project.experiments.Test01.experiment_path
-        == project_loaded.experiments.Test01.experiment_path
+            project.experiments.Test01.experiment_path
+            == project_loaded.experiments.Test01.experiment_path
     )
     assert (
-        project.experiments.Test02.experiment_path
-        == project_loaded.experiments.Test02.experiment_path
+            project.experiments.Test02.experiment_path
+            == project_loaded.experiments.Test02.experiment_path
     )
 
 
@@ -185,3 +191,28 @@ def test_lammpsflux_read(traj_files, tmp_path):
     press_shouldbe = -153.75652
     force_is = pressures["Observables/Pressure"][0, 57, 0].numpy()
     assert force_is == pytest.approx(press_shouldbe, rel=1e-5)
+
+
+def test_gromacs_read(traj_files, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+
+    topol_path, traj_path = traj_files['GromacsTest.gro']
+
+    file_reader = mds.file_io.chemfiles_read.ChemfilesRead(
+        traj_file_path=traj_path,
+        topol_file_path=topol_path
+    )
+
+    project.add_experiment('xtc_test', simulation_data=file_reader)
+    pos = project.experiments['xtc_test'].load_matrix(species=['C1'], property_name='Unwrapped_Positions')['C1/Unwrapped_Positions']
+
+    # read the same file with mdanalysis and compare
+    uni = MDAnalysis.Universe(topol_path, traj_path)
+    C1s = uni.atoms.select_atoms('name C1')
+    test_step = 42
+    # advance the mdanalysis global step
+    uni.trajectory[test_step]
+    pos_mdsana = C1s.positions
+
+    np.testing.assert_almost_equal(pos[:,test_step,:], pos_mdsana,decimal=5)
