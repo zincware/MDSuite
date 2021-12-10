@@ -1,6 +1,5 @@
 [tool.black]
-line-length = 90
-target-version = ['py36', 'py37', 'py38']
+line-length = 88
 experimental_string_processing = true
 
 [tool.isort]
