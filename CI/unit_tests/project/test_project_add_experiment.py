@@ -24,7 +24,10 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import gzip
 import os
+import shutil
+import urllib.request
 
 import numpy as np
 import pytest
@@ -51,6 +54,7 @@ def traj_files(tmp_path_factory) -> dict:
         "GromacsTest.gro"
     ]
 
+    files = []
     temporary_path = tmp_path_factory.getbasetemp()
     file_paths = dict()
     for fname in files_to_load:

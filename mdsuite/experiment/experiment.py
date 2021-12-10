@@ -226,9 +226,7 @@ class Experiment(ExperimentDatabase):
         self.experiment_path = Path(
             self.storage_path, self.name
         )  # path to the experiment files
-        self.database_path = Path(
-            self.experiment_path, "databases"
-        )  # path to the databases
+        self.database_path = Path(self.experiment_path)  # path to the databases
         self.figures_path = Path(
             self.experiment_path, "figures"
         )  # path to the figures directory
@@ -617,10 +615,12 @@ class Experiment(ExperimentDatabase):
         species_dict = dict()
         for sp_info in species_list:
             species_dict[sp_info.name] = {
+                # look here
                 "mass": sp_info.mass,
                 "charge": sp_info.charge,
                 "n_particles": sp_info.n_particles,
                 # legacy: calculators use this list to determine the number of particles
+                # TODO fix this, Christoph!
                 "indices": list(range(sp_info.n_particles)),
                 "properties": [prop_info.name for prop_info in sp_info.properties],
             }

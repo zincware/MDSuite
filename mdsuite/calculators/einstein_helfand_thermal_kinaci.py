@@ -33,8 +33,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 

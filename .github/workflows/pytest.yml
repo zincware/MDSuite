@@ -20,7 +20,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ 3.7, 3.8 ]
+        python-version: 
+        - 3.7
+        - 3.8
+        - 3.9
 
     steps:
       - uses: actions/checkout@v2
@@ -36,9 +39,14 @@ jobs:
         run: |
           pip install .
       - name: Pytest
-        run: |
-          pytest
         env:
           CUDA_VISIBLE_DEVICES: -1
           TF_CPP_MIN_LOG_LEVEL: 3
           # this might be really dumb, but we have to suppress libcudart error
+        run: |
+          coverage run -m pytest
+      - name: Coveralls
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        run: |
+          coveralls
