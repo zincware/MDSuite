@@ -25,6 +25,7 @@ Summary
 -------
 """
 import logging
+import typing
 from pathlib import Path
 from typing import Union
 
@@ -543,9 +544,9 @@ class Experiment(ExperimentDatabase):
     def load_matrix(
         self,
         property_name: str = None,
-        species: list = None,
+        species: typing.Iterable[str] = None,
         select_slice: np.s_ = None,
-        path: list = None,
+        path: typing.Iterable[str] = None,
     ):
         """
         Load a desired property matrix.
@@ -554,7 +555,7 @@ class Experiment(ExperimentDatabase):
         ----------
         property_name : str
                 Name of the matrix to be loaded, e.g. 'Unwrapped_Positions', 'Velocities'
-        species : list
+        species : Iterable[str]
                 List of species to be loaded
         select_slice : np.slice
                 A slice to select from the database_path.
@@ -600,9 +601,12 @@ class Experiment(ExperimentDatabase):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
-        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
-            self.box_array
-        )
+        if self.box_array is not None:
+            self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+                self.box_array
+            )
+        else:
+            self.dimensions = None
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
