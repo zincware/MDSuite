@@ -32,8 +32,7 @@ from typing import TYPE_CHECKING, List
 import numpy as np
 import tensorflow as tf
 
-from mdsuite.calculators.transformations_reference import \
-    switcher_transformations
+from mdsuite.calculators.transformations_reference import switcher_transformations
 from mdsuite.database import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management import MemoryManager

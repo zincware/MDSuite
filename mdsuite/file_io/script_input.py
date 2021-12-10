@@ -1,8 +1,7 @@
 import typing
 
 import mdsuite.file_io.file_read
-from mdsuite.database.simulation_database import (TrajectoryChunkData,
-                                                  TrajectoryMetadata)
+from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
 
 
 class ScriptInput(mdsuite.file_io.file_read.FileProcessor):

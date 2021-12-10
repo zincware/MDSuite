@@ -29,13 +29,19 @@ import unittest
 
 import numpy as np
 
-from mdsuite.utils.meta_functions import (find_item, get_dimensionality,
-                                          get_machine_properties,
-                                          golden_section_search, join_path,
-                                          line_counter,
-                                          linear_fitting_function,
-                                          optimize_batch_size, round_down,
-                                          simple_file_read, split_array)
+from mdsuite.utils.meta_functions import (
+    find_item,
+    get_dimensionality,
+    get_machine_properties,
+    golden_section_search,
+    join_path,
+    line_counter,
+    linear_fitting_function,
+    optimize_batch_size,
+    round_down,
+    simple_file_read,
+    split_array,
+)
 
 
 class TestMetaFunction(unittest.TestCase):

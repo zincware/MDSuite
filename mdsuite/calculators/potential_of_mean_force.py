@@ -34,8 +34,7 @@ from bokeh.models import BoxAnnotation
 from scipy.signal import find_peaks
 
 from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.meta_functions import (apply_savgol_filter,
-                                          golden_section_search)
+from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
 from mdsuite.utils.units import boltzmann_constant
 
 log = logging.getLogger(__name__)

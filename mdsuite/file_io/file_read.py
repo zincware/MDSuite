@@ -29,8 +29,7 @@ from __future__ import annotations
 import abc
 import typing
 
-from mdsuite.database.simulation_database import (TrajectoryChunkData,
-                                                  TrajectoryMetadata)
+from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
 
 
 class FileProcessor(abc.ABC):

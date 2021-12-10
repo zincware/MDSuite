@@ -38,14 +38,18 @@ from typing import Union
 
 import numpy as np
 import tensorflow as tf
+
 # Import user packages
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
-from mdsuite.utils.linalg import (apply_minimum_image, apply_system_cutoff,
-                                  get_partial_triu_indices)
+from mdsuite.utils.linalg import (
+    apply_minimum_image,
+    apply_system_cutoff,
+    get_partial_triu_indices,
+)
 from mdsuite.utils.meta_functions import join_path, split_array
 
 log = logging.getLogger(__name__)

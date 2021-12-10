@@ -8,8 +8,7 @@ import tqdm
 import mdsuite.database.simulation_data_class
 import mdsuite.file_io.file_read
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_database import (TrajectoryChunkData,
-                                                  TrajectoryMetadata)
+from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
 
 
 class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):

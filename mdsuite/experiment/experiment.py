@@ -41,8 +41,11 @@ import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
 from mdsuite.calculators import RunComputation
 from mdsuite.database.experiment_database import ExperimentDatabase
-from mdsuite.database.simulation_database import (Database, SpeciesInfo,
-                                                  TrajectoryMetadata)
+from mdsuite.database.simulation_database import (
+    Database,
+    SpeciesInfo,
+    TrajectoryMetadata,
+)
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
@@ -54,9 +57,6 @@ from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 from .run_module import RunModule
 
 log = logging.getLogger(__name__)
-
-
-
 
 
 def _get_processor(simulation_data):
