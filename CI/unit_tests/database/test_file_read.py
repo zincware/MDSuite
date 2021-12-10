@@ -5,12 +5,9 @@ import pytest
 
 import mdsuite
 import mdsuite.file_io.script_input as script_input
-from mdsuite.database.simulation_database import (
-    PropertyInfo,
-    SpeciesInfo,
-    TrajectoryChunkData,
-    TrajectoryMetadata,
-)
+from mdsuite.database.simulation_database import (PropertyInfo, SpeciesInfo,
+                                                  TrajectoryChunkData,
+                                                  TrajectoryMetadata)
 
 err_decimal = 5
 
