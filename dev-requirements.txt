@@ -13,3 +13,4 @@ git+git://github.com/zincware/ZincHub.git#egg=zinchub
 isort
 coverage
 coveralls
+black

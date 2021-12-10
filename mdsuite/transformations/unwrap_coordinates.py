@@ -39,16 +39,16 @@ class CoordinateUnwrapper(Transformations):
     Attributes
     ----------
     experiment : object
-            The experiment class from which tensor_values will be read and in
-             which it will be saved.
+        The experiment class from which tensor_values will be read and in which it will
+        be saved.
 
     species : list
-            species of atoms to unwrap.
+            Species of atoms to unwrap.
 
     center_box : bool
-            Decision whether or not to center the positions in the box before
-             performing the unwrapping. The default value is set to True as
-             this is most common in simulations.
+        Decision whether or not to center the positions in the box before performing the
+        unwrapping. The default value is set to True as this is most common in
+        simulations.
     scale_function : dict
             A dictionary referencing the memory/time scaling function of the
             transformation.
