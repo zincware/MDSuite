@@ -24,27 +24,14 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import logging
-import typing
-from pathlib import Path
-from typing import Union
-
-from mdsuite.calculators import RunComputation
-from mdsuite.database.experiment_database import ExperimentDatabase
-from mdsuite.time_series import time_series_dict
-from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import Units, units_dict
-from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
-
-from .run_module import RunModule
-
-log = logging.getLogger(__name__)
-
 import copy
 import importlib.resources
 import json
+import logging
 import pathlib
-from typing import List
+import typing
+from pathlib import Path
+from typing import List, Union
 
 import numpy as np
 import pubchempy as pcp
@@ -52,14 +39,24 @@ import pubchempy as pcp
 import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_database import (
-    Database,
-    SpeciesInfo,
-    TrajectoryMetadata,
-)
+from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.database.simulation_database import (Database, SpeciesInfo,
+                                                  TrajectoryMetadata)
 from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.time_series import time_series_dict
+from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+
+from .run_module import RunModule
+
+log = logging.getLogger(__name__)
+
+
+
 
 
 def _get_processor(simulation_data):

@@ -42,11 +42,8 @@ from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.neighbour_list import (
-    get_neighbour_list,
-    get_triplets,
-    get_triu_indicies,
-)
+from mdsuite.utils.neighbour_list import (get_neighbour_list, get_triplets,
+                                          get_triu_indicies)
 
 log = logging.getLogger(__name__)
 

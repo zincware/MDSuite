@@ -1,13 +1,15 @@
-import typing
-import chemfiles
 import pathlib
+import typing
+
+import chemfiles
 import numpy as np
 import tqdm
 
-import mdsuite.file_io.file_read
 import mdsuite.database.simulation_data_class
-from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
+import mdsuite.file_io.file_read
 import mdsuite.utils.meta_functions
+from mdsuite.database.simulation_database import (TrajectoryChunkData,
+                                                  TrajectoryMetadata)
 
 
 class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
