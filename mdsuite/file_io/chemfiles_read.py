@@ -65,7 +65,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
             n_configs = traj.nsteps
             frame = traj.read()
 
-        # ectract which lines in chemfiles.Frame.<property> belong to which species by going through the atoms list
+        # extract which lines in chemfiles.Frame.<property> belong to which species by going through the atoms list
         self.species_name_to_line_idxs_dict = {}
         for line_idx, atm in enumerate(frame.atoms):
             name = atm.name
