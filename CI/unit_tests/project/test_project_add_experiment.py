@@ -32,11 +32,11 @@ import urllib.request
 import MDAnalysis
 import numpy as np
 import pytest
+from zinchub import DataHub
 
 import mdsuite as mds
 import mdsuite.file_io.chemfiles_read
 import mdsuite.file_io.lammps_flux_files
-from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")

@@ -28,9 +28,9 @@ import os
 
 import numpy as np
 import pytest
+from zinchub import DataHub
 
 import mdsuite as mds
-from zinchub import DataHub
 
 
 @pytest.fixture(scope="session")
