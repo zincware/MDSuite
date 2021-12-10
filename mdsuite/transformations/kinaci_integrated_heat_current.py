@@ -160,9 +160,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
 
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        cumul_integral = tf.zeros(
-            [self.experiment.number_of_atoms, 1], dtype=tf.float64
-        )
+        cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
 
         # x is batch of data.
         for idx, x in tqdm(

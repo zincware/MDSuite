@@ -254,8 +254,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
             time = (
-                np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"]
+                np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"]
             )
             vacf = np.array(val[self.result_series_keys[1]])
             # Compute the span
@@ -279,9 +278,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             )
 
             fig.extra_y_ranges = {
-                "Cond_range": Range1d(
-                    start=0.6 * min(integral), end=1.3 * max(integral)
-                )
+                "Cond_range": Range1d(start=0.6 * min(integral), end=1.3 * max(integral))
             }
             fig.line(time[1:], integral, y_range_name="Cond_range", color="#bc5090")
             fig.varea(

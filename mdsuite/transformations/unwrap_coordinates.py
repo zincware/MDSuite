@@ -54,9 +54,7 @@ class CoordinateUnwrapper(Transformations):
             transformation.
     """
 
-    def __init__(
-        self, experiment: object, species: list = None, center_box: bool = True
-    ):
+    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
         """
         Constructor for the Ionic current calculator.
 

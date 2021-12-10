@@ -373,9 +373,7 @@ class Database:
                                 :, start_idx:stop_index, :
                             ] = np.swapaxes(write_data, 0, 1)
                         else:
-                            database[dataset_name][
-                                start_idx:stop_index, ...
-                            ] = write_data
+                            database[dataset_name][start_idx:stop_index, ...] = write_data
                     else:
                         raise ValueError(
                             "dataset shape must be either (n_part,n_config,n_dim) or"
@@ -481,9 +479,7 @@ class Database:
         """
 
         with hf.File(self.name, "a") as database:
-            architecture = self._build_path_input(
-                structure
-            )  # get the correct file path
+            architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path

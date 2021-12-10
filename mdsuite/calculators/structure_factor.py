@@ -197,15 +197,9 @@ class StructureFactor(Calculator):
             ]
             atomic_form_fac = (
                 self.gauss(el_frame.iloc[0, 1], el_frame.iloc[0, 2], scattering_scalar)
-                + self.gauss(
-                    el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar
-                )
-                + self.gauss(
-                    el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar
-                )
-                + self.gauss(
-                    el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar
-                )
+                + self.gauss(el_frame.iloc[0, 3], el_frame.iloc[0, 4], scattering_scalar)
+                + self.gauss(el_frame.iloc[0, 5], el_frame.iloc[0, 6], scattering_scalar)
+                + self.gauss(el_frame.iloc[0, 7], el_frame.iloc[0, 8], scattering_scalar)
                 + el_frame.iloc[0, 9]
             )
             atomic_form_di[el] = {}
@@ -224,8 +218,7 @@ class StructureFactor(Calculator):
 
         for el in self.experiment.species:
             molar_fractions[el] = (
-                self.experiment.species[el].n_particles
-                / self.experiment.number_of_atoms
+                self.experiment.species[el].n_particles / self.experiment.number_of_atoms
             )
 
         return molar_fractions
@@ -257,9 +250,7 @@ class StructureFactor(Calculator):
         sum1 = 0
         atomic_form_facs = self.atomic_form_factors(scattering_scalar)
         for el in self.experiment.species:
-            sum1 += (
-                self.molar_fractions[el] * atomic_form_facs[el]["atomic_form_factor"]
-            )
+            sum1 += self.molar_fractions[el] * atomic_form_facs[el]["atomic_form_factor"]
         average_atomic_factor = sum1 ** 2
         return average_atomic_factor
 
@@ -308,11 +299,11 @@ class StructureFactor(Calculator):
         """
         self.atomic_form_factors(scattering_scalar)
         total_struc_fac = 0
-        for data in self._get_rdf_data():
-            log.debug(f"Loaded data: {data}")
-            self._load_rdf_from_file(data)
+        for data_ in self._get_rdf_data():
+            log.debug(f"Loaded data: {data_}")
+            self._load_rdf_from_file(data_)
             log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
-            elements = data.subjects
+            elements = data_.subjects
             log.debug(f"Elements are: {elements}")
             s_12, _, _ = self.partial_structure_factor(scattering_scalar, elements)
             s_in = self.weight_factor(scattering_scalar, elements) * s_12
@@ -349,5 +340,5 @@ class StructureFactor(Calculator):
             self.run_visualization(
                 x_data=self.Q_arr,
                 y_data=total_structure_factor_li,
-                title=f"total structure factor",
+                title="total structure factor",
             )

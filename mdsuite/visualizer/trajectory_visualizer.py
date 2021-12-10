@@ -151,9 +151,7 @@ class SimulationVisualizer:
             radius = self.data[element]["mass"]
             for atom in self.data[element]["particles"]:
                 output.append(
-                    self._mesh(
-                        location=atom[configuration], colour=colour, radius=radius
-                    )
+                    self._mesh(location=atom[configuration], colour=colour, radius=radius)
                 )
 
         return output

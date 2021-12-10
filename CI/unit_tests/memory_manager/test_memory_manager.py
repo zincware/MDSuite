@@ -77,9 +77,7 @@ class TestMemoryManager(unittest.TestCase):
         """
         # Test linear function
         scale_function = {"linear": {"scale_factor": 2}}
-        function, parameters = self.memory_manager._select_scale_function(
-            scale_function
-        )
+        function, parameters = self.memory_manager._select_scale_function(scale_function)
         self.assertEqual(parameters["scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 20)
 
@@ -94,9 +92,7 @@ class TestMemoryManager(unittest.TestCase):
         """
         # Test log-linear function
         scale_function = {"log-linear": {"scale_factor": 2}}
-        function, parameters = self.memory_manager._select_scale_function(
-            scale_function
-        )
+        function, parameters = self.memory_manager._select_scale_function(scale_function)
         self.assertEqual(parameters["scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 20 * np.log(10))
 
@@ -110,12 +106,8 @@ class TestMemoryManager(unittest.TestCase):
         that the function is called correctly and returns proper values.
         """
         # Test quadratic function
-        scale_function = {
-            "quadratic": {"inner_scale_factor": 2, "outer_scale_factor": 2}
-        }
-        function, parameters = self.memory_manager._select_scale_function(
-            scale_function
-        )
+        scale_function = {"quadratic": {"inner_scale_factor": 2, "outer_scale_factor": 2}}
+        function, parameters = self.memory_manager._select_scale_function(scale_function)
         self.assertEqual(parameters["inner_scale_factor"], 2)
         self.assertEqual(parameters["outer_scale_factor"], 2)
         self.assertEqual(function(10, **parameters), 800)
@@ -133,9 +125,7 @@ class TestMemoryManager(unittest.TestCase):
         scale_function = {
             "polynomial": {"inner_scale_factor": 2, "outer_scale_factor": 2, "order": 3}
         }
-        function, parameters = self.memory_manager._select_scale_function(
-            scale_function
-        )
+        function, parameters = self.memory_manager._select_scale_function(scale_function)
         self.assertEqual(parameters["inner_scale_factor"], 2)
         self.assertEqual(parameters["outer_scale_factor"], 2)
         self.assertEqual(parameters["order"], 3)

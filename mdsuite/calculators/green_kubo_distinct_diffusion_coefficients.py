@@ -146,9 +146,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """
@@ -164,9 +162,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
+        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             self.vacf = np.zeros(self.data_range)
             start = ensemble * self.correlation_time
             stop = start + self.data_range
@@ -187,9 +183,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                                 for idx in range(3)
                             ]
                         )
-            self.vacf += vacf[
-                int(self.data_range - 1) :
-            ]  # Update the averaged function
+            self.vacf += vacf[int(self.data_range - 1) :]  # Update the averaged function
             self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
     def run_experimental_analysis(self):

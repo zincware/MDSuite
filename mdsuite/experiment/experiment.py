@@ -186,9 +186,7 @@ class Experiment(ExperimentDatabase):
         )
         self.volume = None
         self.properties = None  # Properties measured in the simulation.
-        self.property_groups = (
-            None  # Names of the properties measured in the simulation
-        )
+        self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
         self.experiment_path: str
@@ -594,9 +592,7 @@ class Experiment(ExperimentDatabase):
             path_list.append(join_path(item, property_name))
         return database.load_data(path_list=path_list, select_slice=select_slice)
 
-    def _store_metadata(
-        self, metadata: TrajectoryMetadata, update_with_pubchempy=False
-    ):
+    def _store_metadata(self, metadata: TrajectoryMetadata, update_with_pubchempy=False):
         """Save Metadata in the SQL DB
 
         Parameters
@@ -608,9 +604,7 @@ class Experiment(ExperimentDatabase):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
-        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
-            self.box_array
-        )
+        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(self.box_array)
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
@@ -677,9 +671,7 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
                 log.debug(temp[0].exact_mass)
             except (ElementMassAssignedZero, IndexError):
                 sp_info.mass = 0.0
-                log.warning(
-                    f"WARNING element {sp_info.name} has been assigned mass=0.0"
-                )
+                log.warning(f"WARNING element {sp_info.name} has been assigned mass=0.0")
     return species_list
 
 
