@@ -92,7 +92,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     loaded_property : str
             Property loaded from the database_path for the analysis
     minibatch: int, default None
-            Size of a individual minibatch, if set. By default mini-batching is not
+            Size of an individual minibatch, if set. By default mini-batching is not
             applied
 
     See Also
@@ -101,11 +101,12 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.RadialDistributionFunction(number_of_configurations = 50,
-                                                          minibatch = 10, start = 0,
-                                                          stop = 1000,
-                                                          number_of_bins = 100,
-                                                          use_tf_function = False)
+
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.run.RadialDistributionFunction(number_of_configurations=500)
+
     """
 
     def __init__(self, **kwargs):

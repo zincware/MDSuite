@@ -1,2 +1,2 @@
-Isothermal compresibility
+Isothermal compressibility
 ============================
