@@ -92,7 +92,7 @@ class Project(ProjectDatabase):
         """
         super().__init__()
         if name is None:
-            self.name = f"MDSuite_Project"
+            self.name = "MDSuite_Project"
         else:
             self.name = name
         self.storage_path = storage_path
@@ -122,7 +122,7 @@ class Project(ProjectDatabase):
 
         logger = logging.getLogger("mdsuite")
         formatter = logging.Formatter(
-            f"%(asctime)s %(levelname)s (%(module)s): %(message)s"
+            "%(asctime)s %(levelname)s (%(module)s): %(message)s"
         )
         # TODO this will potentially log two mds.Projects into the same file
         #   maybe there are some conditional logging Handlers that can check
@@ -177,7 +177,8 @@ class Project(ProjectDatabase):
         simulation_data:
             data that should be added to the experiment.
             see mdsuite.experiment.add_data() for details of the file specification.
-            you can also create the experiment with simulation_data == None and add data later
+            you can also create the experiment with simulation_data == None and add data
+            later
 
         Notes
         ------
@@ -274,7 +275,8 @@ class Project(ProjectDatabase):
         data_sets: dict
             keys: the names of the experiments
             values: str or mdsuite.file_io.file_read.FileProcessor
-                refer to mdsuite.experiment.add_data() for an explanation of the file specification options
+                refer to mdsuite.experiment.add_data() for an explanation of the file
+                specification options
 
         Returns
         -------
