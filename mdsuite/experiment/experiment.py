@@ -24,26 +24,14 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import logging
-from pathlib import Path
-from typing import Union
-
-from mdsuite.calculators import RunComputation
-from mdsuite.database.experiment_database import ExperimentDatabase
-from mdsuite.time_series import time_series_dict
-from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import Units, units_dict
-from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
-
-from .run_module import RunModule
-
-log = logging.getLogger(__name__)
-
 import copy
 import importlib.resources
 import json
+import logging
 import pathlib
-from typing import List
+import typing
+from pathlib import Path
+from typing import List, Union
 
 import numpy as np
 import pubchempy as pcp
@@ -51,14 +39,24 @@ import pubchempy as pcp
 import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
+from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.database.simulation_database import (
     Database,
     SpeciesInfo,
     TrajectoryMetadata,
 )
 from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.time_series import time_series_dict
+from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+
+from .run_module import RunModule
+
+log = logging.getLogger(__name__)
 
 
 def _get_processor(simulation_data):
@@ -93,6 +91,21 @@ def _get_processor(simulation_data):
 class Experiment(ExperimentDatabase):
     """
     The central experiment class fundamental to all analysis.
+
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.add_experiment(
+            name="NaCl",
+            timestep=0.002,
+            temperature=1400.0,
+            units="metal",
+            simulation_data="NaCl_gk_i_q.lammpstraj"
+            )
+        project.experiments.NaCl.run.RadialDistributionFunction(
+            number_of_configurations=500
+        )
+
 
     Attributes
     ----------
@@ -548,9 +561,9 @@ class Experiment(ExperimentDatabase):
     def load_matrix(
         self,
         property_name: str = None,
-        species: list = None,
+        species: typing.Iterable[str] = None,
         select_slice: np.s_ = None,
-        path: list = None,
+        path: typing.Iterable[str] = None,
     ):
         """
         Load a desired property matrix.
@@ -560,7 +573,7 @@ class Experiment(ExperimentDatabase):
         property_name : str
                 Name of the matrix to be loaded, e.g. 'Unwrapped_Positions',
                 'Velocities'
-        species : list
+        species : Iterable[str]
                 List of species to be loaded
         select_slice : np.slice
                 A slice to select from the database_path.
@@ -604,7 +617,12 @@ class Experiment(ExperimentDatabase):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
-        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(self.box_array)
+        if self.box_array is not None:
+            self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+                self.box_array
+            )
+        else:
+            self.dimensions = None
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate

@@ -88,8 +88,13 @@ class CoordinationNumbers(Calculator):
 
     Examples
     --------
-    experiment.run_computation.CoordinationNumbers(savgol_order = 2,
-                                                   savgol_window_length = 17)
+
+    .. code-block:: python
+
+        experiment.run_computation.CoordinationNumbers(
+            savgol_order = 2, savgol_window_length = 17
+        )
+
     """
 
     def __init__(self, **kwargs):

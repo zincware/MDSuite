@@ -130,7 +130,7 @@ class TrajectoryMetadata:
 
     n_configurations: int
     species_list: List[SpeciesInfo]
-    box_l: list
+    box_l: list = None
     sample_rate: int = 1
     sample_step: float = None
     temperature: float = None
@@ -719,7 +719,7 @@ class Database:
 
     def get_database_summary(self):
         """
-        Print a summary of the database properties.
+        Get a summary of the database properties.
         Returns
         -------
         summary : list
