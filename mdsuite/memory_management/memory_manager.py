@@ -199,9 +199,7 @@ class MemoryManager:
 
         per_configuration_memory: float = 0.0
         for item in self.data_path:
-            n_rows, n_columns, n_bytes = self.database.get_data_size(
-                item, system=system
-            )
+            n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
             per_configuration_memory += n_bytes / n_columns
         per_configuration_memory = self.scale_function(
             per_configuration_memory, **self.scale_function_parameters

@@ -362,10 +362,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         # Compute the true RDF for each species combination.
         self.rdf.update(
-            {
-                key: np.array(val.numpy(), dtype=np.float)
-                for key, val in self.rdf.items()
-            }
+            {key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()}
         )
 
         for names in self.key_list:
@@ -419,9 +416,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
-    def run_minibatch_loop(
-        self, atoms, stop, n_atoms, minibatch_start, positions_tensor
-    ):
+    def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """
         Run a minibatch loop
 

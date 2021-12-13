@@ -25,6 +25,8 @@ Summary
 -------
 A parent class for calculators that operate on the trajectory.
 """
+from __future__ import annotations
+
 from abc import ABC
 from pathlib import Path
 from typing import TYPE_CHECKING, List
@@ -78,7 +80,7 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(self, experiment: object = None, experiments: List = None):
+    def __init__(self, experiment: Experiment = None, experiments: List = None):
         """
         Constructor for the TrajectoryCalculator class.
 

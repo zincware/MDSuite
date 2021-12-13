@@ -71,9 +71,7 @@ class CoordinateWrapper(Transformations):
             of the transformation.
     """
 
-    def __init__(
-        self, experiment: object, species: list = None, center_box: bool = True
-    ):
+    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
         """
         Standard constructor
 
@@ -165,8 +163,7 @@ class CoordinateWrapper(Transformations):
             # Check if the tensor_values has already been unwrapped
             if exists:
                 print(
-                    f"Wrapped positions exists for {species}, "
-                    "using the saved coordinates"
+                    f"Wrapped positions exists for {species}, using the saved coordinates"
                 )
             else:
                 self._load_data(species)

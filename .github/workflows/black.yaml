@@ -11,3 +11,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: Black Check
         uses: psf/black@stable
+        with:
+          version: "21.12b0"

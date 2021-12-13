@@ -132,9 +132,7 @@ class MomentumFlux(Transformations):
 
         data_structure = self._prepare_database_entry()
         type_spec = {}
-        data_path = [
-            join_path(species, "Stress") for species in self.experiment.species
-        ]
+        data_path = [join_path(species, "Stress") for species in self.experiment.species]
         self._prepare_monitors(data_path)
 
         type_spec = self._update_species_type_dict(type_spec, data_path, 6)
