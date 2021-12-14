@@ -31,6 +31,9 @@ import mdsuite.file_io.tabular_text_files
 import mdsuite.utils.meta_functions
 from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.database.simulation_database import TrajectoryMetadata
+from mdsuite.file_io.tabular_text_files import (
+    get_species_list_from_tabular_text_reader_data,
+)
 from mdsuite.utils.meta_functions import sort_array_by_column
 
 column_names = {
@@ -81,12 +84,15 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         file_path:
             path to the LAMMPS trajectory file
         trajectory_is_sorted_by_ids:
-            Flag to indicate if the particle order in the trajectory file is the same for each configuration
+            Flag to indicate if the particle order in the trajectory file is the same for
+            each configuration
         custom_data_map
-            If your file contains columns with data that is not part of the standard set of properties (see column_names in this file),
+            If your file contains columns with data that is not part of the standard set
+            of properties (see column_names in this file),
             you can map the column names to the corresponding property.
-            example: custom_data_map = {"Reduced_Momentum": ["rp_x", "rp_y", "rp_z"]}, if the file contains columns
-            labelled as 'rp_{x,y,z}' for the three components of the reduced momentum vector
+            example: custom_data_map = {"Reduced_Momentum": ["rp_x", "rp_y", "rp_z"]},
+            if the file contains columns labelled as 'rp_{x,y,z}' for the three components
+            of the reduced momentum vector
         """
         super(LAMMPSTrajectoryFile, self).__init__(
             file_path,
@@ -145,7 +151,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
 
     def _get_metadata(self) -> TrajectoryMetadata:
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Gets the metadata for database creation as an implementation of the parent class
+        virtual function.
         """
         with open(self.file_path, "r") as file:
             header = mdsuite.file_io.tabular_text_files.read_n_lines(
@@ -162,7 +169,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
                 file, self.tabular_text_reader_data.n_particles
             )
 
-        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+        species_list = get_species_list_from_tabular_text_reader_data(
             self.tabular_text_reader_data
         )
 
@@ -179,7 +186,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         self, file, header_property_names: list, n_particles: int
     ):
         """
-        Get the information which species are present and which particle ids/ lines in the file belong to them
+        Get the information which species are present and which particle ids/ lines in
+        the file belong to them
 
         Parameters
         ----------
@@ -211,8 +219,8 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         # sort by particle id
         if not self.trajectory_is_sorted_by_ids:
             traj_data = sort_array_by_column(traj_data, header_id_index)
-        # iterate over the first configuration, whenever a new species (value at species_index) is encountered,
-        # add an entry
+        # iterate over the first configuration, whenever a new species
+        # (value at species_index) is encountered, add an entry
         for i, line in enumerate(traj_data):
             species_name = line[header_species_index]
             if species_name not in species_dict.keys():
@@ -238,16 +246,18 @@ def extract_properties_from_header(
     header_property_names: list, database_correspondence_dict: dict
 ) -> dict:
     """
-    Takes the property names from a file header, sees if there is a corresponding mdsuite property
-    in database_correspondence_dict.
-    Returns a dict that links the mdsuite property names to the column indices at which they can be found in the file.
+    Takes the property names from a file header, sees if there is a corresponding
+    mdsuite property in database_correspondence_dict.
+    Returns a dict that links the mdsuite property names to the column indices at which
+    they can be found in the file.
 
     Parameters
     ----------
     header_property_names
         The names of the columns in the data file
     database_correspondence_dict
-        The translation between mdsuite properties and the column names of the respective file format.
+        The translation between mdsuite properties and the column names of the
+        respective file format.
         lammps example:
         {"Positions": ["x", "y", "z"],
          "Unwrapped_Positions": ["xu", "yu", "zu"],
@@ -255,7 +265,8 @@ def extract_properties_from_header(
     Returns
     -------
     trajectory_properties : dict
-        A dict of the form {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
+        A dict of the form
+        {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
         Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
     """
 

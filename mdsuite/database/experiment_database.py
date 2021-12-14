@@ -28,14 +28,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import asdict
-from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
-import pandas as pd
 
 import mdsuite.database.scheme as db
-from mdsuite.database.scheme import Experiment, ExperimentAttribute, Project
 from mdsuite.utils.database import get_or_create
 from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
@@ -127,11 +124,11 @@ class ExperimentDatabase:
             Any serializeable data type that can be written to the database
         """
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
             if not isinstance(value, dict):
                 value = {"serialized_value": value}
-            attribute: ExperimentAttribute = get_or_create(
-                ses, ExperimentAttribute, experiment=experiment, name=name
+            attribute: db.ExperimentAttribute = get_or_create(
+                ses, db.ExperimentAttribute, experiment=experiment, name=name
             )
             attribute.data = value
             ses.commit()
@@ -158,11 +155,11 @@ class ExperimentDatabase:
          might be converted to lists
         """
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
-            attribute: ExperimentAttribute = (
-                ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
+            attribute: db.ExperimentAttribute = (
+                ses.query(db.ExperimentAttribute)
+                .filter(db.ExperimentAttribute.experiment == experiment)
+                .filter(db.ExperimentAttribute.name == name)
                 .first()
             )
             try:
@@ -180,7 +177,7 @@ class ExperimentDatabase:
     def active(self):
         """Get the state (activated or not) of the experiment"""
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
         return experiment.active
 
     @active.setter
@@ -189,7 +186,7 @@ class ExperimentDatabase:
         if value is None:
             return
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
             experiment.active = value
             ses.commit()
 
@@ -209,7 +206,9 @@ class ExperimentDatabase:
         if self._species is None:
             with self.project.session as ses:
                 experiment = (
-                    ses.query(Experiment).filter(Experiment.name == self.name).first()
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.name)
+                    .first()
                 )
                 self._species = {
                     key: DotDict(val) for key, val in experiment.get_species().items()
@@ -241,7 +240,7 @@ class ExperimentDatabase:
         self._species = None
         with self.project.session as ses:
             experiment = (
-                ses.query(Experiment).filter(Experiment.name == self.name).first()
+                ses.query(db.Experiment).filter(db.Experiment.name == self.name).first()
             )
             for species_name, species_data in value.items():
                 species = get_or_create(
@@ -258,7 +257,9 @@ class ExperimentDatabase:
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
-                    ses.query(Experiment).filter(Experiment.name == self.name).first()
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.name)
+                    .first()
                 )
                 self._molecules = experiment.get_molecules()
         return self._molecules
@@ -271,7 +272,7 @@ class ExperimentDatabase:
         self._molecules = None
         with self.project.session as ses:
             experiment = (
-                ses.query(Experiment).filter(Experiment.name == self.name).first()
+                ses.query(db.Experiment).filter(db.Experiment.name == self.name).first()
             )
             for molecule_name, molecule_data in value.items():
                 molecule = get_or_create(

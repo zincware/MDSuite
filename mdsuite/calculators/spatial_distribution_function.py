@@ -250,9 +250,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         )
 
         if self.plot:
-            coordinates = tf.reshape(
-                self._get_unit_sphere(), [self.args.n_bins ** 2, 3]
-            )
+            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
             colour_map = tf.reshape(sdf_values, [-1])
             self._run_visualization(coordinates, colour_map)
 

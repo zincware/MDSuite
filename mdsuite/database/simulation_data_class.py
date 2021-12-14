@@ -69,8 +69,8 @@ class SimulationProperties:
 class MDSuiteProperties:
     """
     The names of properties used by MDSuite.
-    Intended for use as a global constant by file readers, transformations and calculations
-    to access the respective entries in the database.
+    Intended for use as a global constant by file readers, transformations and
+    calculations to access the respective entries in the database.
     """
 
     temperature = PropertyInfo("Temperature", 1)

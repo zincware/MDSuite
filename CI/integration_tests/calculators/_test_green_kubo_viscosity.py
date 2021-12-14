@@ -65,10 +65,7 @@ def test_gkv_project(traj_files, true_values, tmp_path):
 
     data_dict = project.load.GreenKuboViscosity()[0].data_dict
 
-    data = Path(
-        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\
-        calculators\data\green_kubo_viscosity.json"
-    )
+    data = Path(r"calculators\data\green_kubo_viscosity.json")
 
     data.write_text(json.dumps(data_dict))
 

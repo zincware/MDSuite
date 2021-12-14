@@ -8,7 +8,8 @@ import tqdm
 import mdsuite.database.simulation_data_class
 import mdsuite.file_io.file_read
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_database import TrajectoryChunkData, TrajectoryMetadata
+from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.simulation_database import TrajectoryMetadata
 
 
 class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
@@ -29,8 +30,9 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         traj_file_path
             Path to the trajectory file you want to read.
         topol_file_path : optional
-            If the trajectory file does not contain all information about the topology of the system
-            (i.e. which data in the trajectory file belongs to which particle), you can provide the topology here.
+            If the trajectory file does not contain all information about the topology of
+            the system (i.e. which data in the trajectory file belongs to which particle),
+             you can provide the topology here.
         """
         self.traj_file_path = pathlib.Path(traj_file_path).resolve()
 
@@ -39,14 +41,16 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         self.topol_file_path = topol_file_path
 
         # until now, chemfiles only supports these 2 properties.
-        # If more are added, link here the mdsuite property to the name of the property attribute in chemfiles.Frame
+        # If more are added, link here the mdsuite property to the name of the property
+        # attribute in chemfiles.Frame
         self.properties_to_chemfile_attr_dict = {
-            mdsuite.database.simulation_data_class.mdsuite_properties.unwrapped_positions: "positions",
-            mdsuite.database.simulation_data_class.mdsuite_properties.velocities: "velocities",
+            mdsuite_properties.unwrapped_positions: "positions",
+            mdsuite_properties.velocities: "velocities",
         }
 
         # not all properties are guaranteed to be in the given file.
-        # A subset of self.properties_to_chemfile_attr_dict will be extracted during self._get_metadata
+        # A subset of self.properties_to_chemfile_attr_dict will be extracted during
+        # self._get_metadata
         self.properties_in_file = None
         self.species_name_to_line_idxs_dict = None
         self.batch_size = None
@@ -55,8 +59,9 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         return str(self.traj_file_path)
 
     def _get_metadata(self) -> TrajectoryMetadata:
-        """
-        Get the necessary metadata out of chemfiles.Trajectory and the first chemfiles.Frame
+        """Get the necessary metadata out of chemfiles.
+
+        Trajectory and the first chemfiles.Frame
         """
         with chemfiles.Trajectory(str(self.traj_file_path)) as traj:
             if self.topol_file_path is not None:
@@ -65,7 +70,8 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
             n_configs = traj.nsteps
             frame = traj.read()
 
-        # extract which lines in chemfiles.Frame.<property> belong to which species by going through the atoms list
+        # extract which lines in chemfiles.Frame.<property> belong to which species
+        # by going through the atoms list
         self.species_name_to_line_idxs_dict = {}
         for line_idx, atm in enumerate(frame.atoms):
             name = atm.name
@@ -73,7 +79,8 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
                 self.species_name_to_line_idxs_dict[name] = []
             self.species_name_to_line_idxs_dict[name].append(line_idx)
 
-        # see which properties are in the file. there is no way of finding out except trying to access them
+        # see which properties are in the file. there is no way of finding out except
+        # trying to access them
         self.properties_in_file = {}
         for (
             mds_prop,
@@ -128,7 +135,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         self, traj: chemfiles.Trajectory, n_configs: int
     ) -> mdsuite.database.simulation_database.TrajectoryChunkData:
         """
-        Read n configurations and package them into a trajectory chunk of the right format.
+        Read n configurations and package them into a trajectory chunk of the right format
         Parameters
         ----------
         traj : chemfiles.Trajectory

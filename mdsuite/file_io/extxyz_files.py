@@ -30,12 +30,14 @@ import pathlib
 import typing
 
 import numpy as np
-import tqdm
 
 import mdsuite.database.simulation_database
 import mdsuite.file_io.file_read
 import mdsuite.file_io.tabular_text_files
 from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.file_io.tabular_text_files import (
+    get_species_list_from_tabular_text_reader_data,
+)
 
 log = logging.getLogger(__name__)
 
@@ -65,10 +67,12 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         file_path
             Path to the extxyz file
         custom_data_map:
-            If your file contains columns with data that is not part of the standard set of properties (see var_names in this file),
+            If your file contains columns with data that is not part of the standard
+            set of properties (see var_names in this file),
             you can map the column names to the corresponding property.
             example: custom_data_map = {"Reduced_Momentum": "redmom"},
-            if the file header contains "redmom:R:3" to point to the correct 3 columns containing the reduced momentum values
+            if the file header contains "redmom:R:3" to point to the correct 3
+            columns containing the reduced momentum values
         """
         super(EXTXYZFile, self).__init__(
             file_path,
@@ -114,8 +118,8 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
     def _get_metadata(self):
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function
-        by analysing the header lines and one full configuration.
+        Gets the metadata for database creation as an implementation of the parent class
+        virtual function by analysing the header lines and one full configuration.
         """
         with open(self.file_path, "r") as file:
             file.readline()
@@ -131,7 +135,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
             header_1 = file.readline()
             sample_rate = int(round(_get_time(header_1) - _get_time(header)))
 
-        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+        species_list = get_species_list_from_tabular_text_reader_data(
             self.tabular_text_reader_data
         )
 
@@ -160,9 +164,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
         """
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
-        traj_data = np.stack(
-            [list(file.readline().split()) for _ in range(n_particles)]
-        )
+        traj_data = np.stack([list(file.readline().split()) for _ in range(n_particles)])
 
         # Loop over atoms in first configuration.
         species_dict = {}

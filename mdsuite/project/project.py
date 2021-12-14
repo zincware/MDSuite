@@ -39,8 +39,8 @@ log = logging.getLogger(__name__)
 
 
 class Project(ProjectDatabase):
-    """
-    Class for the main container of all experiments.
+    """Class for the main container of all experiments.
+
     The Project class acts as the encompassing class for analysis with MDSuite.
     It contains all method required to add and analyze new experiments. These
     experiments may then be compared with one another quickly. The state of the
@@ -80,12 +80,13 @@ class Project(ProjectDatabase):
     def __init__(
         self, name: str = None, storage_path: str = "./", description: str = None
     ):
-        """
-        Project class constructor
+        """Project class constructor
+
         The constructor will check to see if the project already exists, if so,
         it will load the state of each of the classes so that they can be used
         again. If the project is new, the constructor will build the necessary
         file structure for the project.
+
         Parameters
         ----------
         name : str
@@ -96,7 +97,7 @@ class Project(ProjectDatabase):
         """
         super().__init__()
         if name is None:
-            self.name = f"MDSuite_Project"
+            self.name = "MDSuite_Project"
         else:
             self.name = name
         self.storage_path = storage_path
@@ -126,7 +127,7 @@ class Project(ProjectDatabase):
 
         logger = logging.getLogger("mdsuite")
         formatter = logging.Formatter(
-            f"%(asctime)s %(levelname)s (%(module)s): %(message)s"
+            "%(asctime)s %(levelname)s (%(module)s): %(message)s"
         )
         # TODO this will potentially log two mds.Projects into the same file
         #   maybe there are some conditional logging Handlers that can check
@@ -139,6 +140,7 @@ class Project(ProjectDatabase):
 
     def __str__(self):
         """
+
         Returns
         -------
         str:
@@ -158,8 +160,8 @@ class Project(ProjectDatabase):
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,
     ):
-        """
-        Add an experiment to the project
+        """Add an experiment to the project
+
         Parameters
         ----------
         active: bool, default = True
@@ -178,7 +180,8 @@ class Project(ProjectDatabase):
         simulation_data:
             data that should be added to the experiment.
             see mdsuite.experiment.add_data() for details of the file specification.
-            you can also create the experiment with simulation_data == None and add data later
+            you can also create the experiment with simulation_data == None and add data
+            later
         Notes
         ------
         Using custom NoneType to raise a custom ValueError message with useful info.
@@ -227,6 +230,7 @@ class Project(ProjectDatabase):
 
     def activate_experiments(self, names: Union[str, list]):
         """Load experiments, such that they are used for the computations
+
         Parameters
         ----------
         names: Name or list of names of experiments that should be instantiated
@@ -244,12 +248,14 @@ class Project(ProjectDatabase):
 
     def disable_experiments(self, names: Union[str, list]):
         """Disable experiments
+
         Parameters
         ----------
         names: Name or list of names of experiments that should be instantiated
                and loaded into self.experiments
         Returns
         -------
+
         """
 
         if isinstance(names, str):
@@ -259,16 +265,19 @@ class Project(ProjectDatabase):
             self.experiments[name].active = False
 
     def add_data(self, data_sets: dict):
-        """
-        Add simulation_data to a experiments. This is a method so that parallelization is
+        """Add simulation_data to a experiments.
+
+        This is a method so that parallelization is
         possible amongst simulation_data addition to different experiments at the same
         time.
+
         Parameters
         ----------
         data_sets: dict
             keys: the names of the experiments
             values: str or mdsuite.file_io.file_read.FileProcessor
-                refer to mdsuite.experiment.add_data() for an explanation of the file specification options
+                refer to mdsuite.experiment.add_data() for an explanation of the file
+                specification options
         Returns
         -------
         Updates the experiment classes.
@@ -280,6 +289,7 @@ class Project(ProjectDatabase):
     @property
     def run(self) -> RunComputation:
         """Method to access the available calculators
+
         Returns
         -------
         RunComputation:
