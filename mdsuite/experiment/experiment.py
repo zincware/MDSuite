@@ -582,7 +582,7 @@ class Experiment(ExperimentDatabase):
 
         Returns
         -------
-        property_matrix : np.array, tf.tensor
+        property_matrix : np.array, tf.Tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
         database = Database(
