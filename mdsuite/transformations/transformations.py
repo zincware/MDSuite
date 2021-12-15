@@ -87,22 +87,45 @@ class Transformations:
             mdsuite.database.simulation_database.PropertyInfo
         ] = None,
         output_property: mdsuite.database.simulation_database.PropertyInfo = None,
+        batchable_axes: typing.Iterable[int] = None,
         scale_function=None,
         dtype=tf.float64,
     ):
         """
-        Constructor for the experiment class
+        Init of the transformator base class.
 
         Parameters
         ----------
-        experiment : object
-                Experiment class object to update
+        experiment:
+            experiment on which to perform the transformation
+        input_properties : typing.Iterable[
+                    mdsuite.database.simulation_database.PropertyInfo]
+            The properties needed to perform the transformation.
+            e.g. unwrapped positions for the wrap_coordinates transformation.
+            Properties from this list are provided to the self.transform_batch(),
+            in which the actual transformation happens.
+        output_property : mdsuite.database.simulation_database.PropertyInfo
+            The property that is the result of the transformation
+        scale_function :
+            specifies memory requirements of the transformation
+        dtype :
+            data type of the processed values
         """
         self.experiment = experiment
         self.database = Database(
             name=os.path.join(self.experiment.database_path, "database.hdf5"),
             architecture="simulation",
         )
+
+        self.batchable_axes = batchable_axes
+        # todo: list of int indicating along which axis batching is performed, e.g.
+        # rdf : batchable along time, but not particles or dimension: [1]
+        # msd : batchable along particles and dimension, but not time [0,2]
+        # unwrap_coordinates : batchable along all 3 axes [0,1,2]
+        # this information should then be used by the batch generator further down
+        # the current batching along tine only is arbitrary and should be generalized.
+        # then, minibatching is a natural consequence of transformations which have more
+        # than one batchable axis.
 
         self.input_properties = input_properties
         self.output_property = output_property
@@ -483,5 +506,17 @@ class Transformations:
                 )
 
     @abc.abstractmethod
-    def transform_batch(self, batch: tf.Tensor) -> tf.Tensor:
+    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
+        """
+        Do the actual transformation.
+        Parameters
+        ----------
+        batch : dict
+            The batch to be transformed. The keys are the names of the properties
+            specified in self.input_properties, the values are the corresponding tensors.
+
+        Returns
+        -------
+        The transformed batch, one tf.Tensor.
+        """
         raise NotImplementedError("transformation of a batch must be implemented")

@@ -11,6 +11,8 @@ Summary
 -------
 Calculate the velocity of particles from their positions
 """
+import typing
+
 import tensorflow as tf
 
 from mdsuite import experiment
@@ -39,14 +41,17 @@ class VelocityFromPositions(Transformations):
             exp,
             input_properties=[mdsuite_properties.unwrapped_positions],
             output_property=mdsuite_properties.velocities_from_positions,
-            scale_function={"linear": {"scale_factor": 1}},
+            scale_function={"linear": {"scale_factor": 2}},
+            batchable_axes=[0, 2],
         )
 
         # ideally, this would also go into some input_properties entry
         self.dt = self.experiment.time_step
 
-    def transform_batch(self, batch: tf.Tensor) -> tf.Tensor:
-        print(batch)
+    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
+        """
+        Implement parent class abstract method.
+        """
         pos = batch[mdsuite_properties.unwrapped_positions.name]
         pos_plus_dt = tf.roll(pos, shift=-1, axis=1)
         vel = (pos_plus_dt - pos) / self.dt
