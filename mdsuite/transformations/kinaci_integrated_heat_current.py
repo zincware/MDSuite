@@ -173,7 +173,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
             data, cumul_integral = self._transformation(
                 x, cumul_integral=cumul_integral, batch_size=current_batch_size
             )
-            self._save_coordinates(
+            self._save_output(
                 data, idx * self.batch_size, current_batch_size, data_structure
             )
 

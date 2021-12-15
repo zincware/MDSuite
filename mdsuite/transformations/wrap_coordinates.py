@@ -182,7 +182,7 @@ class CoordinateWrapper(Transformations):
                         "length": len(self.data),
                     }
                 }
-                self._save_coordinates(
+                self._save_output(
                     data=self.data,
                     data_structure=data_structure,
                     index=0,

@@ -27,13 +27,16 @@ Parent class for the transformations.
 """
 from __future__ import annotations
 
+import abc
 import copy
+import logging
 import os
 import time
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import tensorflow as tf
+import tqdm
 
 import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
@@ -76,7 +79,14 @@ class Transformations:
             memory manager for the computation.
     """
 
-    def __init__(self, experiment: Experiment):
+    def __init__(
+        self,
+        experiment: Experiment,
+        input_properties: mdsuite.database.simulation_database.PropertyInfo = None,
+        output_property: mdsuite.database.simulation_database.PropertyInfo = None,
+        scale_function=None,
+        dtype=tf.float64,
+    ):
         """
         Constructor for the experiment class
 
@@ -90,12 +100,18 @@ class Transformations:
             name=os.path.join(self.experiment.database_path, "database.hdf5"),
             architecture="simulation",
         )
+
+        self.input_property = input_properties
+        self.output_property = output_property
+        self.logger = logging.getLogger(__name__)
+        self.scale_function = scale_function
+        self.dtype = dtype
+
         self.batch_size: int
         self.n_batches: int
         self.remainder: int
 
-        self.dependency = None
-        self.scale_function = None
+        self.dependency = None  # todo: legace, replaced by input_property
         self.offset = 0
 
         self.data_manager: DataManager
@@ -253,14 +269,14 @@ class Transformations:
         """
         return int(self.remainder > 0)
 
-    def _save_coordinates(
+    def _save_output(
         self,
         data: Union[tf.Tensor, np.array],
         index: int,
-        batch_size: int,
+        batch_size: int,  # legacy
         data_structure: dict,
-        system_tensor: bool = True,
-        tensor: bool = False,
+        system_tensor=False,  # legacy
+        tensor=True,  # legacy
     ):
         """
         Save the tensor_values into the database_path
@@ -301,7 +317,7 @@ class Transformations:
             )
         )
         chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
-            chunk_size=batch_size, species_list=species_list
+            chunk_size=np.shape(data)[1], species_list=species_list
         )
         # data comes from transformation with time in 1st axis, add_data needs it
         # in 0th axis
@@ -358,8 +374,101 @@ class Transformations:
             offset=self.offset,
         )
 
-    def run_transformation(self):
+    def _prepare_database_entry(self, species: str):
+        """
+        Add or extend the dataset in which the transformation result is stored
+
+        Parameters
+        ----------
+        species : str
+                Species for which transformation is performed
+        Returns
+        -------
+        tensor_values structure for use in saving the tensor_values to the
+        database_path.
+        """
+        path = join_path(species, self.output_property.name)
+
+        n_particles = self.experiment.species[species].n_particles
+        n_dims = self.output_property.n_dims
+
+        existing = self._run_dataset_check(path)
+        if existing:
+            old_shape = self.database.get_data_size(path)
+            resize_structure = {
+                path: (
+                    n_particles,
+                    self.experiment.number_of_configurations - old_shape[0],
+                    n_dims,
+                )
+            }
+            self.offset = old_shape[0]
+            self.database.resize_dataset(resize_structure)
+
+        else:
+            number_of_configurations = self.experiment.number_of_configurations
+            dataset_structure = {path: (n_particles, number_of_configurations, n_dims)}
+            self.database.add_dataset(dataset_structure)
+
+        data_structure = {
+            path: {
+                "indices": np.s_[:],
+                "columns": list(range(n_dims)),
+                "length": n_particles,
+            }
+        }
+
+        return data_structure
+
+    def run_transformation(self, species: list = None):
         """
         Perform the transformation
         """
-        raise NotImplementedError  # implemented in child class.
+        # species should be provided by caller (the experiment), for now we use the usual
+        # pseudoglobal variable
+        if species is None:
+            species = self.experiment.species
+
+        for species in species:
+
+            # this check should be done by the caller
+            if self.database.check_existence(
+                os.path.join(species, self.output_property.name)
+            ):
+                self.logger.info(
+                    f"{self.output_property.name} already exists for {species}, "
+                    "skipping transformation"
+                )
+                continue
+
+            output_data_structure = self._prepare_database_entry(species)
+
+            input_data_path = [join_path(species, self.input_property.name)]
+            self._prepare_monitors(input_data_path)
+            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            type_spec = {
+                str.encode(input_data_path[0]): tf.TensorSpec(
+                    shape=(None, None, self.input_property.n_dims), dtype=self.dtype
+                ),
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+            }
+            data_set = tf.data.Dataset.from_generator(
+                batch_generator, args=batch_generator_args, output_signature=type_spec
+            )
+            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
+            for index, x in tqdm.tqdm(
+                enumerate(data_set),
+                ncols=70,
+                desc=f"Applying transformation to {species}",
+            ):
+                data = self.transform_batch(x[str.encode(input_data_path[0])])
+                self._save_output(
+                    data=data,
+                    data_structure=output_data_structure,
+                    index=index * self.batch_size,
+                    batch_size=None,  # todo legacy argument, could be removed
+                )
+
+    @abc.abstractmethod
+    def transform_batch(self, batch: tf.Tensor) -> tf.Tensor:
+        raise NotImplementedError("transformation of a batch must be implemented")

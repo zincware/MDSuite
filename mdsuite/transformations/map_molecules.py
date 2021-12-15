@@ -291,7 +291,7 @@ class MolecularMap(Transformations):
                         indices, species
                     )
                     trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
-                self._save_coordinates(
+                self._save_output(
                     data=trajectory,
                     data_structure=data_structure,
                     index=start,

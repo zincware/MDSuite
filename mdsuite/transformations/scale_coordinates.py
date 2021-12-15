@@ -185,7 +185,7 @@ class ScaleCoordinates(Transformations):
                 enumerate(data_set), ncols=70, desc=f"{species}: Scaling Coordinates"
             ):
                 data = self._transformation(x[str.encode(data_path[0])])
-                self._save_coordinates(
+                self._save_output(
                     data=data,
                     data_structure=data_structure,
                     index=index,

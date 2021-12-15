@@ -221,7 +221,7 @@ class CoordinateUnwrapper(Transformations):
                 data, state, last_conf = self._transformation(
                     np.array(x[str.encode(join_path(species, "Positions"))]), state
                 )
-                self._save_coordinates(
+                self._save_output(
                     data,
                     index * self.batch_size,
                     x[str.encode("data_size")],
@@ -235,7 +235,7 @@ class CoordinateUnwrapper(Transformations):
                     state,
                     last_conf,
                 )
-                self._save_coordinates(
+                self._save_output(
                     data[:, 1:],
                     index * self.batch_size,
                     x[str.encode("data_size")],

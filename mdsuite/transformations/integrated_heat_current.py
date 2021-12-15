@@ -140,7 +140,7 @@ class IntegratedHeatCurrent(Transformations):
         ):
             current_batch_size = int(x[str.encode("data_size")])
             data = self._transformation(x)
-            self._save_coordinates(
+            self._save_output(
                 data, idx * self.batch_size, current_batch_size, data_structure
             )
 

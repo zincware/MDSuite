@@ -229,7 +229,7 @@ class UnwrapViaIndices(Transformations):
                 desc=f"{species}: Unwrapping Coordinates.",
             ):
                 data = self._transformation(batch, dict_ref)
-                self._save_coordinates(
+                self._save_output(
                     data=data,
                     data_structure=data_structure,
                     index=index,
