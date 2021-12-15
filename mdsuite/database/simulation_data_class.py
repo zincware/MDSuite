@@ -86,6 +86,7 @@ class MDSuiteProperties:
     unwrapped_positions = PropertyInfo("Unwrapped_Positions", 3)
     scaled_unwrapped_positions = PropertyInfo("Scaled_Unwrapped_Positions", 3)
     velocities = PropertyInfo("Velocities", 3)
+    velocities_from_positions = PropertyInfo("Velocities_From_Positions", 3)
     momenta = PropertyInfo("Momenta", 3)
     forces = PropertyInfo("Forces", 3)
     box_images = PropertyInfo("Box_Images", 3)

@@ -11,12 +11,15 @@ Summary
 -------
 Calculate the velocity of particles from their positions
 """
-import numpy as np
 import os
+
+import numpy as np
 import tensorflow as tf
+
+import mdsuite.database.simulation_data_class
+from mdsuite import experiment
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
-from mdsuite import experiment
 
 
 class VelocityFromPositions(Transformations):
@@ -26,9 +29,7 @@ class VelocityFromPositions(Transformations):
     from the second to last.
     """
 
-    def __init__(self,
-                 exp: experiment.Experiment,
-                 species: list = None):
+    def __init__(self, exp: experiment.Experiment, species: list = None):
         """
         Standard constructor
 
@@ -41,10 +42,13 @@ class VelocityFromPositions(Transformations):
         """
         super().__init__(exp)
 
-        self.scale_function = {'linear': {'scale_factor': 1}}
+        self.scale_function = {"linear": {"scale_factor": 1}}
 
         self.storage_path = self.experiment.storage_path
         self.analysis_name = self.experiment.name
+        self.output_property = (
+            mdsuite.database.simulation_data_class.mdsuite_properties.velocities_from_positions
+        )
         self.dt = self.experiment.time_step
 
         self.species = species
@@ -55,34 +59,53 @@ class VelocityFromPositions(Transformations):
         """
         Perform the velocity calculation.
         """
-        output_name = "Velocities_From_Positions"
+
         for species in self.species:
 
-            exists = self.database.check_existence(os.path.join(species, output_name))
+            exists = self.database.check_existence(
+                os.path.join(species, self.output_property.name)
+            )
             # Check if the tensor_values has already been unwrapped
             if exists:
-                print(f"{output_name} exists for {species}, "
-                      f"using the saved coordinates")
+                print(
+                    f"{self.output_property.name} exists for {species}, "
+                    "using the saved coordinates"
+                )
             else:
-                pos = tf.convert_to_tensor(self.experiment.load_matrix(identifier="Unwrapped_Positions",
-                                                                       species=species,
-                                                                       select_slice=np.s_[:]))
-                pos_plus_dt = tf.roll(pos, axis=1, shift=-1)
+                pos = tf.convert_to_tensor(
+                    self.experiment.load_matrix(
+                        property_name="Unwrapped_Positions",
+                        species=[species],
+                        select_slice=np.s_[:],
+                    )[f"{species}/Unwrapped_Positions"]
+                )
+                pos_plus_dt = tf.roll(pos, shift=-1, axis=1)
                 vel = (pos_plus_dt - pos) / self.dt
                 # discard last value, it comes from wrapping around the positions
-                vel = vel[:, -1:, :]
+                vel = vel[:, :-1, :]
                 # instead, append the last value again
-                vel = tf.concat(vel, vel[:, -1, :], axis=1)
+                last_values = vel[:, -1, :]
+                vel = tf.concat((vel, last_values[:, None, :]), axis=1)
 
-                path = join_path(species, output_name)
-                dataset_structure = {species: {output_name: tuple(np.shape(vel))}}
+                path = join_path(species, self.output_property.name)
+                # TODO redundant information. the only thing here that cannot be deduced here is the fact that the data goes to
+                # species and not to 'Observables'
+                dataset_structure = {
+                    species: {self.output_property.name: tuple(np.shape(vel))}
+                }
                 self.database.add_dataset(dataset_structure)
-                data_structure = {path: {'indices': np.s_[:],
-                                         'columns': [0, 1, 2],
-                                         'length': len(vel)}}
-                self._save_coordinates(data=vel,
-                                       data_structure=data_structure,
-                                       index=0,
-                                       batch_size=np.shape(vel)[1],
-                                       system_tensor=False,
-                                       tensor=True)
+                data_structure = {
+                    path: {
+                        "indices": np.s_[:],
+                        "columns": list(range(self.output_property.n_dims)),
+                        "length": len(vel),
+                    }
+                }
+                self._save_coordinates(
+                    data=vel,
+                    data_structure=data_structure,
+                    index=0,
+                    batch_size=np.shape(vel)[1],
+                    system_tensor=False,
+                    tensor=True,
+                )
