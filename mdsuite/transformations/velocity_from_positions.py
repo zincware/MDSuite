@@ -16,16 +16,17 @@ import os
 import numpy as np
 import tensorflow as tf
 
-import mdsuite.database.simulation_data_class
 from mdsuite import experiment
+from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
 
 class VelocityFromPositions(Transformations):
     """
-    Calculate the velocity based on the particle positions via simple forward derivative, i.e.
-    v(t) = (x(t+dt)-x(t))/dt. The last velocity of the trajectory cannot be computed and is copied
+    Calculate the velocity based on the particle positions via simple forward derivative,
+    i.e. v(t) = (x(t+dt)-x(t))/dt.
+    The last velocity of the trajectory cannot be computed and is copied
     from the second to last.
     """
 
@@ -46,9 +47,7 @@ class VelocityFromPositions(Transformations):
 
         self.storage_path = self.experiment.storage_path
         self.analysis_name = self.experiment.name
-        self.output_property = (
-            mdsuite.database.simulation_data_class.mdsuite_properties.velocities_from_positions
-        )
+        self.output_property = mdsuite_properties.velocities_from_positions
         self.dt = self.experiment.time_step
 
         self.species = species
@@ -88,8 +87,9 @@ class VelocityFromPositions(Transformations):
                 vel = tf.concat((vel, last_values[:, None, :]), axis=1)
 
                 path = join_path(species, self.output_property.name)
-                # TODO redundant information. the only thing here that cannot be deduced here is the fact that the data goes to
-                # species and not to 'Observables'
+                # TODO redundant information.
+                # the only thing here that cannot be deduced here is the fact that the
+                # data goes to species and not to 'Observables'
                 dataset_structure = {
                     species: {self.output_property.name: tuple(np.shape(vel))}
                 }
