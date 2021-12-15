@@ -4,11 +4,12 @@ Here you will find all the information you need to start using the MDSuite code 
 analysis. We have written this into a separate section to facilitate immediate usage. If you want more information
 about the code please see the :doc:`modules and classes <modules_and_classes>` documentation.
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Contents:
+**Our current top priority is updating these use examples as soon as possible. Expect
+updates in the coming days. In the mean time, check out the scripts in the examples
+directory or in the tests.**
 
-    _calculators/experimental_calculators
-    _user_guide/bmim_bf4_example
-    _user_guide/molten_salt_example
-    _user_guide/compare_rdfs
+.. toctree::
+   :maxdepth: 1
+   :caption: Notebooks:
+
+   _notebooks/NaCl_walkthrough

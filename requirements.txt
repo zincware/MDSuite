@@ -1,4 +1,4 @@
-tensorflow
+tensorflow>=2.5
 h5py
 pysmiles
 matplotlib
@@ -9,15 +9,11 @@ numpy
 gputil
 pubchempy
 PyYAML>=5.4
-sphinxcontrib.bibtex
-pybtex
-nbsphinx
-sphinx_rtd_theme
-numpydoc
-sphinx-copybutton
-colorutils
 scooby
-sqlalchemy>=1.4
-pandas
-IPython
-pandoc
+sqlalchemy >= 1.4
+pandas >= 1.0.0
+tensorflow_probability
+open3d
+colorutils
+bokeh
+chemfiles

@@ -1,67 +1,147 @@
 """
-This program and the accompanying materials are made available under the terms of the
-Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+MDSuite: A Zincwarecode package.
+
+License
+-------
+This program and the accompanying materials are made available under the terms
+of the Eclipse Public License v2.0 which accompanies this distribution, and is
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-The central experiment class fundamental to all analysis.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
 
 Summary
 -------
-The experiment class is the main class involved in characterizing and analyzing a simulation.
 """
+import copy
+import importlib.resources
+import json
 import logging
-import os
-import pickle
-import sys
+import pathlib
+import typing
 from pathlib import Path
-import yaml
-from datetime import datetime
-from mdsuite.calculators.computations_dict import dict_classes_computations, dict_classes_db, calculators
+from typing import List, Union
+
+import numpy as np
+import pubchempy as pcp
+
+import mdsuite.file_io.extxyz_files
+import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.utils.meta_functions
 from mdsuite.calculators import RunComputation
+from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.database.simulation_database import (
+    Database,
+    SpeciesInfo,
+    TrajectoryMetadata,
+)
+from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import units_dict
-from mdsuite.database.experiment_database import ExperimentDatabase
+from mdsuite.utils.exceptions import ElementMassAssignedZero
+from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
 
-from .add_files import ExperimentAddingFiles
 from .run_module import RunModule
 
-log = logging.getLogger(__file__)
+log = logging.getLogger(__name__)
 
 
-class Experiment(ExperimentDatabase, ExperimentAddingFiles):
+def _get_processor(simulation_data):
+    """
+    Read in one file
+    """
+    if isinstance(simulation_data, str) or isinstance(simulation_data, pathlib.Path):
+        suffix = pathlib.Path(simulation_data).suffix
+        if suffix == ".lammpstraj":
+            processor = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(
+                simulation_data
+            )
+        elif suffix == ".extxyz":
+            processor = mdsuite.file_io.extxyz_files.EXTXYZFile(simulation_data)
+        else:
+            raise ValueError(
+                f"datafile ending '{suffix}' not recognized. If there is a reader for"
+                " your file type, you will find it in mdsuite.file_io."
+            )
+    elif isinstance(simulation_data, mdsuite.file_io.file_read.FileProcessor):
+        processor = simulation_data
+    else:
+        raise ValueError(
+            "simulation_data must be either str, pathlib.Path or instance of"
+            f" mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}'"
+            " instead"
+        )
+
+    return processor
+
+
+class Experiment(ExperimentDatabase):
     """
     The central experiment class fundamental to all analysis.
+
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.add_experiment(
+            name="NaCl",
+            timestep=0.002,
+            temperature=1400.0,
+            units="metal",
+            simulation_data="NaCl_gk_i_q.lammpstraj"
+            )
+        project.experiments.NaCl.run.RadialDistributionFunction(
+            number_of_configurations=500
+        )
+
 
     Attributes
     ----------
     name : str
             The name of the analysis being performed e.g. NaCl_1400K
     storage_path : str
-            Path to where the tensor_values should be stored (best to have  drive capable of storing large files)
+            Path to where the tensor_values should be stored (best to have  drive
+            capable of storing large files)
     temperature : float
-            The temperature of the simulation that should be used in some analysis. Necessary as it cannot be easily
-            read in from the simulation tensor_values.
+            The temperature of the simulation that should be used in some analysis.
+            Necessary as it cannot be easily read in from the simulation tensor_values.
     time_step : float
-            Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+            Time step of the simulation e.g 0.002. Necessary as it cannot be easily
+            read in from the trajectory.
     volume : float
             Volume of the simulation box
     species : dict
-            A dictionary of the species in the experiment and their properties. Their properties includes
-            index location in the trajectory file, mass of the species as taken from the PubChem
-            database_path, and the charge taken from the same database_path. When using these properties, it is
-            best that users confirm this information, with exception to the indices as they are read
-            from the file and will be correct.
+            A dictionary of the species in the experiment and their properties.
+            Their properties includes index location in the trajectory file, mass of
+            the species as taken from the PubChem database_path, and the charge taken
+            from the same database_path. When using these properties, it is best that
+            users confirm this information, with exception to the indices as they are
+            read from the file and will be correct.
     number_of_atoms : int
             The total number of atoms in the simulation
-   """
+    """
 
-    def __init__(self, project, experiment_name, storage_path='./', time_step=None, temperature=None, units=None,
-                 cluster_mode=False):
+    def __init__(
+        self,
+        project,
+        experiment_name,
+        time_step=None,
+        temperature=None,
+        units: Union[str, Units] = None,
+        cluster_mode=False,
+    ):
         """
         Initialise the experiment class.
 
@@ -70,48 +150,54 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         experiment_name : str
                 The name of the analysis being performed e.g. NaCl_1400K
         storage_path : str
-                Path to where the tensor_values should be stored (best to have  drive capable of storing large files)
+                Path to where the tensor_values should be stored (best to have  drive
+                capable of storing large files)
         temperature : float
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
-                Time step of the simulation e.g 0.002. Necessary as it cannot be easily read in from the trajectory.
+                Time step of the simulation e.g 0.002. Necessary as it cannot be easily
+                read in from the trajectory.
+        units: Union[str, dict], default = "real"
+            The units to be used in the experiment to convert to SI
         cluster_mode : bool
-                If true, several parameters involved in plotting and parallelization will be adjusted so as to allow
-                for optimal performance on a large computing cluster.
+                If true, several parameters involved in plotting and parallelization
+                will be adjusted so as to allow for optimal performance on a large
+                computing cluster.
         """
 
         # Taken upon instantiation
         super().__init__(project=project, experiment_name=experiment_name)
-        self.name = experiment_name  # Name of the experiment.
-        self.storage_path = os.path.abspath(storage_path)  # Where to store the tensor_values
-        self.cluster_mode = cluster_mode  # whether or not the script will run on a cluster
+        self.name = experiment_name
+        self.storage_path = Path(project.storage_path, project.name).as_posix()
+        self.cluster_mode = cluster_mode
 
         # ExperimentDatabase stored properties:
         # ------- #
         # set default values
-        if units is None and self.unit_system is None:
-            units = "real"
         if self.number_of_configurations is None:
-            self.number_of_configurations = 0  # Number of configurations in the trajectory.
+            self.number_of_configurations = 0
         # update database (None values are ignored)
-        self.temperature = temperature  # Temperature of the experiment.
-        self.time_step = time_step  # Timestep chosen for the simulation.
-        self.unit_system = units
+        self.temperature = temperature
+        self.time_step = time_step
 
         # Available properties that aren't set on default
-        self.number_of_atoms = None  # Number of atoms in the simulation.
+        self.number_of_atoms = None
         # ------- #
 
         # Added from trajectory file
-        self.units = self.units_to_si(self.unit_system)  # Units used during the simulation.
-        self.species = None  # Species dictionary.
-        self.molecules = {}  # molecules
+
+        if self.units is None:
+            if units is None:
+                units = "real"
+            self.units = self.units_to_si(units)  # Units used during the simulation.
+
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
 
-        self.sample_rate = None  # Rate at which configurations are dumped in the trajectory.
-        self.batch_size = None  # Number of configurations in each batch.
-        self.volume = None  # Volume of the experiment.
+        self.sample_rate = (
+            None  # Rate at which configurations are dumped in the trajectory.
+        )
+        self.volume = None
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
 
@@ -122,48 +208,52 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         self.logfile_path: str
         self._create_internal_file_paths()  # fill the path attributes
 
-        # self.radial_distribution_function_state = False  # Set true if this has been calculated
-        self.kirkwood_buff_integral_state = False  # Set true if it has been calculated
-        self.structure_factor_state = False
-
-        self._results = list(dict_classes_db.keys())
-
-        # Memory properties
-        self.memory_requirements = {}  # TODO I think this can be removed. - Not until all calcs are under tf Dataset
-
         # Check if the experiment exists and load if it does.
         self._load_or_build()
 
-        # Run Computations
-        # self.run_computation = RunModule(self, dict_classes_computations)
-        self.run_computation = RunComputation(experiment=self)
-        self.load_data = RunComputation(experiment=self, load_data=True)
         self.analyse_time_series = RunModule(self, time_series_dict)
 
-        # self._start_logging()
+    @property
+    def run(self) -> RunComputation:
+        """Method to access the available calculators
 
-        self._simulation_data: dict = {}
-        self.simulation_data_file = Path(self.storage_path) / self.name / "simulation_data.yaml"
+        Returns
+        -------
+        RunComputation:
+            class that has all available calculators as properties
+        """
+        return RunComputation(experiment=self)
 
     def __repr__(self):
+        """
+        Representation of the class.
+
+        In our case, the representation of the class is the name of the experiment.
+        """
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
         """
         Create or update internal file paths
         """
-        self.experiment_path = Path(self.storage_path, self.name)  # path to the experiment files
-        self.database_path = Path(self.experiment_path, 'databases')  # path to the databases
-        self.figures_path = Path(self.experiment_path, 'figures')  # path to the figures directory
-        self.logfile_path = Path(self.experiment_path, 'logfiles')
+        self.experiment_path = Path(
+            self.storage_path, self.name
+        )  # path to the experiment files
+        self.database_path = Path(self.experiment_path)  # path to the databases
+        self.figures_path = Path(
+            self.experiment_path, "figures"
+        )  # path to the figures directory
+        self.logfile_path = Path(self.experiment_path, "logfiles")
 
     def _build_model(self):
         """
         Build the 'experiment' for the analysis
 
-        A method to build the database_path in the hdf5 format. Within this method, several other are called to develop
-        the database_path skeleton, get configurations, and process and store the configurations. The method is
-        accompanied by a loading bar which should be customized to make it more interesting.
+        A method to build the database_path in the hdf5 format. Within this method,
+        several other are called to develop the database_path skeleton,
+        get configurations, and process and store the configurations. The method is
+        accompanied by a loading bar which should be customized to make it more
+        interesting.
         """
 
         # Create new analysis directory and change into it
@@ -181,9 +271,10 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     @staticmethod
     def units_to_si(units_system):
         """
-        Returns a dictionary with equivalences from the unit experiment given by a string to SI.
-        Along with some constants in the unit experiment provided (boltzmann, or other conversions).
-        Instead, the user may provide a dictionary. In that case, the dictionary will be used as the unit experiment.
+        Returns a dictionary with equivalences from the unit experiment given by a
+        string to SI. Along with some constants in the unit experiment provided
+        (boltzmann, or other conversions). Instead, the user may provide a dictionary.
+        In that case, the dictionary will be used as the unit experiment.
 
 
         Parameters
@@ -196,27 +287,32 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
         conv_factor (float) -- conversion factor to pass to SI
         """
 
-        if isinstance(units_system, dict):
+        if isinstance(units_system, Units):
             return units_system
-        else:
+        elif isinstance(units_system, str):
             try:
-                units = units_dict[units_system]()  # executes the function to return the appropriate dictionary.
+                units = units_dict[units_system]
             except KeyError:
                 raise KeyError(
                     f"The unit '{units_system}' is not implemented."
                     f" The available units are: {[x for x in units_dict]}"
                 )
+        else:
+            raise ValueError(
+                "units has to be of type Units or str,"
+                f" found {type(units_system)} instead"
+            )
         return units
 
-    #
     def _load_or_build(self) -> bool:
         """
-        Check if the experiment already exists and decide whether to load it or build a new one.
+        Check if the experiment already exists and decide whether to load it or build a
+        new one.
         """
 
         # Check if the experiment exists and load if it does.
         if Path(self.experiment_path).exists():
-            log.info("This experiment already exists! I'll load it up now.")
+            log.debug("This experiment already exists! I'll load it up now.")
             # self.load_class()
             return True
         else:
@@ -224,32 +320,6 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             self._build_model()
             return False
 
-    def save_class(self):
-        log.warning("Using depreciated method `save_class`!")
-
-    # def map_elements(self, mapping: dict = None):
-    #     """
-    #     Map numerical keys to element names in the Experiment class and database_path.
-    #
-    #     Returns
-    #     -------
-    #     Updates the class
-    #     """
-    #
-    #     if mapping is None:
-    #         log.info("Must provide a mapping")
-    #         return
-    #
-    #     # rename keys in species dictionary
-    #     for item in mapping:
-    #         self.species[mapping[item]] = self.species.pop(item)
-    #
-    #     # rename database_path groups
-    #     db_object = Database(name=os.path.join(self.database_path, "database_path.hdf5"))
-    #     db_object.change_key_names(mapping)
-    #
-    #     self.save_class()  # update the class state
-    #
     def perform_transformation(self, transformation_name, **kwargs):
         """
         Perform a transformation on the experiment.
@@ -270,34 +340,76 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
             transformation = transformations_dict[transformation_name]
         except KeyError:
             raise ValueError(
-                f'{transformation_name} not found! \n'
-                f'Available transformations are: {[key for key in transformations_dict]}'
+                f"{transformation_name} not found! \nAvailable transformations are:"
+                f" {[key for key in transformations_dict]}"
             )
 
         transformation_run = transformation(self, **kwargs)
         transformation_run.run_transformation()  # perform the transformation
 
-    #
-    # def print_class_attributes(self):
+    def run_visualization(
+        self,
+        species: list = None,
+        molecules: bool = False,
+        unwrapped: bool = False,
+        starting_configuration: int = None,
+    ):
+        """
+        Perform a trajectory visualization.
+
+        Parameters
+        ----------
+        species : list
+                A list of species of molecules to study.
+        molecules : bool
+                If true, molecule groups will be used.
+        unwrapped : bool
+                If true, unwrapped coordinates will be visualized.
+        starting_configuration : int
+                Starting configuration for the visualizer.
+
+        Returns
+        -------
+        Displays a visualization app.
+        """
+        if molecules:
+            if species is None:
+                species = list(self.species)
+        if species is None:
+            species = list(self.species)
+
+        visualizer = SimulationVisualizer(
+            self,
+            species=species,
+            molecules=molecules,
+            unwrapped=unwrapped,
+            number_of_configurations=self.number_of_configurations,
+        )
+        visualizer.run_app(starting_configuration=starting_configuration)
+
+    # def map_elements(self, mapping: dict = None):
     #     """
-    #     Print all attributes of the class
+    #     Map numerical keys to element names in the Experiment class and database_path.
     #
     #     Returns
     #     -------
-    #     attributes : list
-    #             List of class attribute tuples of (key, value)
+    #     Updates the class
     #     """
     #
-    #     attributes = []  # define empty array
-    #     for item in vars(self).items():  # loop over class attributes
-    #         attributes.append(item)  # append to the attributes array
-    #     for tuple_attributes in attributes:  # Split the key and value terms
-    #         log.info(f"{tuple_attributes[0]}: {tuple_attributes[1]}")
+    #     if mapping is None:
+    #         log.info("Must provide a mapping")
+    #         return
     #
-    #     return attributes
+    #     # rename keys in species dictionary
+    #     for item in mapping:
+    #         self.species[mapping[item]] = self.species.pop(item)
     #
+    #     # rename database_path groups
+    #     db_object = Database(name=os.path.join(self.database_path,
+    #     "database_path.hdf5"))
+    #     db_object.change_key_names(mapping)
     #
-    #
+    #     self.save_class()  # update the class state
     #
     #
     # def set_element(self, old_name, new_name):
@@ -315,169 +427,292 @@ class Experiment(ExperimentDatabase, ExperimentAddingFiles):
     #     if new_name != old_name:
     #         self.species[new_name] = self.species[old_name]  # update dict
     #         del self.species[old_name]  # remove old entry
-    #
-    # def set_charge(self, element: str, charge: float):
-    #     """
-    #     Set the charge/s of an element
-    #
-    #     Parameters
-    #     ----------
-    #     element : str
-    #             Name of the element whose charge you want to change
-    #     charge : list
-    #             New charge/s of the element
-    #     """
-    #     self.species[element]['charge'] = [charge]  # update entry
-    #     self.save_class()
-    #
-    # def set_mass(self, element: str, mass: float):
-    #     """
-    #     Set the mass/es of an element
-    #
-    #     Parameters
-    #     ----------
-    #     element : str
-    #             Name of the element whose mass you want to change
-    #     mass : list
-    #             New mass/es of the element
-    #     """
-    #     self.species[element]['mass'] = mass  # update the mass
-    #
-    #
-    # @property
-    # def results(self):
-    #     """
-    #     Property to get access to the results in a dictionary
-    #
-    #     Returns
-    #     -------
-    #     self._results: dict
-    #         the actual dictionary with the results
-    #     """
-    #     return self._results
-    #
-    # @results.getter
-    # def results(self):
-    #     """
-    #     Getter to retrieve the results from the YAML file in a dictionary
-    #     :return: dict
-    #
-    #     Returns
-    #     -------
-    #     self._results: dict
-    #         the actual dictionary with the results from the YAML file
-    #     """
-    #
-    #     with open(os.path.join(self.database_path, 'system_properties.yaml')) as pfr:
-    #         self._results = yaml.load(pfr, Loader=yaml.Loader)  # collect the data in the yaml file
-    #
-    #     return self._results
-    #
-    # @results.setter
-    # def results(self, result_dict: dict):
-    #     """
-    #     Setter to dump the results to the YAML file
-    #
-    #     Parameters
-    #     ----------
-    #     result_dict: dict
-    #         dictionary with the results. It will store them in the system_properties.yaml file.
-    #
-    #     """
-    #
-    #     with open(os.path.join(self.database_path, 'system_properties.yaml'), 'w') as pfw:
-    #         yaml.dump(result_dict, pfw)
-    #
-    # def write_xyz(self, dump_property: str = "Positions", species: list = None, name: str = 'dump.xyz'):
-    #     """
-    #     Write an xyz file from a database dataset
-    #     """
-    #     if species is None:
-    #         species = list(self.species)
-    #
-    #     database = Database(name=os.path.join(self.database_path, "database.hdf5"), architecture='simulation')
-    #
-    #     path_list = [join_path(s, dump_property) for s in species]
-    #     if len(species) == 1:
-    #         data_matrix = [database.load_data(path_list=path_list, select_slice=np.s_[:, 0:500])]
-    #     else:
-    #         data_matrix = database.load_data(path_list=path_list, select_slice=np.s_[:, 0:500])
-    #     n_atoms = sum(len(self.species[s]['indices']) for s in species)
-    #
-    #     with open(f"{name}.xyz", 'w') as f:
-    #         for i in tqdm(range(500), ncols=70):
-    #             f.write(f"{n_atoms}\n")
-    #             f.write("Generated by the mdsuite xyz writer\n")
-    #             for j, atom_species in enumerate(species):
-    #                 for atom in data_matrix[j].numpy():
-    #                     f.write(
-    #                         f"{atom_species:<2}    {atom[i][0]:>9.4f}    {atom[i][1]:>9.4f}    {atom[i][2]:>9.4f}\n")
-    #
-    # def export_data(self, group: str, key: str = None, sub_key: str = None):
-    #     """
-    #     Export data from the analysis database.
-    #
-    #     Parameters
-    #     ----------
-    #     group : str
-    #             Group in the database from which data should be loaded
-    #     key  : str
-    #             Additional identifier.
-    #     sub_key : str
-    #             Additional identifier
-    #     Returns
-    #     -------
-    #     saves a csv to the working directory.
-    #     """
-    #     database = Database(name=os.path.join(self.database_path, 'analysis_data.hdf5'), architecture='analysis')
-    #     database.export_csv(group=group, key=key, sub_key=sub_key)
-    #
-    # @property
-    # def simulation_data(self):
-    #     """
-    #     Load simulation data from internals.
-    #     If not available try to read them from file
-    #
-    #     Returns
-    #     -------
-    #     dict: A dictionary containing all simulation_data
-    #
-    #     """
-    #     if len(self._simulation_data) == 0:
-    #         try:
-    #             with open(self.simulation_data_file) as f:
-    #                 self._simulation_data = yaml.safe_load(f)
-    #         except FileNotFoundError:
-    #             log.debug(f"Could not find any data in from {self.simulation_data_file} or self._simulation_data. ")
-    #     return self._simulation_data
-    #
-    # @simulation_data.setter
-    # def simulation_data(self, value: dict):
-    #     """Update simulation data
-    #
-    #     Try to load the data from self.simulation_data_file, update the internals and update the yaml file.
-    #
-    #     Parameters
-    #     ----------
-    #     value: dict
-    #         A dictionary containing the (new) simulation data
-    #
-    #     Returns
-    #     -------
-    #     Updates the internal simulation_data
-    #
-    #     """
-    #     try:
-    #         with open(self.simulation_data_file) as f:
-    #             log.debug("Load simulation data from yaml file")
-    #             simulation_data = yaml.safe_load(f)
-    #             if simulation_data is None:
-    #                 simulation_data = dict()
-    #     except FileNotFoundError:
-    #         simulation_data = {}
-    #     simulation_data.update(value)
-    #     log.debug("Updating yaml file")
-    #     self._simulation_data = simulation_data
-    #
-    #     with open(self.simulation_data_file, "w") as f:
-    #         yaml.safe_dump(simulation_data, f)
+
+    def set_charge(self, element: str, charge: float):
+        """
+        Set the charge/s of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose charge you want to change
+        charge : list
+                New charge/s of the element
+        """
+
+        species = self.species
+        species[element]["charge"] = [charge]  # update entry
+        self.species = species
+
+    def set_mass(self, element: str, mass: float):
+        """
+        Set the mass/es of an element
+
+        Parameters
+        ----------
+        element : str
+                Name of the element whose mass you want to change
+        mass : list
+                New mass/es of the element
+        """
+        species = self.species
+        species[element]["mass"] = mass
+        self.species = species
+
+    def add_data(
+        self,
+        simulation_data: Union[
+            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
+        ],
+        force: bool = False,
+        update_with_pubchempy: bool = True,
+    ):
+        """
+        Add data to experiment. This method takes a filename, file path or a file
+        reader (or a list thereof). If given a filename, it will try to instantiate the
+        appropriate file reader with its default arguments. If you have a custom data
+        format with its own reader or want to use non-default arguments for your reader,
+        instantiate the reader and pass it to this method.
+        TODO reference online documentation of data loading in the error messages
+        Parameters
+        ----------
+        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor
+            or list thereof
+            if str or pathlib.Path: path to the file that contains the simulation_data
+            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file
+            reader from mdsuite.file_io
+            if list : must be list of any of the above (can be mixed).
+        force : bool
+            If true, a file will be read regardless of if it has already been seen.
+            Default: False
+        update_with_pubchempy: bool
+            Whether or not to look for the masses of the species in pubchempy.
+            Default: True
+
+        """
+
+        if isinstance(simulation_data, list):
+            for elem in simulation_data:
+                proc = _get_processor(elem)
+                self._add_data_from_file_processor(
+                    proc, force=force, update_with_pubchempy=update_with_pubchempy
+                )
+        else:
+            proc = _get_processor(simulation_data)
+            self._add_data_from_file_processor(
+                proc, force=force, update_with_pubchempy=update_with_pubchempy
+            )
+
+    def _add_data_from_file_processor(
+        self,
+        file_processor: mdsuite.file_io.file_read.FileProcessor,
+        force: bool = False,
+        update_with_pubchempy: bool = True,
+    ):
+        """
+        Add tensor_values to the database_path
+
+        Parameters
+        ----------
+        file_processor
+            The FileProcessor that is able to provide the metadata and the trajectory
+            to be saved
+        force : bool
+                If true, a file will be read regardless of if it has already
+                been seen.
+        update_with_pubchempy: bool
+                Whether or not to look for the masses of the species in pubchempy
+        """
+
+        already_read = str(FileProcessor) in self.read_files
+        if already_read and not force:
+            log.info(
+                "This file has already been read, skipping this now."
+                "If this is not desired, please add force=True "
+                "to the command."
+            )
+            return
+
+        database = Database(
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+        )
+
+        metadata = file_processor.metadata
+        architecture = _species_list_to_architecture_dict(
+            metadata.species_list, metadata.n_configurations
+        )
+        if not database.database_exists():
+            self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
+            database.initialize_database(architecture)
+        else:
+            database.resize_datasets(architecture)
+
+        for i, batch in enumerate(file_processor.get_configurations_generator()):
+            database.add_data(chunk=batch, start_idx=self.number_of_configurations)
+            self.number_of_configurations += batch.chunk_size
+
+        self.version += 1
+
+        self.memory_requirements = database.get_memory_information()
+
+        # set at the end, because if something fails, the file was not properly read.
+        self.read_files = self.read_files + [str(FileProcessor)]
+
+    def load_matrix(
+        self,
+        property_name: str = None,
+        species: typing.Iterable[str] = None,
+        select_slice: np.s_ = None,
+        path: typing.Iterable[str] = None,
+    ):
+        """
+        Load a desired property matrix.
+
+        Parameters
+        ----------
+        property_name : str
+                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions',
+                'Velocities'
+        species : Iterable[str]
+                List of species to be loaded
+        select_slice : np.slice
+                A slice to select from the database_path.
+        path : str
+                optional path to the database_path.
+
+        Returns
+        -------
+        property_matrix : np.array, tf.tensor
+                Tensor of the property to be studied. Format depends on kwargs.
+        """
+        database = Database(
+            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+        )
+
+        if path is not None:
+            return database.load_data(path_list=path, select_slice=select_slice)
+
+        else:
+            # If no species list is given, use all species in the Experiment.
+            if species is None:
+                species = list(self.species.keys())
+            # If no slice is given, load all configurations.
+            if select_slice is None:
+                select_slice = np.s_[:]  # set the numpy slice object.
+
+        path_list = []
+        for item in species:
+            path_list.append(join_path(item, property_name))
+        return database.load_data(path_list=path_list, select_slice=select_slice)
+
+    def _store_metadata(self, metadata: TrajectoryMetadata, update_with_pubchempy=False):
+        """Save Metadata in the SQL DB
+
+        Parameters
+        ----------
+        metadata: TrajectoryMetadata
+        update_with_pubchempy: bool
+            Load data from pubchempy and add it to fill missing infomration
+        """
+        # new trajectory: store all metadata and construct a new database
+        self.temperature = metadata.temperature
+        self.box_array = metadata.box_l
+        if self.box_array is not None:
+            self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+                self.box_array
+            )
+        else:
+            self.dimensions = None
+        self.volume = np.prod(self.box_array)
+        # todo look into replacing these properties
+        self.sample_rate = metadata.sample_rate
+        species_list = copy.deepcopy(metadata.species_list)
+        if update_with_pubchempy:
+            update_species_attributes_with_pubchempy(species_list)
+        # store the species information in dict format
+        species_dict = dict()
+        for sp_info in species_list:
+            species_dict[sp_info.name] = {
+                # look here
+                "mass": sp_info.mass,
+                "charge": sp_info.charge,
+                "n_particles": sp_info.n_particles,
+                # legacy: calculators use this list to determine the number of particles
+                # TODO fix this, Christoph!
+                "indices": list(range(sp_info.n_particles)),
+                "properties": [prop_info.name for prop_info in sp_info.properties],
+            }
+        self.species = species_dict
+        # assume the same property for each species
+        self.property_groups = next(iter(species_dict.values()))["properties"]
+
+
+def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
+    """
+    Add information to the species dictionary
+
+    A fundamental part of this package is species specific analysis. Therefore, the
+    Pubchempy package is used to add important species specific information to the
+    class. This will include the charge of the ions which will be used in
+    conductivity calculations.
+
+    """
+    with importlib.resources.open_text(
+        "mdsuite.data", "PubChemElements_all.json"
+    ) as json_file:
+        pse = json.loads(json_file.read())
+
+    # Try to get the species tensor_values from the Periodic System of Elements file
+
+    # set/find masses
+    for sp_info in species_list:
+        for entry in pse:
+            if pse[entry][1] == sp_info.name:
+                sp_info.mass = [float(pse[entry][3])]
+
+                # If gathering the tensor_values from the PSE file was not successful
+    # try to get it from Pubchem via pubchempy
+    for sp_info in species_list:
+        if sp_info.mass is None:
+            try:
+                temp = pcp.get_compounds(sp_info.name, "name")
+                temp[0].to_dict(
+                    properties=[
+                        "atoms",
+                        "bonds",
+                        "exact_mass",
+                        "molecular_weight",
+                        "elements",
+                    ]
+                )
+                sp_info.mass = [temp[0].molecular_weight]
+                log.debug(temp[0].exact_mass)
+            except (ElementMassAssignedZero, IndexError):
+                sp_info.mass = 0.0
+                log.warning(f"WARNING element {sp_info.name} has been assigned mass=0.0")
+    return species_list
+
+
+def _species_list_to_architecture_dict(species_list, n_configurations):
+    # TODO let the database handler use the species list directly instead of the dict
+    """
+    converter from species list to leacy architecture dict
+    Parameters
+    ----------
+    species_list
+    n_configurations
+
+    Returns
+    -------
+    dict like architecture = {'Na':{'Positions':(n_part, n_config, n_dim)}}
+    """
+    architecture = {}
+    for sp_info in species_list:
+        architecture[sp_info.name] = {}
+        for prop_info in sp_info.properties:
+            architecture[sp_info.name][prop_info.name] = (
+                sp_info.n_particles,
+                n_configurations,
+                prop_info.n_dims,
+            )
+    return architecture

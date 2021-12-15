@@ -1,29 +1,38 @@
 """
+MDSuite: A Zincwarecode package.
+
+License
+-------
 This program and the accompanying materials are made available under the terms
 of the Eclipse Public License v2.0 which accompanies this distribution, and is
-available at https://www.eclipse.org/legal/epl-v20.html.
+available at https://www.eclipse.org/legal/epl-v20.html
 
 SPDX-License-Identifier: EPL-2.0
 
-Copyright Contributors to the MDSuite Project.
+Copyright Contributors to the Zincwarecode Project.
 
-Class for the calculation of the Green-Kubo diffusion coefficients.
+Contact Information
+-------------------
+email: zincwarecode@gmail.com
+github: https://github.com/zincware
+web: https://zincwarecode.com/
+
+Citation
+--------
+If you use this module please cite us with:
+
 Summary
 -------
-This module contains the code for the Einstein diffusion coefficient class.
-This class is called by the Experiment class and instantiated when the user
-calls the Experiment.einstein_diffusion_coefficients method. The methods in
-class can then be called by the Experiment.green_kubo_diffusion_coefficients
-method and all necessary calculations performed.
 """
-from typing import Union
-import numpy as np
-from tqdm import tqdm
-import tensorflow as tf
 import itertools
+from typing import Union
+
+import numpy as np
+import tensorflow as tf
+from bokeh.models import Span
 from scipy import signal
-import tensorflow_probability as tfp
-import matplotlib.pyplot as plt
+from tqdm import tqdm
+
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.utils.meta_functions import join_path
 
@@ -69,8 +78,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         self.loaded_property = "Velocities"
 
         self.database_group = "Diffusion_Coefficients"
-        self.x_label = "Time $(s)$"
-        self.y_label = "VACF $(m^{2}/s^{2})$"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"\text{VACF}  / m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Distinct_Diffusion_Coefficients"
         self.experimental = True
 
@@ -90,16 +99,27 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
-        Attributes
+        Parameters
         ----------
         plot : bool
-                if true, plot the tensor_values
+                if true, plot the output.
         species : list
-                Which species to perform the analysis on
-        data_range :
-                Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        gpu : bool
+                If true, scale the memory requirement down to the amount of
+                the biggest GPU in the system.
+        integration_range : int
+                Range over which to perform the integration.
         """
         self.update_user_args(
             plot=plot,
@@ -126,9 +146,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """
@@ -144,9 +162,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
+        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             self.vacf = np.zeros(self.data_range)
             start = ensemble * self.correlation_time
             stop = start + self.data_range
@@ -167,9 +183,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                                 for idx in range(3)
                             ]
                         )
-            self.vacf += vacf[
-                int(self.data_range - 1):
-            ]  # Update the averaged function
+            self.vacf += vacf[int(self.data_range - 1) :]  # Update the averaged function
             self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
     def run_experimental_analysis(self):
@@ -217,12 +231,13 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
         numerator = self.experiment.units["length"] ** 2
         denominator = (
@@ -263,50 +278,32 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         """
         result = self.prefactor * np.array(self.sigma)
 
-        properties = {
-            "Property": self.database_group,
-            "Analysis": self.analysis_name,
-            "Subject": list(species),
-            "data_range": self.data_range,
-            "data": [
-                {
-                    "x": np.mean(result),
-                    "uncertainty": np.std(result) / (np.sqrt(len(result))),
-                }
-            ],
+        data = {
+            "diffusion_coefficient": np.mean(result).tolist(),
+            "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+            "time": self.time.tolist(),
+            "acf": self.vacf.tolist(),
         }
-        self._update_properties_file(properties)
+
+        self.queue_data(data=data, subjects=list(species))
+
         # Update the plot if required
         if self.plot:
-            plt.plot(
-                np.array(self.time) * self.experiment.units["time"],
-                self.vacf,
-                label=species,
-            )
-            plt.vlines(
-                (np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range
+            span = Span(
+                location=(np.array(self.time) * self.experiment.units["time"])[
+                    self.integration_range - 1
                 ],
-                min(self.vacf),
-                max(self.vacf),
+                dimension="height",
+                line_dash="dashed",
             )
-            plt.savefig(f"{species}.pdf")
-
-        if self.save:
-            properties = {
-                "Property": self.database_group,
-                "Analysis": self.analysis_name,
-                "Subject": list(species),
-                "data_range": self.data_range,
-                "data": [{"x": x, "y": y} for x, y in zip(self.time, self.vacf)],
-                "information": "series",
-            }
-            self._update_properties_file(properties)
-
-        if self.export:
-            self._export_data(
-                name=self._build_table_name(species),
-                data=self._build_pandas_dataframe(self.time, self.vacf),
+            self.run_visualization(
+                x_data=np.array(self.time) * self.experiment.units["time"],
+                y_data=self.vacf.numpy(),
+                title=(
+                    f"{species}: {np.mean(result): .3E} +-"
+                    f" {np.std(result) / (np.sqrt(len(result))): .3E}"
+                ),
+                layouts=[span],
             )
 
     def _update_output_signatures(self):

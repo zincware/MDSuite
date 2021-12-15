@@ -1,2 +1,2 @@
-Ensamble Average
+Ensemble Average
 =====================================================
