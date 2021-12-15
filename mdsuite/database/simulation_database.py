@@ -27,6 +27,7 @@ Summary
 import dataclasses
 import pathlib
 import time
+import typing
 from typing import List
 
 import h5py as hf
@@ -609,7 +610,7 @@ class Database:
         dictionary: bool = False,
         scaling: list = None,
         d_size: int = None,
-    ):
+    ) -> typing.Dict[str, tf.Tensor]:
         """
         Load tensor_values from the database_path for some operation.
 
@@ -618,7 +619,7 @@ class Database:
 
         Returns
         -------
-
+        Dictionary of form {path: data_in_path}
         """
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]

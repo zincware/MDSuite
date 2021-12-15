@@ -29,12 +29,12 @@ import importlib.resources
 import json
 import logging
 import pathlib
-import typing
 from pathlib import Path
 from typing import List, Union
 
 import numpy as np
 import pubchempy as pcp
+import tensorflow as tf
 
 import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.lammps_trajectory_files
@@ -560,11 +560,10 @@ class Experiment(ExperimentDatabase):
 
     def load_matrix(
         self,
-        property_name: str = None,
-        species: typing.Iterable[str] = None,
-        select_slice: np.s_ = None,
-        path: typing.Iterable[str] = None,
-    ):
+        property_name: str,
+        species_name: str,
+        select_slice: np.s_ = np.s_[:],
+    ) -> tf.Tensor:
         """
         Load a desired property matrix.
 
@@ -573,37 +572,23 @@ class Experiment(ExperimentDatabase):
         property_name : str
                 Name of the matrix to be loaded, e.g. 'Unwrapped_Positions',
                 'Velocities'
-        species : Iterable[str]
-                List of species to be loaded
+        species_name : str
+                Name of species to be loaded
         select_slice : np.slice
-                A slice to select from the database_path.
-        path : str
-                optional path to the database_path.
+                A slice to select a subset of data (e.g. only the first particle,
+                only the 17th time step etc)
 
         Returns
         -------
-        property_matrix : np.array, tf.tensor
-                Tensor of the property to be studied. Format depends on kwargs.
+        property_matrix : tf.Tensor
+                Tensor of the property requested
         """
         database = Database(
             name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
         )
 
-        if path is not None:
-            return database.load_data(path_list=path, select_slice=select_slice)
-
-        else:
-            # If no species list is given, use all species in the Experiment.
-            if species is None:
-                species = list(self.species.keys())
-            # If no slice is given, load all configurations.
-            if select_slice is None:
-                select_slice = np.s_[:]  # set the numpy slice object.
-
-        path_list = []
-        for item in species:
-            path_list.append(join_path(item, property_name))
-        return database.load_data(path_list=path_list, select_slice=select_slice)
+        path = join_path(species_name, property_name)
+        return database.load_data(path_list=[path], select_slice=select_slice)[path]
 
     def _store_metadata(self, metadata: TrajectoryMetadata, update_with_pubchempy=False):
         """Save Metadata in the SQL DB

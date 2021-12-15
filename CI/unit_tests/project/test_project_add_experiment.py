@@ -138,12 +138,12 @@ def test_lammps_read(traj_files, tmp_path):
         temperature=1600,
     )
     vels = project.experiments["NaCl"].load_matrix(
-        species=["Na"], property_name="Velocities"
+        species_name="Na", property_name="Velocities"
     )
     # check one value from the file
     # timestep 482, Na atom id 429 (line 486776 in th file)
     vel_shouldbe = [5.2118, 6.40816, 0.988324]
-    vel_is = vels["Na/Velocities"][428, 482, :]
+    vel_is = vels[428, 482, :]
     np.testing.assert_array_almost_equal(vel_is, vel_shouldbe, decimal=5)
 
 
@@ -157,12 +157,12 @@ def test_extxyz_read(traj_files, tmp_path):
         temperature=1600,
     )
     forces = project.experiments["NaCl"].load_matrix(
-        species=["Na"], property_name="Forces"
+        species_name="Na", property_name="Forces"
     )
     # check one value from the file
     # second timestep, Na atom nr 15
     force_shouldbe = [0.48390745, -0.99956709, 1.11229777]
-    force_is = forces["Na/Forces"][15, 1, :]
+    force_is = forces[15, 1, :]
     np.testing.assert_array_almost_equal(force_is, force_shouldbe, decimal=5)
 
 
@@ -186,12 +186,12 @@ def test_lammpsflux_read(traj_files, tmp_path):
         "NaCl_flux", simulation_data=file_reader, timestep=0.1, temperature=1600
     )
     pressures = project.experiments["NaCl_flux"].load_matrix(
-        species=["Observables"], property_name="Pressure"
+        species_name="Observables", property_name="Pressure"
     )
     # check one value from the file
     # line 87
     press_shouldbe = -153.75652
-    force_is = pressures["Observables/Pressure"][0, 57, 0].numpy()
+    force_is = pressures[0, 57, 0].numpy()
     assert force_is == pytest.approx(press_shouldbe, rel=1e-5)
 
 
@@ -207,8 +207,8 @@ def test_gromacs_read(traj_files, tmp_path):
 
     project.add_experiment("xtc_test", simulation_data=file_reader)
     pos = project.experiments["xtc_test"].load_matrix(
-        species=["C1"], property_name="Unwrapped_Positions"
-    )["C1/Unwrapped_Positions"]
+        species_name="C1", property_name="Unwrapped_Positions"
+    )
 
     # read the same file with mdanalysis and compare
     uni = MDAnalysis.Universe(topol_path, traj_path)

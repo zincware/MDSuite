@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import pathlib
+import typing
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Union
@@ -78,7 +79,10 @@ class Project(ProjectDatabase):
     """
 
     def __init__(
-        self, name: str = None, storage_path: str = "./", description: str = None
+        self,
+        name: str = None,
+        storage_path: typing.Union[str, pathlib.Path] = "./",
+        description: str = None,
     ):
         """Project class constructor
 
@@ -91,7 +95,7 @@ class Project(ProjectDatabase):
         ----------
         name : str
                 The name of the project.
-        storage_path : str
+        storage_path : str or pathlib.Path
                 Where to store the tensor_values and databases. This should be
                 a place with sufficient storage space for the full analysis.
         """
@@ -100,7 +104,7 @@ class Project(ProjectDatabase):
             self.name = "MDSuite_Project"
         else:
             self.name = name
-        self.storage_path = storage_path
+        self.storage_path = pathlib.Path(storage_path).resolve()
 
         # Properties
         self._experiments = {}

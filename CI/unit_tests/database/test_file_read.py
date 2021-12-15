@@ -116,16 +116,12 @@ def test_read_script_input(tmp_path):
     exp.add_data(proc)
 
     pos_loaded = np.swapaxes(
-        exp.load_matrix(species=[sp_name], property_name="Positions")[
-            "test_species/Positions"
-        ].numpy(),
+        exp.load_matrix(species_name=sp_name, property_name="Positions").numpy(),
         0,
         1,
     )
     vel_loaded = np.swapaxes(
-        exp.load_matrix(species=[sp_name], property_name="Velocities")[
-            "test_species/Velocities"
-        ].numpy(),
+        exp.load_matrix(species_name=sp_name, property_name="Velocities").numpy(),
         0,
         1,
     )
