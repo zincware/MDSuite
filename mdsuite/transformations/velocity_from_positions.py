@@ -37,7 +37,7 @@ class VelocityFromPositions(Transformations):
         """
         super().__init__(
             exp,
-            input_properties=mdsuite_properties.unwrapped_positions,
+            input_properties=[mdsuite_properties.unwrapped_positions],
             output_property=mdsuite_properties.velocities_from_positions,
             scale_function={"linear": {"scale_factor": 1}},
         )
@@ -46,8 +46,10 @@ class VelocityFromPositions(Transformations):
         self.dt = self.experiment.time_step
 
     def transform_batch(self, batch: tf.Tensor) -> tf.Tensor:
-        pos_plus_dt = tf.roll(batch, shift=-1, axis=1)
-        vel = (pos_plus_dt - batch) / self.dt
+        print(batch)
+        pos = batch[mdsuite_properties.unwrapped_positions.name]
+        pos_plus_dt = tf.roll(pos, shift=-1, axis=1)
+        vel = (pos_plus_dt - pos) / self.dt
         # discard last value, it comes from wrapping around the positions
         vel = vel[:, :-1, :]
         # instead, append the last value again

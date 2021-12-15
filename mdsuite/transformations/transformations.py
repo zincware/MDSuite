@@ -32,6 +32,7 @@ import copy
 import logging
 import os
 import time
+import typing
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
@@ -82,7 +83,9 @@ class Transformations:
     def __init__(
         self,
         experiment: Experiment,
-        input_properties: mdsuite.database.simulation_database.PropertyInfo = None,
+        input_properties: typing.Iterable[
+            mdsuite.database.simulation_database.PropertyInfo
+        ] = None,
         output_property: mdsuite.database.simulation_database.PropertyInfo = None,
         scale_function=None,
         dtype=tf.float64,
@@ -101,7 +104,7 @@ class Transformations:
             architecture="simulation",
         )
 
-        self.input_property = input_properties
+        self.input_properties = input_properties
         self.output_property = output_property
         self.logger = logging.getLogger(__name__)
         self.scale_function = scale_function
@@ -111,7 +114,7 @@ class Transformations:
         self.n_batches: int
         self.remainder: int
 
-        self.dependency = None  # todo: legace, replaced by input_property
+        self.dependency = None  # todo: legacy, to be replaced by input_property
         self.offset = 0
 
         self.data_manager: DataManager
@@ -143,8 +146,8 @@ class Transformations:
         -------
         Calls a resolve method if dependencies are not met.
         """
-        path_list = []
-        truth_array = [
+        truth_array = []
+        path_list = [
             join_path(species, self.dependency) for species in self.experiment.species
         ]
         for item in path_list:
@@ -443,30 +446,40 @@ class Transformations:
 
             output_data_structure = self._prepare_database_entry(species)
 
-            input_data_path = [join_path(species, self.input_property.name)]
-            self._prepare_monitors(input_data_path)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
             type_spec = {
-                str.encode(input_data_path[0]): tf.TensorSpec(
-                    shape=(None, None, self.input_property.n_dims), dtype=self.dtype
-                ),
-                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+                str.encode(join_path(species, prop.name)): tf.TensorSpec(
+                    shape=(None, None, prop.n_dims), dtype=self.dtype
+                )
+                for prop in self.input_properties
             }
+            self._prepare_monitors(list(type_spec.keys()))
+            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            type_spec.update(
+                {
+                    str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+                }
+            )
             data_set = tf.data.Dataset.from_generator(
                 batch_generator, args=batch_generator_args, output_signature=type_spec
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for index, x in tqdm.tqdm(
+            for index, batch_dict in tqdm.tqdm(
                 enumerate(data_set),
                 ncols=70,
                 desc=f"Applying transformation to {species}",
             ):
-                data = self.transform_batch(x[str.encode(input_data_path[0])])
+                # remove species information from batch:
+                # the transformation only has to know about the property
+                # ideally, the keys of the batch dict are already ProprtyInfo instances
+                batch_dict_wo_species = {}
+                for key, val in batch_dict.items():
+                    batch_dict_wo_species[str(key).split("/")[-1].strip("'")] = val
+                transformed_batch = self.transform_batch(batch_dict_wo_species)
                 self._save_output(
-                    data=data,
+                    data=transformed_batch,
                     data_structure=output_data_structure,
                     index=index * self.batch_size,
-                    batch_size=None,  # todo legacy argument, could be removed
+                    batch_size=None,
                 )
 
     @abc.abstractmethod
