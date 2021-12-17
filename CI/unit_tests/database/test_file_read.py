@@ -1,7 +1,4 @@
-import tempfile
-
 import numpy as np
-import pytest
 
 import mdsuite
 import mdsuite.file_io.script_input as script_input
@@ -42,15 +39,9 @@ def test_species_info_equal():
 
     assert properties_0[0] == properties_1[0]
 
-    sp_info_0 = SpeciesInfo(
-        name="test0", mass=3, n_particles=17, properties=properties_0
-    )
-    sp_info_1 = SpeciesInfo(
-        name="test0", mass=3, n_particles=17, properties=properties_0
-    )
-    sp_info_2 = SpeciesInfo(
-        name="test0", mass=3, n_particles=17, properties=properties_1
-    )
+    sp_info_0 = SpeciesInfo(name="test0", mass=3, n_particles=17, properties=properties_0)
+    sp_info_1 = SpeciesInfo(name="test0", mass=3, n_particles=17, properties=properties_0)
+    sp_info_2 = SpeciesInfo(name="test0", mass=3, n_particles=17, properties=properties_1)
 
     assert sp_info_0 == sp_info_1
     assert sp_info_0 != sp_info_2

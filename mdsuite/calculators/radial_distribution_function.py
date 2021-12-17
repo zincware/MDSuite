@@ -92,7 +92,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     loaded_property : str
             Property loaded from the database_path for the analysis
     minibatch: int, default None
-            Size of a individual minibatch, if set. By default mini-batching is not
+            Size of an individual minibatch, if set. By default mini-batching is not
             applied
 
     See Also
@@ -101,11 +101,12 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.RadialDistributionFunction(number_of_configurations = 50,
-                                                          minibatch = 10, start = 0,
-                                                          stop = 1000,
-                                                          number_of_bins = 100,
-                                                          use_tf_function = False)
+
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.run.RadialDistributionFunction(number_of_configurations=500)
+
     """
 
     def __init__(self, **kwargs):
@@ -361,10 +362,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         # Compute the true RDF for each species combination.
         self.rdf.update(
-            {
-                key: np.array(val.numpy(), dtype=np.float)
-                for key, val in self.rdf.items()
-            }
+            {key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()}
         )
 
         for names in self.key_list:
@@ -418,9 +416,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
-    def run_minibatch_loop(
-        self, atoms, stop, n_atoms, minibatch_start, positions_tensor
-    ):
+    def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """
         Run a minibatch loop
 

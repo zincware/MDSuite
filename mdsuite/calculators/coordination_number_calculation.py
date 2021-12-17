@@ -88,8 +88,13 @@ class CoordinationNumbers(Calculator):
 
     Examples
     --------
-    experiment.run_computation.CoordinationNumbers(savgol_order = 2,
-                                                   savgol_window_length = 17)
+
+    .. code-block:: python
+
+        experiment.run_computation.CoordinationNumbers(
+            savgol_order = 2, savgol_window_length = 17
+        )
+
     """
 
     def __init__(self, **kwargs):
@@ -321,9 +326,7 @@ class CoordinationNumbers(Calculator):
             self.selected_species = selected_species.split("_")
             self.species_tuple = selected_species  # depreciated
 
-            density = self._get_density(
-                self.selected_species[0]
-            )  # calculate the density
+            density = self._get_density(self.selected_species[0])  # calculate the density
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied

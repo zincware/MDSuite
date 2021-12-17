@@ -136,9 +136,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         if self.species is None:
             self.species = list(self.experiment.species)
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
         self.update_user_args(
             plot=plot,
@@ -156,9 +154,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
         return self.update_db_entry_with_kwargs(
             data_range=data_range,
@@ -181,9 +177,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
+        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             start = ensemble * self.correlation_time
             stop = start + self.data_range
             msd_a = self._msd_operation(

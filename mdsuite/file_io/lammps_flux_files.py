@@ -27,14 +27,15 @@ Summary
 import pathlib
 import typing
 
-import tqdm
-
 import mdsuite.database.simulation_database
 import mdsuite.file_io.file_read
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.file_io.tabular_text_files
 from mdsuite.database.simulation_data_class import mdsuite_properties
-from mdsuite.utils.meta_functions import optimize_batch_size
+from mdsuite.file_io.lammps_trajectory_files import extract_properties_from_header
+from mdsuite.file_io.tabular_text_files import (
+    get_species_list_from_tabular_text_reader_data,
+)
 
 column_names = {
     mdsuite_properties.temperature: ["temp"],
@@ -60,8 +61,9 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         custom_data_map: dict = None,
     ):
         """
-        Initialize the lammps flux reader. Since the flux file does not have a fixed expected content,
-        you need to provide the necessary metadata (sample_rate, box_l) here manually
+        Initialize the lammps flux reader. Since the flux file does not have a fixed
+        expected content, you need to provide the necessary metadata
+        (sample_rate, box_l) here manually
         Parameters
         ----------
         file_path
@@ -72,10 +74,13 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
             Array of box lengths
         n_header_lines
             Number of header lines on the top of the file
-            first (n_header_lines-1) lines will be skipped, line n_header_lines must contain the column names
+            first (n_header_lines-1) lines will be skipped, line n_header_lines must
+            contain the column names
         custom_data_map
-            Dictionary connecting the name in the mdsuite database to the name of the corresponding columns
-            example: {"Thermal_Flux": ["c_flux_thermal[1]", "c_flux_thermal[2]", "c_flux_thermal[3]"]}
+            Dictionary connecting the name in the mdsuite database to the name of the
+            corresponding columns
+            example:
+            {"Thermal_Flux":["c_flux_thermal[1]","c_flux_thermal[2]","c_flux_thermal[3]"]}
         """
         super(LAMMPSFluxFile, self).__init__(
             file_path,
@@ -97,13 +102,12 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         with open(self.file_path, "r") as file:
             with open(self.file_path, "r") as file:
                 file.seek(0)
-                mdsuite.file_io.tabular_text_files.skip_n_lines(
-                    file, self.n_header_lines
-                )
-                # lammps log files can have multiple blocks of data interrupted by blocks of log info
-                # we read only the first block starting after n_header_lines
-                # this will mess up batching if this block is significantly smaller than the total file,
-                # but it will only affect performance, not safety
+                mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
+                # lammps log files can have multiple blocks of data interrupted
+                # by blocks of log info we read only the first block starting after
+                # n_header_lines this will mess up batching if this block is significantly
+                # smaller than the total file but it will only affect performance,
+                # not safety
 
                 first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(
                     file, 1
@@ -120,7 +124,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                     file, self.n_header_lines
                 )
                 column_header = headers[-1]
-                properties_dict = mdsuite.file_io.lammps_trajectory_files.extract_properties_from_header(
+                properties_dict = extract_properties_from_header(
                     column_header.split(), self._column_name_dict
                 )
 
@@ -136,9 +140,10 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
 
     def _get_metadata(self):
         """
-        Gets the metadata for database creation as an implementation of the parent class virtual function.
+        Gets the metadata for database creation as an implementation of the parent
+        class virtual function.
         """
-        species_list = mdsuite.file_io.tabular_text_files.get_species_list_from_tabular_text_reader_data(
+        species_list = get_species_list_from_tabular_text_reader_data(
             self.tabular_text_reader_data
         )
 

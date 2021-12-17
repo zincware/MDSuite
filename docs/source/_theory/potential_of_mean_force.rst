@@ -10,7 +10,7 @@ The potential of mean force is related to the radial distribution function (RDF)
 
 .. math::
 
-    w_{\alpha \beta}^{(2)}(r) = k_\mathrm{B} T \mathrm{ln} g_{\alpha \beta}(r)
+    w_{\alpha \beta}^{(2)}(r) = k_\mathrm{B} T \: \mathrm{ln} g_{\alpha \beta}(r)
 
 Implementation
 --------------
@@ -21,4 +21,4 @@ This is done applying a SavGol filter to smooth the RDF, before a peak finding
 algorithm is applied to determine the peaks in the RDF.
 These peaks are used as boundaries for a Golden-Section search which determines the
 minimum of the RDF.
-The radii if this minimum is then used to evaluate the PMF for the system.
+The radius of this minimum is then used to evaluate the PMF for the system.

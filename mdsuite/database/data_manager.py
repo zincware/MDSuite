@@ -246,7 +246,7 @@ class DataManager:
                 range(self.n_atom_batches + _atom_remainder),
                 total=self.n_atom_batches + _atom_remainder,
                 ncols=70,
-                desc=f"batch loop",
+                desc="batch loop",
             ):
                 atom_start = atom_batch * self.atom_batch_size
                 atom_stop = atom_start + self.atom_batch_size

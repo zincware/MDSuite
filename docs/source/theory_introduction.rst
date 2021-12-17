@@ -2,7 +2,7 @@ MDSuite Theory
 ==============
 
 There is a lot of theory that goes into the MDSuite package in order to perform the analysis available. In this part
-of the documentation we will attempt to sufficiently cover the theoretical foundations of the methods used in the
+of the documentation, we will attempt to sufficiently cover the theoretical foundations of the methods used in the
 package.
 
 Before we get started we want to say that if you find any mistakes in this theory, or alternatively you would like to
@@ -46,7 +46,7 @@ Structural Properties:
    _theory/potential_of_mean_force
    _theory/isothermal_compressibility
 
-Each of these analysis have very similar interfaces and take similar arguments. In each case, if the arguments are not
+Each of these analyses have very similar interfaces and take similar arguments. In each case, if the arguments are not
 changed, the analysis will return figures of the analysis and .npy data files stored inside the experiment directory.
 Furthermore, any property value calculated during the analysis is stored in the class state and can be read out by
 calling the relevant property from a python script.
@@ -90,4 +90,4 @@ Theoretical Concepts:
 Final Words
 -----------
 This theory portion of the documentation is a work in progress, so we would just like to ask one more time that if you
-happen to find any errors or think something needs to be added, please do let us know and we an arrange to correct it.
+happen to find any errors or think something needs to be added, please do let us know and we arrange to correct it.

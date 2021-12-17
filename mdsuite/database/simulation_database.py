@@ -27,7 +27,7 @@ Summary
 import dataclasses
 import pathlib
 import time
-from typing import List, Union
+from typing import List
 
 import h5py as hf
 import numpy as np
@@ -98,7 +98,8 @@ class SpeciesInfo:
 @dataclasses.dataclass
 class TrajectoryMetadata:
     """
-    This metadata must be extracted from trajectory files to build the database into which the trajectory will be stored
+    This metadata must be extracted from trajectory files to build the database into
+    which the trajectory will be stored
 
     Attributes
     ----------
@@ -129,7 +130,7 @@ class TrajectoryMetadata:
 
     n_configurations: int
     species_list: List[SpeciesInfo]
-    box_l: list
+    box_l: list = None
     sample_rate: int = 1
     sample_step: float = None
     temperature: float = None
@@ -148,7 +149,8 @@ class TrajectoryChunkData:
         ----------
         species_list:
             List of SpeciesInfo.
-            It contains the information which species are there and which properties are recorded for each
+            It contains the information which species are there and which properties
+            are recorded for each
         chunk_size:
             The number of configurations to be stored in this chunk
         """
@@ -169,7 +171,8 @@ class TrajectoryChunkData:
         ----------
         data:
             The data to be added, with shape (n_configs, n_particles, n_dims).
-            n_particles and n_dims relates to the species and the property that is being added
+            n_particles and n_dims relates to the species and the property that is
+            being added
         config_idx:
             Start index of the configs that are being added.
         species_name
@@ -178,7 +181,8 @@ class TrajectoryChunkData:
             Name of the property being added
 
         example:
-        Storing velocity Information for 42 Na atoms in the 17th iteration of a loop that reads 5 configs per loop:
+        Storing velocity Information for 42 Na atoms in the 17th iteration of a loop
+        that reads 5 configs per loop:
         add_data(vel_array, 16*5, 'Na', 'Velocities')
         where vel.data.shape == (5,42,3)
 
@@ -370,12 +374,11 @@ class Database:
                                 :, start_idx:stop_index, :
                             ] = np.swapaxes(write_data, 0, 1)
                         else:
-                            database[dataset_name][
-                                start_idx:stop_index, ...
-                            ] = write_data
+                            database[dataset_name][start_idx:stop_index, ...] = write_data
                     else:
                         raise ValueError(
-                            "dataset shape must be either (n_part,n_config,n_dim) or (n_config, n_dim)"
+                            "dataset shape must be either (n_part,n_config,n_dim) or"
+                            " (n_config, n_dim)"
                         )
 
     def resize_datasets(self, structure: dict):
@@ -477,9 +480,7 @@ class Database:
         """
 
         with hf.File(self.name, "a") as database:
-            architecture = self._build_path_input(
-                structure
-            )  # get the correct file path
+            architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path
@@ -719,7 +720,7 @@ class Database:
 
     def get_database_summary(self):
         """
-        Print a summary of the database properties.
+        Get a summary of the database properties.
         Returns
         -------
         summary : list

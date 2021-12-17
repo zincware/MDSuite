@@ -25,7 +25,6 @@ Summary
 -------
 """
 import os
-from tempfile import TemporaryDirectory
 
 import numpy as np
 import pytest

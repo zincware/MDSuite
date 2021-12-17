@@ -57,9 +57,7 @@ class ThermalFlux(Transformations):
         -------
 
         """
-        path = join_path(
-            "Thermal_Flux", "Thermal_Flux"
-        )  # name of the new database_path
+        path = join_path("Thermal_Flux", "Thermal_Flux")  # name of the new database_path
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)

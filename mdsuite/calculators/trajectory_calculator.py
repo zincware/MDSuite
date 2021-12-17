@@ -25,6 +25,8 @@ Summary
 -------
 A parent class for calculators that operate on the trajectory.
 """
+from __future__ import annotations
+
 from abc import ABC
 from pathlib import Path
 from typing import TYPE_CHECKING, List
@@ -36,8 +38,6 @@ from mdsuite.calculators.transformations_reference import switcher_transformatio
 from mdsuite.database import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management import MemoryManager
-from mdsuite.transformations.unwrap_coordinates import CoordinateUnwrapper
-from mdsuite.transformations.unwrap_via_indices import UnwrapViaIndices
 from mdsuite.utils.meta_functions import join_path
 
 from .calculator import Calculator
@@ -80,7 +80,7 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(self, experiment: object = None, experiments: List = None):
+    def __init__(self, experiment: Experiment = None, experiments: List = None):
         """
         Constructor for the TrajectoryCalculator class.
 

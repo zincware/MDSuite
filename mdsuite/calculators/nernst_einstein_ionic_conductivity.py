@@ -95,9 +95,7 @@ class NernstEinsteinIonicConductivity(Calculator):
                 if true, save the output.
         """
 
-        self.update_user_args(
-            plot=plot, save=False, data_range=data_range, export=export
-        )
+        self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
         self.data = self._load_data()  # tensor_values to be read in
 

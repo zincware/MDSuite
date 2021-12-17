@@ -298,7 +298,8 @@ class Transformations:
         """
 
         # turn data into trajectory chunk
-        # data_structure is dict {'/path/to/property':{'indices':irrelevant, 'columns':deduce->deduce n_dims, 'length':n_particles}
+        # data_structure is dict {'/path/to/property':{'indices':irrelevant,
+        #                           'columns':deduce->deduce n_dims, 'length':n_particles}
         species_list = list()
         # data structure only has 1 element
         key, val = list(data_structure.items())[0]
@@ -329,7 +330,8 @@ class Transformations:
         chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
             chunk_size=batch_size, species_list=species_list
         )
-        # data comes from transformation with time in 1st axis, add_data needs it in 0th axis
+        # data comes from transformation with time in 1st axis, add_data needs it
+        # in 0th axis
         chunk.add_data(
             data=np.swapaxes(data, 0, 1),
             config_idx=0,

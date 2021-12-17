@@ -88,9 +88,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(
-            species, "Unwrapped_Positions"
-        )  # name of the new database_path
+        path = join_path(species, "Unwrapped_Positions")  # name of the new database_path
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -338,9 +336,7 @@ class MolecularMap(Transformations):
                 ).tolist()
             else:
                 greater_array = list(filter(lambda x: x >= lengths[i - 1], indices))
-                constrained_array = list(
-                    filter(lambda x: x < lengths[i], greater_array)
-                )
+                constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
                 indices_dict[item] = np.sort(
                     np.array(constrained_array) - (lengths[i - 1] - 1)
                 ).tolist()

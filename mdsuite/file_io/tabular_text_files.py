@@ -14,8 +14,8 @@ import mdsuite.utils.meta_functions
 
 @dataclasses.dataclass
 class TabularTextFileReaderMData:
-    """
-    Class to hold the data that needs to be extracted from tabular text files before reading them
+    """Class to hold the data that needs to be extracted from tabular text files before
+    reading them
 
     Attributes
     ----------
@@ -24,17 +24,22 @@ class TabularTextFileReaderMData:
     n_particles:
         Total number of particles
     species_name_to_line_idx_dict:
-        A dict that links the species name to the line idxs at which the particles can be found within a configuration.
-        Example: {"Na":[0,2,4], "Cl":[1,3,5]} for a file in which Na and Cl are written alternatingly.
+        A dict that links the species name to the line idxs at which the particles can be
+        found within a configuration.
+        Example: {"Na":[0,2,4], "Cl":[1,3,5]} for a file in which Na and Cl are written
+        alternatingly.
     property_to_column_idx_dict
-        A dict that links the property name to the column idxs at which the property is listed.
-        Usually the output of mdsuite.file_io.tabular_text_files.extract_properties_from_header
+        A dict that links the property name to the column idxs at which the property
+        is listed. Usually the output of
+        mdsuite.file_io.tabular_text_files.extract_properties_from_header
     n_header_lines:
         Number of header lines PER CONFIG
     header_lines_for_each_config:
-        Flag to indicate wether each config has its own header or if there is just one header at the top of the file.
+        Flag to indicate wether each config has its own header or if there is just one
+        header at the top of the file.
     sort_by_column_idx:
-        if None (default): no sorting needed (the particles are always in the same order within a config
+        if None (default): no sorting needed (the particles are always in the same order
+        within a config
         if int: sort the lines in the config by the column with this index
         (e.g., use to sort by particle id in unsorted config output)
     """
@@ -49,8 +54,8 @@ class TabularTextFileReaderMData:
 
 
 class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
-    """
-    Parent class for all file readers that are based on tabular text data (e.g. lammps, extxyz,...)
+    """Parent class for all file readers that are based on tabular text data
+    (e.g. lammps, extxyz,...)
     """
 
     def __init__(
@@ -62,18 +67,22 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         custom_column_names: typing.Dict[str, typing.Any] = None,
     ):
         """
-        Init, also handles the combination of file_format_column_names and custom_column_names.
-        The result, self._column_name_dict is supposed to be used by child functions to create their TabularTextFileReaderData
+        Init, also handles the combination of file_format_column_names and
+        custom_column_names.
+        The result, self._column_name_dict is supposed to be used by child functions to
+        create their TabularTextFileReaderData
         Parameters
         ----------
         file_path:
             Path to the tabular text file.
         file_format_column_names
-            Dict connecting mdsuite properties (as defined in mdsuite.database.simulation_data_class.mdsuite_properties)
-            the columns of the file format. Constant to be provided by the child classes.
+            Dict connecting mdsuite properties (as defined in
+            mdsuite.database.simulation_data_class.mdsuite_properties) the columns of the
+            file format. Constant to be provided by the child classes.
             Example: {mdsuite_properties.positions: ["x", "y", "z"]}
         custom_column_names:
-            Dict connecting user-defined properties the column names. To be provided by the user.
+            Dict connecting user-defined properties the column names. To be provided by
+            the user.
             Example: {'MyMagicProperty':['MMP1', 'MMP2']}
         """
         self.file_path = pathlib.Path(file_path).resolve()
@@ -94,7 +103,8 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
     @abc.abstractmethod
     def _get_tabular_text_reader_mdata(self) -> TabularTextFileReaderMData:
         """
-        Child classes of TabularTextFileProcessor must implement this function, so its output can be used in get_configurations_generator.
+        Child classes of TabularTextFileProcessor must implement this function, so its
+        output can be used in get_configurations_generator.
         See TabularTextFileReaderData for the data that needs to be provided
         """
         raise NotImplementedError("Tabular text files must implement this function")
@@ -113,7 +123,8 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
     ) -> typing.Iterator[mdsuite.database.simulation_database.TrajectoryChunkData]:
         """
         TabularTextFiles implements the parent virtual function,
-        but requires its children to provide the necessary information about the table contents,
+        but requires its children to provide the necessary information about the table
+        contents,
         see self._get_tabular_text_reader_data
         """
         n_configs = self.tabular_text_reader_data.n_configs
@@ -133,27 +144,79 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
                 n_header_lines_in_config = 0
 
             for _ in tqdm.tqdm(range(n_batches)):
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
+                yield self._read_process_n_configurations(
                     file,
                     batch_size,
-                    self.metadata.species_list,
-                    self.tabular_text_reader_data.species_name_to_line_idx_dict,
-                    self.tabular_text_reader_data.property_to_column_idx_dict,
-                    self.tabular_text_reader_data.n_particles,
                     n_header_lines=n_header_lines_in_config,
-                    sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
                 )
             if n_configs_remainder > 0:
-                yield mdsuite.file_io.tabular_text_files.read_process_n_configurations(
+                yield self._read_process_n_configurations(
                     file,
                     n_configs_remainder,
-                    self.metadata.species_list,
-                    self.tabular_text_reader_data.species_name_to_line_idx_dict,
-                    self.tabular_text_reader_data.property_to_column_idx_dict,
-                    self.tabular_text_reader_data.n_particles,
                     n_header_lines=n_header_lines_in_config,
-                    sort_by_column_idx=self.tabular_text_reader_data.sort_by_column_idx,
                 )
+
+    def _read_process_n_configurations(
+        self,
+        file,
+        n_configs: int,
+        n_header_lines: int = 0,
+    ) -> mdsuite.database.simulation_database.TrajectoryChunkData:
+        """
+        Read n configurations and package them into a trajectory chunk of the right format
+        Parameters
+        ----------
+        file:
+            A file opened at the start of a configuration
+        n_configs:
+            Number of configs to process
+        n_header_lines:
+            Number of header lines PER CONFIG
+        -------
+            The chunk for your reader output
+        """
+        species_list = self.metadata.species_list
+        chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
+            species_list, n_configs
+        )
+
+        for config_idx in range(n_configs):
+            # skip the header
+            mdsuite.file_io.tabular_text_files.skip_n_lines(file, n_header_lines)
+            # read one config
+            traj_data = np.stack(
+                [
+                    (list(file.readline().split()))
+                    for _ in range(
+                        self.tabular_text_reader_data.n_particles,
+                    )
+                ]
+            )
+            # sort by id
+            if self.tabular_text_reader_data.sort_by_column_idx is not None:
+                traj_data = mdsuite.utils.meta_functions.sort_array_by_column(
+                    traj_data, self.tabular_text_reader_data.sort_by_column_idx
+                )
+
+            # slice by species
+            for sp_info in species_list:
+                idxs = self.tabular_text_reader_data.species_name_to_line_idx_dict[
+                    sp_info.name
+                ]
+                sp_data = traj_data[idxs, :]
+                # slice by property
+                for prop_info in sp_info.properties:
+                    prop_column_idxs = (
+                        self.tabular_text_reader_data.property_to_column_idx_dict[
+                            prop_info.name
+                        ]
+                    )
+                    write_data = sp_data[:, prop_column_idxs]
+                    # add 'time' axis. we only have one configuration to write
+                    write_data = write_data[np.newaxis, :, :]
+                    chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
+
+        return chunk
 
 
 def read_n_lines(file, n_lines: int, start_at: int = None) -> list:
@@ -186,80 +249,12 @@ def skip_n_lines(file, n_lines: int) -> None:
         next(file)
 
 
-def read_process_n_configurations(
-    file,
-    n_configs: int,
-    species_list: typing.List[mdsuite.database.simulation_database.SpeciesInfo],
-    species_to_line_idx_dict: typing.Dict[str, list],
-    property_to_column_idx_dict: typing.Dict[str, list],
-    n_lines_per_config: int,
-    n_header_lines: int = 0,
-    sort_by_column_idx: int = None,
-) -> mdsuite.database.simulation_database.TrajectoryChunkData:
-    """
-    Read n configurations and package them into a trajectory chunk of the right format.
-    Parameters
-    ----------
-    file:
-        A file opened at the start of a configuration
-    n_configs:
-        Number of configs to process
-    species_list: List[mdsuite.database.simulation_database.SpeciesInfo]
-        Species and property information as required by mdsuite.database.simulation_database.TrajectoryMetaData
-    species_to_line_idx_dict:
-        A dict that links the species name to the line idxs at which the particles can be found within a configuration.
-        Example {"Na":[0,2,4], "Cl":[1,3,5]}
-    property_to_column_idx_dict
-        A dict that links the property name to the column idxs at which the property is listed.
-    n_lines_per_config
-        Number of lines per config (= number of particles)
-    n_header_lines:
-        Number of header lines PER CONFIG
-    sort_by_column_idx:
-        if None (default): no effect
-        if int: sort the lines in the config by the column with this index
-        (e.g., use to sort by particle id in unsorted config output)
-    Returns
-    -------
-        The chunk for your reader output
-    """
-    chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
-        species_list, n_configs
-    )
-
-    for config_idx in range(n_configs):
-        # skip the header
-        mdsuite.file_io.tabular_text_files.skip_n_lines(file, n_header_lines)
-        # read one config
-        traj_data = np.stack(
-            [(list(file.readline().split())) for _ in range(n_lines_per_config)]
-        )
-        # sort by id
-        if sort_by_column_idx is not None:
-            traj_data = mdsuite.utils.meta_functions.sort_array_by_column(
-                traj_data, sort_by_column_idx
-            )
-
-        # slice by species
-        for sp_info in species_list:
-            idxs = species_to_line_idx_dict[sp_info.name]
-            sp_data = traj_data[idxs, :]
-            # slice by property
-            for prop_info in sp_info.properties:
-                prop_column_idxs = property_to_column_idx_dict[prop_info.name]
-                write_data = sp_data[:, prop_column_idxs]
-                # add 'time' axis. we only have one configuration to write
-                write_data = write_data[np.newaxis, :, :]
-                chunk.add_data(write_data, config_idx, sp_info.name, prop_info.name)
-
-    return chunk
-
-
 def get_species_list_from_tabular_text_reader_data(
     tabular_text_reader_data: TabularTextFileReaderMData,
 ) -> typing.List[mdsuite.database.simulation_database.SpeciesInfo]:
     """
-    Use the data collected in TabularTextFileProcessor._get_tabular_text_reader_data() to get the values necessary for
+    Use the data collected in TabularTextFileProcessor._get_tabular_text_reader_data() to
+    get the values necessary for
     TabularTextFileProcessor.metadata
     """
     # all species have the same properties

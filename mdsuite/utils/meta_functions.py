@@ -535,10 +535,11 @@ class DotDict(dict):
 
 
 def sort_array_by_column(array: np.ndarray, column_idx: int):
-    # https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column/35624868
+    # https://stackoverflow.com/questions/2828059/
+    #   sorting-arrays-in-numpy-by-column/35624868
     # make sure that the column to sort by is number type
-    # culprit: if we read in a lammps file, one line will be str, so the whole array is str.
-    # sorting by id will invoke str sorting rules (i.e. '10' < '2'), even though the id column
-    # could have number type.
+    # culprit: if we read in a lammps file, one line will be str, so the whole
+    # array is str. sorting by id will invoke str sorting rules (i.e. '10' < '2'),
+    # even though the id column could have number type.
     to_sort_by_column = np.asarray(array[:, column_idx], dtype=float)
     return array[to_sort_by_column.argsort()]

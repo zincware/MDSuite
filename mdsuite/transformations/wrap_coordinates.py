@@ -171,8 +171,7 @@ class CoordinateWrapper(Transformations):
             # Check if the tensor_values has already been unwrapped
             if exists:
                 log.info(
-                    f"Wrapped positions exists for {species}, "
-                    "using the saved coordinates"
+                    f"Wrapped positions exists for {species}, using the saved coordinates"
                 )
             else:
                 self._load_data(species)

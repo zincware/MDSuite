@@ -24,27 +24,14 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import logging
-from pathlib import Path
-from typing import Union
-
-from mdsuite.database.experiment_database import ExperimentDatabase
-from mdsuite.experiment.run import RunComputation
-from mdsuite.time_series import time_series_dict
-from mdsuite.transformations import Transformations
-from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.units import Units, units_dict
-from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
-
-from .run_module import RunModule
-
-log = logging.getLogger(__name__)
-
 import copy
 import importlib.resources
 import json
+import logging
 import pathlib
-from typing import List
+import typing
+from pathlib import Path
+from typing import List, Union
 
 import numpy as np
 import pubchempy as pcp
@@ -52,14 +39,25 @@ import pubchempy as pcp
 import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
+from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.database.simulation_database import (
     Database,
     SpeciesInfo,
     TrajectoryMetadata,
 )
+from mdsuite.experiment.run import RunComputation
 from mdsuite.file_io.file_read import FileProcessor
+from mdsuite.time_series import time_series_dict
+from mdsuite.transformations import Transformations
+from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+
+from .run_module import RunModule
+
+log = logging.getLogger(__name__)
 
 
 def _get_processor(simulation_data):
@@ -76,13 +74,16 @@ def _get_processor(simulation_data):
             processor = mdsuite.file_io.extxyz_files.EXTXYZFile(simulation_data)
         else:
             raise ValueError(
-                f"datafile ending '{suffix}' not recognized. If there is a reader for your file type, you will find it in mdsuite.file_io."
+                f"datafile ending '{suffix}' not recognized. If there is a reader for"
+                " your file type, you will find it in mdsuite.file_io."
             )
     elif isinstance(simulation_data, mdsuite.file_io.file_read.FileProcessor):
         processor = simulation_data
     else:
         raise ValueError(
-            f"simulation_data must be either str, pathlib.Path or instance of mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}' instead"
+            "simulation_data must be either str, pathlib.Path or instance of"
+            f" mdsuite.file_io.file_read.FileProcessor. Got '{type(simulation_data)}'"
+            " instead"
         )
 
     return processor
@@ -91,6 +92,21 @@ def _get_processor(simulation_data):
 class Experiment(ExperimentDatabase):
     """
     The central experiment class fundamental to all analysis.
+
+    .. code-block:: python
+
+        project = mdsuite.Project()
+        project.add_experiment(
+            name="NaCl",
+            timestep=0.002,
+            temperature=1400.0,
+            units="metal",
+            simulation_data="NaCl_gk_i_q.lammpstraj"
+            )
+        project.experiments.NaCl.run.RadialDistributionFunction(
+            number_of_configurations=500
+        )
+
 
     Attributes
     ----------
@@ -184,9 +200,7 @@ class Experiment(ExperimentDatabase):
         )
         self.volume = None
         self.properties = None  # Properties measured in the simulation.
-        self.property_groups = (
-            None  # Names of the properties measured in the simulation
-        )
+        self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
         self.experiment_path: Path
@@ -301,7 +315,7 @@ class Experiment(ExperimentDatabase):
                 )
         else:
             raise ValueError(
-                f"units has to be of type Units or str,"
+                "units has to be of type Units or str,"
                 f" found {type(units_system)} instead"
             )
         return units
@@ -470,21 +484,26 @@ class Experiment(ExperimentDatabase):
         update_with_pubchempy: bool = True,
     ):
         """
-        Add data to experiment. This method takes a filename, file path or a file reader (or a list thereof).
-        If given a filename, it will try to instantiate the appropriate file reader with its default arguments.
-        If you have a custom data format with its own reader or want to use non-default arguments for your reader,
+        Add data to experiment. This method takes a filename, file path or a file
+        reader (or a list thereof). If given a filename, it will try to instantiate the
+        appropriate file reader with its default arguments. If you have a custom data
+        format with its own reader or want to use non-default arguments for your reader,
         instantiate the reader and pass it to this method.
         TODO reference online documentation of data loading in the error messages
         Parameters
         ----------
-        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor or list thereof
+        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor
+            or list thereof
             if str or pathlib.Path: path to the file that contains the simulation_data
-            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file reader from mdsuite.file_io
+            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file
+            reader from mdsuite.file_io
             if list : must be list of any of the above (can be mixed).
         force : bool
-            If true, a file will be read regardless of if it has already been seen. Default: False
+            If true, a file will be read regardless of if it has already been seen.
+            Default: False
         update_with_pubchempy: bool
-            Whether or not to look for the masses of the species in pubchempy. Default: True
+            Whether or not to look for the masses of the species in pubchempy.
+            Default: True
 
         """
 
@@ -512,7 +531,8 @@ class Experiment(ExperimentDatabase):
         Parameters
         ----------
         file_processor
-            The FileProcessor that is able to provide the metadata and the trajectory to be saved
+            The FileProcessor that is able to provide the metadata and the trajectory
+            to be saved
         force : bool
                 If true, a file will be read regardless of if it has already
                 been seen.
@@ -557,9 +577,9 @@ class Experiment(ExperimentDatabase):
     def load_matrix(
         self,
         property_name: str = None,
-        species: list = None,
+        species: typing.Iterable[str] = None,
         select_slice: np.s_ = None,
-        path: list = None,
+        path: typing.Iterable[str] = None,
     ):
         """
         Load a desired property matrix.
@@ -567,8 +587,9 @@ class Experiment(ExperimentDatabase):
         Parameters
         ----------
         property_name : str
-                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions', 'Velocities'
-        species : list
+                Name of the matrix to be loaded, e.g. 'Unwrapped_Positions',
+                'Velocities'
+        species : Iterable[str]
                 List of species to be loaded
         select_slice : np.slice
                 A slice to select from the database_path.
@@ -600,9 +621,7 @@ class Experiment(ExperimentDatabase):
             path_list.append(join_path(item, property_name))
         return database.load_data(path_list=path_list, select_slice=select_slice)
 
-    def _store_metadata(
-        self, metadata: TrajectoryMetadata, update_with_pubchempy=False
-    ):
+    def _store_metadata(self, metadata: TrajectoryMetadata, update_with_pubchempy=False):
         """Save Metadata in the SQL DB
 
         Parameters
@@ -614,9 +633,12 @@ class Experiment(ExperimentDatabase):
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
         self.box_array = metadata.box_l
-        self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
-            self.box_array
-        )
+        if self.box_array is not None:
+            self.dimensions = mdsuite.utils.meta_functions.get_dimensionality(
+                self.box_array
+            )
+        else:
+            self.dimensions = None
         self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
@@ -683,9 +705,7 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
                 log.debug(temp[0].exact_mass)
             except (ElementMassAssignedZero, IndexError):
                 sp_info.mass = 0.0
-                log.warning(
-                    f"WARNING element {sp_info.name} has been assigned mass=0.0"
-                )
+                log.warning(f"WARNING element {sp_info.name} has been assigned mass=0.0")
     return species_list
 
 
