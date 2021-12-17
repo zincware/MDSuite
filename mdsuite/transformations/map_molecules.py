@@ -57,14 +57,11 @@ class MolecularMap(Transformations):
             would be the input for the emim-PF6 ionic liquid.
     """
 
-    def __init__(self, experiment: object, molecules: dict):
-        """
-        Constructor for the MolecularMap class.
+    def __init__(self, molecules: dict):
+        """Constructor for the MolecularMap class.
 
         Parameters
         ----------
-        experiment : object
-                Experiment object to work within.
         molecules : dict
                 Molecule dictionary to use as reference. e.g, the input for
                 emim-PF6 ionic liquid would be.
@@ -75,7 +72,7 @@ class MolecularMap(Transformations):
                    'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
 
         """
-        super().__init__(experiment)
+        super().__init__()
         self.molecules = molecules
         self.reference_molecules = {}
         self.adjacency_graphs = {}
@@ -98,7 +95,13 @@ class MolecularMap(Transformations):
         self.database.add_dataset(
             dataset_structure
         )  # add a new dataset to the database_path
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        # data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": [i for i in range(number_of_molecules)],
+                "columns": [0, 1, 2],
+            }
+        }
 
         return data_structure
 
@@ -352,6 +355,4 @@ class MolecularMap(Transformations):
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
-        self.experiment.perform_transformation(
-            "WrapCoordinates", species=[item for item in self.molecules]
-        )
+        self.experiment.run.CoordinateWrapper(species=[item for item in self.molecules])
