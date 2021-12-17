@@ -164,7 +164,10 @@ class MemoryManager:
                 "quadratic": quadratic_scale_function,
                 "polynomial": polynomial_scale_function,
             }
-            return switcher.get(argument, lambda: "Invalid choice")
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Invalid choice")
 
         scale_function = _string_to_function(list(input_dict.keys())[0])
         scale_function_parameters = input_dict[list(input_dict.keys())[0]]

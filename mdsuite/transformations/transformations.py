@@ -197,10 +197,10 @@ class Transformations:
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and can not be generated.")
 
         transformation = _string_to_function(dependency)
         self.experiment.perform_transformation(transformation)

@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
 import sys
 
 import numpy as np
@@ -33,6 +34,8 @@ from tqdm import tqdm
 from mdsuite.database import simulation_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class UnwrapViaIndices(Transformations):
@@ -84,7 +87,7 @@ class UnwrapViaIndices(Transformations):
             truth_table.append(self.database.check_existence(path))
 
         if not all(truth_table):
-            print(
+            log.info(
                 "Indices were not included in the database_path generation. Please"
                 " check your simulation files."
             )

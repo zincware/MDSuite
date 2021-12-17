@@ -25,6 +25,7 @@ Summary
 -------
 """
 import dataclasses
+import logging
 import pathlib
 import time
 from typing import List
@@ -36,6 +37,8 @@ import tensorflow as tf
 import mdsuite.database.simulation_data_class
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -410,8 +413,7 @@ class Database:
             dataset_information = architecture[identifier]
             try:
                 if type(dataset_information) is not tuple:
-                    print("Invalid input for dataset generation")
-                    raise TypeError
+                    raise TypeError("Invalid input for dataset generation")
             except TypeError:
                 raise TypeError
 
@@ -488,8 +490,7 @@ class Database:
                 # Check for a type error in the dataset information
                 try:
                     if type(dataset_information) is not tuple:
-                        print("Invalid input for dataset generation")
-                        raise TypeError
+                        raise TypeError("Invalid input for dataset generation")
                 except TypeError:
                     raise TypeError
 
@@ -533,7 +534,7 @@ class Database:
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
                 if item in database:
-                    print("Group structure already exists")
+                    log.info("Group structure already exists")
                 else:
                     database.create_group(item)
 

@@ -170,10 +170,10 @@ class TrajectoryCalculator(Calculator, ABC):
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and cannot be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and cannot be generated.")
 
         transformation = getattr(self.experiment.run, _string_to_function(dependency))
         transformation()

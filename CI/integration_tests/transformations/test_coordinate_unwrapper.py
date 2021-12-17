@@ -8,15 +8,12 @@ Copyright Contributors to the Zincware Project.
 
 Description:
 """
-import os
 
 import pytest
 from zinchub import DataHub
 
 import mdsuite
-import mdsuite as mds
 import mdsuite.transformations
-from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
