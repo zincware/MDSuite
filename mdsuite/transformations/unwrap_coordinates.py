@@ -24,12 +24,16 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class CoordinateUnwrapper(Transformations):
@@ -54,7 +58,7 @@ class CoordinateUnwrapper(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object, species: list = None, center_box: bool = True):
+    def __init__(self, species: list = None, center_box: bool = True):
         """
         Constructor for the Ionic current calculator.
 
@@ -67,14 +71,15 @@ class CoordinateUnwrapper(Transformations):
         center_box : bool
                 If true, the origin of the coordinates will be centered.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 3}}
         self.center_box = center_box
 
-        if species is None:
+        self.species = species
+
+    def update_from_experiment(self):
+        if self.species is None:
             self.species = list(self.experiment.species)
-        else:
-            self.species = self.species
 
     def _prepare_database_entry(self, species: str):
         """
@@ -252,5 +257,12 @@ class CoordinateUnwrapper(Transformations):
 
         """
         for item in self.species:
-            self._unwrap_coordinates(item)  # run the transformation.
+            exists = self.database.check_existence(join_path(item, "Positions"))
+            # Check if the tensor_values has already been unwrapped
+            if exists:
+                log.info(
+                    f"Unwrapped positions exists for {item}, using the saved coordinates"
+                )
+            else:
+                self._unwrap_coordinates(item)  # run the transformation.
             self.experiment.memory_requirements = self.database.get_memory_information()

@@ -58,7 +58,6 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Calculator",
-    "TrajectoryCalculator",
     "AngularDistributionFunction",
     "CoordinationNumbers",
     "EinsteinDiffusionCoefficients",
