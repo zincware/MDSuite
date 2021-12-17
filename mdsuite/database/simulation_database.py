@@ -639,16 +639,6 @@ class Database:
                 )
             data[str.encode("data_size")] = d_size
 
-            # else:
-            #     data = []
-            #     for i, item in enumerate(path_list):
-            #         data.append(
-            #             tf.convert_to_tensor(
-            #                 database[item][select_slice], dtype=tf.float64
-            #             )
-            #             * scaling[i]
-            #         )
-
         return data
 
     def get_load_time(self, database_path: str = None):

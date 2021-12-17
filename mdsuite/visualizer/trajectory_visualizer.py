@@ -35,6 +35,9 @@ from PIL.ImageColor import getcolor
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
+import time
+import threading
+
 
 class SimulationVisualizer:
     """
@@ -48,6 +51,7 @@ class SimulationVisualizer:
         molecules: bool = False,
         unwrapped: bool = False,
         number_of_configurations: int = None,
+        frame_rate: float = 24
     ):
         """
         Constructor for the visualizer.
@@ -63,6 +67,8 @@ class SimulationVisualizer:
                 If true, molecules will be visualized.
         unwrapped : bool
                 If true, unwrapped coordinates are studied.
+        frame_rate : float
+                Frame rate at which to run the visualization in frames per second.
         """
         self.counter = 0
         # Particle information
@@ -70,6 +76,7 @@ class SimulationVisualizer:
         self.database = Database(
             name=join_path(self.experiment.database_path, "database.hdf5")
         )
+        self.frame_rate = frame_rate
         self.molecules = molecules
         self.species = species
         self.number_of_configurations = number_of_configurations
@@ -79,7 +86,7 @@ class SimulationVisualizer:
             self.identifier = "Positions"
         self._check_input()  # check inputs and build data structure.
         self._fill_species_properties()
-        self._build_trajectory()
+        self._build_atoms_list()
 
         # App attributes
         self.app = None
@@ -108,7 +115,7 @@ class SimulationVisualizer:
                     self.data[element]["particles"] = self.database.load_data(
                         path_list=[join_path(element, self.identifier)],
                         select_slice=np.s_[:],
-                    )
+                    )[join_path(element, self.identifier)]
 
     def _check_input(self):
         """
@@ -151,21 +158,41 @@ class SimulationVisualizer:
             radius = self.data[element]["mass"]
             for atom in self.data[element]["particles"]:
                 output.append(
-                    self._mesh(location=atom[configuration], colour=colour, radius=radius)
+                    self._mesh(
+                        location=atom[configuration], colour=colour, radius=radius
+                    )
                 )
 
         return output
 
-    def _build_trajectory(self):
+    def _update_position(self, configuration: int):
+        """
+        Update the position of a particle.
+
+        Parameters
+        ----------
+        configuration : int
+                Configuration to update to.
+
+        Returns
+        -------
+
+        """
+        output = []
+        i = 0
+        for element in self.species:
+            for atom in self.data[element]["particles"]:
+                self.atoms_list[i].translate(atom[configuration], relative=False)
+                i += 1
+
+    def _build_atoms_list(self):
         """
         Build the simulation array.
         Returns
         -------
         Updates the class state.
         """
-        self.trajectory = [
-            self._build_particles(i) for i in range(self.number_of_configurations)
-        ]
+        self.atoms_list = self._build_particles(0)
 
     def _build_app(self):
         """
@@ -183,38 +210,85 @@ class SimulationVisualizer:
         # Add meshes
         self.vis.reset_camera_to_default()
 
+        self.vis.add_action("Run Simulation", self._continuous_trajectory)
+
         self.app.add_window(self.vis)
 
-    def _updated_scene(self, configuration: int = None):
+    def _continuous_trajectory(self, vis):
         """
-        Update the scene.
+        Button command for running the simulation in the visualizer.
+        Parameters
+        ----------
+        vis : visualizer
+                Object passed during the callback.
+        """
+        self.counter = 0
+        threading.Thread(target=self._run_trajectory).start()
+
+    def _run_trajectory(self):
+        """
+        Callback method for running the trajectory smoothly.
         Returns
         -------
+        Runs through the trajectory.
+        """
+        for step in range(self.number_of_configurations):
+            time.sleep(1 / self.frame_rate)
+            o3d.visualization.gui.Application.instance.post_to_main_thread(
+                self.vis, self._updated_scene
+            )
 
+    def _updated_scene(self, configuration: int = None, seed: bool = False):
+        """
+        Update the scene.
+
+        Parameters
+        ----------
+        configuration : int (default = True)
+                Configuration to load.
+        seed : bool (default = False)
+                If true, no geometries are removed before being added.
+        Returns
+        -------
+        Updates the positions of the particles in the app.
         """
         if configuration is None:
             if self.counter + 1 == self.number_of_configurations:
                 self.counter = 0
 
-            for i in range(len(self.trajectory[self.counter])):
-                self.vis.add_geometry(f"sphere_{i}", self.trajectory[self.counter][i])
+            if not seed:
+                self._update_position(self.counter)
+
+            for i in range(len(self.atoms_list)):
+                if not seed:
+
+                    self.vis.remove_geometry(f"sphere_{i}")
+                self.vis.add_geometry(f"sphere_{i}", self.atoms_list[i])
             self.counter += 1
         else:
             if configuration > self.number_of_configurations - 1:
                 configuration = self.number_of_configurations - 1
-
-            for i in range(len(self.trajectory[configuration])):
-                self.vis.add_geometry(f"sphere_{i}", self.trajectory[configuration][i])
+            if not seed:
+                self._update_position(configuration)
+            for i in range(len(self.atoms_list)):
+                if not seed:
+                    self.vis.remove_geometry(f"sphere_{i}")
+                self.vis.add_geometry(f"sphere_{i}", self.atoms_list[i])
 
     def run_app(self, starting_configuration: int = None):
         """
         Run the app.
 
+        Parameters
+        ----------
+        starting_configuration : int
+                Starting configuration for the visualization.
+
         Returns
         -------
         Launches the app.
         """
-        self._updated_scene(configuration=starting_configuration)
+        self._updated_scene(configuration=starting_configuration, seed=True)
         self.vis.reset_camera_to_default()
 
         self.app.run()
