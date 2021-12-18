@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Example script for using the visualizer.
 """
 import os
 import tempfile
@@ -40,52 +41,32 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    bmim = DataHub(url="https://github.com/zincware/DataHub/tree/main/Bmim_BF4")
+    bmim = DataHub(url="https://github.com/zincware/DataHub/tree/main/Ar/Ar_dft")
     bmim.get_file(path=".")
 
 
 def run_example():
     """
-    Run the bmim_bf4 example.
+    Run the visualizer example.
 
     Returns
     -------
-    Runs the example.
+
     """
     project = mds.Project("bmim_bf4_example")
     project.add_experiment(
-        name="bmim_bf4",
+        name="argon",
         timestep=0.1,
-        temperature=100.0,
-        units="real",
-        simulation_data="bmim_bf4.lammpstraj",
+        temperature=85.0,
+        units="metal",
+        simulation_data="Ar_dft_short.extxyz",
     )
-    project.experiments.bmim_bf4.run.UnwrapViaIndices()
-    project.run.MolecularMap(
-        molecules={
-            "bmim": {"smiles": "CCCCN1C=C[N+](+C1)C", "amount": 50, "cutoff": 1.9},
-            "bf4": {"smiles": "[B-](F)(F)(F)F", "amount": 50, "cutoff": 2.4},
-        }
-    )
-
-    project.run.SpatialDistributionFunction(
-        species=["bmim", "bf4"],
-        r_min=1.0,
-        r_max=4.0,
-        number_of_configurations=50,
-        n_bins=200,
-        start=0,
-        stop=80,
-    )
-
-    project.experiments.bmim_bf4.run_visualization(molecules=True)
-
-    print("Tutorial complete....... Files being deleted now.")
+    project.experiments.argon.run_visualization()
 
 
 if __name__ == "__main__":
     """
-    Collect and run the code.
+    Run the example.
     """
     temp_dir = tempfile.TemporaryDirectory()
     os.chdir(temp_dir.name)
