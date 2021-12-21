@@ -107,5 +107,5 @@ class TestAssertDeepAlmostEqual(unittest.TestCase):
         dict_3a = {"a": {"c": np.array([1.10, 2.10, 3.11, 4.0])}}
         dict_3b = {"a": {"c": np.array([1.11, 2.09, 3.10, 4.0])}}
 
-        print(assertDeepAlmostEqual(dict_3a, dict_3b, decimal=1))
-        print(assertDeepAlmostEqual(dict_2a, dict_2b, decimal=1))
+        assertDeepAlmostEqual(dict_3a, dict_3b, decimal=1)
+        assertDeepAlmostEqual(dict_2a, dict_2b, decimal=1)
