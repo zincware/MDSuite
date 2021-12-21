@@ -225,27 +225,10 @@ class Database:
 
         Parameters
         ----------
-        path : str
+        path : str|Path
                 The name of the database_path in question.
         """
         self.path = pathlib.Path(path).as_posix()  # name of the database_path
-
-    @staticmethod
-    def close(database: hf.File):
-        """
-        Close the database_path
-
-        Parameters
-        ----------
-        database : hf.File
-                Database to close
-
-        Returns
-        -------
-        Closes the database_path object
-        """
-
-        database.close()
 
     @staticmethod
     def _update_indices(
@@ -318,23 +301,6 @@ class Database:
                     architecture[db_path] = structure[group][subgroup]
 
         return architecture
-
-    def open(self, mode: str = "a") -> hf.File:
-        """
-        Open the database_path
-
-        Parameters
-        ----------
-        mode : str
-                Mode in which to open the database_path
-
-        Returns
-        -------
-        database_path : hf.File
-                returns a database_path object
-        """
-
-        return hf.File(self.path, mode)
 
     def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
