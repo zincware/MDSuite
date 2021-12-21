@@ -228,7 +228,14 @@ class Database:
         path : str|Path
                 The name of the database_path in question.
         """
-        self.path = pathlib.Path(path).as_posix()  # name of the database_path
+        if isinstance(path, pathlib.Path):
+            self.path = path.as_posix()
+        elif isinstance(path, str):
+            self.path = path  # name of the database_path
+        else:
+            # TODO fix this!
+            log.debug(f"Expected str|Path but found {type(path)}")
+            self.path = path
 
     @staticmethod
     def _update_indices(
