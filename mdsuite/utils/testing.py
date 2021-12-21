@@ -70,7 +70,7 @@ class MDSuiteProcess(multiprocessing.Process):
         """
         Multiprocessing class constructor.
         """
-        multiprocessing.Process.__init__(self, *args, **kwargs)
+        super(MDSuiteProcess, self).__init__(*args, **kwargs)
         self._pconn, self._cconn = multiprocessing.Pipe()
         self._exception = None
 
