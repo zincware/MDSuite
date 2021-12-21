@@ -39,15 +39,16 @@ import pubchempy as pcp
 import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
-from mdsuite.calculators import RunComputation
 from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.database.simulation_database import (
     Database,
     SpeciesInfo,
     TrajectoryMetadata,
 )
+from mdsuite.experiment.run import RunComputation
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
+from mdsuite.transformations import Transformations
 from mdsuite.transformations.transformation_dict import transformations_dict
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
@@ -202,10 +203,10 @@ class Experiment(ExperimentDatabase):
         self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
-        self.experiment_path: str
-        self.database_path: str
-        self.figures_path: str
-        self.logfile_path: str
+        self.experiment_path: Path
+        self.database_path: Path
+        self.figures_path: Path
+        self.logfile_path: Path
         self._create_internal_file_paths()  # fill the path attributes
 
         # Check if the experiment exists and load if it does.
@@ -267,6 +268,21 @@ class Experiment(ExperimentDatabase):
 
         # self.save_class()  # save the class state.
         log.info(f"** An experiment has been added titled {self.name} **")
+
+    def cls_transformation_run(self, transformation: Transformations):
+        """Run the transformation
+
+        The Transformation class is updated with this experiment and afterwards
+        performs the transformation.
+        Preliminary work in accordance to https://github.com/zincware/MDSuite/issues/404
+
+        Parameters
+        ----------
+        transformation: Transformations
+        """
+        transformation.experiment = self
+        transformation.update_from_experiment()
+        transformation.run_transformation()
 
     @staticmethod
     def units_to_si(units_system):

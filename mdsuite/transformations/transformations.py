@@ -111,12 +111,8 @@ class Transformations:
         dtype :
             data type of the processed values
         """
-        self.experiment = experiment
-        self.database = Database(
-            name=os.path.join(self.experiment.database_path, "database.hdf5"),
-            architecture="simulation",
-        )
-
+        self._experiment = None
+        self._database = None
         self.batchable_axes = batchable_axes
         # todo: list of int indicating along which axis batching is performed, e.g.
         # rdf : batchable along time, but not particles or dimension: [1]
@@ -142,6 +138,36 @@ class Transformations:
 
         self.data_manager: DataManager
         self.memory_manager: MemoryManager
+
+    @property
+    def database(self):
+        """Update the database
+
+        replace for https://github.com/zincware/MDSuite/issues/404
+        """
+        if self._database is None:
+            self._database = Database(
+                name=(self.experiment.database_path / "database.hdf5").as_posix(),
+                architecture="simulation",
+            )
+        return self._database
+
+    @property
+    def experiment(self) -> Experiment:
+        """TODO replace for https://github.com/zincware/MDSuite/issues/404"""
+        return self._experiment
+
+    @experiment.setter
+    def experiment(self, value):
+        self._experiment = value
+
+    def update_from_experiment(self):
+        """Update all self attributes that depend on the experiment
+
+        Temporary method until https://github.com/zincware/MDSuite/issues/404
+        is solved.
+        """
+        pass
 
     def _run_dataset_check(self, path: str):
         """
@@ -212,10 +238,10 @@ class Transformations:
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and can not be generated.")
 
         transformation = _string_to_function(dependency)
         self.experiment.perform_transformation(transformation)

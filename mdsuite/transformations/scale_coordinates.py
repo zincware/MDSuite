@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
 import sys
 
 import numpy as np
@@ -33,6 +34,8 @@ from tqdm import tqdm
 from mdsuite.database import simulation_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class ScaleCoordinates(Transformations):
@@ -52,22 +55,20 @@ class ScaleCoordinates(Transformations):
             Box vectors to multiply the indices by
     """
 
-    def __init__(self, experiment: object, species: list = None):
-        """
-        Constructor for the Ionic current calculator.
+    def __init__(self, species: list = None):
+        """Constructor for the Ionic current calculator.
 
         Parameters
         ----------
-        experiment : object
-                Experiment this transformation is attached to.
         species : list
                 Species on which this transformation should be applied.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.species = species
         self.scale_function = {"linear": {"scale_factor": 2}}
-        self.dtype = tf.float64
+        self.dtype = tf.float64  # TODO should be a property that is immutable?
 
+    def update_from_experiment(self):
         if self.species is None:
             self.species = list(self.experiment.species)
 
@@ -85,7 +86,7 @@ class ScaleCoordinates(Transformations):
             truth_table.append(self.database.check_existence(path))
 
         if not all(truth_table):
-            print(
+            log.info(
                 "Indices were not included in the database_path generation. Please"
                 " check your simulation files."
             )

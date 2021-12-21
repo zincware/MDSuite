@@ -25,6 +25,7 @@ Summary
 -------
 """
 import dataclasses
+import logging
 import pathlib
 import time
 from typing import List
@@ -36,6 +37,8 @@ import tensorflow as tf
 import mdsuite.database.simulation_data_class
 from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -227,6 +230,7 @@ class Database:
         name : str
                 The name of the database_path in question.
         """
+        # TODO support pathlib
 
         self.architecture = architecture  # architecture of database_path
         self.name = name  # name of the database_path
@@ -409,8 +413,7 @@ class Database:
             dataset_information = architecture[identifier]
             try:
                 if type(dataset_information) is not tuple:
-                    print("Invalid input for dataset generation")
-                    raise TypeError
+                    raise TypeError("Invalid input for dataset generation")
             except TypeError:
                 raise TypeError
 
@@ -487,8 +490,7 @@ class Database:
                 # Check for a type error in the dataset information
                 try:
                     if type(dataset_information) is not tuple:
-                        print("Invalid input for dataset generation")
-                        raise TypeError
+                        raise TypeError("Invalid input for dataset generation")
                 except TypeError:
                     raise TypeError
 
@@ -532,7 +534,7 @@ class Database:
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
                 if item in database:
-                    print("Group structure already exists")
+                    log.info("Group structure already exists")
                 else:
                     database.create_group(item)
 
@@ -572,7 +574,7 @@ class Database:
             keys = []
             database_object.visit(
                 lambda item: keys.append(database_object[item].name)
-                if type(database_object[item]) is hf.Dataset
+                if isinstance(database_object[item], hf.Dataset)
                 else None
             )
             path = f"/{path}"  # add the / to avoid name overlapping

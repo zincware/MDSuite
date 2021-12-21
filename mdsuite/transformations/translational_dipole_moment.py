@@ -45,16 +45,9 @@ class TranslationalDipoleMoment(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object):
-        """
-        Constructor for the Ionic current calculator.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment this transformation is attached to.
-        """
-        super().__init__(experiment)
+    def __init__(self):
+        """Constructor for the Ionic current calculator."""
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 2}}
 
     def _check_for_charges(self):
@@ -134,7 +127,7 @@ class TranslationalDipoleMoment(Transformations):
                 path: (self.experiment.number_of_configurations - old_shape[0], 3)
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)
+            self.database.resize_datasets(resize_structure)
             data_structure = {
                 path: {
                     "indices": np.s_[
