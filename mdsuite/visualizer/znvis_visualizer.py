@@ -32,6 +32,7 @@ import numpy as np
 import znvis
 from PIL.ImageColor import getcolor
 
+import mdsuite.data
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
@@ -90,10 +91,9 @@ class SimulationVisualizer:
                 Radius of the particles. This is a reduced mass.
         """
         # Load the species data from pubchempy data file.
-        data_name = "mdsuite.data"
-        json_name = "PubChemElements_all.json"
-        with importlib.resources.open_text(data_name, json_name) as json_file:
-            pse = json.loads(json_file.read())
+        pse = json.loads(
+            importlib.resources.read_text(mdsuite.data, "PubChemElements_all.json")
+        )
 
         colour = np.random.uniform(0, 1, size=(3,))
         radius = 1.0
