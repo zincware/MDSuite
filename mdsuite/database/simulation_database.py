@@ -28,8 +28,8 @@ import dataclasses
 import logging
 import pathlib
 import time
-from typing import List
 import typing
+from typing import List
 
 import h5py as hf
 import numpy as np

@@ -549,9 +549,7 @@ class Experiment(ExperimentDatabase):
             )
             return
 
-        database = Database(
-            self.database_path / "database.hdf5"
-        )
+        database = Database(self.database_path / "database.hdf5")
 
         metadata = file_processor.metadata
         architecture = _species_list_to_architecture_dict(

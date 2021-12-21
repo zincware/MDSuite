@@ -25,6 +25,7 @@ Summary
 -------
 """
 from __future__ import annotations
+
 import importlib.resources
 import json
 import typing
