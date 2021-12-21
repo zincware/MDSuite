@@ -50,6 +50,7 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
 from mdsuite.transformations.transformation_dict import transformations_dict
+from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
@@ -391,10 +392,18 @@ class Experiment(ExperimentDatabase):
         if species is None:
             species = list(self.species)
 
-        visualizer = SimulationVisualizer(
-            species=species, unwrapped=unwrapped, database_path=self.database_path
-        )
-        visualizer.run_visualization()
+        if config.jupyter:
+            log.info(
+                "ZnVis visualizer currently does not support deployment from "
+                "jupyter. Please run your analysis as a python script to use"
+                "the visualizer."
+            )
+            return
+        else:
+            visualizer = SimulationVisualizer(
+                species=species, unwrapped=unwrapped, database_path=self.database_path
+            )
+            visualizer.run_visualization()
 
     # def map_elements(self, mapping: dict = None):
     #     """
