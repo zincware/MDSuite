@@ -112,7 +112,7 @@ class TrajectoryCalculator(Calculator, ABC):
         """Get the database based on the experiment database path"""
         if self._database is None:
             self._database = Database(
-                name=Path(self.experiment.database_path, "database.hdf5").as_posix()
+                self.experiment.database_path / "database.hdf5"
             )
         return self._database
 

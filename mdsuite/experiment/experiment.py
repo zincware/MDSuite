@@ -550,7 +550,7 @@ class Experiment(ExperimentDatabase):
             return
 
         database = Database(
-            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
+            self.database_path / "database.hdf5"
         )
 
         metadata = file_processor.metadata
@@ -601,9 +601,7 @@ class Experiment(ExperimentDatabase):
         property_matrix : np.array, tf.tensor
                 Tensor of the property to be studied. Format depends on kwargs.
         """
-        database = Database(
-            name=pathlib.Path(self.database_path, "database.hdf5").as_posix()
-        )
+        database = Database(self.database_path / "database.hdf5")
 
         if path is not None:
             return database.load_data(path_list=path, select_slice=select_slice)

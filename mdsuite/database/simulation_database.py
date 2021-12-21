@@ -29,6 +29,7 @@ import logging
 import pathlib
 import time
 from typing import List
+import typing
 
 import h5py as hf
 import numpy as np
@@ -214,26 +215,20 @@ class Database:
                 The type of the database_path implemented, either a simulation
                 database_path, or an analysis database_path.
 
-    name : str
+    path : str|Path
             The name of the database_path in question.
     """
 
-    def __init__(self, architecture: str = "simulation", name: str = "database"):
+    def __init__(self, path: typing.Union[str, pathlib.Path] = "database"):
         """
         Constructor for the database_path class.
 
         Parameters
         ----------
-        architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-        name : str
+        path : str
                 The name of the database_path in question.
         """
-        # TODO support pathlib
-
-        self.architecture = architecture  # architecture of database_path
-        self.name = name  # name of the database_path
+        self.path = pathlib.Path(path).as_posix()  # name of the database_path
 
     @staticmethod
     def close(database: hf.File):
@@ -339,7 +334,7 @@ class Database:
                 returns a database_path object
         """
 
-        return hf.File(self.name, mode)
+        return hf.File(self.path, mode)
 
     def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
@@ -356,7 +351,7 @@ class Database:
 
         chunk_data = chunk.get_data()
 
-        with hf.File(self.name, "r+") as database:
+        with hf.File(self.path, "r+") as database:
             stop_index = start_idx + chunk.chunk_size
 
             for sp_info in chunk.species_list:
@@ -401,7 +396,7 @@ class Database:
         """
         # ensure the database_path already exists
         try:
-            database = hf.File(self.name, "r+")
+            database = hf.File(self.path, "r+")
         except DatabaseDoesNotExist:
             raise DatabaseDoesNotExist
 
@@ -455,7 +450,7 @@ class Database:
         """
         Check if the database file already exists
         """
-        database_path = pathlib.Path(self.name)
+        database_path = pathlib.Path(self.path)
         return database_path.exists()
 
     def add_dataset(self, structure: dict):
@@ -481,7 +476,7 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
+        with hf.File(self.path, "a") as database:
             architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
@@ -529,7 +524,7 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
+        with hf.File(self.path, "a") as database:
             # Build file paths for the addition.
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
@@ -548,7 +543,7 @@ class Database:
                 A dictionary of the memory information of the groups in the
                 database_path
         """
-        with hf.File(self.name, "r") as database:
+        with hf.File(self.path, "r") as database:
             memory_database = {}
             for item in database:
                 for ds in database[item]:
@@ -570,7 +565,7 @@ class Database:
         response : bool
                 If true, the path exists, else, it does not.
         """
-        with hf.File(self.name, "r") as database_object:
+        with hf.File(self.path, "r") as database_object:
             keys = []
             database_object.visit(
                 lambda item: keys.append(database_object[item].name)
@@ -597,7 +592,7 @@ class Database:
         """
 
         # db = hf.File(self.name, 'r+')  # open the database_path object
-        with hf.File(self.name, "r+") as db:
+        with hf.File(self.path, "r+") as db:
             groups = list(db.keys())
 
             for item in groups:
@@ -625,7 +620,7 @@ class Database:
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
-        with hf.File(self.name, "r") as database:
+        with hf.File(self.path, "r") as database:
             data = {}
             for i, item in enumerate(path_list):
                 if type(select_slice) is dict:
@@ -666,7 +661,7 @@ class Database:
         """
         if database_path is None:
             start = time.time()
-            database_path = hf.File(self.name, "r")
+            database_path = hf.File(self.path, "r")
             database_path.close()
             stop = time.time()
         else:
@@ -700,7 +695,7 @@ class Database:
                 (n_rows, n_columns, n_bytes)
         """
         if database_path is None:
-            database_path = self.name
+            database_path = self.path
 
         if system:
             with hf.File(database_path, "r") as db:
@@ -732,7 +727,7 @@ class Database:
             for prop in mdsuite.database.simulation_data_class.mdsuite_properties
         ]
         dump_list = []
-        database = hf.File(self.name, "r")
+        database = hf.File(self.path, "r")
         initial_list = list(database.keys())
         for item in var_names:
             if item in initial_list:

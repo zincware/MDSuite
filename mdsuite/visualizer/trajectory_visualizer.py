@@ -24,8 +24,10 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from __future__ import annotations
 import importlib.resources
 import json
+import typing
 
 import numpy as np
 import open3d as o3d
@@ -35,6 +37,9 @@ from PIL.ImageColor import getcolor
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
+if typing.TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
+
 
 class SimulationVisualizer:
     """
@@ -43,7 +48,7 @@ class SimulationVisualizer:
 
     def __init__(
         self,
-        experiment: object,
+        experiment: Experiment,
         species: list = None,
         molecules: bool = False,
         unwrapped: bool = False,
@@ -54,7 +59,7 @@ class SimulationVisualizer:
 
         Parameters
         ----------
-        experiment : object
+        experiment : Experiment
                  Experiment object from which the visualizer will gather
                  information.
         species : list
@@ -67,9 +72,7 @@ class SimulationVisualizer:
         self.counter = 0
         # Particle information
         self.experiment = experiment
-        self.database = Database(
-            name=join_path(self.experiment.database_path, "database.hdf5")
-        )
+        self.database = Database(self.experiment.database_path / "database.hdf5")
         self.molecules = molecules
         self.species = species
         self.number_of_configurations = number_of_configurations
