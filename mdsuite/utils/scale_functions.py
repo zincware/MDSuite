@@ -27,7 +27,7 @@ Summary
 import numpy as np
 
 
-def linear_scale_function(memory_usage: int, scale_factor: int = 1):
+def linear_scale_function(memory_usage: int, scale_factor: int = 1) -> int:
     """
     Apply a linear scaling to memory usage.
 
@@ -46,7 +46,7 @@ def linear_scale_function(memory_usage: int, scale_factor: int = 1):
     return memory_usage * scale_factor
 
 
-def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
+def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1) -> float:
     """
     Apply a linearithmic scaling to memory usage.
 
@@ -59,7 +59,7 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
             inflation.
     Returns
     -------
-    scaled_memory : int
+    scaled_memory : float
             Amount of memory required per configuration loaded.
     """
     return scale_factor * memory_usage * np.log(memory_usage)
@@ -67,7 +67,7 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1):
 
 def quadratic_scale_function(
     memory_usage: int, inner_scale_factor: int = 1, outer_scale_factor: int = 1
-):
+) -> int:
     """
     Apply a quadratic scaling to memory usage.
 
@@ -92,7 +92,7 @@ def polynomial_scale_function(
     inner_scale_factor: int = 1,
     outer_scale_factor: int = 1,
     order: int = 3,
-):
+) -> int:
     """
     Apply a polynomial scaling to memory usage.
 
