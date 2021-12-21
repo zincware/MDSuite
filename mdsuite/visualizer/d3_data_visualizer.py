@@ -71,13 +71,6 @@ class DataVisualizer3D:
         self.point_cloud.points = o3d.utility.Vector3dVector(self.data)
         self.point_cloud.colors = o3d.utility.Vector3dVector(self._build_colour_map())
 
-        plt.plot(
-            np.linspace(0, len(self.colour_map), len(self.colour_map), dtype=int),
-            self.colour_map,
-            ".",
-        )
-        plt.show()
-
         self._build_app()
 
     def _build_colour_map(self):
