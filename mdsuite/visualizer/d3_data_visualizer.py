@@ -29,7 +29,6 @@ import importlib.resources
 import json
 from typing import Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import open3d as o3d
 import open3d.visualization.gui as gui
