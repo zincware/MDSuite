@@ -50,7 +50,8 @@ class TestProcess(unittest.TestCase):
         process.start()
         time.sleep(5)
         process.terminate()
-        self.assertEqual(True, process.exception is not None)
+
+        assert process.exception is not None
 
     def test_no_exception(self):
         """
@@ -64,7 +65,8 @@ class TestProcess(unittest.TestCase):
         process.start()
         time.sleep(5)
         process.terminate()
-        self.assertEqual(True, process.exception is None)
+
+        assert process.exception is None
 
     @staticmethod
     def _exception_throw():
