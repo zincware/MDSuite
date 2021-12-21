@@ -697,15 +697,15 @@ class Database:
             for prop in mdsuite.database.simulation_data_class.mdsuite_properties
         ]
         dump_list = []
-        database = hf.File(self.path, "r")
-        initial_list = list(database.keys())
-        for item in var_names:
-            if item in initial_list:
-                dump_list.append(item)
-        for item in initial_list:
-            sub_items = list(database[item].keys())
-            for var in var_names:
-                if var in sub_items:
-                    dump_list.append(var)
-        database.close()
+        with hf.File(self.path, "r") as db:
+            initial_list = list(db.keys())
+            for item in var_names:
+                if item in initial_list:
+                    dump_list.append(item)
+            for item in initial_list:
+                sub_items = list(db[item].keys())
+                for var in var_names:
+                    if var in sub_items:
+                        dump_list.append(var)
+
         return np.unique(dump_list)
