@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Test the meta functions module.
 """
 import os
 import unittest
@@ -230,7 +231,3 @@ class TestMetaFunction(unittest.TestCase):
 
         self.assertEqual(find_item(test_1, "a"), 4)
         self.assertEqual(find_item(test_2, "aee"), 1)
-
-
-if __name__ == "__main__":
-    unittest.main()
