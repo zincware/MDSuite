@@ -82,7 +82,6 @@ class Transformations:
 
     def __init__(
         self,
-        experiment: Experiment,
         input_properties: typing.Iterable[
             mdsuite.database.simulation_database.PropertyInfo
         ] = None,

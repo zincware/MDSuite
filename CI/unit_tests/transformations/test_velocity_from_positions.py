@@ -35,8 +35,7 @@ def test_transf(tmp_path):
     np_read = mdsuite.file_io.script_input.ScriptInput(chunk, mdata, "test_reader")
     exp.add_data(np_read)
 
-    trfo = mdsuite.transformations.velocity_from_positions.VelocityFromPositions(exp)
-    trfo.run_transformation()
+    exp.run.VelocityFromPositions()
     vels_mds = exp.load_matrix(
         property_name="Velocities_From_Positions", species=[species.name]
     )[f"{species.name}/Velocities_From_Positions"]

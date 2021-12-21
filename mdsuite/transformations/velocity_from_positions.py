@@ -15,7 +15,6 @@ import typing
 
 import tensorflow as tf
 
-from mdsuite import experiment
 from mdsuite.database.simulation_data_class import mdsuite_properties
 from mdsuite.transformations.transformations import Transformations
 
@@ -28,7 +27,7 @@ class VelocityFromPositions(Transformations):
     from the second to last.
     """
 
-    def __init__(self, exp: experiment.Experiment):
+    def __init__(self):
         """
         Standard constructor
 
@@ -38,7 +37,6 @@ class VelocityFromPositions(Transformations):
             The experiment on which to perform the computation.
         """
         super().__init__(
-            exp,
             input_properties=[mdsuite_properties.unwrapped_positions],
             output_property=mdsuite_properties.velocities_from_positions,
             scale_function={"linear": {"scale_factor": 2}},
@@ -46,6 +44,9 @@ class VelocityFromPositions(Transformations):
         )
 
         # ideally, this would also go into some input_properties entry
+        self.dt = None
+
+    def update_from_experiment(self):
         self.dt = self.experiment.time_step
 
     def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:

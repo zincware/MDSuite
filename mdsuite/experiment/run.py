@@ -47,6 +47,7 @@ from mdsuite.transformations import (
     Transformations,
     TranslationalDipoleMoment,
     UnwrapViaIndices,
+    VelocityFromPositions,
 )
 
 if TYPE_CHECKING:
@@ -152,6 +153,10 @@ class RunComputation:
     @property
     def UnwrapViaIndices(self) -> Type[UnwrapViaIndices]:
         return self.transformation_wrapper(UnwrapViaIndices)
+
+    @property
+    def VelocityFromPositions(self) -> Type[VelocityFromPositions]:
+        return self.transformation_wrapper(VelocityFromPositions)
 
     #####################
     #### Calculators ####
