@@ -367,33 +367,26 @@ class Database:
         -------
 
         """
-        # ensure the database_path already exists
-        try:
-            database = hf.File(self.path, "r+")
-        except DatabaseDoesNotExist:
-            raise DatabaseDoesNotExist
+        with hf.File(self.path, "r+") as db:
+            # construct the architecture dict
+            architecture = self._build_path_input(structure=structure)
 
-        # construct the architecture dict
-        architecture = self._build_path_input(structure=structure)
-
-        # Check for a type error in the dataset information
-        for identifier in architecture:
-            dataset_information = architecture[identifier]
-            try:
-                if type(dataset_information) is not tuple:
+            # Check for a type error in the dataset information
+            for identifier in architecture:
+                dataset_information = architecture[identifier]
+                if not isinstance(dataset_information, tuple):
                     raise TypeError("Invalid input for dataset generation")
-            except TypeError:
-                raise TypeError
 
-            # get the correct maximum shape for the dataset -- changes if an
-            # experiment property or an atomic property
-            if len(dataset_information[:-1]) == 1:
-                axis = 0
-                expansion = dataset_information[0] + database[identifier].shape[0]
-            else:
-                axis = 1
-                expansion = dataset_information[1] + database[identifier].shape[1]
-            database[identifier].resize(expansion, axis)
+                # get the correct maximum shape for the dataset -- changes if an
+                # experiment property or an atomic property
+                if len(dataset_information[:-1]) == 1:
+                    axis = 0
+                    expansion = dataset_information[0] + db[identifier].shape[0]
+                else:
+                    axis = 1
+                    expansion = dataset_information[1] + db[identifier].shape[1]
+
+                db[identifier].resize(expansion, axis)
 
     def initialize_database(self, structure: dict):
         """
