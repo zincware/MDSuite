@@ -423,8 +423,7 @@ class Database:
         """
         Check if the database file already exists
         """
-        database_path = pathlib.Path(self.path)
-        return database_path.exists()
+        return pathlib.Path(self.path).exists()
 
     def add_dataset(self, structure: dict):
         """
@@ -563,8 +562,6 @@ class Database:
         -------
         Updates the database_path
         """
-
-        # db = hf.File(self.name, 'r+')  # open the database_path object
         with hf.File(self.path, "r+") as db:
             groups = list(db.keys())
 
