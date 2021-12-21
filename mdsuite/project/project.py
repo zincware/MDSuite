@@ -207,7 +207,7 @@ class Project(ProjectDatabase):
         if len(experiments) > 0:
             log.info("This experiment already exists")
             self.load_experiments(name)
-            return
+            return self.experiments[name]
 
         # If the experiment does not exists, instantiate a new Experiment
         new_experiment = Experiment(
@@ -226,6 +226,8 @@ class Project(ProjectDatabase):
 
         if simulation_data is not None:
             self.experiments[name].add_data(simulation_data)
+
+        return self.experiments[name]
 
     def load_experiments(self, names: Union[str, list]):
         """Alias for activate_experiments"""
