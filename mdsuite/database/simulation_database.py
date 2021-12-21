@@ -36,7 +36,6 @@ import numpy as np
 import tensorflow as tf
 
 import mdsuite.database.simulation_data_class
-from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
