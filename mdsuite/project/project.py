@@ -162,7 +162,7 @@ class Project(ProjectDatabase):
         simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,  # TODO make this the second argument, (name, data, ...)
-    ):
+    ) -> Experiment:
         """Add an experiment to the project
 
         Parameters
@@ -188,6 +188,12 @@ class Project(ProjectDatabase):
         Notes
         ------
         Using custom NoneType to raise a custom ValueError message with useful info.
+
+        Returns
+        --------
+        Experiment:
+            The experiment object that was added to the project
+
         """
         if name is NoneType:
             raise ValueError(
