@@ -50,10 +50,11 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
 from mdsuite.transformations.transformation_dict import transformations_dict
+from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
-from mdsuite.visualizer.trajectory_visualizer import SimulationVisualizer
+from mdsuite.visualizer.znvis_visualizer import SimulationVisualizer
 
 from .run_module import RunModule
 
@@ -368,7 +369,6 @@ class Experiment(ExperimentDatabase):
         species: list = None,
         molecules: bool = False,
         unwrapped: bool = False,
-        starting_configuration: int = None,
     ):
         """
         Perform a trajectory visualization.
@@ -381,8 +381,6 @@ class Experiment(ExperimentDatabase):
                 If true, molecule groups will be used.
         unwrapped : bool
                 If true, unwrapped coordinates will be visualized.
-        starting_configuration : int
-                Starting configuration for the visualizer.
 
         Returns
         -------
@@ -390,18 +388,22 @@ class Experiment(ExperimentDatabase):
         """
         if molecules:
             if species is None:
-                species = list(self.species)
+                species = list(self.molecules)
         if species is None:
             species = list(self.species)
 
-        visualizer = SimulationVisualizer(
-            self,
-            species=species,
-            molecules=molecules,
-            unwrapped=unwrapped,
-            number_of_configurations=self.number_of_configurations,
-        )
-        visualizer.run_app(starting_configuration=starting_configuration)
+        if config.jupyter:
+            log.info(
+                "ZnVis visualizer currently does not support deployment from "
+                "jupyter. Please run your analysis as a python script to use"
+                "the visualizer."
+            )
+            return
+        else:
+            visualizer = SimulationVisualizer(
+                species=species, unwrapped=unwrapped, database_path=self.database_path
+            )
+            visualizer.run_visualization()
 
     # def map_elements(self, mapping: dict = None):
     #     """
