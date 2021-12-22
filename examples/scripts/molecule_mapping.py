@@ -68,16 +68,6 @@ def run_example():
         }
     )
 
-    project.run.SpatialDistributionFunction(
-        species=["bmim", "bf4"],
-        r_min=1.0,
-        r_max=4.0,
-        number_of_configurations=50,
-        n_bins=200,
-        start=0,
-        stop=80,
-    )
-
     project.experiments.bmim_bf4.run_visualization(molecules=True)
 
     print("Tutorial complete....... Files being deleted now.")
