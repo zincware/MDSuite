@@ -74,7 +74,7 @@ class SpeciesInfo:
         Number of particles of that species
     properties: list of PropertyInfo
         List of the properties that were recorded for the species
-    mass and charge are optional
+        mass and charge are optional
     """
 
     name: str
@@ -106,29 +106,28 @@ class TrajectoryMetadata:
 
     Attributes
     ----------
-    n_configurations:
+    n_configurations : int
         Number of configurations of the whole trajectory.
-    species_list: list of SpeciesInfo
-        The information about all species in the system.
-    box_l: list of float
+    species_list : list
+        The information about all species in the system of speciesInfo
+    box_l : list of float
         The simulation box size in three dimensions
-    sample_rate: optional
+    sample_rate : int optional
         The number of timesteps between consecutive samples
         # todo remove in favour of sample_step
-    sample_step: optional
+    sample_step : int optional
         The time between consecutive configurations.
         E.g. for a simulation with time step 0.1 where the trajectory is written
         every 5 steps: sample_step = 0.5. Does not have to be specified
         (e.g. configurations from Monte Carlo scheme), but is needed for all
         dynamic observables.
-    temperature: optional
+    temperature : float optional
         The set temperature of the system.
         Optional because only applicable for MD simulations with thermostat.
         Needed for certain observables.
-    simulation_data: optional
+    simulation_data : str|Pathoptional
         All other simulation data that can be extracted from the trajectory metadata.
         E.g. software version, pressure in NPT simulations, time step, ...
-
     """
 
     n_configurations: int
@@ -150,11 +149,11 @@ class TrajectoryChunkData:
 
         Parameters
         ----------
-        species_list:
+        species_list : List[SpeciesInfo]
             List of SpeciesInfo.
             It contains the information which species are there and which properties
             are recorded for each
-        chunk_size:
+        chunk_size : int
             The number of configurations to be stored in this chunk
         """
         self.chunk_size = chunk_size
@@ -210,10 +209,6 @@ class Database:
 
     Attributes
     ----------
-    architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-
     path : str|Path
             The name of the database_path in question.
     """
