@@ -76,10 +76,7 @@ class MolecularGraph:
         self.smiles_string = smiles_string
         self.species = species
 
-        self.database = Database(
-            name=(self.experiment.database_path / "database.hdf5").as_posix(),
-            architecture="simulation",
-        )
+        self.database = Database(self.experiment.database_path / "database.hdf5")
 
     def _perform_checks(self):
         """
