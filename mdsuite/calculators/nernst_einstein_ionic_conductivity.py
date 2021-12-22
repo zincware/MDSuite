@@ -95,9 +95,7 @@ class NernstEinsteinIonicConductivity(Calculator):
                 if true, save the output.
         """
 
-        self.update_user_args(
-            plot=plot, save=False, data_range=data_range, export=export
-        )
+        self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
         self.data = self._load_data()  # tensor_values to be read in
 
@@ -201,7 +199,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             species = item.subjects[0].subject
             charge_term = self.experiment.species[species]["charge"][0] ** 2
             mass_fraction_term = (
-                len(self.experiment.species[species]["indices"])
+                self.experiment.species[species].n_particles
                 / self.experiment.number_of_atoms
             )
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
@@ -245,7 +243,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             species = item["Subject"]
             charge_term = self.experiment.species[species]["charge"][0] ** 2
             mass_fraction_term = (
-                len(self.experiment.species[species]["indices"])
+                self.experiment.species[species].n_particles
                 / self.experiment.number_of_atoms
             )
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term
@@ -260,10 +258,10 @@ class NernstEinsteinIonicConductivity(Calculator):
                 * self.experiment.species[constituents[1]]["charge"][0]
             )
             mass_fraction_term = (
-                len(self.experiment.species[constituents[0]]["indices"])
+                self.experiment.species[constituents[0]].n_particles
                 / self.experiment.number_of_atoms
             ) * (
-                len(self.experiment.species[constituents[1]]["indices"])
+                self.experiment.species[constituents[1]].n_particles
                 / self.experiment.number_of_atoms
             )
             conductivity += diffusion_coefficient * charge_term * mass_fraction_term

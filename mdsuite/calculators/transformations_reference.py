@@ -24,7 +24,6 @@ If you use this module please cite us with:
 Summary
 -------
 """
-
 switcher_transformations = {
     "Translational_Dipole_Moment": "TranslationalDipoleMoment",
     "Ionic_Current": "IonicCurrent",

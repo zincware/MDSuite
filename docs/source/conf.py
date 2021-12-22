@@ -24,7 +24,6 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
 import sys
 
 import sphinx_rtd_theme

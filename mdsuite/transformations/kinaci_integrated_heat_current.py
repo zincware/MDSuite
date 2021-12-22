@@ -47,16 +47,9 @@ class KinaciIntegratedHeatCurrent(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object):
-        """
-        Constructor for the Ionic current calculator.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment this transformation is attached to.
-        """
-        super().__init__(experiment)
+    def __init__(self):
+        """Constructor for the Ionic current calculator."""
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
     def _transformation(
@@ -160,9 +153,7 @@ class KinaciIntegratedHeatCurrent(Transformations):
 
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-        cumul_integral = tf.zeros(
-            [self.experiment.number_of_atoms, 1], dtype=tf.float64
-        )
+        cumul_integral = tf.zeros([self.experiment.number_of_atoms, 1], dtype=tf.float64)
 
         # x is batch of data.
         for idx, x in tqdm(

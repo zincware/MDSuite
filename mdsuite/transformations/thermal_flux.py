@@ -45,16 +45,9 @@ class ThermalFlux(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object):
-        """
-        Constructor for the Ionic current calculator.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment this transformation is attached to.
-        """
-        super().__init__(experiment)
+    def __init__(self):
+        """Constructor for the Ionic current calculator."""
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
     def _prepare_database_entry(self):
@@ -64,9 +57,7 @@ class ThermalFlux(Transformations):
         -------
 
         """
-        path = join_path(
-            "Thermal_Flux", "Thermal_Flux"
-        )  # name of the new database_path
+        path = join_path("Thermal_Flux", "Thermal_Flux")  # name of the new database_path
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)

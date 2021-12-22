@@ -11,3 +11,7 @@ pandoc
 nbsphinx-link
 git+git://github.com/zincware/ZincHub.git#egg=zinchub
 isort
+coverage
+coveralls
+mdanalysis
+black

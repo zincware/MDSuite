@@ -25,6 +25,8 @@ Summary
 -------
 A parent class for calculators that operate on the trajectory.
 """
+from __future__ import annotations
+
 from abc import ABC
 from pathlib import Path
 from typing import TYPE_CHECKING, List
@@ -78,11 +80,7 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(
-        self,
-        experiment: object = None,
-        experiments: List = None,
-    ):
+    def __init__(self, experiment: Experiment = None, experiments: List = None):
         """
         Constructor for the TrajectoryCalculator class.
 
@@ -167,20 +165,18 @@ class TrajectoryCalculator(Calculator, ABC):
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and cannot be generated.")
 
-        transformation = _string_to_function(dependency)
-        self.experiment.perform_transformation(transformation)
+        transformation = getattr(self.experiment.run, _string_to_function(dependency))
+        transformation()
 
     def _unwrap_choice(self):
         """
@@ -193,7 +189,7 @@ class TrajectoryCalculator(Calculator, ABC):
         if indices:
             return "UnwrapViaIndices"
         else:
-            return "UnwrapCoordinates"
+            return "CoordinateUnwrapper"
 
     def _handle_tau_values(self) -> np.array:
         """

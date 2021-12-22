@@ -136,9 +136,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         if self.species is None:
             self.species = list(self.experiment.species)
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
         self.update_user_args(
             plot=plot,
@@ -156,9 +154,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
         return self.update_db_entry_with_kwargs(
             data_range=data_range,
@@ -181,9 +177,7 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
+        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             start = ensemble * self.correlation_time
             stop = start + self.data_range
             msd_a = self._msd_operation(
@@ -245,13 +239,15 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
+
         numerator = self.experiment.units["length"] ** 2
         denominator = 6 * self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator

@@ -92,9 +92,7 @@ def call(func):
     """
 
     @functools.wraps(func)
-    def inner(
-        self, *args, **kwargs
-    ) -> Union[db.Computation, Dict[str, db.Computation]]:
+    def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
         """Manage the call method
 
         Parameters

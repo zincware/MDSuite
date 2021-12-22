@@ -36,8 +36,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import (
     cartesian_to_spherical_coordinates,
@@ -250,9 +250,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         )
 
         if self.plot:
-            coordinates = tf.reshape(
-                self._get_unit_sphere(), [self.args.n_bins ** 2, 3]
-            )
+            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
             colour_map = tf.reshape(sdf_values, [-1])
             self._run_visualization(coordinates, colour_map)
 

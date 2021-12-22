@@ -28,13 +28,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List
 
-# isort: off
-from .calculator import Calculator
-from .trajectory_calculator import TrajectoryCalculator
-
-# isort: on
-
 from .angular_distribution_function import AngularDistributionFunction
+from .calculator import Calculator
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
 from .einstein_distinct_diffusion_coefficients import (
@@ -63,7 +58,6 @@ if TYPE_CHECKING:
 
 __all__ = [
     "Calculator",
-    "TrajectoryCalculator",
     "AngularDistributionFunction",
     "CoordinationNumbers",
     "EinsteinDiffusionCoefficients",
@@ -90,9 +84,7 @@ class RunComputation:
     """Collection of all calculators that can be used by an experiment"""
 
     def __init__(
-        self,
-        experiment: Experiment = None,
-        experiments: List[Experiment] = None,
+        self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
         """Collection of all calculators
 
@@ -107,10 +99,7 @@ class RunComputation:
         self.experiment = experiment
         self.experiments = experiments
 
-        self.kwargs = {
-            "experiment": experiment,
-            "experiments": experiments,
-        }
+        self.kwargs = {"experiment": experiment, "experiments": experiments}
 
     @property
     def AngularDistributionFunction(self):

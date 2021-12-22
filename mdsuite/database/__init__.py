@@ -24,8 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
-from .data_manager import DataManager
+# isort: off
 from .simulation_data_class import SimulationProperties
+from .data_manager import DataManager
+
+# isort: on
 
 simulation_properties = SimulationProperties()
 

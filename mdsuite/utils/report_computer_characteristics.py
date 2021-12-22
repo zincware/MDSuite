@@ -67,9 +67,7 @@ class Report(scooby.Report):
         """
         # Mandatory packages.
         here = path.abspath(path.dirname(__file__))
-        main_mdsuite_folder = Path(
-            path.dirname(path.dirname(here))
-        )  # go two folders up
+        main_mdsuite_folder = Path(path.dirname(path.dirname(here)))  # go two folders up
         requirements_file = main_mdsuite_folder / "requirements.txt"
 
         requirements = []

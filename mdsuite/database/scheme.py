@@ -26,7 +26,7 @@ Summary
 """
 import logging
 
-from sqlalchemy import Boolean, Column, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import declarative_base, relationship
 
 from .types import JSONEncodedDict, MutableDict
@@ -47,9 +47,7 @@ class SpeciesAssociation(Base):
     computation_results_id = Column(
         ForeignKey("computation_results.id"), primary_key=True
     )
-    experiment_species_id = Column(
-        ForeignKey("experiment_species.id"), primary_key=True
-    )
+    experiment_species_id = Column(ForeignKey("experiment_species.id"), primary_key=True)
 
     count = Column(
         Integer, default=1

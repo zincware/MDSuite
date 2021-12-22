@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
 import sys
 
 import numpy as np
@@ -33,6 +34,8 @@ from tqdm import tqdm
 from mdsuite.database import simulation_properties
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class ScaleCoordinates(Transformations):
@@ -52,22 +55,20 @@ class ScaleCoordinates(Transformations):
             Box vectors to multiply the indices by
     """
 
-    def __init__(self, experiment: object, species: list = None):
-        """
-        Constructor for the Ionic current calculator.
+    def __init__(self, species: list = None):
+        """Constructor for the Ionic current calculator.
 
         Parameters
         ----------
-        experiment : object
-                Experiment this transformation is attached to.
         species : list
                 Species on which this transformation should be applied.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.species = species
         self.scale_function = {"linear": {"scale_factor": 2}}
-        self.dtype = tf.float64
+        self.dtype = tf.float64  # TODO should be a property that is immutable?
 
+    def update_from_experiment(self):
         if self.species is None:
             self.species = list(self.experiment.species)
 
@@ -85,7 +86,7 @@ class ScaleCoordinates(Transformations):
             truth_table.append(self.database.check_existence(path))
 
         if not all(truth_table):
-            print(
+            log.info(
                 "Indices were not included in the database_path generation. Please"
                 " check your simulation files."
             )
@@ -123,7 +124,7 @@ class ScaleCoordinates(Transformations):
         existing = self._run_dataset_check(path)
         if existing:
             old_shape = self.database.get_data_size(path)
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             resize_structure = {
                 path: (
                     species_length,
@@ -143,7 +144,7 @@ class ScaleCoordinates(Transformations):
                 }
             }
         else:
-            species_length = len(self.experiment.species[species]["indices"])
+            species_length = self.experiment.species[species].n_particles
             number_of_configurations = self.experiment.number_of_configurations
             dataset_structure = {path: (species_length, number_of_configurations, 3)}
             self.database.add_dataset(dataset_structure)
@@ -178,9 +179,7 @@ class ScaleCoordinates(Transformations):
                 str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
             }
             data_set = tf.data.Dataset.from_generator(
-                batch_generator,
-                args=batch_generator_args,
-                output_signature=type_spec,
+                batch_generator, args=batch_generator_args, output_signature=type_spec
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
             for index, x in tqdm(

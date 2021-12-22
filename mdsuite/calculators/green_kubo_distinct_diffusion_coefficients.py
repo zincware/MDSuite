@@ -146,9 +146,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
         """
@@ -164,9 +162,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
+        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
             self.vacf = np.zeros(self.data_range)
             start = ensemble * self.correlation_time
             stop = start + self.data_range
@@ -187,9 +183,7 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                                 for idx in range(3)
                             ]
                         )
-            self.vacf += vacf[
-                int(self.data_range - 1) :
-            ]  # Update the averaged function
+            self.vacf += vacf[int(self.data_range - 1) :]  # Update the averaged function
             self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
 
     def run_experimental_analysis(self):
@@ -237,12 +231,13 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
 
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
         numerator = self.experiment.units["length"] ** 2
         denominator = (

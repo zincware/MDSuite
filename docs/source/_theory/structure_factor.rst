@@ -24,7 +24,7 @@ The weights are determined using the atomic form factors :math:`f_i(Q)` of speci
 
 The atomic form factors depend on the type and charge of the element and are approximated by a sum of gaussians, whose
 coeffients are taken from `TU Graz <http://lampx.tugraz.at/~hadley/ss1/crystaldiffraction/atomicformfactors/formfactors.php>`_.
-The atomic form factors are valid for a range of :math:`0 < Q < 25 \, \AA ^{-1}`.
+The atomic form factors are valid for a range of :math:`0 < Q < 25 \, \text{Å} ^{-1}`.
 In order for the calculation to work the element names and charges need to be set in the species dictionary
 as shown in the sample script structure_factor.py .
 

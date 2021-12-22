@@ -57,7 +57,9 @@ def test_structure_factor_project(traj_files, true_values, tmp_path):
     """Test the structure_factor called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
     project.run.StructureFactor(plot=False)
@@ -82,7 +84,9 @@ def test_structure_factor_experiment(traj_files, true_values, tmp_path):
     """Test the structure_factor called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
     project.experiments["NaCl"].run.StructureFactor(plot=False)

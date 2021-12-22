@@ -24,12 +24,16 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
 
 
 class CoordinateUnwrapper(Transformations):
@@ -39,24 +43,22 @@ class CoordinateUnwrapper(Transformations):
     Attributes
     ----------
     experiment : object
-            The experiment class from which tensor_values will be read and in
-             which it will be saved.
+        The experiment class from which tensor_values will be read and in which it will
+        be saved.
 
     species : list
-            species of atoms to unwrap.
+            Species of atoms to unwrap.
 
     center_box : bool
-            Decision whether or not to center the positions in the box before
-             performing the unwrapping. The default value is set to True as
-             this is most common in simulations.
+        Decision whether or not to center the positions in the box before performing the
+        unwrapping. The default value is set to True as this is most common in
+        simulations.
     scale_function : dict
             A dictionary referencing the memory/time scaling function of the
             transformation.
     """
 
-    def __init__(
-        self, experiment: object, species: list = None, center_box: bool = True
-    ):
+    def __init__(self, species: list = None, center_box: bool = True):
         """
         Constructor for the Ionic current calculator.
 
@@ -69,14 +71,15 @@ class CoordinateUnwrapper(Transformations):
         center_box : bool
                 If true, the origin of the coordinates will be centered.
         """
-        super().__init__(experiment)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 3}}
         self.center_box = center_box
 
-        if species is None:
+        self.species = species
+
+    def update_from_experiment(self):
+        if self.species is None:
             self.species = list(self.experiment.species)
-        else:
-            self.species = self.species
 
     def _prepare_database_entry(self, species: str):
         """
@@ -89,13 +92,19 @@ class CoordinateUnwrapper(Transformations):
         path = join_path(species, "Unwrapped_Positions")
         dataset_structure = {
             path: (
-                len(self.experiment.species[species]["indices"]),
+                self.experiment.species[species].n_particles,
                 self.experiment.number_of_configurations,
                 3,
             )
         }
         self.database.add_dataset(dataset_structure)
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": np.s_[:],
+                "columns": [0, 1, 2],
+                "length": self.experiment.species[species].n_particles,
+            }
+        }
 
         return data_structure
 
@@ -204,10 +213,8 @@ class CoordinateUnwrapper(Transformations):
             batch_generator, args=batch_generator_args, output_signature=type_spec
         )
         data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-        state = tf.zeros(shape=(len(self.experiment.species[species]["indices"]), 3))
-        last_conf = tf.zeros(
-            shape=(len(self.experiment.species[species]["indices"]), 3)
-        )
+        state = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
+        last_conf = tf.zeros(shape=(self.experiment.species[species].n_particles, 3))
         loop_correction = self._remainder_to_binary()
         for index, x in tqdm(
             enumerate(data_set),
@@ -250,5 +257,12 @@ class CoordinateUnwrapper(Transformations):
 
         """
         for item in self.species:
-            self._unwrap_coordinates(item)  # run the transformation.
+            exists = self.database.check_existence(join_path(item, "Positions"))
+            # Check if the tensor_values has already been unwrapped
+            if exists:
+                log.info(
+                    f"Unwrapped positions exists for {item}, using the saved coordinates"
+                )
+            else:
+                self._unwrap_coordinates(item)  # run the transformation.
             self.experiment.memory_requirements = self.database.get_memory_information()
