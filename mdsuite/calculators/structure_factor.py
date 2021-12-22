@@ -327,7 +327,9 @@ class StructureFactor(Calculator):
         Calculates the total structure factor for all the different Q-values
         of the Q_arr (magnitude of the scattering vector)
         """
-        self._get_rdf_data()
+        # self._get_rdf_data()
+        self.experiment.run.RadialDistributionFunction()
+
         self.molar_fractions()
         self.species_densities()
         total_structure_factor_li = []
