@@ -69,6 +69,16 @@ def traj_files(tmp_path_factory) -> dict:
     return file_paths
 
 
+def test_experiment_return():
+    """
+    Check that an experiment is returned by the add_experiment argument.
+    """
+    project_1 = mds.Project()
+    exp_1 = project_1.add_experiment("Exp01")
+    assert type(exp_1) is mdsuite.experiment.experiment.Experiment
+    assert exp_1.name == "Exp01"
+
+
 def test_add_file_from_list(traj_files, tmp_path):
     """Check that adding files from lists does not raise an error"""
     os.chdir(tmp_path)

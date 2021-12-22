@@ -143,7 +143,7 @@ class DataManager:
         args = (
             self.n_batches,
             self.batch_size,
-            self.database.name,
+            self.database.path,
             self.data_path,
             dictionary,
         )
@@ -173,7 +173,7 @@ class DataManager:
             Returns
             -------
             """
-            database = Database(name=database)
+            database = Database(database)
 
             for batch in range(batch_number + int(remainder)):
 
@@ -239,7 +239,7 @@ class DataManager:
                     "for mini-batched calculations"
                 )
 
-            database = Database(name=database)
+            database = Database(database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
             for atom_batch in tqdm(
