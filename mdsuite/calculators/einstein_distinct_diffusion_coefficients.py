@@ -37,7 +37,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
-from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 
 @dataclass
@@ -52,7 +52,6 @@ class Args:
     tau_values: np.s_
     molecules: bool
     species: list
-    integration_range: int
 
 
 tqdm.monitor_interval = 0
@@ -108,13 +107,14 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
         self.experimental = True
-
+        self.result_keys = ["diffusion_coefficient", "uncertainty"]
+        self.result_series_keys = ["time", "msd"]
         self.combinations = []
 
     @call
     def __call__(
         self,
-        plot: bool = False,
+        plot: bool = True,
         species: list = None,
         data_range: int = 500,
         save: bool = True,
@@ -157,6 +157,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(species, 2))
 
+        self.gpu = gpu
+        self.plot = plot
+
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
@@ -166,8 +169,31 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             molecules=molecules,
             species=species,
         )
+        self.time = self._handle_tau_values()
 
         self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
+
+    def msd_operation(self, ensemble: tf.Tensor, square: bool = True):
+        """
+        Perform a simple msd operation.
+
+        Parameters
+        ----------
+        ensemble : tf.Tensor
+            Trajectory over which to compute the msd.
+        square : bool
+            If true, square the result, else just return the difference.
+        Returns
+        -------
+        msd : tf.Tensor
+                Mean square displacement.
+        """
+        if square:
+            return tf.math.squared_difference(
+                tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+            )
+        else:
+            return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
@@ -176,54 +202,24 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         Parameters
         ----------
         data : dict
-                Dictionary of data returned by tensorflow
+                Dictionary of data returned by tensorflow.
         data_path : list
-                Data paths for accessing the dictionary
+                Data paths for accessing the dictionary.
         Returns
         -------
         updates the class state
         """
-        msd_a = self._msd_operation(data[str.encode(data_path[0])], square=False)
-        msd_b = self._msd_operation(data[str.encode(data_path[0])], square=False)
+        msd_a = self.msd_operation(data[data_path[0]], square=False)
+        msd_b = self.msd_operation(data[data_path[0]], square=False)
 
-        for i in range(len(data[str.encode(data_path[0])])):
-            for j in range(i + 1, len(data[str.encode(data_path[1])])):
-                if i == j:
+        for i in range(len(data[data_path[0]])):
+            for j in range(i + 1, len(data[data_path[1]])):
+                if combination[0] == combination[1] and i == j:
                     continue
                 else:
                     self.msd_array += self.prefactor * np.array(
                         tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
                     )
-
-    def run_experimental_analysis(self):
-        """
-        Perform the distinct coefficient analysis analysis
-        """
-        if type(self.atom_selection) is dict:
-            select_atoms = {}
-            for item in self.atom_selection:
-                select_atoms[
-                    str.encode(join_path(item, "Unwrapped_Positions"))
-                ] = self.atom_selection[item]
-            self.atom_selection = select_atoms
-        for combination in self.combinations:
-            type_spec = {}
-            self._calculate_prefactor(combination)
-            data_path = [join_path(item, "Unwrapped_Positions") for item in combination]
-            self._prepare_managers(data_path=data_path)
-            type_spec = self._update_species_type_dict(type_spec, data_path, 3)
-            type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=tf.int16)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                dictionary=True
-            )
-            data_set = tf.data.Dataset.from_generator(
-                batch_generator, args=batch_generator_args, output_signature=type_spec
-            )
-            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch in data_set:
-                self._compute_msd(batch, data_path, combination)
-            self._apply_averaging_factor()
-            self._post_operation_processes(combination)
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -235,33 +231,21 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Species property if required.
         Returns
         -------
-
+        Updates the prefactor attribute of the class.
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
+
         numerator = self.experiment.units["length"] ** 2
         denominator = 6 * self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
 
     def _apply_averaging_factor(self):
         """
@@ -280,34 +264,36 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         """
         if np.sign(self.msd_array[-1]) == -1:
-            result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
+            result = fit_einstein_curve([self.time, abs(self.msd_array)])
 
-            data = {"diffusion_coefficient": -1 * result[0], "uncertainty": result[1]}
+            data = {
+                self.result_keys[0]: np.mean(result).tolist(),
+                self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                self.result_series_keys[0]: self.time.tolist(),
+                self.result_series_keys[1]: self.msd_array.tolist(),
+            }
         else:
-            result = self._fit_einstein_curve([self.time, self.msd_array])
-            data = {"diffusion_coefficient": result[0], "uncertainty": result[1]}
+            result = fit_einstein_curve([self.time, self.msd_array])
+            data = {
+                "diffusion_coefficient": np.mean(result).tolist(),
+                "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                "time": self.time.tolist(),
+                "msd": self.msd_array.tolist(),
+            }
 
         data.update({"time": self.time.tolist(), "msd": self.msd_array.tolist()})
 
         self.queue_data(data=data, subjects=list(species))
 
-        # Update the plot if required
-        if self.plot:
-            self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
-                y_data=self.msd_array * self.experiment.units["time"],
-                title=species,
-            )
-
-    def _update_output_signatures(self):
+    def check_input(self):
         """
-        After having run _prepare managers, update the output signatures.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        pass
+        self._run_dependency_check()
 
     def run_calculator(self):
         """
@@ -321,14 +307,11 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)
+            self._calculate_prefactor(combination)
 
             for batch in batch_ds:
                 ensemble_ds = self.get_ensemble_dataset(batch, species_values)
                 for ensemble in ensemble_ds:
-                    self.ensemble_operation(ensemble, dict_ref)
+                    self._compute_msd(ensemble, dict_ref, combination)
 
-            self._calculate_prefactor(combination)
             self._post_operation_processes(combination)
-            self._return_arrays[str(combination)] = self.vacf
-
-        return self._return_arrays

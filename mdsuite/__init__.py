@@ -37,7 +37,7 @@ __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
 __version__ = "0.0.1"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
