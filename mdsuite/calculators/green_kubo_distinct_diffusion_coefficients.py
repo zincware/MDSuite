@@ -23,21 +23,23 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for computing distinct diffusion coefficients using the Green-Kubo method.
 """
+import itertools
 from abc import ABC
-from typing import Union
+from dataclasses import dataclass
+from typing import Any, List, Union
+
 import numpy as np
-from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
-import itertools
-from dataclasses import dataclass
-from scipy import signal
-from mdsuite.database import simulation_properties
-from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from bokeh.models import Span
+from scipy import signal
+from tqdm import tqdm
+
 from mdsuite.calculators.calculator import call
-from typing import List, Any
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database import simulation_properties
 
 
 @dataclass
@@ -175,9 +177,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.species is None:
             self.species = list(self.experiment.species)
 
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
     def ensemble_operation(self, data: dict, dict_ref: list, same_species: bool = False):
         """
@@ -214,10 +214,8 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                             for idx in range(3)
                         ]
                     )
-        self.vacf += vacf[
-            int(self.args.data_range - 1):
-        ]  # Update the averaged function
-        self.sigma.append(np.trapz(vacf[int(self.args.data_range - 1):], x=self.time))
+        self.vacf += vacf[int(self.args.data_range - 1) :]  # Update the averaged function
+        self.sigma.append(np.trapz(vacf[int(self.args.data_range - 1) :], x=self.time))
 
     def run_calculator(self):
         """
@@ -227,7 +225,8 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         for combination in self.combinations:
             species_values = list(combination)
             dict_ref = [
-                str.encode("/".join([species, self.loaded_property[0]])) for species in species_values
+                str.encode("/".join([species, self.loaded_property[0]]))
+                for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)
 

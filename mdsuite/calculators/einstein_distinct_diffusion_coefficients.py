@@ -23,19 +23,21 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for computing distinct diffusion coefficients using the Einstein method.
 """
-from typing import Union
-import numpy as np
-import warnings
-from tqdm import tqdm
-import tensorflow as tf
 import itertools
-from mdsuite.calculators.calculator import call
-from mdsuite.database import simulation_properties
-from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.utils.meta_functions import join_path
+import warnings
 from dataclasses import dataclass
-from typing import List, Any
+from typing import Any, List, Union
+
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database import simulation_properties
+from mdsuite.utils.meta_functions import join_path
 
 
 @dataclass
@@ -52,6 +54,7 @@ class Args:
     species: list
     integration_range: int
 
+
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
@@ -59,6 +62,7 @@ warnings.filterwarnings("ignore")
 class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
+
     Attributes
     ----------
     experiment :  object
@@ -104,8 +108,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
         self.experimental = True
-
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
 
         self.combinations = []
 
@@ -153,9 +155,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         if species is None:
             species = list(self.experiment.species)
-        self.combinations = list(
-            itertools.combinations_with_replacement(species, 2)
-        )
+        self.combinations = list(itertools.combinations_with_replacement(species, 2))
 
         # set args that will affect the computation result
         self.args = Args(
@@ -183,12 +183,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
         updates the class state
         """
-        msd_a = self._msd_operation(
-            data[str.encode(data_path[0])], square=False
-        )
-        msd_b = self._msd_operation(
-            data[str.encode(data_path[0])], square=False
-        )
+        msd_a = self._msd_operation(data[str.encode(data_path[0])], square=False)
+        msd_b = self._msd_operation(data[str.encode(data_path[0])], square=False)
 
         for i in range(len(data[str.encode(data_path[0])])):
             for j in range(i + 1, len(data[str.encode(data_path[1])])):
@@ -321,7 +317,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         for combination in self.combinations:
             species_values = list(combination)
             dict_ref = [
-                str.encode("/".join([species, self.loaded_property[0]])) for species in species_values
+                str.encode("/".join([species, self.loaded_property[0]]))
+                for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)
 
