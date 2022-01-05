@@ -24,13 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import mdsuite as mds
-import urllib.request
-import shutil
-import gzip
 import os
 import tempfile
-from mdsuite.transformations.map_molecules import MolecularMap
+
+from zinchub import DataHub
+
+import mdsuite as mds
 
 
 def load_data():
@@ -41,13 +40,8 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    base_url = "https://github.com/zincware/Datahub/raw/main/bmim_bf4.lammpstrj"
-    filename, headers = urllib.request.urlretrieve(
-        f"{base_url}.gz", filename="bmim_bf4.lammpstrj.gz"
-    )
-    with gzip.open(filename, "rb") as f_in:
-        with open("bmim_bf4.lammpstraj", "wb") as f_out:
-            shutil.copyfileobj(f_in, f_out)
+    bmim = DataHub(url="https://github.com/zincware/DataHub/tree/main/Bmim_BF4")
+    bmim.get_file(path=".")
 
 
 def run_example():
@@ -56,38 +50,25 @@ def run_example():
 
     Returns
     -------
-    Nul.
+    Runs the example.
     """
     project = mds.Project("bmim_bf4_example")
     project.add_experiment(
-        experiment="bmim_bf4",
+        name="bmim_bf4",
         timestep=0.1,
         temperature=100.0,
         units="real",
-        data="bmim_bf4.lammpstraj",
+        simulation_data="bmim_bf4.lammpstraj",
     )
-
-    project.experiments.bmim_bf4.perform_transformation("UnwrapCoordinates")
-    mapper = MolecularMap(
-        project.experiments.bmim_bf4,
+    project.experiments.bmim_bf4.run.UnwrapViaIndices()
+    project.run.MolecularMap(
         molecules={
-            "bmim": {"smiles": "CCCCN1C=C[N+](+C1)C", "cutoff": 1.9, "amount": 50},
-            "bf4": {"smiles": "[B-](F)(F)(F)F", "cutoff": 2.4, "amount": 50},
-        },
-    )
-    mapper.run_transformation()
-
-    project.run.SpatialDistributionFunction(
-        species=["bmim", "bf4"],
-        r_min=1.0,
-        r_max=9.0,
-        number_of_configurations=50,
-        n_bins=1000,
-        start=0,
-        stop=80,
+            "bmim": {"smiles": "CCCCN1C=C[N+](+C1)C", "amount": 50, "cutoff": 1.9},
+            "bf4": {"smiles": "[B-](F)(F)(F)F", "amount": 50, "cutoff": 2.4},
+        }
     )
 
-    # project.experiments.bmim_bf4.run_visualization(molecules=True)
+    project.experiments.bmim_bf4.run_visualization(molecules=True)
 
     print("Tutorial complete....... Files being deleted now.")
 

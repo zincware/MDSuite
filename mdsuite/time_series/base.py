@@ -25,14 +25,14 @@ Summary
 -------
 """
 from __future__ import annotations
-from mdsuite.database.simulation_database import Database
-import matplotlib.pyplot as plt
-import numpy as np
-from pathlib import Path
-
-import tensorflow as tf
 
 from typing import TYPE_CHECKING
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+
+from mdsuite.database.simulation_database import Database
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
@@ -75,9 +75,7 @@ class TimeSeries:
     def database(self):
         """Get the database"""
         if self._database is None:
-            self._database = Database(
-                name=Path(self.experiment.database_path, "database.hdf5")
-            )
+            self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
 
     @property

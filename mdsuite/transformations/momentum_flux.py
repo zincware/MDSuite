@@ -27,6 +27,7 @@ Summary
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -44,16 +45,9 @@ class MomentumFlux(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object):
-        """
-        Constructor for the Ionic current calculator.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment this transformation is attached to.
-        """
-        super().__init__(experiment)
+    def __init__(self):
+        """Constructor for the Ionic current calculator."""
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 4}}
 
     def _prepare_database_entry(self):
@@ -131,9 +125,7 @@ class MomentumFlux(Transformations):
 
         data_structure = self._prepare_database_entry()
         type_spec = {}
-        data_path = [
-            join_path(species, "Stress") for species in self.experiment.species
-        ]
+        data_path = [join_path(species, "Stress") for species in self.experiment.species]
         self._prepare_monitors(data_path)
 
         type_spec = self._update_species_type_dict(type_spec, data_path, 6)

@@ -27,17 +27,15 @@ Summary
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
+from typing import TYPE_CHECKING, Dict, List
+
+import numpy as np
 
 import mdsuite.database.scheme as db
-from mdsuite.database.scheme import Project, Experiment, ExperimentAttribute
 from mdsuite.utils.database import get_or_create
-import pandas as pd
-import numpy as np
-from dataclasses import asdict
+from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
-
-from pathlib import Path
-from typing import TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
     from mdsuite import Project
@@ -87,7 +85,6 @@ class ExperimentDatabase:
     sample_rate = LazyProperty()
     volume = LazyProperty()
     property_groups = LazyProperty()
-    radial_distribution_function_state = LazyProperty()
 
     def __init__(self, project: Project, experiment_name):
         self.project = project
@@ -127,11 +124,11 @@ class ExperimentDatabase:
             Any serializeable data type that can be written to the database
         """
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
             if not isinstance(value, dict):
                 value = {"serialized_value": value}
-            attribute: ExperimentAttribute = get_or_create(
-                ses, ExperimentAttribute, experiment=experiment, name=name
+            attribute: db.ExperimentAttribute = get_or_create(
+                ses, db.ExperimentAttribute, experiment=experiment, name=name
             )
             attribute.data = value
             ses.commit()
@@ -158,11 +155,11 @@ class ExperimentDatabase:
          might be converted to lists
         """
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
-            attribute: ExperimentAttribute = (
-                ses.query(ExperimentAttribute)
-                .filter(ExperimentAttribute.experiment == experiment)
-                .filter(ExperimentAttribute.name == name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
+            attribute: db.ExperimentAttribute = (
+                ses.query(db.ExperimentAttribute)
+                .filter(db.ExperimentAttribute.experiment == experiment)
+                .filter(db.ExperimentAttribute.name == name)
                 .first()
             )
             try:
@@ -180,7 +177,7 @@ class ExperimentDatabase:
     def active(self):
         """Get the state (activated or not) of the experiment"""
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
         return experiment.active
 
     @active.setter
@@ -189,27 +186,33 @@ class ExperimentDatabase:
         if value is None:
             return
         with self.project.session as ses:
-            experiment = get_or_create(ses, Experiment, name=self.name)
+            experiment = get_or_create(ses, db.Experiment, name=self.name)
             experiment.active = value
             ses.commit()
 
     @property
-    def species(self):
+    def species(self) -> Dict[str, DotDict]:
         """Get species
 
         Returns
         -------
 
-        dict:
+        # TODO replace DotDict with dataclass
+
+        DotDict:
             A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
             charge: [0]}}
         """
         if self._species is None:
             with self.project.session as ses:
                 experiment = (
-                    ses.query(Experiment).filter(Experiment.name == self.name).first()
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.name)
+                    .first()
                 )
-                self._species = experiment.get_species()
+                self._species = {
+                    key: DotDict(val) for key, val in experiment.get_species().items()
+                }
 
         return self._species
 
@@ -224,15 +227,20 @@ class ExperimentDatabase:
         Notes
         -----
 
-        species = {C: {indices: [1, 2, 3], mass: [12.0], charge: [0]}}
+        species = {C: {mass: [12.0], charge: [0]}}
 
         """
         if value is None:
             return
+
+        # Do not allow the key "indices" in the SQL database!
+        for single_species in value.values():
+            single_species.pop("indices", None)
+
         self._species = None
         with self.project.session as ses:
             experiment = (
-                ses.query(Experiment).filter(Experiment.name == self.name).first()
+                ses.query(db.Experiment).filter(db.Experiment.name == self.name).first()
             )
             for species_name, species_data in value.items():
                 species = get_or_create(
@@ -244,10 +252,14 @@ class ExperimentDatabase:
     @property
     def molecules(self):
         """Get the molecules dict"""
+
+        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
-                    ses.query(Experiment).filter(Experiment.name == self.name).first()
+                    ses.query(db.Experiment)
+                    .filter(db.Experiment.name == self.name)
+                    .first()
                 )
                 self._molecules = experiment.get_molecules()
         return self._molecules
@@ -260,7 +272,7 @@ class ExperimentDatabase:
         self._molecules = None
         with self.project.session as ses:
             experiment = (
-                ses.query(Experiment).filter(Experiment.name == self.name).first()
+                ses.query(db.Experiment).filter(db.Experiment.name == self.name).first()
             )
             for molecule_name, molecule_data in value.items():
                 molecule = get_or_create(
@@ -307,7 +319,7 @@ class ExperimentDatabase:
 
         Returns
         -------
-        read_files: list[Path]
+        read_files: list[str]
             A List of all files that were added to the database already
 
         """

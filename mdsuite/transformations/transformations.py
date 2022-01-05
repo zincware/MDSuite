@@ -26,17 +26,19 @@ Summary
 Parent class for the transformations.
 """
 from __future__ import annotations
+
+import copy
 import time
-from typing import Union
-import os
+from typing import TYPE_CHECKING, Union
+
 import numpy as np
 import tensorflow as tf
-from mdsuite.memory_management.memory_manager import MemoryManager
+
+import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
+from mdsuite.memory_management.memory_manager import MemoryManager
 from mdsuite.utils.meta_functions import join_path
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
@@ -73,7 +75,7 @@ class Transformations:
             memory manager for the computation.
     """
 
-    def __init__(self, experiment: Experiment):
+    def __init__(self, *args, **kwargs):
         """
         Constructor for the experiment class
 
@@ -82,11 +84,9 @@ class Transformations:
         experiment : object
                 Experiment class object to update
         """
-        self.experiment = experiment
-        self.database = Database(
-            name=os.path.join(self.experiment.database_path, "database.hdf5"),
-            architecture="simulation",
-        )
+        self._experiment = None
+        self._database = None
+
         self.batch_size: int
         self.n_batches: int
         self.remainder: int
@@ -97,6 +97,33 @@ class Transformations:
 
         self.data_manager: DataManager
         self.memory_manager: MemoryManager
+
+    @property
+    def database(self):
+        """Update the database
+
+        replace for https://github.com/zincware/MDSuite/issues/404
+        """
+        if self._database is None:
+            self._database = Database(self.experiment.database_path / "database.hdf5")
+        return self._database
+
+    @property
+    def experiment(self) -> Experiment:
+        """TODO replace for https://github.com/zincware/MDSuite/issues/404"""
+        return self._experiment
+
+    @experiment.setter
+    def experiment(self, value):
+        self._experiment = value
+
+    def update_from_experiment(self):
+        """Update all self attributes that depend on the experiment
+
+        Temporary method until https://github.com/zincware/MDSuite/issues/404
+        is solved.
+        """
+        pass
 
     def _run_dataset_check(self, path: str):
         """
@@ -163,16 +190,14 @@ class Transformations:
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and can not be generated.")
 
         transformation = _string_to_function(dependency)
         self.experiment.perform_transformation(transformation)
@@ -235,7 +260,7 @@ class Transformations:
         """
         for item in path_list:
             species = item.split("/")[0]
-            n_atoms = len(self.experiment.species[species]["indices"])
+            n_atoms = self.experiment.species[species].n_particles
             dictionary[str.encode(item)] = tf.TensorSpec(
                 shape=(n_atoms, None, dimension), dtype=tf.float64
             )
@@ -268,15 +293,51 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
-        try:
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
+
+        # turn data into trajectory chunk
+        # data_structure is dict {'/path/to/property':{'indices':irrelevant,
+        #                           'columns':deduce->deduce n_dims, 'length':n_particles}
+        species_list = list()
+        # data structure only has 1 element
+        key, val = list(data_structure.items())[0]
+        path = str(copy.copy(key))
+        path.rstrip("/")
+        path = path.split("/")
+        prop_name = path[-1]
+        sp_name = path[-2]
+        n_particles = val.get("length")
+        if n_particles is None:
+            try:
+                # if length is not available try indices next
+                n_particles = len(val.get("indices"))
+            except TypeError:
+                raise TypeError("Could not determine number of particles")
+        if len(np.shape(data)) == 2:
+            # data not for multiple particles, instead one value for all
+            # -> create the n_particle axis
+            data = data[np.newaxis, :, :]
+        prop = mdsuite.database.simulation_database.PropertyInfo(
+            name=prop_name, n_dims=len(val["columns"])
+        )
+        species_list.append(
+            mdsuite.database.simulation_database.SpeciesInfo(
+                name=sp_name, properties=[prop], n_particles=n_particles
             )
+        )
+        chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
+            chunk_size=batch_size, species_list=species_list
+        )
+        # data comes from transformation with time in 1st axis, add_data needs it
+        # in 0th axis
+        chunk.add_data(
+            data=np.swapaxes(data, 0, 1),
+            config_idx=0,
+            species_name=sp_name,
+            property_name=prop_name,
+        )
+
+        try:
+            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
         except OSError:
             """
             This is used because in Windows and in WSL we got the error that
@@ -284,14 +345,7 @@ class Transformations:
             wait, and we add again.
             """
             time.sleep(0.5)
-            self.database.add_data(
-                data=data,
-                structure=data_structure,
-                start_index=index + self.offset,
-                batch_size=batch_size,
-                system_tensor=system_tensor,
-                tensor=tensor,
-            )
+            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """

@@ -27,25 +27,26 @@ Module to perform the calculation of the angular distribution function (ADF). Th
 describes the average distribution of angles between three particles of species a, b,
 and c. Note that a, b, and c may all be the same species, e.g. Na-Na-Na.
 """
-from abc import ABC
-import logging
-import tensorflow as tf
 import itertools
-import numpy as np
-from tqdm import tqdm
+import logging
+from abc import ABC
+from dataclasses import dataclass
 from typing import Union
+
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+
 from mdsuite.calculators.calculator import call
-from mdsuite.utils.neighbour_list import (
-    get_neighbour_list,
-    get_triu_indicies,
-    get_triplets,
-)
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database import simulation_properties
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
-
+from mdsuite.utils.neighbour_list import (
+    get_neighbour_list,
+    get_triplets,
+    get_triu_indicies,
+)
 
 log = logging.getLogger(__name__)
 
@@ -214,9 +215,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.minibatch = (
-            minibatch  # memory management for triples generation per batch.
-        )
+        self.minibatch = minibatch  # memory management for triples generation per batch.
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
@@ -260,7 +259,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += len(reference[item]["indices"])
+            number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
 
@@ -282,7 +281,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.args.species:
-            stop_index += len(self.experiment.species.get(species).get("indices"))
+            stop_index += self.experiment.species[species].n_particles
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 
@@ -475,7 +474,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{selected_species} - Max:" f" {title_value:.3f} degrees ",
+                title=f"{selected_species} - Max: {title_value:.3f} degrees ",
             )
 
     def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:

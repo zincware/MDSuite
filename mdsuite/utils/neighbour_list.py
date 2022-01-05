@@ -25,9 +25,9 @@ Summary
 -------
 """
 
+import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-import numpy as np
 
 
 def get_triu_indicies(n_atoms):

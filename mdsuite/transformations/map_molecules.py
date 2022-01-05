@@ -24,10 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from typing import List
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from typing import List
+
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
@@ -55,14 +57,11 @@ class MolecularMap(Transformations):
             would be the input for the emim-PF6 ionic liquid.
     """
 
-    def __init__(self, experiment: object, molecules: dict):
-        """
-        Constructor for the MolecularMap class.
+    def __init__(self, molecules: dict):
+        """Constructor for the MolecularMap class.
 
         Parameters
         ----------
-        experiment : object
-                Experiment object to work within.
         molecules : dict
                 Molecule dictionary to use as reference. e.g, the input for
                 emim-PF6 ionic liquid would be.
@@ -73,7 +72,7 @@ class MolecularMap(Transformations):
                    'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
 
         """
-        super().__init__(experiment)
+        super().__init__()
         self.molecules = molecules
         self.reference_molecules = {}
         self.adjacency_graphs = {}
@@ -89,16 +88,20 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(
-            species, "Unwrapped_Positions"
-        )  # name of the new database_path
+        path = join_path(species, "Unwrapped_Positions")  # name of the new database_path
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
         self.database.add_dataset(
             dataset_structure
         )  # add a new dataset to the database_path
-        data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        # data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
+        data_structure = {
+            path: {
+                "indices": [i for i in range(number_of_molecules)],
+                "columns": [0, 1, 2],
+            }
+        }
 
         return data_structure
 
@@ -320,7 +323,7 @@ class MolecularMap(Transformations):
         indices_dict = {}
         lengths = []
         for i, item in enumerate(species):
-            length = len(self.experiment.species[item]["indices"])
+            length = self.experiment.species[item].n_particles
             if i == 0:
                 lengths.append(length)
             else:
@@ -333,9 +336,7 @@ class MolecularMap(Transformations):
                 ).tolist()
             else:
                 greater_array = list(filter(lambda x: x >= lengths[i - 1], indices))
-                constrained_array = list(
-                    filter(lambda x: x < lengths[i], greater_array)
-                )
+                constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
                 indices_dict[item] = np.sort(
                     np.array(constrained_array) - (lengths[i - 1] - 1)
                 ).tolist()
@@ -354,6 +355,4 @@ class MolecularMap(Transformations):
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
-        self.experiment.perform_transformation(
-            "WrapCoordinates", species=[item for item in self.molecules]
-        )
+        self.experiment.run.CoordinateWrapper(species=[item for item in self.molecules])

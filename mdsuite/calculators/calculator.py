@@ -27,19 +27,18 @@ Parent class for the calculators.
 """
 from __future__ import annotations
 
+import functools
 import logging
+import warnings
+from typing import TYPE_CHECKING, Dict, List, Union
+
 import numpy as np
 import tensorflow as tf
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
-from mdsuite.database.calculator_database import CalculatorDatabase
-import mdsuite.database.scheme as db
 from tqdm import tqdm
-from typing import Union, List, Dict
-import warnings
 
-import functools
-
-from typing import TYPE_CHECKING
+import mdsuite.database.scheme as db
+from mdsuite.database.calculator_database import CalculatorDatabase
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
@@ -93,9 +92,7 @@ def call(func):
     """
 
     @functools.wraps(func)
-    def inner(
-        self, *args, **kwargs
-    ) -> Union[db.Computation, Dict[str, db.Computation]]:
+    def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
         """Manage the call method
 
         Parameters
@@ -135,7 +132,9 @@ def call(func):
 
             if cls.plot:
                 """Plot the data"""
-                cls.plotter = DataVisualizer2D(title=cls.analysis_name)
+                cls.plotter = DataVisualizer2D(
+                    title=cls.analysis_name, path=experiment.figures_path
+                )
                 cls.plot_data(data.data_dict)
                 cls.plotter.grid_show(cls.plot_array)
 

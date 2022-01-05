@@ -27,15 +27,15 @@ Module for the computation of the potential of mean force (PMF). The PMF can be 
 better understand effective bond strength between species of a system.
 """
 import logging
-import numpy as np
-from scipy.signal import find_peaks
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.meta_functions import golden_section_search
-from mdsuite.utils.meta_functions import apply_savgol_filter
-from mdsuite.utils.units import boltzmann_constant
-from bokeh.models import BoxAnnotation
 from dataclasses import dataclass
 
+import numpy as np
+from bokeh.models import BoxAnnotation
+from scipy.signal import find_peaks
+
+from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
+from mdsuite.utils.units import boltzmann_constant
 
 log = logging.getLogger(__name__)
 
@@ -152,8 +152,7 @@ class PotentialOfMeanForce(Calculator):
         self.data_files = []
 
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=savgol_order, savgol_window_length=savgol_window_length
         )
 
     def _calculate_potential_of_mean_force(self):

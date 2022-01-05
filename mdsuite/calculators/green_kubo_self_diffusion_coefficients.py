@@ -26,23 +26,21 @@ Summary
 Module for the computation of diffusion coefficients using the Green-Kubo approach.
 """
 from abc import ABC
+from dataclasses import dataclass
+from typing import Any, List, Union
 
 import numpy as np
-import tensorflow_probability as tfp
 import tensorflow as tf
-from bokeh.models import Span
-from tqdm import tqdm
-from scipy.integrate import cumtrapz
-from typing import Union
-from mdsuite.calculators.calculator import call
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from typing import List, Any
-from mdsuite.calculators import TrajectoryCalculator
-from bokeh.models import HoverTool
-from bokeh.models import LinearAxis
+import tensorflow_probability as tfp
+from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
+from scipy.integrate import cumtrapz
+from tqdm import tqdm
+
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database import simulation_properties
 
 
 @dataclass
@@ -212,7 +210,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 3
                 * self.experiment.units["time"]
                 * self.args.integration_range
-                * len(self.experiment.species[species]["indices"])
+                * self.experiment.species[species].n_particles
             )
             self.prefactor = numerator / denominator
 
@@ -256,8 +254,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
             time = (
-                np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"]
+                np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"]
             )
             vacf = np.array(val[self.result_series_keys[1]])
             # Compute the span
@@ -274,14 +271,14 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 time,
                 vacf,
                 color="#003f5c",
-                legend_label=f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                f" {val[self.result_keys[1]]: 0.3E}",
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
+                ),
             )
 
             fig.extra_y_ranges = {
-                "Cond_range": Range1d(
-                    start=0.6 * min(integral), end=1.3 * max(integral)
-                )
+                "Cond_range": Range1d(start=0.6 * min(integral), end=1.3 * max(integral))
             }
             fig.line(time[1:], integral, y_range_name="Cond_range", color="#bc5090")
             fig.varea(

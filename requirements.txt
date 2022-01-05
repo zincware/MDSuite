@@ -16,3 +16,5 @@ tensorflow_probability
 open3d
 colorutils
 bokeh
+chemfiles
+znvis

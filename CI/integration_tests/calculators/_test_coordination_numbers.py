@@ -25,9 +25,11 @@ Summary
 -------
 """
 import os
-import pytest
+
 import numpy as np
+import pytest
 from zinchub import DataHub
+
 import mdsuite as mds
 
 
@@ -53,7 +55,9 @@ def test_project(traj_files, true_values, tmp_path):
     """Test the CN called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     computation = project.run.CoordinationNumbers()
 

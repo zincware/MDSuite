@@ -26,9 +26,10 @@ Summary
 """
 from __future__ import annotations
 
-from .calculator import Calculator
-from .trajectory_calculator import TrajectoryCalculator
+from typing import TYPE_CHECKING, List
+
 from .angular_distribution_function import AngularDistributionFunction
+from .calculator import Calculator
 from .coordination_number_calculation import CoordinationNumbers
 from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
 from .einstein_distinct_diffusion_coefficients import (
@@ -37,7 +38,6 @@ from .einstein_distinct_diffusion_coefficients import (
 from .einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
 from .einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
 from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
-from .green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from .green_kubo_distinct_diffusion_coefficients import (
     GreenKuboDistinctDiffusionCoefficients,
 )
@@ -45,6 +45,7 @@ from .green_kubo_ionic_conductivity import GreenKuboIonicConductivity
 from .green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
 from .green_kubo_thermal_conductivity import GreenKuboThermalConductivity
 from .green_kubo_viscosity import GreenKuboViscosity
+from .green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from .kirkwood_buff_integrals import KirkwoodBuffIntegral
 from .nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
 from .potential_of_mean_force import PotentialOfMeanForce
@@ -52,14 +53,11 @@ from .radial_distribution_function import RadialDistributionFunction
 from .spatial_distribution_function import SpatialDistributionFunction
 from .structure_factor import StructureFactor
 
-from typing import TYPE_CHECKING, List
-
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
 __all__ = [
     "Calculator",
-    "TrajectoryCalculator",
     "AngularDistributionFunction",
     "CoordinationNumbers",
     "EinsteinDiffusionCoefficients",
@@ -86,9 +84,7 @@ class RunComputation:
     """Collection of all calculators that can be used by an experiment"""
 
     def __init__(
-        self,
-        experiment: Experiment = None,
-        experiments: List[Experiment] = None,
+        self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
         """Collection of all calculators
 
@@ -103,10 +99,7 @@ class RunComputation:
         self.experiment = experiment
         self.experiments = experiments
 
-        self.kwargs = {
-            "experiment": experiment,
-            "experiments": experiments,
-        }
+        self.kwargs = {"experiment": experiment, "experiments": experiments}
 
     @property
     def AngularDistributionFunction(self):

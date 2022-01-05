@@ -25,20 +25,25 @@ Summary
 -------
 A parent class for calculators that operate on the trajectory.
 """
-from abc import ABC
+from __future__ import annotations
 
-from .calculator import Calculator
-from typing import TYPE_CHECKING, List
+from abc import ABC
+from typing import TYPE_CHECKING, List, Union
+
+import numpy as np
+import tensorflow as tf
+
 from mdsuite.memory_management import MemoryManager
 from mdsuite.database import DataManager
 from typing import Union
 from pathlib import Path
 from mdsuite.calculators.transformations_reference import switcher_transformations
+from mdsuite.database import DataManager
 from mdsuite.database.simulation_database import Database
-import numpy as np
+from mdsuite.memory_management import MemoryManager
 from mdsuite.utils.meta_functions import join_path
-import tensorflow as tf
 
+from .calculator import Calculator
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
@@ -78,11 +83,7 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(
-        self,
-        experiment: object = None,
-        experiments: List = None,
-    ):
+    def __init__(self, experiment: Experiment = None, experiments: List = None):
         """
         Constructor for the TrajectoryCalculator class.
 
@@ -113,9 +114,7 @@ class TrajectoryCalculator(Calculator, ABC):
     def database(self):
         """Get the database based on the experiment database path"""
         if self._database is None:
-            self._database = Database(
-                name=Path(self.experiment.database_path, "database.hdf5").as_posix()
-            )
+            self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
 
     def _run_dependency_check(self):
@@ -167,20 +166,18 @@ class TrajectoryCalculator(Calculator, ABC):
             transformation call.
             """
 
-            switcher_unwrapping = {
-                "Unwrapped_Positions": self._unwrap_choice(),
-            }
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             # add the other transformations and merge the dictionaries
             switcher = {**switcher_unwrapping, **switcher_transformations}
 
-            choice = switcher.get(
-                argument, lambda: "Data not in database and can not be generated."
-            )
-            return choice
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and cannot be generated.")
 
-        transformation = _string_to_function(dependency)
-        self.experiment.perform_transformation(transformation)
+        transformation = getattr(self.experiment.run, _string_to_function(dependency))
+        transformation()
 
     def _unwrap_choice(self):
         """
@@ -193,7 +190,7 @@ class TrajectoryCalculator(Calculator, ABC):
         if indices:
             return "UnwrapViaIndices"
         else:
-            return "UnwrapCoordinates"
+            return "CoordinateUnwrapper"
 
     def _handle_tau_values(self) -> np.array:
         """

@@ -27,6 +27,7 @@ Summary
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
@@ -44,16 +45,9 @@ class IntegratedHeatCurrent(Transformations):
             transformation.
     """
 
-    def __init__(self, experiment: object):
-        """
-        Constructor for the Ionic current calculator.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment this transformation is attached to.
-        """
-        super().__init__(experiment)
+    def __init__(self):
+        """Constructor for the Ionic current calculator."""
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 3}}
 
     def _transformation(self, data: dict) -> tf.Tensor:

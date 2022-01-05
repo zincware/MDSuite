@@ -25,15 +25,15 @@ Summary
 -------
 """
 import logging
-import numpy as np
-from scipy.signal import find_peaks
-from mdsuite.utils.exceptions import CannotPerformThisAnalysis
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.meta_functions import golden_section_search
-from mdsuite.utils.meta_functions import apply_savgol_filter
-from bokeh.models import BoxAnnotation
 from dataclasses import dataclass
 
+import numpy as np
+from bokeh.models import BoxAnnotation
+from scipy.signal import find_peaks
+
+from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.utils.exceptions import CannotPerformThisAnalysis
+from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
 
 log = logging.getLogger(__name__)
 
@@ -88,8 +88,13 @@ class CoordinationNumbers(Calculator):
 
     Examples
     --------
-    experiment.run_computation.CoordinationNumbers(savgol_order = 2,
-                                                   savgol_window_length = 17)
+
+    .. code-block:: python
+
+        experiment.run_computation.CoordinationNumbers(
+            savgol_order = 2, savgol_window_length = 17
+        )
+
     """
 
     def __init__(self, **kwargs):
@@ -160,8 +165,7 @@ class CoordinationNumbers(Calculator):
 
         # set args that will affect the computation result
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=savgol_order, savgol_window_length=savgol_window_length
         )
 
     def _get_density(self, species: str) -> float:
@@ -170,9 +174,7 @@ class CoordinationNumbers(Calculator):
         """
 
         species = species.split("_")  # get an array of the species being studied
-        rdf_number_of_atoms = len(
-            self.experiment.species[species[0]]["indices"]
-        )  # get the number of atoms in the RDF
+        rdf_number_of_atoms = self.experiment.species[species[0]].n_particles
 
         return rdf_number_of_atoms / self.experiment.volume
 
@@ -324,9 +326,7 @@ class CoordinationNumbers(Calculator):
             self.selected_species = selected_species.split("_")
             self.species_tuple = selected_species  # depreciated
 
-            density = self._get_density(
-                self.selected_species[0]
-            )  # calculate the density
+            density = self._get_density(self.selected_species[0])  # calculate the density
 
             self._integrate_rdf(density)  # integrate the rdf
             self._find_minimums()  # get the minimums of the rdf being studied

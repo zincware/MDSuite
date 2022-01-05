@@ -28,10 +28,11 @@ generators. These generators allow for the full use of the TF data pipelines but
 required special formatting rules.
 """
 import logging
+
 import numpy as np
 import tensorflow as tf
-import numpy as np
 from tqdm import tqdm
+
 from mdsuite.database.simulation_database import Database
 
 log = logging.getLogger(__name__)
@@ -71,6 +72,32 @@ class DataManager:
         ----------
         database : Database
                 Database object from which tensor_values should be loaded
+        data_path : list
+                Path in the HDF5 database to be loaded.
+        data_range : int
+                Data range used in the calculator.
+        n_batches : int
+                Number of batches required.
+        batch_size : int
+                Size of a batch.
+        ensemble_loop : int
+                Number of ensembles to be looped over.
+        correlation_time : int
+                Correlation time used in the calculator.
+        remainder : int
+                Remainder used in the batching.
+        atom_remainder : int
+                Atom-wise remainder used in the atom-wise batching.
+        minibatch : bool
+                If true, atom-wise batching is required.
+        atom_batch_size : int
+                Size of an atom-wise batch.
+        n_atom_batches : int
+                Number of atom-wise batches.
+        atom_selection : int
+                Selection of atoms in the calculation.
+        offset : int
+                Offset in the data loading if it should not be loaded from the start.
         """
         self.database = database
         self.data_path = data_path
@@ -100,6 +127,13 @@ class DataManager:
 
         Parameters
         ----------
+        dictionary : bool
+                If true return a dict. This is default now and could be removed.
+        system : bool
+                If true, a system parameter is being called for.
+        remainder : bool
+                If true, a remainder batch must be computed.
+        loop_array : np.ndarray
 
         Returns
         -------
@@ -109,7 +143,7 @@ class DataManager:
         args = (
             self.n_batches,
             self.batch_size,
-            self.database.name,
+            self.database.path,
             self.data_path,
             dictionary,
         )
@@ -139,7 +173,7 @@ class DataManager:
             Returns
             -------
             """
-            database = Database(name=database)
+            database = Database(database)
 
             for batch in range(batch_number + int(remainder)):
 
@@ -205,14 +239,14 @@ class DataManager:
                     "for mini-batched calculations"
                 )
 
-            database = Database(name=database)
+            database = Database(database)
             _atom_remainder = [1 if self.atom_remainder else 0][0]
             start = 0
-            for i, atom_batch in tqdm(
-                enumerate(self.n_atom_batches + _atom_remainder),
+            for atom_batch in tqdm(
+                range(self.n_atom_batches + _atom_remainder),
                 total=self.n_atom_batches + _atom_remainder,
                 ncols=70,
-                desc=f"batch loop",
+                desc="batch loop",
             ):
                 atom_start = atom_batch * self.atom_batch_size
                 atom_stop = atom_start + self.atom_batch_size
@@ -225,8 +259,7 @@ class DataManager:
                     if batch == batch_number:
                         stop = int(start + self.remainder)
                         data_size = tf.cast(self.remainder, dtype=tf.int16)
-
-                    select_slice = np.s_[atom_start:atom_stop, start:stop]
+                    select_slice = np.s_[int(atom_start) : int(atom_stop), start:stop]
                     yield database.load_data(
                         data_path,
                         select_slice=select_slice,
@@ -239,9 +272,7 @@ class DataManager:
         else:
             return generator, args
 
-    def ensemble_generator(
-        self, system: bool = False, glob_data: dict = None
-    ) -> tuple:
+    def ensemble_generator(self, system: bool = False, glob_data: dict = None) -> tuple:
         """
         Build a generator for the ensemble loop
 
@@ -249,6 +280,12 @@ class DataManager:
         ----------
         system : bool
                 If true, the system generator is returned.
+        glob_data : dict
+                data to be loaded in ensembles from a tensorflow generator.
+                e.g. {b'Na/Positions': tf.Tensor}.
+                Will usually include a b'data_size' key which is checked in the
+                loop and ignored. All keys are in byte arrays. This appears when you
+                pass a dict to the tensorflow generator.
 
         Returns
         -------

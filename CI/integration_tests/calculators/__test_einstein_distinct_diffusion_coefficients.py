@@ -27,13 +27,13 @@ Summary
 
 import json
 import os
-
-import pytest
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
-import mdsuite as mds
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
 
 
 @pytest.fixture(scope="session")
@@ -58,7 +58,9 @@ def test_eddc_project(traj_files, true_values, tmp_path):
     """Test the EinsteinDistinctDiffusionCoefficients called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.EinsteinDistinctDiffusionCoefficients(
         plot=False, data_range=300, correlation_time=1
@@ -85,7 +87,9 @@ def test_eddc_experiment(traj_files, true_values, tmp_path):
     """
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.experiments["NaCl"].run.EinsteinDiffusionCoefficients(
         plot=False, data_range=300, correlation_time=1

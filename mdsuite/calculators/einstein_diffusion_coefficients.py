@@ -26,19 +26,20 @@ Summary
 Module for the computation of self-diffusion coefficients using the Einstein method.
 """
 from __future__ import annotations
+
 import logging
 from abc import ABC
+from dataclasses import dataclass
+from typing import Any, List, Union
 
 import numpy as np
-from typing import Union, Any, List
-from tqdm import tqdm
 import tensorflow as tf
-from mdsuite.calculators.calculator import call
-from dataclasses import dataclass
-from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from tqdm import tqdm
 
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database import simulation_properties
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             numerator = self.experiment.units["length"] ** 2
             denominator = (
                 self.experiment.units["time"]
-                * len(self.experiment.species[species]["indices"])
+                * self.experiment.species[species].n_particles
             ) * 6
 
         self.prefactor = numerator / denominator

@@ -25,15 +25,15 @@ Summary
 -------
 Module for the MDSuite 3d visualizer.
 """
+import importlib.resources
+import json
+from typing import Union
+
+import numpy as np
 import open3d as o3d
 import open3d.visualization.gui as gui
-from typing import Union
-from PIL.ImageColor import getcolor
-import importlib.resources
 from matplotlib import cm
-import matplotlib.pyplot as plt
-import numpy as np
-import json
+from PIL.ImageColor import getcolor
 
 
 class DataVisualizer3D:
@@ -69,13 +69,6 @@ class DataVisualizer3D:
         self.point_cloud = o3d.geometry.PointCloud()
         self.point_cloud.points = o3d.utility.Vector3dVector(self.data)
         self.point_cloud.colors = o3d.utility.Vector3dVector(self._build_colour_map())
-
-        plt.plot(
-            np.linspace(0, len(self.colour_map), len(self.colour_map), dtype=int),
-            self.colour_map,
-            ".",
-        )
-        plt.show()
 
         self._build_app()
 

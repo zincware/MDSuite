@@ -26,14 +26,15 @@ Summary
 MDSuite module for the computation of thermal conductivity using the Einstein method.
 """
 from abc import ABC
+from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+
 from mdsuite.calculators.calculator import call
-from dataclasses import dataclass
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database import simulation_properties
-from mdsuite.calculators import TrajectoryCalculator
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 

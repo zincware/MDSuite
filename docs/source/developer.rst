@@ -8,3 +8,15 @@ some resources to help you get started and avoid making some of the same mistake
 
     _developer_docs/faq
     _developer_docs/implementing_calculators
+
+Code Style
+-----------
+
+MDSuite uses `Black <https://github.com/psf/black>`_, `Isort <https://github.com/PyCQA/isort>`_ and `flake8 <https://github.com/PyCQA/flake8>`_.
+We provide a pre-commit hook to check these requirements.
+One can install the hook via
+
+.. code-block::
+
+    pip install pre-commit
+    pre-commit install

@@ -26,11 +26,13 @@ Summary
 """
 import json
 import os
-import pytest
-import numpy as np
 from pathlib import Path
-import mdsuite as mds
+
+import numpy as np
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
 
 
 @pytest.fixture(scope="session")
@@ -55,16 +57,15 @@ def test_gkv_project(traj_files, true_values, tmp_path):
     """Test the gkv called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.GreenKuboViscosity(plot=False)
 
     data_dict = project.load.GreenKuboViscosity()[0].data_dict
 
-    data = Path(
-        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\
-        calculators\data\green_kubo_viscosity.json"
-    )
+    data = Path(r"calculators\data\green_kubo_viscosity.json")
 
     data.write_text(json.dumps(data_dict))
 
@@ -78,7 +79,9 @@ def test_gkv_experiment(traj_files, true_values, tmp_path):
     """Test the gkv called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
     project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)

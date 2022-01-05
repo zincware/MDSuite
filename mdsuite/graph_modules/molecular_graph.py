@@ -24,13 +24,20 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
-from pysmiles import read_smiles
-from mdsuite.utils.meta_functions import join_path
-from mdsuite.database.simulation_database import Database
-from tqdm import tqdm
 import tensorflow as tf
+from pysmiles import read_smiles
+from tqdm import tqdm
+
+from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import join_path
+
+if TYPE_CHECKING:
+    from mdsuite.experiment import Experiment
 
 
 class MolecularGraph:
@@ -40,7 +47,7 @@ class MolecularGraph:
 
     def __init__(
         self,
-        experiment: object,
+        experiment: Experiment,
         from_smiles: bool = False,
         from_configuration: bool = True,
         smiles_string: str = None,
@@ -51,7 +58,7 @@ class MolecularGraph:
 
         Parameters
         ----------
-        experiment : object
+        experiment : Experiment
                 Experiment object from which to read.
         from_smiles : bool
                 Build graphs from a smiles string.
@@ -69,10 +76,7 @@ class MolecularGraph:
         self.smiles_string = smiles_string
         self.species = species
 
-        self.database = Database(
-            name=os.path.join(self.experiment.database_path, "database.hdf5"),
-            architecture="simulation",
-        )
+        self.database = Database(self.experiment.database_path / "database.hdf5")
 
     def _perform_checks(self):
         """
@@ -166,9 +170,7 @@ class MolecularGraph:
 
         """
         path_list = [join_path(species, "Positions") for species in self.species]
-        data_dict = self.database.load_data(
-            path_list=path_list, select_slice=np.s_[:, 0]
-        )
+        data_dict = self.database.load_data(path_list=path_list, select_slice=np.s_[:, 0])
         data = []
         for item in path_list:
             data.append(data_dict[item])

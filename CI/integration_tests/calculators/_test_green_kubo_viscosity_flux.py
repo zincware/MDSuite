@@ -27,13 +27,13 @@ Summary
 
 import json
 import os
-
-import pytest
+from pathlib import Path
 
 import numpy as np
-from pathlib import Path
-import mdsuite as mds
+import pytest
 from zinchub import DataHub
+
+import mdsuite as mds
 
 
 @pytest.fixture(scope="session")
@@ -58,16 +58,15 @@ def test_project(traj_files, true_values, tmp_path):
     """Test the green_kubo_viscosity_flux called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.run.GreenKuboViscosityFlux(plot=False)
 
     data_dict = project.load.GreenKuboViscosityFlux()[0].data_dict
 
-    data = Path(
-        r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests\
-        calculators\data\green_kubo_viscosity_flux.json"
-    )
+    data = Path(r"calculators\data\green_kubo_viscosity_flux.json")
 
     data.write_text(json.dumps(data_dict))
 
@@ -81,7 +80,9 @@ def test_experiment(traj_files, true_values, tmp_path):
     """Test the green_kubo_viscosity_flux called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment("NaCl", data=traj_files[0], timestep=0.002, temperature=1400)
+    project.add_experiment(
+        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+    )
 
     project.experiments["NaCl"].run.GreenKuboViscosityFlux(plot=False)
 
