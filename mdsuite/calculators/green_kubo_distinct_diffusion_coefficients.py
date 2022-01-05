@@ -32,7 +32,6 @@ from typing import Any, List, Union
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from bokeh.models import Span
 from scipy import signal
 from tqdm import tqdm
@@ -227,7 +226,13 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             ]
             batch_ds = self.get_batch_dataset(species_values)
 
-            for batch in batch_ds:
+            for batch in tqdm(
+                batch_ds,
+                ncols=70,
+                desc=combination,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
+            ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species_values)
                 for ensemble in ensemble_ds:
                     self.ensemble_operation(ensemble, dict_ref)

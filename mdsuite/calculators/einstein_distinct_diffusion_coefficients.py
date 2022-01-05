@@ -309,7 +309,13 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             batch_ds = self.get_batch_dataset(species_values)
             self._calculate_prefactor(combination)
 
-            for batch in batch_ds:
+            for batch in tqdm(
+                batch_ds,
+                ncols=70,
+                desc=combination,
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
+            ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species_values)
                 for ensemble in ensemble_ds:
                     self._compute_msd(ensemble, dict_ref, combination)
