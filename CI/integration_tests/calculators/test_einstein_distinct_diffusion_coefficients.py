@@ -30,11 +30,8 @@ Notes
 Currently this test only checks that these calculators actually run it does not compare
 values.
 """
-import json
 import os
-from pathlib import Path
 
-import numpy as np
 import pytest
 from zinchub import DataHub
 

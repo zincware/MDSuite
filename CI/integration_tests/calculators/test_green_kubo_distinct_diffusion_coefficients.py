@@ -24,11 +24,8 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import json
 import os
-from pathlib import Path
 
-import numpy as np
 import pytest
 from zinchub import DataHub
 
