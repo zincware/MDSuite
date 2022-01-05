@@ -312,7 +312,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             for batch in tqdm(
                 batch_ds,
                 ncols=70,
-                desc=combination,
+                desc=f"{combination[0]}-{combination[1]}",
                 total=self.n_batches,
                 disable=self.memory_manager.minibatch,
             ):
