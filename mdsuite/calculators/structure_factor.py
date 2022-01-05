@@ -114,6 +114,7 @@ class StructureFactor(Calculator):
         self.data_files = []
         self.rdf = None
         self.radii = None
+        self.number_of_atoms = None
         self.Q_arr = np.linspace(0.5, 25, 700)
 
         self.post_generation = True
@@ -149,9 +150,18 @@ class StructureFactor(Calculator):
         for experiment in self.experiments:
             self.experiment = experiment
 
+            print('\n number of atomas are ', self.experiment.number_of_atoms)
+            print('\n number of atomas are ', self.experiment.species)
+
+            self.number_of_atoms = 0
+            for species in self.experiment.species:
+                print('species', species)
+                self.number_of_atoms += self.experiment.species[species]['n_particles']
+
+            print('\n number of atomas are ', self.number_of_atoms)
             self.plot = plot
 
-            self.rho = self.experiment.number_of_atoms / (
+            self.rho = self.number_of_atoms / (
                 self.experiment.box_array[0]
                 * self.experiment.box_array[1]
                 * self.experiment.box_array[2]
@@ -183,12 +193,12 @@ class StructureFactor(Calculator):
         """
         atomic_form_di = {}
         for el in list(self.experiment.species):
-            if self.experiment.species[el]["charge"][0] == 0:
+            if self.experiment.species[el]["charge"] == 0:
                 el_key = el
-            elif self.experiment.species[el]["charge"][0] > 0:
-                el_key = el + str(self.experiment.species[el]["charge"][0]) + "+"
-            elif self.experiment.species[el]["charge"][0] < 0:
-                el_key = el + str(self.experiment.species[el]["charge"][0])[1:] + "-"
+            elif self.experiment.species[el]["charge"] > 0:
+                el_key = el + str(self.experiment.species[el]["charge"]) + "+"
+            elif self.experiment.species[el]["charge"] < 0:
+                el_key = el + str(self.experiment.species[el]["charge"])[1:] + "-"
             else:
                 print("Impossible input")
                 return
@@ -218,7 +228,7 @@ class StructureFactor(Calculator):
 
         for el in self.experiment.species:
             molar_fractions[el] = (
-                self.experiment.species[el].n_particles / self.experiment.number_of_atoms
+                self.experiment.species[el].n_particles / self.number_of_atoms
             )
 
         return molar_fractions
@@ -299,7 +309,11 @@ class StructureFactor(Calculator):
         """
         self.atomic_form_factors(scattering_scalar)
         total_struc_fac = 0
-        for data_ in self._get_rdf_data():
+        # for data_ in self._get_rdf_data():
+        data = self.experiment.run.RadialDistributionFunction()
+        print('\ndata', type(data), '\n')
+        for data_ in self.experiment.run.RadialDistributionFunction():
+            print(data_)
             log.debug(f"Loaded data: {data_}")
             self._load_rdf_from_file(data_)
             log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
@@ -321,10 +335,10 @@ class StructureFactor(Calculator):
         of the Q_arr (magnitude of the scattering vector)
         """
         # self._get_rdf_data()
-        self.experiment.run.RadialDistributionFunction()
+        data = self.experiment.run.RadialDistributionFunction()
 
-        self.molar_fractions()
-        self.species_densities()
+        molar_fractions = self.molar_fractions
+        species_densities = self.species_densities
         total_structure_factor_li = []
         for counter, scattering_scalar in tqdm(
             enumerate(self.Q_arr),

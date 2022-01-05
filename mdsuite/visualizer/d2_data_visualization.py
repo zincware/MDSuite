@@ -49,11 +49,7 @@ class DataVisualizer2D:
         ----------
         title : str
                 title of the plot.
-<<<<<<< HEAD
-        path : str
-=======
         path : pathlib.Path
->>>>>>> 317a4aa3d9240ca13ecb0b4ef952c2d4f378db69
                 path to the saving directory of the plot
         """
 
