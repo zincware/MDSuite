@@ -28,6 +28,7 @@ import dataclasses
 import logging
 import pathlib
 import time
+import typing
 from typing import List
 
 import h5py as hf
@@ -35,7 +36,6 @@ import numpy as np
 import tensorflow as tf
 
 import mdsuite.database.simulation_data_class
-from mdsuite.utils.exceptions import DatabaseDoesNotExist
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
@@ -74,7 +74,7 @@ class SpeciesInfo:
         Number of particles of that species
     properties: list of PropertyInfo
         List of the properties that were recorded for the species
-    mass and charge are optional
+        mass and charge are optional
     """
 
     name: str
@@ -106,29 +106,28 @@ class TrajectoryMetadata:
 
     Attributes
     ----------
-    n_configurations:
+    n_configurations : int
         Number of configurations of the whole trajectory.
     species_list: list of SpeciesInfo
         The information about all species in the system.
     box_l: list of float
         The simulation box size in three dimensions
-    sample_rate: optional
+    sample_rate : int optional
         The number of timesteps between consecutive samples
         # todo remove in favour of sample_step
-    sample_step: optional
+    sample_step : int optional
         The time between consecutive configurations.
         E.g. for a simulation with time step 0.1 where the trajectory is written
         every 5 steps: sample_step = 0.5. Does not have to be specified
         (e.g. configurations from Monte Carlo scheme), but is needed for all
         dynamic observables.
-    temperature: optional
+    temperature : float optional
         The set temperature of the system.
         Optional because only applicable for MD simulations with thermostat.
         Needed for certain observables.
-    simulation_data: optional
+    simulation_data : str|Path, optional
         All other simulation data that can be extracted from the trajectory metadata.
         E.g. software version, pressure in NPT simulations, time step, ...
-
     """
 
     n_configurations: int
@@ -150,11 +149,11 @@ class TrajectoryChunkData:
 
         Parameters
         ----------
-        species_list:
+        species_list : List[SpeciesInfo]
             List of SpeciesInfo.
             It contains the information which species are there and which properties
             are recorded for each
-        chunk_size:
+        chunk_size : int
             The number of configurations to be stored in this chunk
         """
         self.chunk_size = chunk_size
@@ -210,47 +209,27 @@ class Database:
 
     Attributes
     ----------
-    architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-
-    name : str
+    path : str|Path
             The name of the database_path in question.
     """
 
-    def __init__(self, architecture: str = "simulation", name: str = "database"):
+    def __init__(self, path: typing.Union[str, pathlib.Path] = "database"):
         """
         Constructor for the database_path class.
 
         Parameters
         ----------
-        architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-        name : str
+        path : str|Path
                 The name of the database_path in question.
         """
-        # TODO support pathlib
-
-        self.architecture = architecture  # architecture of database_path
-        self.name = name  # name of the database_path
-
-    @staticmethod
-    def close(database: hf.File):
-        """
-        Close the database_path
-
-        Parameters
-        ----------
-        database : hf.File
-                Database to close
-
-        Returns
-        -------
-        Closes the database_path object
-        """
-
-        database.close()
+        if isinstance(path, pathlib.Path):
+            self.path = path.as_posix()
+        elif isinstance(path, str):
+            self.path = path  # name of the database_path
+        else:
+            # TODO fix this!
+            log.debug(f"Expected str|Path but found {type(path)}")
+            self.path = path
 
     @staticmethod
     def _update_indices(
@@ -324,23 +303,6 @@ class Database:
 
         return architecture
 
-    def open(self, mode: str = "a") -> hf.File:
-        """
-        Open the database_path
-
-        Parameters
-        ----------
-        mode : str
-                Mode in which to open the database_path
-
-        Returns
-        -------
-        database_path : hf.File
-                returns a database_path object
-        """
-
-        return hf.File(self.name, mode)
-
     def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
         Add new data to the dataset.
@@ -356,7 +318,7 @@ class Database:
 
         chunk_data = chunk.get_data()
 
-        with hf.File(self.name, "r+") as database:
+        with hf.File(self.path, "r+") as database:
             stop_index = start_idx + chunk.chunk_size
 
             for sp_info in chunk.species_list:
@@ -399,33 +361,26 @@ class Database:
         -------
 
         """
-        # ensure the database_path already exists
-        try:
-            database = hf.File(self.name, "r+")
-        except DatabaseDoesNotExist:
-            raise DatabaseDoesNotExist
+        with hf.File(self.path, "r+") as db:
+            # construct the architecture dict
+            architecture = self._build_path_input(structure=structure)
 
-        # construct the architecture dict
-        architecture = self._build_path_input(structure=structure)
-
-        # Check for a type error in the dataset information
-        for identifier in architecture:
-            dataset_information = architecture[identifier]
-            try:
-                if type(dataset_information) is not tuple:
+            # Check for a type error in the dataset information
+            for identifier in architecture:
+                dataset_information = architecture[identifier]
+                if not isinstance(dataset_information, tuple):
                     raise TypeError("Invalid input for dataset generation")
-            except TypeError:
-                raise TypeError
 
-            # get the correct maximum shape for the dataset -- changes if an
-            # experiment property or an atomic property
-            if len(dataset_information[:-1]) == 1:
-                axis = 0
-                expansion = dataset_information[0] + database[identifier].shape[0]
-            else:
-                axis = 1
-                expansion = dataset_information[1] + database[identifier].shape[1]
-            database[identifier].resize(expansion, axis)
+                # get the correct maximum shape for the dataset -- changes if an
+                # experiment property or an atomic property
+                if len(dataset_information[:-1]) == 1:
+                    axis = 0
+                    expansion = dataset_information[0] + db[identifier].shape[0]
+                else:
+                    axis = 1
+                    expansion = dataset_information[1] + db[identifier].shape[1]
+
+                db[identifier].resize(expansion, axis)
 
     def initialize_database(self, structure: dict):
         """
@@ -455,8 +410,7 @@ class Database:
         """
         Check if the database file already exists
         """
-        database_path = pathlib.Path(self.name)
-        return database_path.exists()
+        return pathlib.Path(self.path).exists()
 
     def add_dataset(self, structure: dict):
         """
@@ -481,7 +435,7 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
+        with hf.File(self.path, "a") as database:
             architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
@@ -529,7 +483,7 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
+        with hf.File(self.path, "a") as database:
             # Build file paths for the addition.
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
@@ -548,7 +502,7 @@ class Database:
                 A dictionary of the memory information of the groups in the
                 database_path
         """
-        with hf.File(self.name, "r") as database:
+        with hf.File(self.path, "r") as database:
             memory_database = {}
             for item in database:
                 for ds in database[item]:
@@ -570,7 +524,7 @@ class Database:
         response : bool
                 If true, the path exists, else, it does not.
         """
-        with hf.File(self.name, "r") as database_object:
+        with hf.File(self.path, "r") as database_object:
             keys = []
             database_object.visit(
                 lambda item: keys.append(database_object[item].name)
@@ -595,9 +549,7 @@ class Database:
         -------
         Updates the database_path
         """
-
-        # db = hf.File(self.name, 'r+')  # open the database_path object
-        with hf.File(self.name, "r+") as db:
+        with hf.File(self.path, "r+") as db:
             groups = list(db.keys())
 
             for item in groups:
@@ -625,7 +577,7 @@ class Database:
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
-        with hf.File(self.name, "r") as database:
+        with hf.File(self.path, "r") as database:
             data = {}
             for i, item in enumerate(path_list):
                 if type(select_slice) is dict:
@@ -638,16 +590,6 @@ class Database:
                     * scaling[i]
                 )
             data[str.encode("data_size")] = d_size
-
-            # else:
-            #     data = []
-            #     for i, item in enumerate(path_list):
-            #         data.append(
-            #             tf.convert_to_tensor(
-            #                 database[item][select_slice], dtype=tf.float64
-            #             )
-            #             * scaling[i]
-            #         )
 
         return data
 
@@ -666,7 +608,7 @@ class Database:
         """
         if database_path is None:
             start = time.time()
-            database_path = hf.File(self.name, "r")
+            database_path = hf.File(self.path, "r")
             database_path.close()
             stop = time.time()
         else:
@@ -693,7 +635,7 @@ class Database:
                 (n_rows, n_columns, n_bytes)
         """
 
-        with hf.File(self.name, "r") as db:
+        with hf.File(self.path, "r") as db:
             data_tuple = (
                 db[data_path].shape[0],
                 db[data_path].shape[1],
@@ -715,15 +657,15 @@ class Database:
             for prop in mdsuite.database.simulation_data_class.mdsuite_properties
         ]
         dump_list = []
-        database = hf.File(self.name, "r")
-        initial_list = list(database.keys())
-        for item in var_names:
-            if item in initial_list:
-                dump_list.append(item)
-        for item in initial_list:
-            sub_items = list(database[item].keys())
-            for var in var_names:
-                if var in sub_items:
-                    dump_list.append(var)
-        database.close()
+        with hf.File(self.path, "r") as db:
+            initial_list = list(db.keys())
+            for item in var_names:
+                if item in initial_list:
+                    dump_list.append(item)
+            for item in initial_list:
+                sub_items = list(db[item].keys())
+                for var in var_names:
+                    if var in sub_items:
+                        dump_list.append(var)
+
         return np.unique(dump_list)

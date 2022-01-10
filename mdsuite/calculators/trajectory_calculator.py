@@ -28,7 +28,6 @@ A parent class for calculators that operate on the trajectory.
 from __future__ import annotations
 
 from abc import ABC
-from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import numpy as np
@@ -111,9 +110,7 @@ class TrajectoryCalculator(Calculator, ABC):
     def database(self):
         """Get the database based on the experiment database path"""
         if self._database is None:
-            self._database = Database(
-                name=Path(self.experiment.database_path, "database.hdf5").as_posix()
-            )
+            self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
 
     def _run_dependency_check(self):
