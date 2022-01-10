@@ -205,6 +205,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Dictionary of data returned by tensorflow.
         data_path : list
                 Data paths for accessing the dictionary.
+        combination : tuple
+                Tuple being studied in the msd, i.e. ('Na', 'Cl) or ('Na', 'Na').
         Returns
         -------
         updates the class state
