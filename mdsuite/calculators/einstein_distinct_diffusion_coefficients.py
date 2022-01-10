@@ -216,7 +216,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         msd_b = self.msd_operation(data[data_path[0]], square=False)
 
         for i in range(len(data[data_path[0]])):
-            for j in range(i + 1, len(data[data_path[1]])):
+            for j in range(len(data[data_path[1]])):
                 if combination[0] == combination[1] and i == j:
                     continue
                 else:
