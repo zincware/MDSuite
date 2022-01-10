@@ -16,10 +16,10 @@ import typing
 import tensorflow as tf
 
 from mdsuite.database.simulation_data_class import mdsuite_properties
-from mdsuite.transformations.transformations import Transformations
+from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
-class VelocityFromPositions(Transformations):
+class VelocityFromPositions(SingleSpeciesTrafo):
     """
     Calculate the velocity based on the particle positions via simple forward derivative,
     i.e. v(t) = (x(t+dt)-x(t))/dt.
@@ -28,34 +28,29 @@ class VelocityFromPositions(Transformations):
     """
 
     def __init__(self):
-        """
-        Standard constructor
-
-        Parameters
-        ----------
-        exp : mdsuite.experiment.Experiment
-            The experiment on which to perform the computation.
-        """
-        super().__init__(
-            input_properties=[mdsuite_properties.unwrapped_positions],
+        super(VelocityFromPositions, self).__init__(
+            input_properties=[
+                mdsuite_properties.unwrapped_positions,
+                mdsuite_properties.time_step,
+                mdsuite_properties.sample_rate,
+            ],
             output_property=mdsuite_properties.velocities_from_positions,
             scale_function={"linear": {"scale_factor": 2}},
             batchable_axes=[0, 2],
         )
-
-        # ideally, this would also go into some input_properties entry
-        self.dt = None
-
-    def update_from_experiment(self):
-        self.dt = self.experiment.time_step
 
     def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
         """
         Implement parent class abstract method.
         """
         pos = batch[mdsuite_properties.unwrapped_positions.name]
+        dt = (
+            batch[mdsuite_properties.time_step.name]
+            * batch[mdsuite_properties.sample_rate.name]
+        )
+
         pos_plus_dt = tf.roll(pos, shift=-1, axis=1)
-        vel = (pos_plus_dt - pos) / self.dt
+        vel = (pos_plus_dt - pos) / dt
         # discard last value, it comes from wrapping around the positions
         vel = vel[:, :-1, :]
         # instead, append the last value again

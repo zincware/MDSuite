@@ -169,7 +169,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def ensemble_operation(self, ensemble):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
@@ -182,10 +182,10 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=0), ensemble[None, 0]
+            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
         )
-        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
+        self.msd_array += np.array(msd)[0, :]
 
     def _post_operation_processes(self):
         """

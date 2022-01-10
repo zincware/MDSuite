@@ -209,14 +209,19 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
+            tfp.stats.auto_correlation(
+                tf.gather(ensemble, self.args.tau_values, axis=1),
+                normalize=False,
+                axis=1,
+                center=False,
+            ),
             axis=-1,
-        )
+        )[0, :]
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
-                jacf[: self.args.integration_range],
-                x=self.time[: self.args.integration_range],
+                jacf,
+                x=self.time[self.args.tau_values],
             )
         )
 
@@ -277,7 +282,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         )
 
         batch_ds = self.get_batch_dataset([self.loaded_property[0]])
-
         for batch in tqdm(
             batch_ds,
             ncols=70,
@@ -285,7 +289,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             disable=self.memory_manager.minibatch,
         ):
             ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
-
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])
 

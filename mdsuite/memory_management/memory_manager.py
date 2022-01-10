@@ -202,8 +202,8 @@ class MemoryManager:
 
         per_configuration_memory: float = 0.0
         for item in self.data_path:
-            n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=system)
-            per_configuration_memory += n_bytes / n_columns
+            n_particles, n_configs, n_bytes = self.database.get_data_size(item)
+            per_configuration_memory += n_bytes / n_configs
         per_configuration_memory = self.scale_function(
             per_configuration_memory, **self.scale_function_parameters
         )
@@ -212,12 +212,12 @@ class MemoryManager:
                 (self.memory_fraction * self.machine_properties["memory"])
                 / per_configuration_memory,
                 1,
-                n_columns - self.offset,
+                n_configs - self.offset,
             )
         )
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        number_of_batches = int((n_columns - self.offset) / batch_size)
-        remainder = int(n_columns % batch_size)
+        number_of_batches = int((n_configs - self.offset) / batch_size)
+        remainder = int(n_configs % batch_size)  # smells fishy: no offset
         self.batch_size = batch_size
         self.n_batches = number_of_batches
         self.remainder = remainder
@@ -287,10 +287,10 @@ class MemoryManager:
         per_configuration_memory = 0  # per configuration memory usage
         total_rows = 0
         for item in self.data_path:
-            n_rows, n_columns, n_bytes = self.database.get_data_size(item, system=False)
-            per_configuration_memory += n_bytes / n_columns
-            per_atom_memory += per_configuration_memory / n_rows
-            total_rows += n_rows
+            n_particles, n_configs, n_bytes = self.database.get_data_size(item)
+            per_configuration_memory += n_bytes / n_configs
+            per_atom_memory += per_configuration_memory / n_particles
+            total_rows += n_particles
 
         # per_configuration_memory = self.scale_function(per_configuration_memory,
         # **self.scale_function_parameters)
@@ -315,7 +315,7 @@ class MemoryManager:
                         * self.machine_properties["memory"]
                         / per_atom_memory,
                         1,
-                        n_columns,
+                        n_configs,
                     )
                 )
                 self.atom_batch_size = 1  # Set the mini batch size to single atom
@@ -328,22 +328,22 @@ class MemoryManager:
                     * self.machine_properties["memory"]
                     / atom_batch_memory,
                     1,
-                    n_columns,
+                    n_configs,
                 )
             )
             if (
                 batch_size > data_range
             ):  # the batch size has to be larger than the data_range
                 self.atom_batch_size = (
-                    n_rows * fraction
+                    n_particles * fraction
                 )  # Set the mini batch size to total_data_points * fraction
                 break
 
         self.batch_size = batch_size
-        self.n_batches = int(n_columns / batch_size)
-        self.remainder = int(n_columns % batch_size)
-        self.n_atom_batches = int(n_rows / self.atom_batch_size)
-        self.atom_remainder = int(n_rows % self.atom_batch_size)
+        self.n_batches = int(n_configs / batch_size)
+        self.remainder = int(n_configs % batch_size)
+        self.n_atom_batches = int(n_particles / self.atom_batch_size)
+        self.atom_remainder = int(n_particles % self.atom_batch_size)
 
     def get_ensemble_loop(
         self, data_range: int, correlation_time: int = 1

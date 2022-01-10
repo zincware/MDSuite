@@ -677,9 +677,7 @@ class Database:
 
         return stop - start
 
-    def get_data_size(
-        self, data_path: str, database_path: str = None, system: bool = False
-    ) -> tuple:
+    def get_data_size(self, data_path: str) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
 
@@ -687,11 +685,6 @@ class Database:
         ----------
         data_path : str
                 path to the tensor_values in the hdf5 database_path.
-        database_path: (optional) str
-                path to a specific database_path, if None, the class instance
-                database_path will be used
-        system : bool
-                If true, the row number is the relevant property
 
         Returns
         -------
@@ -699,23 +692,13 @@ class Database:
                 Tuple of tensor_values about the dataset, e.g.
                 (n_rows, n_columns, n_bytes)
         """
-        if database_path is None:
-            database_path = self.name
 
-        if system:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[0],
-                    db[data_path].nbytes,
-                )
-        else:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[1],
-                    db[data_path].nbytes,
-                )
+        with hf.File(self.name, "r") as db:
+            data_tuple = (
+                db[data_path].shape[0],
+                db[data_path].shape[1],
+                db[data_path].nbytes,
+            )
 
         return data_tuple
 

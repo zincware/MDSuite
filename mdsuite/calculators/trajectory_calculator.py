@@ -293,7 +293,7 @@ class TrajectoryCalculator(Calculator, ABC):
         subject_list: list = None,
         loop_array: np.ndarray = None,
         correct: bool = False,
-    ):
+    ) -> tf.data.Dataset:
         """
         Collect the batch loop dataset
 

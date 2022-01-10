@@ -58,6 +58,10 @@ switcher_transformations = {
 }
 
 
+class CannotFindTransformationError(Exception):
+    pass
+
+
 class Transformations:
     """
     Parent class for MDSuite transformations.
@@ -95,8 +99,6 @@ class Transformations:
 
         Parameters
         ----------
-        experiment:
-            experiment on which to perform the transformation
         input_properties : typing.Iterable[
                     mdsuite.database.simulation_database.PropertyInfo]
             The properties needed to perform the transformation.
@@ -425,7 +427,7 @@ class Transformations:
             offset=self.offset,
         )
 
-    def _prepare_database_entry(self, species: str):
+    def _prepare_database_entry(self, species: str, system_tensor=False):
         """
         Add or extend the dataset in which the transformation result is stored
 
@@ -433,14 +435,19 @@ class Transformations:
         ----------
         species : str
                 Species for which transformation is performed
+
         Returns
         -------
         tensor_values structure for use in saving the tensor_values to the
         database_path.
         """
-        path = join_path(species, self.output_property.name)
 
-        n_particles = self.experiment.species[species].n_particles
+        if system_tensor:
+            output_length = 1
+            path = join_path(self.output_property.name, self.output_property.name)
+        else:
+            output_length = self.experiment.species[species].n_particles
+            path = join_path(species, self.output_property.name)
         n_dims = self.output_property.n_dims
 
         existing = self._run_dataset_check(path)
@@ -448,7 +455,7 @@ class Transformations:
             old_shape = self.database.get_data_size(path)
             resize_structure = {
                 path: (
-                    n_particles,
+                    output_length,
                     self.experiment.number_of_configurations - old_shape[0],
                     n_dims,
                 )
@@ -458,48 +465,127 @@ class Transformations:
 
         else:
             number_of_configurations = self.experiment.number_of_configurations
-            dataset_structure = {path: (n_particles, number_of_configurations, n_dims)}
+            dataset_structure = {path: (output_length, number_of_configurations, n_dims)}
             self.database.add_dataset(dataset_structure)
 
         data_structure = {
             path: {
                 "indices": np.s_[:],
                 "columns": list(range(n_dims)),
-                "length": n_particles,
+                "length": output_length,
             }
         }
 
         return data_structure
 
-    def run_transformation(self, species: list = None):
+    def find_property_per_config(self, sp_name, prop) -> typing.Union[None, str]:
+        would_be_path = join_path(sp_name, prop.name)
+        if self.database.check_existence(would_be_path):
+            return would_be_path
+        else:
+            return None
+
+    def find_property_single_val(self, sp_name, prop):
+        # TODO: properties in species_dict are all lowercase,
+        # whereas the properties in the database are upper case
+        species_dict = self.experiment.species[sp_name]
+        per_sp_value = species_dict.get(prop.name.lower())
+        if per_sp_value is not None:
+            return per_sp_value
+        # if not species specific, try to find it system-wide
+        # todo need a dictionary of these values instead of the experiment property
+        try:
+            return self.experiment.__getattribute__(prop.name.lower())
+        except AttributeError:
+            return None
+
+    def get_prop_through_transformation(self, sp_name, prop):
+        raise NotImplementedError(
+            "transformation dependency resolution not implemented yet"
+        )
+
+    def get_generator_type_spec_and_const_data(self, species_names):
+        type_spec = {}
+        const_input_data = {}
+
+        for species_name in species_names:
+            const_input_data[species_name] = {}
+            for prop in self.input_properties:
+                # find out if the requested input data is there for all time steps
+                # for the requested species
+                path = self.find_property_per_config(species_name, prop)
+                if path is not None:
+                    type_spec[str.encode(path)] = tf.TensorSpec(
+                        shape=(None, None, prop.n_dims), dtype=self.dtype
+                    )
+                # if not, fall back to const value for that species
+                else:
+                    val = self.find_property_single_val(species_name, prop)
+                    if val is not None:
+                        const_input_data[species_name].update({prop.name: val})
+                    # if not there, ty to produce the data
+                    else:
+                        try:
+                            self.get_prop_through_transformation(species_name, prop)
+                            type_spec[
+                                str.encode(join_path(species_name, prop.name))
+                            ] = tf.TensorSpec(
+                                shape=(None, None, prop.n_dims), dtype=self.dtype
+                            )
+                        except CannotFindTransformationError:
+                            raise RuntimeError(
+                                "While performing transformation"
+                                f" '{self.output_property.name}': Property '{prop.name}'"
+                                f" for species {species_name} cannot be found in the"
+                                " simulation database or in the simulation metadata, nor"
+                                " can it be obtained by a transformation"
+                            )
+
+        return type_spec, const_input_data
+
+    @abc.abstractmethod
+    def run_transformation(self, species: typing.Iterable[str] = None):
+        raise NotImplementedError
+
+
+class SingleSpeciesTrafo(Transformations):
+    def run_transformation(self, species: typing.Iterable[str] = None):
         """
-        Perform the transformation
+        Perform the batching and data loading for the transformation,
+        then calls transform_batch
+        Parameters
+        ----------
+        species : Iterable[str]
+            Names of the species on which to perform the transformation
+
+        Returns
+        -------
+
         """
         # species should be provided by caller (the experiment), for now we use the usual
         # pseudoglobal variable
         if species is None:
-            species = self.experiment.species
+            species = self.experiment.species.keys()
 
-        for species in species:
+        for species_name in species:
 
             # this check should be done by the caller
             if self.database.check_existence(
-                os.path.join(species, self.output_property.name)
+                os.path.join(species_name, self.output_property.name)
             ):
                 self.logger.info(
-                    f"{self.output_property.name} already exists for {species}, "
+                    f"{self.output_property.name} already exists for {species_name}, "
                     "skipping transformation"
                 )
                 continue
 
-            output_data_structure = self._prepare_database_entry(species)
+            output_data_structure = self._prepare_database_entry(species_name)
 
-            type_spec = {
-                str.encode(join_path(species, prop.name)): tf.TensorSpec(
-                    shape=(None, None, prop.n_dims), dtype=self.dtype
-                )
-                for prop in self.input_properties
-            }
+            type_spec, const_input_data = self.get_generator_type_spec_and_const_data(
+                [species_name]
+            )
+            const_input_data = const_input_data[species_name]
+
             self._prepare_monitors(list(type_spec.keys()))
             batch_generator, batch_generator_args = self.data_manager.batch_generator()
             type_spec.update(
@@ -514,14 +600,19 @@ class Transformations:
             for index, batch_dict in tqdm.tqdm(
                 enumerate(data_set),
                 ncols=70,
-                desc=f"Applying transformation to {species}",
+                desc=(
+                    f"Applying transformation '{self.output_property.name}' to"
+                    f" '{species_name}'"
+                ),
             ):
                 # remove species information from batch:
                 # the transformation only has to know about the property
-                # ideally, the keys of the batch dict are already ProprtyInfo instances
+                # ideally, the keys of the batch dict are already PropertyInfo instances
+                batch_dict.pop(str.encode("data_size"))
                 batch_dict_wo_species = {}
                 for key, val in batch_dict.items():
-                    batch_dict_wo_species[str(key).split("/")[-1].strip("'")] = val
+                    batch_dict_wo_species[key.decode().split("/")[-1]] = val
+                batch_dict_wo_species.update(const_input_data)
                 transformed_batch = self.transform_batch(batch_dict_wo_species)
                 self._save_output(
                     data=transformed_batch,
@@ -531,17 +622,105 @@ class Transformations:
                 )
 
     @abc.abstractmethod
-    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
+    def transform_batch(
+        self, batch: typing.Dict[str, tf.Tensor]
+    ) -> typing.Dict[str, tf.Tensor]:
         """
         Do the actual transformation.
         Parameters
         ----------
         batch : dict
-            The batch to be transformed. The keys are the names of the properties
-            specified in self.input_properties, the values are the corresponding tensors.
+            The batch to be transformed. structure is
+            {'Property1': tansordata, ...}
 
         Returns
         -------
-        The transformed batch, one tf.Tensor.
+        The transformed batch
+        """
+        raise NotImplementedError("transformation of a batch must be implemented")
+
+
+class MultiSpeciesTrafo(Transformations):
+    def run_transformation(self, species: typing.Iterable[str] = None) -> None:
+        """
+        Perform the batching and data loading for the transformation,
+        then calls transform_batch
+        Parameters
+        ----------
+        species : Iterable[str]
+            Names of the species on which to perform the transformation
+
+        Returns
+        -------
+
+        """
+        # species should be provided by caller (the experiment), for now we use the usual
+        # pseudoglobal variable
+        if species is None:
+            species = self.experiment.species.keys()
+
+        # this check should be done by the caller
+        if self.database.check_existence(
+            os.path.join(self.output_property.name, self.output_property.name)
+        ):
+            self.logger.info(
+                f"{self.output_property.name} already exists for this experiment, "
+                "skipping transformation"
+            )
+            return
+
+        output_data_structure = self._prepare_database_entry(
+            self.output_property.name, system_tensor=True
+        )
+
+        type_spec, const_input_data = self.get_generator_type_spec_and_const_data(species)
+
+        self._prepare_monitors(list(type_spec.keys()))
+        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+        type_spec.update(
+            {
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+            }
+        )
+        data_set = tf.data.Dataset.from_generator(
+            batch_generator, args=batch_generator_args, output_signature=type_spec
+        )
+        data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
+        for index, batch_dict in tqdm.tqdm(
+            enumerate(data_set),
+            ncols=70,
+            desc=f"Applying transformation '{self.output_property.name}'",
+        ):
+            batch_dict.pop(str.encode("data_size"))
+            batch_dict_hierachical = {sp_name: {} for sp_name in species}
+            for key, val in batch_dict.items():
+                sp_name, prop_name = key.decode().split("/")
+                batch_dict_hierachical[sp_name][prop_name] = val
+            for sp_name in batch_dict_hierachical.keys():
+                batch_dict_hierachical[sp_name].update(const_input_data[sp_name])
+            transformed_batch = self.transform_batch(batch_dict_hierachical)
+            self._save_output(
+                data=transformed_batch,
+                data_structure=output_data_structure,
+                index=index * self.batch_size,
+                batch_size=None,
+            )
+
+    @abc.abstractmethod
+    def transform_batch(
+        self, batch: typing.Dict[str, typing.Dict[str, tf.Tensor]]
+    ) -> tf.Tensor:
+        """
+        Do the actual transformation.
+        Parameters
+        ----------
+        batch : dict
+            The batch to be transformed. structure is
+            {'Species1': {'Property1': tensordata, ...}, ...}
+
+        Returns
+        -------
+        The transformed batch
+
         """
         raise NotImplementedError("transformation of a batch must be implemented")

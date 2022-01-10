@@ -39,7 +39,7 @@ class TestDatabase:
         self.rows = rows
         self.columns = columns
 
-    def get_data_size(self, item, system: bool):
+    def get_data_size(self, item):
         """
         Compute the size of a dataset.
 
@@ -188,7 +188,7 @@ class TestMemoryManager(unittest.TestCase):
         the same value that is passed to it.
         """
         data = self.memory_manager._get_optimal_batch_size(10)
-        self.assertEqual(data, data)
+        self.assertEqual(data, data)  # Todo: no shit, sherlock
 
     def test_compute_atomwise_minibatch(self):
         """

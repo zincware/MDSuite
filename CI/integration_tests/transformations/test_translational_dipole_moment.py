@@ -29,6 +29,7 @@ import os
 import tempfile
 import unittest
 
+import numpy as np
 from zinchub import DataHub
 
 import mdsuite as mds
@@ -74,6 +75,12 @@ class TestTranslationalDipoleMoment(unittest.TestCase):
         project.add_experiment("NaCl", simulation_data="NaCl_gk_i_q.lammpstraj")
         project.run.UnwrapViaIndices()
         project.run.TranslationalDipoleMoment()
+        vals = project.experiments["NaCl"].load_matrix(
+            property_name="Translational_Dipole_Moment",
+            species=["Translational_Dipole_Moment"],
+        )
+        vals = vals["Translational_Dipole_Moment/Translational_Dipole_Moment"]
+        self.assertEqual(np.shape(vals)[0], 1)
 
     def test_from_experiment(self):
         """
