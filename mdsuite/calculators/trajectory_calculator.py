@@ -369,7 +369,7 @@ class TrajectoryCalculator(Calculator, ABC):
         )
 
         type_spec = {}
-        if type(subject) is str:
+        if isinstance(subject, str):
             loop_list = [subject]
         else:
             loop_list = subject
