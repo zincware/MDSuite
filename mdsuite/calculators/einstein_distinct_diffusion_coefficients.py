@@ -266,22 +266,22 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
 
         """
-        if np.sign(self.msd_array[-1]) == -1:
-            result = fit_einstein_curve([self.time, abs(self.msd_array)])
-
-            data = {
-                self.result_keys[0]: np.mean(result).tolist(),
-                self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
-                self.result_series_keys[0]: self.time.tolist(),
-                self.result_series_keys[1]: self.msd_array.tolist(),
-            }
-        else:
+        try:
             result = fit_einstein_curve([self.time, self.msd_array])
             data = {
                 "diffusion_coefficient": np.mean(result).tolist(),
                 "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
                 "time": self.time.tolist(),
                 "msd": self.msd_array.tolist(),
+            }
+        except ValueError:
+            result = fit_einstein_curve([self.time, abs(self.msd_array)])
+
+            data = {
+                self.result_keys[0]: (-1 * np.mean(result)).tolist(),
+                self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                self.result_series_keys[0]: self.time.tolist(),
+                self.result_series_keys[1]: self.msd_array.tolist(),
             }
 
         data.update({"time": self.time.tolist(), "msd": self.msd_array.tolist()})
