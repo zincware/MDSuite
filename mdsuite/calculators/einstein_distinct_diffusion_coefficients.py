@@ -185,7 +185,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             If true, square the result, else just return the difference.
         Returns
         -------
-        msd : tf.Tensor
+        msd : tf.Tensor shape=(n_atoms, data_range, 3)
                 Mean square displacement.
         """
         if square:
@@ -211,6 +211,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
         updates the class state
         """
+        # shape = (n_atoms, data_range, 3)
         msd_a = self.msd_operation(data[data_path[0]], square=False)
         msd_b = self.msd_operation(data[data_path[0]], square=False)
 
