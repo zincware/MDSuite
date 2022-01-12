@@ -25,10 +25,13 @@ Summary
 -------
 Static methods used in calculators are kept here rather than polluting the parent class.
 """
+import logging
 import random
 
 import numpy as np
 from scipy.optimize import curve_fit
+
+log = logging.getLogger(__name__)
 
 
 def fit_einstein_curve(data: list) -> list:
@@ -160,7 +163,7 @@ def fit_einstein_curve(data: list) -> list:
 #                 > self.experiment.number_of_configurations
 #                 - self.args.correlation_time
 #             ):
-#                 print("Trajectory not long enough to perform analysis.")
+#                 log.errorgit stat("Trajectory not long enough to perform analysis.")
 #                 raise RangeExceeded
 #         except RangeExceeded:
 #             raise RangeExceeded

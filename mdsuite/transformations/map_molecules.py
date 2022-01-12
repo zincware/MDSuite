@@ -364,5 +364,4 @@ class MolecularMap(Transformations):
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
-        print(self.experiment.species)
         self.experiment.run.CoordinateWrapper(species=[key for key in self.molecules])

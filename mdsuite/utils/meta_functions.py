@@ -316,7 +316,7 @@ def timeit(f: Callable) -> Callable:
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.
-        print(f"func:{f.__name__} took: {(te - ts)} sec")  # print the outcome.
+        log.info(f"func:{f.__name__} took: {(te - ts)} sec")
 
         return result
 

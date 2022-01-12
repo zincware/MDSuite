@@ -217,12 +217,13 @@ class CoordinationNumbers(Calculator):
         # Check that more than one peak exists. If not, the GS search cannot be
         # performed.
         if len(peaks) < 2:
-            print(
-                "Not enough peaks were found for the minimum analysis (First shell)."
-                " Try adjusting the filter parameters or re-calculating the RDF for a"
+            msg = (
+                "Not enough peaks were found for the minimum analysis (First shell). Try"
+                " adjusting the filter parameters or re-calculating the RDF for a"
                 " smoother function."
             )
-            raise CannotPerformThisAnalysis
+            log.error(msg)
+            raise CannotPerformThisAnalysis(msg)
         else:
             return [peaks[0], peaks[1], peaks[2]]  # return peaks if they exist
 
