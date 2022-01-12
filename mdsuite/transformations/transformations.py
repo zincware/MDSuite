@@ -28,6 +28,7 @@ Parent class for the transformations.
 from __future__ import annotations
 
 import abc
+import collections.abc
 import copy
 import logging
 import os
@@ -443,7 +444,7 @@ class Transformations:
             output_length = 1
             path = join_path(self.output_property.name, self.output_property.name)
         else:
-            output_length = self.experiment.species[species].n_particles
+            output_length = self.experiment.species[species]["n_particles"]
             path = join_path(species, self.output_property.name)
         n_dims = self.output_property.n_dims
 
@@ -497,9 +498,7 @@ class Transformations:
             return None
 
     def get_prop_through_transformation(self, sp_name, prop):
-        raise NotImplementedError(
-            "transformation dependency resolution not implemented yet"
-        )
+        raise CannotFindTransformationError(f"was asked to get {prop.name} for {sp_name}")
 
     def get_generator_type_spec_and_const_data(self, species_names):
         type_spec = {}
@@ -519,6 +518,12 @@ class Transformations:
                 else:
                     val = self.find_property_single_val(species_name, prop)
                     if val is not None:
+                        # give single value the same dimensionality as if it was there
+                        # for each time step and particle (i.e. add 2 axes)
+                        if not isinstance(val, collections.abc.Iterable):
+                            val = [val]
+                        val = tf.convert_to_tensor(val, dtype=self.dtype)
+                        val = val[None, None, :]
                         const_input_data[species_name].update({prop.name: val})
                     # if not there, ty to produce the data
                     else:
@@ -619,9 +624,7 @@ class SingleSpeciesTrafo(Transformations):
                 )
 
     @abc.abstractmethod
-    def transform_batch(
-        self, batch: typing.Dict[str, tf.Tensor]
-    ) -> typing.Dict[str, tf.Tensor]:
+    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
         """
         Do the actual transformation.
         Parameters

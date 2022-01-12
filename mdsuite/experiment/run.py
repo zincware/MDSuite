@@ -94,14 +94,14 @@ class RunComputation:
         func: a transformation to be attached to the experiment/s
         """
 
-        @functools.wraps(func)
+        @functools.wraps(func.run_transformation)
         def wrapper(*args, **kwargs):
             if self.experiments is None:
                 self.experiments = [self.experiment]
             for experiment in self.experiments:
-                func_instance = func(*args, **kwargs)
+                func_instance = func()
                 # attach the transformation to the experiment
-                experiment.cls_transformation_run(func_instance)
+                experiment.cls_transformation_run(func_instance, *args, **kwargs)
             return None
 
         return wrapper

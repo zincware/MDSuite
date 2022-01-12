@@ -82,7 +82,8 @@ class MDSuiteProperties:
     translational_dipole_moment = PropertyInfo("Translational_Dipole_Moment", 3)
     positions = PropertyInfo("Positions", 3)
     scaled_positions = PropertyInfo("Scaled_Positions", 3)
-    box_lengths = PropertyInfo("Box_Lengths", 3)
+    box_length = PropertyInfo("Box_Array", 3)  # TODO experiment-wide properties should
+    # get their names from here, too
     unwrapped_positions = PropertyInfo("Unwrapped_Positions", 3)
     scaled_unwrapped_positions = PropertyInfo("Scaled_Unwrapped_Positions", 3)
     velocities = PropertyInfo("Velocities", 3)

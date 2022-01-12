@@ -270,7 +270,7 @@ class Experiment(ExperimentDatabase):
         # self.save_class()  # save the class state.
         log.info(f"** An experiment has been added titled {self.name} **")
 
-    def cls_transformation_run(self, transformation: Transformations):
+    def cls_transformation_run(self, transformation: Transformations, *args, **kwargs):
         """Run the transformation
 
         The Transformation class is updated with this experiment and afterwards
@@ -283,7 +283,7 @@ class Experiment(ExperimentDatabase):
         """
         transformation.experiment = self
         transformation.update_from_experiment()
-        transformation.run_transformation()
+        transformation.run_transformation(*args, **kwargs)
 
     @staticmethod
     def units_to_si(units_system):
