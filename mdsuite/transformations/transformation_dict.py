@@ -54,3 +54,33 @@ transformations_dict = {
     "MomentumFlux": MomentumFlux,
     "KinaciIntegratedHeatCurrent": KinaciIntegratedHeatCurrent,
 }
+
+# abbreviations are just there to make flake and black happy
+from mdsuite.database.simulation_data_class import mdsuite_properties as mdp
+from mdsuite.transformations import (
+    integrated_heat_current,
+    ionic_current,
+    kinaci_integrated_heat_current,
+    momentum_flux,
+    scale_coordinates,
+    thermal_flux,
+)
+from mdsuite.transformations import translational_dipole_moment as tdp
+from mdsuite.transformations import (
+    unwrap_via_indices,
+    velocity_from_positions,
+    wrap_coordinates,
+)
+
+property_to_transformation_dict = {
+    mdp.integrated_heat_current: integrated_heat_current.IntegratedHeatCurrent,
+    mdp.ionic_current: ionic_current.IonicCurrent,
+    mdp.kinaci_heat_current: kinaci_integrated_heat_current.KinaciIntegratedHeatCurrent,
+    mdp.momentum_flux: momentum_flux.MomentumFlux,
+    mdp.scaled_positions: scale_coordinates.ScaleCoordinates,
+    mdp.thermal_flux: thermal_flux.ThermalFlux,
+    mdp.translational_dipole_moment: tdp.TranslationalDipoleMoment,
+    mdp.unwrapped_positions: unwrap_via_indices.UnwrapViaIndices,
+    mdp.velocities_from_positions: velocity_from_positions.VelocityFromPositions,
+    mdp.positions: wrap_coordinates.CoordinateWrapper,
+}

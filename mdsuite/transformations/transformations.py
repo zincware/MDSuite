@@ -63,6 +63,10 @@ class CannotFindTransformationError(Exception):
     pass
 
 
+class CannotFindPropertyError(Exception):
+    pass
+
+
 class Transformations:
     """
     Parent class for MDSuite transformations.
@@ -498,7 +502,21 @@ class Transformations:
             return None
 
     def get_prop_through_transformation(self, sp_name, prop):
-        raise CannotFindTransformationError(f"was asked to get {prop.name} for {sp_name}")
+        # todo prevent infinite recursion
+        # (e.g. unwrap_pos calls wrap_pos calls unwrap_pos calls ...)
+        from mdsuite.transformations.transformation_dict import (
+            property_to_transformation_dict,
+        )
+
+        if prop in property_to_transformation_dict.keys():
+            trafo = property_to_transformation_dict[prop]()
+            self.experiment.cls_transformation_run(trafo, species=[sp_name])
+            return self.find_property_per_config(sp_name, prop)
+        else:
+            raise CannotFindTransformationError(
+                f"was asked to get '{prop.name}' for '{sp_name}', but there is no"
+                " transformation to get that property"
+            )
 
     def get_generator_type_spec_and_const_data(self, species_names):
         type_spec = {}
@@ -528,18 +546,18 @@ class Transformations:
                     # if not there, ty to produce the data
                     else:
                         try:
-                            self.get_prop_through_transformation(species_name, prop)
-                            type_spec[
-                                str.encode(join_path(species_name, prop.name))
-                            ] = tf.TensorSpec(
+                            path = self.get_prop_through_transformation(
+                                species_name, prop
+                            )
+                            type_spec[str.encode(path)] = tf.TensorSpec(
                                 shape=(None, None, prop.n_dims), dtype=self.dtype
                             )
                         except CannotFindTransformationError:
-                            raise RuntimeError(
+                            raise CannotFindPropertyError(
                                 "While performing transformation"
                                 f" '{self.output_property.name}': Property '{prop.name}'"
-                                f" for species {species_name} cannot be found in the"
-                                " simulation database or in the simulation metadata, nor"
+                                f" for species '{species_name}' cannot be found in the"
+                                " simulation database nor in the simulation metadata, nor"
                                 " can it be obtained by a transformation"
                             )
 
