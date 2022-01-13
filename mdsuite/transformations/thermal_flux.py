@@ -53,7 +53,9 @@ class ThermalFlux(MultiSpeciesTrafo):
         )
 
     def transform_batch(
-        self, batch: typing.Dict[str, typing.Dict[str, tf.Tensor]]
+        self,
+        batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
+        carryover: typing.Any = None,
     ) -> tf.Tensor:
         fluxes = []
         for _, properties in batch.items():
@@ -62,19 +64,19 @@ class ThermalFlux(MultiSpeciesTrafo):
             ke = properties[mdsuite_properties.kinetic_energy.name]
             pe = properties[mdsuite_properties.potential_energy.name]
             phi_x = (
-                np.multiply(stress[:, :, 0], vel[:, :, 0])
-                + np.multiply(stress[:, :, 3], vel[:, :, 1])
-                + np.multiply(stress[:, :, 4], vel[:, :, 2])
+                stress[:, :, 0] * vel[:, :, 0]
+                + stress[:, :, 3] * vel[:, :, 1]
+                + stress[:, :, 4] * vel[:, :, 2]
             )
             phi_y = (
-                np.multiply(stress[:, :, 3], vel[:, :, 0])
-                + np.multiply(stress[:, :, 1], vel[:, :, 1])
-                + np.multiply(stress[:, :, 5], vel[:, :, 2])
+                stress[:, :, 3] * vel[:, :, 0]
+                + stress[:, :, 1] * vel[:, :, 1]
+                + stress[:, :, 5] * vel[:, :, 2]
             )
             phi_z = (
-                np.multiply(stress[:, :, 4], vel[:, :, 0])
-                + np.multiply(stress[:, :, 5], vel[:, :, 1])
-                + np.multiply(stress[:, :, 2], vel[:, :, 2])
+                stress[:, :, 4] * vel[:, :, 0]
+                + stress[:, :, 5] * vel[:, :, 1]
+                + stress[:, :, 2] * vel[:, :, 2]
             )
 
             phi = np.dstack([phi_x, phi_y, phi_z])

@@ -282,7 +282,6 @@ class Experiment(ExperimentDatabase):
         transformation: Transformations
         """
         transformation.experiment = self
-        transformation.update_from_experiment()
         transformation.run_transformation(*args, **kwargs)
 
     @staticmethod

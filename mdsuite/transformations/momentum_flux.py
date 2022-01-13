@@ -35,7 +35,6 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 class MomentumFlux(MultiSpeciesTrafo):
     """
     Transformation to calculate the integrated heat current (positions * energies)
-
     """
 
     def __init__(self):
@@ -47,7 +46,9 @@ class MomentumFlux(MultiSpeciesTrafo):
         )
 
     def transform_batch(
-        self, batch: typing.Dict[str, typing.Dict[str, tf.Tensor]]
+        self,
+        batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
+        carryover: typing.Any = None,
     ) -> tf.Tensor:
         fluxes = []
         for _, properties in batch.items():

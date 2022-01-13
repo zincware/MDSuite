@@ -61,7 +61,9 @@ class CoordinateWrapper(SingleSpeciesTrafo):
 
         self.center_box: bool = center_box
 
-    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
+    def transform_batch(
+        self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
+    ) -> tf.Tensor:
         """
         Implement parent class abstract method.
         """

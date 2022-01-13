@@ -48,7 +48,9 @@ class ScaleCoordinates(SingleSpeciesTrafo):
             batchable_axes=[0, 1],
         )
 
-    def transform_batch(self, batch: typing.Dict[str, tf.Tensor]) -> tf.Tensor:
+    def transform_batch(
+        self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
+    ) -> tf.Tensor:
         """
         Implement parent class abstract method.
         """

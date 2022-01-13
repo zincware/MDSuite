@@ -64,8 +64,6 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    project.run.UnwrapViaIndices()
-    project.run.TranslationalDipoleMoment()
     computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-6)

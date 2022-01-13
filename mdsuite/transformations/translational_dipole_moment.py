@@ -50,7 +50,9 @@ class TranslationalDipoleMoment(MultiSpeciesTrafo):
         )
 
     def transform_batch(
-        self, batch: typing.Dict[str, typing.Dict[str, tf.Tensor]]
+        self,
+        batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
+        carryover: typing.Any = None,
     ) -> tf.Tensor:
         dipms = []
         for _, properties in batch.items():
