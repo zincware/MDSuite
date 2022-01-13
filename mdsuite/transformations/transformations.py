@@ -356,8 +356,29 @@ class Transformations:
         )
 
         if prop in property_to_transformation_dict.keys():
-            trafo = property_to_transformation_dict[prop]()
-            self.experiment.cls_transformation_run(trafo, species=[sp_name])
+            trafo_cls = property_to_transformation_dict[prop]
+            if not isinstance(trafo_cls, typing.Iterable):
+                # simple case: only one trafo for the property
+                trafo = trafo_cls()
+                self.experiment.cls_transformation_run(trafo, species=[sp_name])
+            else:
+                # go through the list until one works
+                one_trafo_worked = False
+                for trafo_class in trafo_cls:
+                    trafo = trafo_class()
+                    try:
+                        self.experiment.cls_transformation_run(trafo, species=[sp_name])
+                    except CannotFindPropertyError:
+                        pass
+                    else:
+                        one_trafo_worked = True
+                        break
+                if not one_trafo_worked:
+                    raise CannotFindTransformationError(
+                        f"was asked to get '{prop.name}' for '{sp_name}'. "
+                        f"There are transformations to get this property ({trafo_cls}), "
+                        "but none of them have the required data"
+                    )
             return self.find_property_per_config(sp_name, prop)
         else:
             raise CannotFindTransformationError(
@@ -390,7 +411,7 @@ class Transformations:
                         val = tf.convert_to_tensor(val, dtype=self.dtype)
                         val = val[None, None, :]
                         const_input_data[species_name].update({prop.name: val})
-                    # if not there, ty to produce the data
+                    # if not there, try to produce the data
                     else:
                         try:
                             path = self.get_prop_through_transformation(
@@ -452,7 +473,6 @@ class SingleSpeciesTrafo(Transformations):
                 continue
 
             output_data_structure = self._prepare_database_entry(species_name)
-
             type_spec, const_input_data = self.get_generator_type_spec_and_const_data(
                 [species_name]
             )
@@ -559,9 +579,7 @@ class MultiSpeciesTrafo(Transformations):
         output_data_structure = self._prepare_database_entry(
             self.output_property.name, system_tensor=True
         )
-
         type_spec, const_input_data = self.get_generator_type_spec_and_const_data(species)
-
         self._prepare_monitors(list(type_spec.keys()))
         batch_generator, batch_generator_args = self.data_manager.batch_generator()
         type_spec.update(

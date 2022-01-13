@@ -67,6 +67,7 @@ from mdsuite.transformations import (
 )
 from mdsuite.transformations import translational_dipole_moment as tdp
 from mdsuite.transformations import (
+    unwrap_coordinates,
     unwrap_via_indices,
     velocity_from_positions,
     wrap_coordinates,
@@ -80,7 +81,10 @@ property_to_transformation_dict = {
     mdp.scaled_positions: scale_coordinates.ScaleCoordinates,
     mdp.thermal_flux: thermal_flux.ThermalFlux,
     mdp.translational_dipole_moment: tdp.TranslationalDipoleMoment,
-    mdp.unwrapped_positions: unwrap_via_indices.UnwrapViaIndices,
+    mdp.unwrapped_positions: [
+        unwrap_via_indices.UnwrapViaIndices,
+        unwrap_coordinates.CoordinateUnwrapper,
+    ],
     mdp.velocities_from_positions: velocity_from_positions.VelocityFromPositions,
     mdp.positions: wrap_coordinates.CoordinateWrapper,
 }

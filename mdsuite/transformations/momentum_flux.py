@@ -34,13 +34,13 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 class MomentumFlux(MultiSpeciesTrafo):
     """
-    Transformation to calculate the integrated heat current (positions * energies)
+    Transformation to calculate the momentum flux
     """
 
     def __init__(self):
         super(MomentumFlux, self).__init__(
             input_properties=[mdsuite_properties.stress],
-            output_property=mdsuite_properties.integrated_heat_current,
+            output_property=mdsuite_properties.momentum_flux,
             batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 4}},
         )

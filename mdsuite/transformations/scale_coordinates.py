@@ -54,6 +54,6 @@ class ScaleCoordinates(SingleSpeciesTrafo):
         """
         Implement parent class abstract method.
         """
-        pos = batch[mdsuite_properties.unwrapped_positions.name]
+        pos = batch[mdsuite_properties.positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
         return tf.math.multiply(pos, box_l)

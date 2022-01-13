@@ -28,6 +28,7 @@ import multiprocessing
 import traceback
 
 import numpy as np
+import tensorflow as tf
 
 
 def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
@@ -51,7 +52,7 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
     https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
 
     """
-    if isinstance(expected, (int, float, complex, np.ndarray, list)):
+    if isinstance(expected, (int, float, complex, np.ndarray, list, tf.Tensor)):
         np.testing.assert_array_almost_equal(expected, actual, *args, **kwargs)
     elif isinstance(expected, dict):
         assert set(expected) == set(actual)
