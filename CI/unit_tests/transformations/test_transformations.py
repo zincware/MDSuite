@@ -29,7 +29,7 @@ In this file, we test all transformation operations
 import numpy as np
 import tensorflow as tf
 
-from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.transformations import (
     integrated_heat_current,
     ionic_current,

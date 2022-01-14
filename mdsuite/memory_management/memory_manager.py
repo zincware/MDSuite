@@ -216,8 +216,7 @@ class MemoryManager:
             )
         )
         batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
-        number_of_batches = int((n_configs - self.offset) / batch_size)
-        remainder = int(n_configs % batch_size)  # smells fishy: no offset
+        number_of_batches, remainder = divmod((n_configs - self.offset), batch_size)
         self.batch_size = batch_size
         self.n_batches = number_of_batches
         self.remainder = remainder

@@ -57,7 +57,7 @@ transformations_dict = {
 }
 
 # abbreviations are just there to make flake and black happy
-from mdsuite.database.simulation_data_class import mdsuite_properties as mdp
+from mdsuite.database.mdsuite_properties import mdsuite_properties as mdp
 from mdsuite.transformations import (
     integrated_heat_current,
     ionic_current,

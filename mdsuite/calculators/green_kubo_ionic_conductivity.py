@@ -39,7 +39,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
@@ -96,7 +96,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = simulation_properties.ionic_current
+        self.loaded_property = mdsuite_properties.ionic_current
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
@@ -278,17 +278,17 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self._calculate_prefactor()
 
         dict_ref = str.encode(
-            "/".join([self.loaded_property[0], self.loaded_property[0]])
+            "/".join([self.loaded_property.name, self.loaded_property.name])
         )
 
-        batch_ds = self.get_batch_dataset([self.loaded_property[0]])
+        batch_ds = self.get_batch_dataset([self.loaded_property.name])
         for batch in tqdm(
             batch_ds,
             ncols=70,
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])
 

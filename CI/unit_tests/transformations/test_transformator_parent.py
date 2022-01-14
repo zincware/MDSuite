@@ -29,7 +29,7 @@ import pytest
 import mdsuite as mds
 import mdsuite.file_io.script_input
 import mdsuite.transformations.test_trafos
-from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import (
     PropertyInfo,
     SpeciesInfo,
@@ -44,10 +44,10 @@ def load_pos_into_exp(exp, sp_name="test_species", unwrapped=True):
 
     if unwrapped:
         pos_prop = (
-            mdsuite.database.simulation_data_class.mdsuite_properties.unwrapped_positions
+            mdsuite.database.mdsuite_properties.mdsuite_properties.unwrapped_positions
         )
     else:
-        pos_prop = mdsuite.database.simulation_data_class.mdsuite_properties.positions
+        pos_prop = mdsuite.database.mdsuite_properties.mdsuite_properties.positions
     species = SpeciesInfo(sp_name, n_part, [pos_prop])
     mdata = TrajectoryMetadata(n_config, [species])
 

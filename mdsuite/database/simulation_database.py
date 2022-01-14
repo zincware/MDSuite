@@ -35,7 +35,6 @@ import h5py as hf
 import numpy as np
 import tensorflow as tf
 
-import mdsuite.database.simulation_data_class
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
@@ -652,20 +651,5 @@ class Database:
         summary : list
                 A list of properties that are in the database
         """
-        var_names = [
-            prop.name
-            for prop in mdsuite.database.simulation_data_class.mdsuite_properties
-        ]
-        dump_list = []
         with hf.File(self.path, "r") as db:
-            initial_list = list(db.keys())
-            for item in var_names:
-                if item in initial_list:
-                    dump_list.append(item)
-            for item in initial_list:
-                sub_items = list(db[item].keys())
-                for var in var_names:
-                    if var in sub_items:
-                        dump_list.append(var)
-
-        return np.unique(dump_list)
+            return list(db.keys())

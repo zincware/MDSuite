@@ -29,7 +29,7 @@ import typing
 import numpy as np
 import tensorflow as tf
 
-from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
