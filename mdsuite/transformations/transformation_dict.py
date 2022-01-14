@@ -26,6 +26,7 @@ Summary
 """
 
 # TODO remvoe this!
+# map_molecules is the only transformation still working with it
 
 from mdsuite.transformations.integrated_heat_current import IntegratedHeatCurrent
 from mdsuite.transformations.ionic_current import IonicCurrent
@@ -72,6 +73,11 @@ from mdsuite.transformations import (
     velocity_from_positions,
     wrap_coordinates,
 )
+
+"""
+Use this dictionary to determine which property can be obtained by which transformation.
+Needed for transformation dependency resolution.
+"""
 
 property_to_transformation_dict = {
     mdp.integrated_heat_current: integrated_heat_current.IntegratedHeatCurrent,

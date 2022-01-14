@@ -56,7 +56,6 @@ class CoordinateWrapper(SingleSpeciesTrafo):
             ],
             output_property=mdsuite_properties.positions,
             scale_function={"linear": {"scale_factor": 2}},
-            batchable_axes=[0, 1],
         )
 
         self.center_box: bool = center_box

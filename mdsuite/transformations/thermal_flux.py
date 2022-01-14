@@ -48,7 +48,6 @@ class ThermalFlux(MultiSpeciesTrafo):
                 mdsuite_properties.potential_energy,
             ],
             output_property=mdsuite_properties.thermal_flux,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 5}},
         )
 
@@ -58,7 +57,7 @@ class ThermalFlux(MultiSpeciesTrafo):
         carryover: typing.Any = None,
     ) -> tf.Tensor:
         fluxes = []
-        for _, properties in batch.items():
+        for properties in batch.values():
             stress = properties[mdsuite_properties.stress.name]
             vel = properties[mdsuite_properties.velocities.name]
             ke = properties[mdsuite_properties.kinetic_energy.name]

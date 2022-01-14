@@ -163,7 +163,7 @@ def fit_einstein_curve(data: list) -> list:
 #                 > self.experiment.number_of_configurations
 #                 - self.args.correlation_time
 #             ):
-#                 log.errorgit stat("Trajectory not long enough to perform analysis.")
+#                 log.error("Trajectory not long enough to perform analysis.")
 #                 raise RangeExceeded
 #         except RangeExceeded:
 #             raise RangeExceeded

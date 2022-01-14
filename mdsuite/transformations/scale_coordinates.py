@@ -45,7 +45,6 @@ class ScaleCoordinates(SingleSpeciesTrafo):
             ],
             output_property=mdsuite_properties.scaled_positions,
             scale_function={"linear": {"scale_factor": 2}},
-            batchable_axes=[0, 1],
         )
 
     def transform_batch(

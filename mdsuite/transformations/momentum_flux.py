@@ -41,7 +41,6 @@ class MomentumFlux(MultiSpeciesTrafo):
         super(MomentumFlux, self).__init__(
             input_properties=[mdsuite_properties.stress],
             output_property=mdsuite_properties.momentum_flux,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 4}},
         )
 
@@ -51,7 +50,7 @@ class MomentumFlux(MultiSpeciesTrafo):
         carryover: typing.Any = None,
     ) -> tf.Tensor:
         fluxes = []
-        for _, properties in batch.items():
+        for properties in batch.values():
             stress = properties[mdsuite_properties.stress.name]
             phi = tf.stack([stress[:, :, 3], stress[:, :, 4], stress[:, :, 5]], axis=2)
             fluxes.append(tf.reduce_sum(phi, axis=0))

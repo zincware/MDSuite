@@ -44,7 +44,6 @@ class TestMultispecies(MultiSpeciesTrafo):
         super(TestMultispecies, self).__init__(
             input_properties=input_properties,
             output_property=output_property,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 2}},
         )
 
@@ -80,7 +79,6 @@ class TestSingleSpecies(SingleSpeciesTrafo):
         super(TestSingleSpecies, self).__init__(
             input_properties=input_properties,
             output_property=output_property,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 2}},
         )
 

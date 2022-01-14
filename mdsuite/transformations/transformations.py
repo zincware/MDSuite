@@ -86,7 +86,6 @@ class Transformations:
             mdsuite.database.simulation_database.PropertyInfo
         ] = None,
         output_property: mdsuite.database.simulation_database.PropertyInfo = None,
-        batchable_axes: typing.Iterable[int] = None,
         scale_function=None,
         dtype=tf.float64,
     ):
@@ -110,15 +109,6 @@ class Transformations:
         """
         self._experiment = None
         self._database = None
-        self.batchable_axes = batchable_axes
-        # todo: list of int indicating along which axis batching is performed, e.g.
-        # rdf : batchable along time, but not particles or dimension: [1]
-        # msd : batchable along particles and dimension, but not time [0,2]
-        # unwrap_coordinates : batchable along all 3 axes [0,1,2]
-        # this information should then be used by the batch generator further down
-        # the current batching along tine only is arbitrary and should be generalized.
-        # then, minibatching is a natural consequence of transformations which have more
-        # than one batchable axis.
 
         self.input_properties = input_properties
         self.output_property = output_property

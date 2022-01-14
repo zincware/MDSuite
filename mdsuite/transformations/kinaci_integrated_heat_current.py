@@ -26,6 +26,7 @@ Summary
 """
 import typing
 
+import numpy as np
 import tensorflow as tf
 
 from mdsuite.database.simulation_data_class import mdsuite_properties
@@ -49,7 +50,6 @@ class KinaciIntegratedHeatCurrent(MultiSpeciesTrafo):
                 mdsuite_properties.sample_rate,
             ],
             output_property=mdsuite_properties.kinaci_heat_current,
-            batchable_axes=[1],
             scale_function={"linear": {"scale_factor": 5}},
         )
 
@@ -58,14 +58,19 @@ class KinaciIntegratedHeatCurrent(MultiSpeciesTrafo):
         batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
         carryover: tf.Tensor = None,
     ) -> typing.Tuple[tf.Tensor, tf.Tensor]:
+
         currents = []
-        batch_size = batch["batch_size"]
+
         if carryover is None:
             integrals = []
         else:
+            # obtain batch size from the length of the positions array
+            batch_size = np.shape(
+                list(batch.values())[0][mdsuite_properties.unwrapped_positions.name]
+            )[1]
             integrals = [tf.tile(carryover, (1, batch_size))]
 
-        for _, properties in batch:
+        for properties in batch.values():
             pos = properties[mdsuite_properties.unwrapped_positions.name]
             vel = properties[mdsuite_properties.velocities.name]
             force = properties[mdsuite_properties.forces.name]

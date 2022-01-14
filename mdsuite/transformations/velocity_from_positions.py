@@ -36,7 +36,6 @@ class VelocityFromPositions(SingleSpeciesTrafo):
             ],
             output_property=mdsuite_properties.velocities_from_positions,
             scale_function={"linear": {"scale_factor": 2}},
-            batchable_axes=[0, 2],
         )
 
     def transform_batch(

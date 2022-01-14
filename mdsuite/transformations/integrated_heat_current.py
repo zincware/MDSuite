@@ -46,7 +46,6 @@ class IntegratedHeatCurrent(MultiSpeciesTrafo):
                 mdsuite_properties.potential_energy,
             ],
             output_property=mdsuite_properties.integrated_heat_current,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 2}},
         )
 
@@ -56,7 +55,7 @@ class IntegratedHeatCurrent(MultiSpeciesTrafo):
         carryover: typing.Any = None,
     ) -> tf.Tensor:
         currents = []
-        for _, properties in batch.items():
+        for properties in batch.values():
             pos = properties[mdsuite_properties.unwrapped_positions.name]
             kin_energy = properties[mdsuite_properties.kinetic_energy.name]
             pot_energy = properties[mdsuite_properties.potential_energy.name]

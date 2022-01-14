@@ -102,7 +102,6 @@ class RunComputation:
                 func_instance = func()
                 # attach the transformation to the experiment
                 experiment.cls_transformation_run(func_instance, *args, **kwargs)
-            return None
 
         return wrapper
 

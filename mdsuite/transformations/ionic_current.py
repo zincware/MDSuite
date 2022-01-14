@@ -45,7 +45,6 @@ class IonicCurrent(MultiSpeciesTrafo):
                 mdsuite_properties.charge,
             ],
             output_property=mdsuite_properties.ionic_current,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 2}},
         )
 
@@ -55,7 +54,7 @@ class IonicCurrent(MultiSpeciesTrafo):
         carryover: typing.Any = None,
     ) -> tf.Tensor:
         currents = []
-        for _, properties in batch.items():
+        for properties in batch.values():
             vel = properties[mdsuite_properties.velocities.name]
             charge = properties[mdsuite_properties.charge.name]
             currents.append(tf.reduce_sum(charge * vel, axis=0))

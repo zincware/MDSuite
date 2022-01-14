@@ -45,7 +45,6 @@ class TranslationalDipoleMoment(MultiSpeciesTrafo):
                 mdsuite_properties.charge,
             ],
             output_property=mdsuite_properties.translational_dipole_moment,
-            batchable_axes=[1, 2],
             scale_function={"linear": {"scale_factor": 2}},
         )
 
@@ -55,7 +54,7 @@ class TranslationalDipoleMoment(MultiSpeciesTrafo):
         carryover: typing.Any = None,
     ) -> tf.Tensor:
         dipms = []
-        for _, properties in batch.items():
+        for properties in batch.values():
             pos = properties[mdsuite_properties.unwrapped_positions.name]
             charge = properties[mdsuite_properties.charge.name]
             dipms.append(tf.reduce_sum(charge * pos, axis=0))
