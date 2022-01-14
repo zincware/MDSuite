@@ -212,7 +212,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             If true, square the result, else just return the difference.
         Returns
         -------
-        msd : tf.Tensor
+        msd : tf.Tensor shape = (n_atoms, data_range, 3)
                 Mean square displacement.
         """
         if square:
