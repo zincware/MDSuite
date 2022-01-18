@@ -3,6 +3,7 @@
 [![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)
 ![license](https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat)
 [![coverage](https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main)](https://coveralls.io/github/zincware/MDSuite?branch=main)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zincware/MDSuite/HEAD)
 
 
 Introduction
