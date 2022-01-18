@@ -40,10 +40,10 @@ class ScaleCoordinates(SingleSpeciesTrafo):
     def __init__(self):
         super(ScaleCoordinates, self).__init__(
             input_properties=[
-                mdsuite_properties.positions,
+                mdsuite_properties.scaled_positions,
                 mdsuite_properties.box_length,
             ],
-            output_property=mdsuite_properties.scaled_positions,
+            output_property=mdsuite_properties.positions,
             scale_function={"linear": {"scale_factor": 2}},
         )
 
@@ -53,6 +53,6 @@ class ScaleCoordinates(SingleSpeciesTrafo):
         """
         Implement parent class abstract method.
         """
-        pos = batch[mdsuite_properties.positions.name]
+        pos = batch[mdsuite_properties.scaled_positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
-        return tf.math.multiply(pos, box_l)
+        return pos * box_l

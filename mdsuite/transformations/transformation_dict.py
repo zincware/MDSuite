@@ -84,7 +84,10 @@ property_to_transformation_dict = {
     mdp.ionic_current: ionic_current.IonicCurrent,
     mdp.kinaci_heat_current: kinaci_integrated_heat_current.KinaciIntegratedHeatCurrent,
     mdp.momentum_flux: momentum_flux.MomentumFlux,
-    mdp.scaled_positions: scale_coordinates.ScaleCoordinates,
+    mdp.positions: [
+        scale_coordinates.ScaleCoordinates,
+        wrap_coordinates.CoordinateWrapper,
+    ],
     mdp.thermal_flux: thermal_flux.ThermalFlux,
     mdp.translational_dipole_moment: tdp.TranslationalDipoleMoment,
     mdp.unwrapped_positions: [
@@ -92,5 +95,4 @@ property_to_transformation_dict = {
         unwrap_coordinates.CoordinateUnwrapper,
     ],
     mdp.velocities_from_positions: velocity_from_positions.VelocityFromPositions,
-    mdp.positions: wrap_coordinates.CoordinateWrapper,
 }

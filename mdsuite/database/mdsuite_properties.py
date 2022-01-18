@@ -64,8 +64,8 @@ class MDSuiteProperties:
     kinaci_heat_current = PropertyInfo("Kinaci_Heat_Current", 3)
     charge = PropertyInfo("Charge", 1)
     energy = PropertyInfo("Energy", 1)
-    kinetic_energy = PropertyInfo("KE", 1)  # TODO rename, also in calculators
-    potential_energy = PropertyInfo("PE", 1)  # TODO rename, also in calculators
+    kinetic_energy = PropertyInfo("Kinetic_Energy", 1)
+    potential_energy = PropertyInfo("Potential_Energy", 1)
     stress = PropertyInfo("Stress", 6)
     time_step = PropertyInfo("Time_Step", 1)
     sample_rate = PropertyInfo("Sample_Rate", 1)
