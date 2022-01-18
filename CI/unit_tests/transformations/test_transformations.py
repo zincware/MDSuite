@@ -96,16 +96,17 @@ def test_momentum_flux():
 
 def test_scale_coordinates():
     trafo = scale_coordinates.ScaleCoordinates()
-    assert trafo.output_property == mdsuite_properties.scaled_positions
+    assert trafo.output_property == mdsuite_properties.positions
 
     n_part = 5
     n_step = 7
 
     pos = tf.convert_to_tensor(np.random.random((n_part, n_step, 3)), dtype=dtype)
+    pos /= np.max(pos)
     box_l = tf.convert_to_tensor([1.1, 2.2, 3.3], dtype=dtype)[None, None, :]
 
     input = {
-        mdsuite_properties.positions.name: pos,
+        mdsuite_properties.scaled_positions.name: pos,
         mdsuite_properties.box_length.name: box_l,
     }
     output_should_be = pos * box_l
