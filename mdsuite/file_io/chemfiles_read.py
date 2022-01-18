@@ -5,10 +5,10 @@ import chemfiles
 import numpy as np
 import tqdm
 
-import mdsuite.database.simulation_data_class
+import mdsuite.database.mdsuite_properties
 import mdsuite.file_io.file_read
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import TrajectoryMetadata
 
 

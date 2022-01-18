@@ -90,3 +90,11 @@ def test_pass_instance_to_exp(mdsuite_project):
     mdsuite_project.experiments.NaCl.cls_transformation_run(
         mdsuite.transformations.CoordinateUnwrapper()
     )
+
+
+def test_call_with_instance(mdsuite_project):
+    """
+    test instanciating and then calling the trafo
+    """
+    trafo = mdsuite.transformations.CoordinateUnwrapper()
+    mdsuite_project.experiments.NaCl.cls_transformation_run(trafo)
