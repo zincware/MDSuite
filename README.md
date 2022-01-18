@@ -1,4 +1,9 @@
-|madewithpython| |build| |docs| |license| |coverage|
+![madewithpython](https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat)
+![build](https://github.com/zincware/MDSuite/actions/workflows/pytest.yml/badge.svg)
+[![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)
+![license](https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat)
+[![coverage](https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main)](https://coveralls.io/github/zincware/MDSuite?branch=main)
+
 
 Introduction
 ------------
@@ -7,7 +12,7 @@ MDSuite is a software designed specifically for the molecular dynamics community
 enable fast, reliable, and easy-to-run calculations from simulation data.
 
 If you want to start learning about the code, you can check out the docs
-`here <https://mdsuite.readthedocs.io/en/latest/>`_.
+[here](https://mdsuite.readthedocs.io/en/latest/).
 
 Installation
 ============
@@ -16,15 +21,16 @@ There are several way to install MDSuite depending on what you would like from i
 
 One can simply installing using
 
-.. code-block:: bash
-
-   pip install mdsuite
+````shell
+pip install mdsuite
+````
 
 If you would like to install it from source then you can clone the repository by running
 
-.. code-block:: bash
+````shell
+git clone https://github.com/SamTov/MDSuite.git
+````
 
-   git clone https://github.com/SamTov/MDSuite.git
 
 Once you have cloned the repository, depending on whether you prefer conda or straight
 pip, you should follow the instructions below.
@@ -32,36 +38,36 @@ pip, you should follow the instructions below.
 Installation with pip
 *********************
 
-.. code-block:: bash
-
-   cd MDSuite
-   pip install .
-
+````shell
+  cd MDSuite
+  pip install .
+````
 
 Installation with conda
 ***********************
 
-.. code-block:: bash
-
+````shell
    cd MDSuite
    conda create -n MDSuite python=3.8
    conda activate MDSuite
    pip install .
+````
+
 
 Documentation
 =============
 
 There is a live version of the documentation hosted
-`here <https://mdsuite.readthedocs.io/en/latest/>`_.
+[here](https://mdsuite.readthedocs.io/en/latest/).
 If you would prefer to have a local copy, it can be built using sphinx by following the
 instructions below.
 
-.. code-block:: bash
-
+````shell
    cd MDSuite/docs
    make html
    cd build/html
    firefox index.html
+````
 
 HINT
 ====
@@ -70,25 +76,4 @@ Check out the MDSuite code through a jupyter notebook for a more user friendly
 experience. You can take full advantage of the autocomplete features that are available
 for the calculators.
 
-.. image:: docs/source/images/test_einstein_record_3.gif
-    :width: 600
-
-.. badges
-
-.. |madewithpython| image:: https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat
-    :alt: Made with Python
-
-.. |build| image:: https://github.com/zincware/MDSuite/actions/workflows/pytest.yml/badge.svg
-    :alt: Build tests passing
-    :target: https://github.com/zincware/MDSuite/blob/readme_badges/
-
-.. |docs| image:: https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat
-    :alt: Build tests passing
-    :target: https://mdsuite.readthedocs.io/en/latest/
-
-.. |license| image:: https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat
-    :alt: Project license
-
-.. |coverage| image:: https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main
-    :alt: Coverage Report
-    :target: https://coveralls.io/github/zincware/MDSuite?branch=main
+![autocomplete](docs/source/images/mdsuite_autocomplete.gif)
