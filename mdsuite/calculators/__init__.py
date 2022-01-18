@@ -50,7 +50,6 @@ from .kirkwood_buff_integrals import KirkwoodBuffIntegral
 from .nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
 from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
-from .spatial_distribution_function import SpatialDistributionFunction
 from .structure_factor import StructureFactor
 
 if TYPE_CHECKING:
@@ -76,7 +75,6 @@ __all__ = [
     "PotentialOfMeanForce",
     "RadialDistributionFunction",
     "StructureFactor",
-    "SpatialDistributionFunction",
 ]
 
 
@@ -190,8 +188,3 @@ class RunComputation:
     def EinsteinHelfandThermalConductivity(self):
         """Calculator Property"""
         return EinsteinHelfandThermalConductivity(**self.kwargs)
-
-    @property
-    def SpatialDistributionFunction(self):
-        """Calculator Property"""
-        return SpatialDistributionFunction(**self.kwargs)
