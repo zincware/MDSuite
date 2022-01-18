@@ -144,7 +144,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         self.sample_configurations = np.linspace(
             start, stop, number_of_configurations, dtype=np.int
         )
-        self.plot = True
+        self.plot = False
 
         self.args = Args(
             molecules=molecules,
@@ -249,10 +249,9 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             subjects=["System"],
         )
 
-        if self.plot:
-            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
-            colour_map = tf.reshape(sdf_values, [-1])
-            self._run_visualization(coordinates, colour_map)
+        coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
+        colour_map = tf.reshape(sdf_values, [-1])
+        self._run_visualization(coordinates, colour_map)
 
     def _get_unit_sphere(self) -> tf.Tensor:
         """Get the coordinates on the sphere for the bins
