@@ -215,7 +215,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.adf_minibatch = minibatch  # memory management for triples generation per batch.
+        self.adf_minibatch = (
+            minibatch  # memory management for triples generation per batch.
+        )
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
