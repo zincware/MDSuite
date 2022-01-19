@@ -216,16 +216,20 @@ def test_gromacs_read(traj_files, tmp_path):
     )
 
     project.add_experiment("xtc_test", simulation_data=file_reader)
-    pos = project.experiments["xtc_test"].load_matrix(
-        species=["C1"], property_name="Unwrapped_Positions"
-    )["C1/Unwrapped_Positions"]
+    exp = project.experiments["xtc_test"]
+    pos = exp.load_matrix(species=["C1"], property_name="Unwrapped_Positions")[
+        "C1/Unwrapped_Positions"
+    ]
+    box_l = exp.box_array
 
     # read the same file with mdanalysis and compare
     uni = MDAnalysis.Universe(topol_path, traj_path)
+    box_l_mdana = uni.dimensions[:3]
     C1s = uni.atoms.select_atoms("name C1")
     test_step = 42
     # advance the mdanalysis global step
     uni.trajectory[test_step]
-    pos_mdsana = C1s.positions
+    pos_mdana = C1s.positions
 
-    np.testing.assert_almost_equal(pos[:, test_step, :], pos_mdsana, decimal=5)
+    np.testing.assert_almost_equal(pos[:, test_step, :], pos_mdana, decimal=5)
+    np.testing.assert_almost_equal(box_l, box_l_mdana, decimal=5)

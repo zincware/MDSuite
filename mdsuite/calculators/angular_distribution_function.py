@@ -39,7 +39,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.neighbour_list import (
@@ -123,7 +123,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
         self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
-        self.loaded_property = simulation_properties.positions
+        self.loaded_property = mdsuite_properties.positions
 
         self.use_tf_function = None
         self.molecules = None
@@ -531,7 +531,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         """
         path_list = [
-            join_path(item, self.loaded_property[0]) for item in self.args.species
+            join_path(species_name, self.loaded_property.name)
+            for species_name in self.args.species
         ]
         self._prepare_managers(path_list)
 
@@ -540,8 +541,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         # Get the correct dict keys.
         dict_keys = []
-        for item in self.args.species:
-            dict_keys.append(str.encode(join_path(item, self.loaded_property[0])))
+        for species_name in self.args.species:
+            dict_keys.append(
+                str.encode(join_path(species_name, self.loaded_property.name))
+            )
 
         # Split the configurations into batches.
         split_arr = np.array_split(self.sample_configurations, self.n_batches)

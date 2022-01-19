@@ -46,6 +46,7 @@ from mdsuite.transformations import (
     Transformations,
     TranslationalDipoleMoment,
     UnwrapViaIndices,
+    VelocityFromPositions,
 )
 
 if TYPE_CHECKING:
@@ -92,15 +93,14 @@ class RunComputation:
         func: a transformation to be attached to the experiment/s
         """
 
-        @functools.wraps(func)
+        @functools.wraps(func.run_transformation)
         def wrapper(*args, **kwargs):
             if self.experiments is None:
                 self.experiments = [self.experiment]
             for experiment in self.experiments:
-                func_instance = func(*args, **kwargs)
+                func_instance = func()
                 # attach the transformation to the experiment
-                experiment.cls_transformation_run(func_instance)
-            return None
+                experiment.cls_transformation_run(func_instance, *args, **kwargs)
 
         return wrapper
 
@@ -151,6 +151,10 @@ class RunComputation:
     @property
     def UnwrapViaIndices(self) -> Type[UnwrapViaIndices]:
         return self.transformation_wrapper(UnwrapViaIndices)
+
+    @property
+    def VelocityFromPositions(self) -> Type[VelocityFromPositions]:
+        return self.transformation_wrapper(VelocityFromPositions)
 
     #####################
     #### Calculators ####

@@ -14,17 +14,16 @@ from mdsuite.experiment.run import RunComputation
 
 
 class MockTransformation:
-    """Mock a transformation init with args/kwargs"""
+    """Mock a transformation"""
 
-    def __init__(self, arg1, arg2):
-        self.arg1 = arg1
-        self.arg2 = arg2
+    def run_transformation(self, *args, **kwargs):
+        pass
 
 
 class MockExperiment(Mock):
     """Mock a Experiment class with cls_transformation_run"""
 
-    def cls_transformation_run(self, cls):
+    def cls_transformation_run(self, cls, *args, **kwargs):
         self.cls = cls
 
 

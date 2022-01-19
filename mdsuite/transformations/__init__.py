@@ -35,6 +35,7 @@ from .transformations import Transformations
 from .translational_dipole_moment import TranslationalDipoleMoment
 from .unwrap_coordinates import CoordinateUnwrapper
 from .unwrap_via_indices import UnwrapViaIndices
+from .velocity_from_positions import VelocityFromPositions
 from .wrap_coordinates import CoordinateWrapper
 
 __all__ = [
@@ -50,4 +51,5 @@ __all__ = [
     "ThermalFlux",
     "TranslationalDipoleMoment",
     "UnwrapViaIndices",
+    "VelocityFromPositions",
 ]
