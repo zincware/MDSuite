@@ -119,7 +119,9 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
 
-        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
+        self.scale_function = {
+            "quadratic": {"outer_scale_factor": 10, "inner_scale_function": 5}
+        }
         self.loaded_property = mdsuite_properties.positions
         self.x_label = r"$$r / nm$$"
         self.y_label = r"$$g(r)$$"

@@ -122,7 +122,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                 Experiment object from which to take attributes.
         """
         super().__init__(**kwargs)
-        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
+        self.scale_function = {
+            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
+        }
         self.loaded_property = mdsuite_properties.positions
 
         self.use_tf_function = None
