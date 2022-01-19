@@ -77,7 +77,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
             Path to the tabular text file.
         file_format_column_names
             Dict connecting mdsuite properties (as defined in
-            mdsuite.database.simulation_data_class.mdsuite_properties) the columns of the
+            mdsuite.database.mdsuite_properties.mdsuite_properties) the columns of the
             file format. Constant to be provided by the child classes.
             Example: {mdsuite_properties.positions: ["x", "y", "z"]}
         custom_column_names:

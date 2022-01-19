@@ -98,7 +98,7 @@ class DatabaseDoesNotExist(Exception):
 
     def __init__(self):
         """Constructor method"""
-        self.message = "Database does not exists"
+        self.message = "Database does not exist"
         super().__init__(self.message)
 
 

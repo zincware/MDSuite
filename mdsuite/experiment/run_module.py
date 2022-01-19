@@ -69,7 +69,7 @@ class RunModule:
             Instantiated calculator class with added experiment that can be called.
         """
         if item.startswith("_"):
-            # handle privat functions
+            # handle private functions
             return super().__getattribute__(item)
 
         try:
