@@ -283,6 +283,47 @@ class Experiment(ExperimentDatabase):
         transformation.update_from_experiment()
         transformation.run_transformation()
 
+    # def run_visualization(
+    #         self,
+    #         species: list = None,
+    #         molecules: bool = False,
+    #         unwrapped: bool = False,
+    # ):
+    #     """
+    #     Perform a trajectory visualization.
+    #
+    #     Parameters
+    #     ----------
+    #     species : list
+    #             A list of species of molecules to study.
+    #     molecules : bool
+    #             If true, molecule groups will be used.
+    #     unwrapped : bool
+    #             If true, unwrapped coordinates will be visualized.
+    #
+    #     Returns
+    #     -------
+    #     Displays a visualization app.
+    #     """
+    #     if molecules:
+    #         if species is None:
+    #             species = list(self.molecules)
+    #     if species is None:
+    #         species = list(self.species)
+    #
+    #     if config.jupyter:
+    #         log.info(
+    #             "ZnVis visualizer currently does not support deployment from "
+    #             "jupyter. Please run your analysis as a python script to use"
+    #             "the visualizer."
+    #         )
+    #         return
+    #     else:
+    #         visualizer = SimulationVisualizer(
+    #             species=species, unwrapped=unwrapped, database_path=self.database_path
+    #         )
+    #         visualizer.run_visualization()
+
     @staticmethod
     def units_to_si(units_system):
         """
