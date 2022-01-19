@@ -36,7 +36,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 
@@ -100,7 +100,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 10}}
-        self.loaded_property = simulation_properties.unwrapped_positions
+        self.loaded_property = mdsuite_properties.unwrapped_positions
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s $$"
@@ -306,7 +306,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         for combination in self.combinations:
             species_values = list(combination)
             dict_ref = [
-                str.encode("/".join([species, self.loaded_property[0]]))
+                str.encode("/".join([species, self.loaded_property.name]))
                 for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)

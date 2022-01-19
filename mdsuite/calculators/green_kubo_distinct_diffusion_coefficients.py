@@ -38,7 +38,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
 @dataclass
@@ -94,7 +94,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 5}}
-        self.loaded_property = simulation_properties.velocities
+        self.loaded_property = mdsuite_properties.velocities
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s$$"
@@ -221,7 +221,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         for combination in self.combinations:
             species_values = list(combination)
             dict_ref = [
-                str.encode("/".join([species, self.loaded_property[0]]))
+                str.encode("/".join([species, self.loaded_property.name]))
                 for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)

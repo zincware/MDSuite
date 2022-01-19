@@ -33,8 +33,9 @@ from typing import TYPE_CHECKING, List, Union
 import numpy as np
 import tensorflow as tf
 
+import mdsuite.database.simulation_database
 from mdsuite.calculators.transformations_reference import switcher_transformations
-from mdsuite.database import DataManager
+from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management import MemoryManager
 from mdsuite.utils.meta_functions import join_path
@@ -95,13 +96,13 @@ class TrajectoryCalculator(Calculator, ABC):
         )
 
         self.data_resolution = None
-        self.loaded_property = None
-        self.dependency = None
+        self.loaded_property: mdsuite.database.simulation_database.PropertyInfo = None
+        self.dependency: mdsuite.database.simulation_database.PropertyInfo = None
         self.scale_function = None
-        self.batch_size = None
-        self.n_batches = None
-        self.remainder = None
-        self.minibatch = None
+        self.batch_size: int = None
+        self.n_batches: int = None
+        self.remainder: int = None
+        self.minibatch: bool = None
         self.memory_manager = None
         self.data_manager = None
         self._database = None
@@ -126,15 +127,17 @@ class TrajectoryCalculator(Calculator, ABC):
             return
 
         if self.dependency is not None:
-            dependency = self.database.check_existence(self.dependency[0])
-            if not dependency:
-                self._resolve_dependencies(self.dependency[0])
+            dependency_exists = self.database.check_existence(self.dependency.name)
+            if not dependency_exists:
+                self._resolve_dependencies(self.dependency)
 
-        loaded_property = self.database.check_existence(self.loaded_property[0])
+        loaded_property = self.database.check_existence(self.loaded_property.name)
         if not loaded_property:
-            self._resolve_dependencies(self.loaded_property[0])
+            self._resolve_dependencies(self.loaded_property)
 
-    def _resolve_dependencies(self, dependency):
+    def _resolve_dependencies(
+        self, dependency: mdsuite.database.simulation_database.PropertyInfo
+    ):
         """
         Resolve any calculation dependencies if possible.
 
@@ -172,7 +175,9 @@ class TrajectoryCalculator(Calculator, ABC):
             except KeyError:
                 raise KeyError("Data not in database and cannot be generated.")
 
-        transformation = getattr(self.experiment.run, _string_to_function(dependency))
+        transformation = getattr(
+            self.experiment.run, _string_to_function(dependency.name)
+        )
         transformation()
 
     def _unwrap_choice(self):
@@ -292,7 +297,7 @@ class TrajectoryCalculator(Calculator, ABC):
         subject_list: list = None,
         loop_array: np.ndarray = None,
         correct: bool = False,
-    ):
+    ) -> tf.data.Dataset:
         """
         Collect the batch loop dataset
 
@@ -322,14 +327,14 @@ class TrajectoryCalculator(Calculator, ABC):
                 A TensorFlow dataset for the batch loop to be iterated over.
 
         """
-        path_list = [join_path(item, self.loaded_property[0]) for item in subject_list]
+        path_list = [join_path(item, self.loaded_property.name) for item in subject_list]
         self._prepare_managers(path_list, correct=correct)
 
         type_spec = {}
         for item in subject_list:
-            dict_ref = "/".join([item, self.loaded_property[0]])
+            dict_ref = "/".join([item, self.loaded_property.name])
             type_spec[str.encode(dict_ref)] = tf.TensorSpec(
-                shape=self.loaded_property[1], dtype=self.dtype
+                shape=(None, None, self.loaded_property.n_dims), dtype=self.dtype
             )
         type_spec[str.encode("data_size")] = tf.TensorSpec(shape=(), dtype=tf.int32)
 
@@ -374,9 +379,9 @@ class TrajectoryCalculator(Calculator, ABC):
         else:
             loop_list = subject
         for item in loop_list:
-            dict_ref = "/".join([item, self.loaded_property[0]])
+            dict_ref = "/".join([item, self.loaded_property.name])
             type_spec[str.encode(dict_ref)] = tf.TensorSpec(
-                shape=self.loaded_property[1], dtype=self.dtype
+                shape=(None, None, self.loaded_property.n_dims), dtype=self.dtype
             )
 
         ds = tf.data.Dataset.from_generator(

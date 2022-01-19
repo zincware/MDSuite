@@ -34,6 +34,15 @@ from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
+switcher_transformations = {
+    "Translational_Dipole_Moment": "TranslationalDipoleMoment",
+    "Ionic_Current": "IonicCurrent",
+    "Integrated_Heat_Current": "IntegratedHeatCurrent",
+    "Thermal_Flux": "ThermalFlux",
+    "Momentum_Flux": "MomentumFlux",
+    "Kinaci_Heat_Current": "KinaciIntegratedHeatCurrent",
+}
+
 
 class MolecularMap(Transformations):
     """
@@ -57,7 +66,7 @@ class MolecularMap(Transformations):
             would be the input for the emim-PF6 ionic liquid.
     """
 
-    def __init__(self, molecules: dict):
+    def __init__(self):
         """Constructor for the MolecularMap class.
 
         Parameters
@@ -73,7 +82,7 @@ class MolecularMap(Transformations):
 
         """
         super().__init__()
-        self.molecules = molecules
+        self.molecules = None
         self.reference_molecules = {}
         self.adjacency_graphs = {}
         self.dependency = "Unwrapped_Positions"
@@ -104,6 +113,130 @@ class MolecularMap(Transformations):
         }
 
         return data_structure
+
+    def _run_dependency_check(self):
+        """
+        Check that dependencies are fulfilled.
+
+        Returns
+        -------
+        Calls a resolve method if dependencies are not met.
+        """
+        truth_array = []
+        path_list = [
+            join_path(species, self.dependency) for species in self.experiment.species
+        ]
+        for item in path_list:
+            truth_array.append(self.database.check_existence(item))
+        if all(truth_array):
+            return
+        else:
+            self._resolve_dependencies(self.dependency)
+
+    def _resolve_dependencies(self, dependency):
+        """
+        Resolve any calculation dependencies if possible.
+
+        Parameters
+        ----------
+        dependency : str
+                Name of the dependency to resolve.
+
+        Returns
+        -------
+
+        """
+
+        def _string_to_function(argument):
+            """
+            Select a transformation based on an input
+
+            Parameters
+            ----------
+            argument : str
+                    Name of the transformation required
+
+            Returns
+            -------
+            transformation call.
+            """
+
+            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
+
+            switcher = {**switcher_unwrapping, **switcher_transformations}
+
+            try:
+                return switcher[argument]
+            except KeyError:
+                raise KeyError("Data not in database and can not be generated.")
+
+        transformation = _string_to_function(dependency)
+        self.experiment.perform_transformation(transformation)
+
+    def _unwrap_choice(self):
+        """
+        Unwrap either with indices or with box arrays.
+        Returns
+        -------
+
+        """
+        indices = self.database.check_existence("Box_Images")
+        if indices:
+            return "UnwrapViaIndices"
+        else:
+            return "UnwrapCoordinates"
+
+    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
+        """
+        Update a type spec dictionary.
+
+        Parameters
+        ----------
+        dictionary : dict
+                Dictionary to append
+        path_list : list
+                List of paths for the dictionary
+        dimension : int
+                Dimension of the property
+        Returns
+        -------
+        type dict : dict
+                Dictionary for the type spec.
+        """
+        for item in path_list:
+            dictionary[str.encode(item)] = tf.TensorSpec(
+                shape=(None, None, dimension), dtype=tf.float64
+            )
+
+        return dictionary
+
+    def _update_species_type_dict(
+        self, dictionary: dict, path_list: list, dimension: int
+    ):
+        """
+        Update a type spec dictionary for a species input.
+
+        Parameters
+        ----------
+        dictionary : dict
+                Dictionary to append
+        path_list : list
+                List of paths for the dictionary
+        dimension : int
+                Dimension of the property
+        Returns
+        -------
+        type dict : dict
+                Dictionary for the type spec.
+        """
+        for item in path_list:
+            species = item.split("/")[0]
+            n_atoms = self.experiment.species[species].n_particles
+            dictionary[str.encode(item)] = tf.TensorSpec(
+                shape=(n_atoms, None, dimension), dtype=tf.float64
+            )
+
+        return dictionary
 
     def _build_reference_graphs(self):
         """
@@ -184,32 +317,6 @@ class MolecularMap(Transformations):
                 self.adjacency_graphs[item]["graph"], n_molecules=amount
             )
 
-    def _update_type_dict(
-        self, dictionary: dict, path_list: list, dimension: int
-    ) -> dict:
-        """
-        Update a type spec dictionary.
-
-        Parameters
-        ----------
-        dictionary : dict
-                Dictionary to append
-        path_list : list
-                List of paths for the dictionary
-        dimension : int
-                Dimension of the property
-        Returns
-        -------
-        type dict : dict
-                Dictionary for the type spec.
-        """
-        for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(
-                shape=(None, self.batch_size, dimension), dtype=tf.float64
-            )
-
-        return dictionary
-
     def _load_batch(self, path_list: list, slice: np.s_, factor: list) -> tf.Tensor:
         """
         Load a batch of data and stack the configurations.
@@ -254,22 +361,25 @@ class MolecularMap(Transformations):
         -------
         Updates the database.
         """
-        for item in self.molecules:
-            species = self.reference_molecules[item]["species"]
+        for molecule_name in self.molecules:
+            species = self.reference_molecules[molecule_name]["species"]
             mass_factor = self._prepare_mass_array(species)
             data_structure = self._prepare_database_entry(
-                item, len(self.adjacency_graphs[item]["molecules"])
+                molecule_name, len(self.adjacency_graphs[molecule_name]["molecules"])
             )
             path_list = [join_path(s, "Unwrapped_Positions") for s in species]
             self._prepare_monitors(data_path=path_list)
-            scaling_factor = self.reference_molecules[item]["mass"]
+            scaling_factor = self.reference_molecules[molecule_name]["mass"]
             molecules = self.experiment.molecules
-            molecules[item] = {}
-            molecules[item]["indices"] = [
-                i for i in range(len(self.adjacency_graphs[item]["molecules"]))
-            ]
-            molecules[item]["mass"] = scaling_factor
-            molecules[item]["groups"] = {}
+            molecules[molecule_name] = {}
+            molecules[molecule_name]["n_particles"] = len(
+                self.adjacency_graphs[molecule_name]["molecules"]
+            )
+            molecules[molecule_name]["indices"] = list(
+                range(molecules[molecule_name]["n_particles"])
+            )
+            molecules[molecule_name]["mass"] = scaling_factor
+            molecules[molecule_name]["groups"] = {}
             for i in tqdm(range(self.n_batches), ncols=70, desc="Mapping molecules"):
                 start = i * self.batch_size
                 stop = start + self.batch_size
@@ -280,29 +390,31 @@ class MolecularMap(Transformations):
                 )
                 trajectory = np.zeros(
                     shape=(
-                        len(self.adjacency_graphs[item]["molecules"]),
+                        len(self.adjacency_graphs[molecule_name]["molecules"]),
                         self.batch_size,
                         3,
                     )
                 )
 
-                for t, molecule in enumerate(self.adjacency_graphs[item]["molecules"]):
+                for t, molecule in enumerate(
+                    self.adjacency_graphs[molecule_name]["molecules"]
+                ):
                     indices = list(
-                        self.adjacency_graphs[item]["molecules"][molecule].numpy()
+                        self.adjacency_graphs[molecule_name]["molecules"][
+                            molecule
+                        ].numpy()
                     )
-                    molecules[item]["groups"][t] = self._build_indices_dict(
+                    molecules[molecule_name]["groups"][t] = self._build_indices_dict(
                         indices, species
                     )
                     trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
-                self._save_coordinates(
+                self._save_output(
                     data=trajectory,
                     data_structure=data_structure,
                     index=start,
-                    batch_size=self.batch_size,
-                    system_tensor=False,
-                    tensor=True,
                 )
             self.experiment.molecules = molecules
+            self.experiment.species.update(molecules)
 
     def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
         """
@@ -343,16 +455,17 @@ class MolecularMap(Transformations):
 
         return indices_dict
 
-    def run_transformation(self):
+    def run_transformation(self, molecules: dict):
         """
-        Perform the transformation
+        Perform the transformation.
         Returns
         -------
         Update the experiment database.
         """
+        self.molecules = molecules
         self._run_dependency_check()
         self._build_reference_graphs()
         self._build_configuration_graphs()
         self._get_molecule_indices()
         self._map_molecules()
-        self.experiment.run.CoordinateWrapper(species=[item for item in self.molecules])
+        self.experiment.run.CoordinateWrapper(species=[key for key in self.molecules])

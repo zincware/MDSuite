@@ -29,7 +29,7 @@ import numpy as np
 
 import mdsuite.file_io.tabular_text_files
 import mdsuite.utils.meta_functions
-from mdsuite.database.simulation_data_class import mdsuite_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import TrajectoryMetadata
 from mdsuite.file_io.tabular_text_files import (
     get_species_list_from_tabular_text_reader_data,

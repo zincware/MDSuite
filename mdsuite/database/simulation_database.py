@@ -35,7 +35,6 @@ import h5py as hf
 import numpy as np
 import tensorflow as tf
 
-import mdsuite.database.simulation_data_class
 from mdsuite.utils.meta_functions import join_path
 
 log = logging.getLogger(__name__)
@@ -108,9 +107,9 @@ class TrajectoryMetadata:
     ----------
     n_configurations : int
         Number of configurations of the whole trajectory.
-    species_list : list
-        The information about all species in the system of speciesInfo
-    box_l : list of float
+    species_list: list of SpeciesInfo
+        The information about all species in the system.
+    box_l: list of float
         The simulation box size in three dimensions
     sample_rate : int optional
         The number of timesteps between consecutive samples
@@ -125,7 +124,7 @@ class TrajectoryMetadata:
         The set temperature of the system.
         Optional because only applicable for MD simulations with thermostat.
         Needed for certain observables.
-    simulation_data : str|Pathoptional
+    simulation_data : str|Path, optional
         All other simulation data that can be extracted from the trajectory metadata.
         E.g. software version, pressure in NPT simulations, time step, ...
     """
@@ -619,9 +618,7 @@ class Database:
 
         return stop - start
 
-    def get_data_size(
-        self, data_path: str, database_path: str = None, system: bool = False
-    ) -> tuple:
+    def get_data_size(self, data_path: str) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
 
@@ -629,11 +626,6 @@ class Database:
         ----------
         data_path : str
                 path to the tensor_values in the hdf5 database_path.
-        database_path: (optional) str
-                path to a specific database_path, if None, the class instance
-                database_path will be used
-        system : bool
-                If true, the row number is the relevant property
 
         Returns
         -------
@@ -641,23 +633,13 @@ class Database:
                 Tuple of tensor_values about the dataset, e.g.
                 (n_rows, n_columns, n_bytes)
         """
-        if database_path is None:
-            database_path = self.path
 
-        if system:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[0],
-                    db[data_path].nbytes,
-                )
-        else:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[1],
-                    db[data_path].nbytes,
-                )
+        with hf.File(self.path, "r") as db:
+            data_tuple = (
+                db[data_path].shape[0],
+                db[data_path].shape[1],
+                db[data_path].nbytes,
+            )
 
         return data_tuple
 
@@ -669,20 +651,5 @@ class Database:
         summary : list
                 A list of properties that are in the database
         """
-        var_names = [
-            prop.name
-            for prop in mdsuite.database.simulation_data_class.mdsuite_properties
-        ]
-        dump_list = []
         with hf.File(self.path, "r") as db:
-            initial_list = list(db.keys())
-            for item in var_names:
-                if item in initial_list:
-                    dump_list.append(item)
-            for item in initial_list:
-                sub_items = list(db[item].keys())
-                for var in var_names:
-                    if var in sub_items:
-                        dump_list.append(var)
-
-        return np.unique(dump_list)
+            return list(db.keys())
