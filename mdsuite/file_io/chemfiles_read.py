@@ -70,6 +70,9 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
             n_configs = traj.nsteps
             frame = traj.read()
 
+        # get the box lengths from the first frame
+        box_l = frame.cell.lengths
+
         # extract which lines in chemfiles.Frame.<property> belong to which species
         # by going through the atoms list
         self.species_name_to_line_idxs_dict = {}
@@ -106,6 +109,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         return TrajectoryMetadata(
             n_configurations=n_configs,
             species_list=species_list,
+            box_l=box_l,
         )
 
     def get_configurations_generator(
