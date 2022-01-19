@@ -134,7 +134,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.result_series_keys = ["angle", "adf"]
         self._dtype = tf.float32
 
-        self.minibatch = None  # memory management for triples generation per batch.
+        self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
         self.x_label = r"$$\text{Angle} / \theta $$"
@@ -215,7 +215,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.minibatch = minibatch  # memory management for triples generation per batch.
+        self.adf_minibatch = minibatch  # memory management for triples generation per batch.
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
@@ -302,7 +302,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                     x,
                     r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.minibatch,
+                    n_batches=self.adf_minibatch,
                     disable_tqdm=True,
                 )
 
@@ -313,7 +313,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                     x,
                     r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.minibatch,
+                    n_batches=self.adf_minibatch,
                     disable_tqdm=True,
                 )
 
@@ -521,6 +521,15 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
+
+        if self.minibatch:
+            self.batch_size = 1
+            self.n_batches = self.args.number_of_configurations
+            self.remainder = 0
+            self.memory_manager.atom_batch_size = None
+            self.memory_manager.n_atom_batches = None
+            self.memory_manager.atom_remainder = None
+            self.minibatch = False
 
     def prepare_computation(self):
         """
