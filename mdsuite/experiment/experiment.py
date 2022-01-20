@@ -384,9 +384,11 @@ class Experiment(ExperimentDatabase):
         -------
         Displays a visualization app.
         """
-        import_error_msg = "It looks like you don't have the necessary plugin for " \
-                           "the visualizer extension. Please install znvis with" \
-                           " pip install znvis in order to use the MDSuite visualizer."
+        import_error_msg = (
+            "It looks like you don't have the necessary plugin for "
+            "the visualizer extension. Please install znvis with"
+            " pip install znvis in order to use the MDSuite visualizer."
+        )
         try:
             from mdsuite.visualizer.znvis_visualizer import SimulationVisualizer
         except ImportError:
