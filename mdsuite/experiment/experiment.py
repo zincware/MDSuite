@@ -54,7 +54,6 @@ from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
-from mdsuite.visualizer.znvis_visualizer import SimulationVisualizer
 
 from .run_module import RunModule
 
@@ -385,6 +384,15 @@ class Experiment(ExperimentDatabase):
         -------
         Displays a visualization app.
         """
+        import_error_msg = "It looks like you don't have the necessary plugin for " \
+                           "the visualizer extension. Please install znvis with" \
+                           " pip install znvis in order to use the MDSuite visualizer."
+        try:
+            from mdsuite.visualizer.znvis_visualizer import SimulationVisualizer
+        except ImportError:
+            log.info(import_error_msg)
+            return
+
         if molecules:
             if species is None:
                 species = list(self.molecules)
@@ -651,7 +659,7 @@ class Experiment(ExperimentDatabase):
                 "charge": sp_info.charge,
                 "n_particles": sp_info.n_particles,
                 # legacy: calculators use this list to determine the number of particles
-                # TODO fix this, Christoph!
+                # TODO change this.
                 "indices": list(range(sp_info.n_particles)),
                 "properties": [prop_info.name for prop_info in sp_info.properties],
             }
