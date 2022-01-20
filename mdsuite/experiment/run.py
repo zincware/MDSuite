@@ -31,7 +31,7 @@ from mdsuite.calculators import (
     NernstEinsteinIonicConductivity,
     PotentialOfMeanForce,
     RadialDistributionFunction,
-    SpatialDistributionFunction,
+    # SpatialDistributionFunction,
     StructureFactor,
 )
 from mdsuite.transformations import (
