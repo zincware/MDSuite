@@ -29,12 +29,14 @@ import os
 import unittest
 
 import numpy as np
+import tensorflow as tf
 
 from mdsuite.utils.meta_functions import (
     find_item,
     get_dimensionality,
     get_machine_properties,
     golden_section_search,
+    gpu_available,
     join_path,
     line_counter,
     linear_fitting_function,
@@ -43,6 +45,14 @@ from mdsuite.utils.meta_functions import (
     simple_file_read,
     split_array,
 )
+
+
+def test_gpu_available():
+    """
+    Ideally this should be checked against something else than tf.config
+    but I don't have any better measure.
+    """
+    assert gpu_available() == (len(tf.config.list_physical_devices("GPU")) > 1)
 
 
 class TestMetaFunction(unittest.TestCase):
