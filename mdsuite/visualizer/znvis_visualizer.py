@@ -65,7 +65,7 @@ class SimulationVisualizer:
         """
         self.counter = 0
         # Particle information
-        self.database = Database(name=join_path(database_path, "database.hdf5"))
+        self.database = Database(join_path(database_path, "database.hdf5"))
         self.frame_rate = frame_rate
         self.species = species
         if unwrapped:

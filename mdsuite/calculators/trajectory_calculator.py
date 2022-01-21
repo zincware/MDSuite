@@ -255,10 +255,11 @@ class TrajectoryCalculator(Calculator, ABC):
             self.remainder,
         ) = self.memory_manager.get_batch_size(system=self.system_property)
 
-        self.ensemble_loop, minibatch = self.memory_manager.get_ensemble_loop(
+        self.ensemble_loop, self.minibatch = self.memory_manager.get_ensemble_loop(
             self.args.data_range, self.args.correlation_time
         )
-        if minibatch:
+
+        if self.minibatch:
             self.batch_size = self.memory_manager.batch_size
             self.n_batches = self.memory_manager.n_batches
             self.remainder = self.memory_manager.remainder
@@ -276,7 +277,7 @@ class TrajectoryCalculator(Calculator, ABC):
             correlation_time=self.args.correlation_time,
             remainder=self.remainder,
             atom_selection=self.args.atom_selection,
-            minibatch=minibatch,
+            minibatch=self.minibatch,
             atom_batch_size=self.memory_manager.atom_batch_size,
             n_atom_batches=self.memory_manager.n_atom_batches,
             atom_remainder=self.memory_manager.atom_remainder,

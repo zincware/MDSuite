@@ -282,47 +282,6 @@ class Experiment(ExperimentDatabase):
         transformation.experiment = self
         transformation.run_transformation(*args, **kwargs)
 
-    # def run_visualization(
-    #         self,
-    #         species: list = None,
-    #         molecules: bool = False,
-    #         unwrapped: bool = False,
-    # ):
-    #     """
-    #     Perform a trajectory visualization.
-    #
-    #     Parameters
-    #     ----------
-    #     species : list
-    #             A list of species of molecules to study.
-    #     molecules : bool
-    #             If true, molecule groups will be used.
-    #     unwrapped : bool
-    #             If true, unwrapped coordinates will be visualized.
-    #
-    #     Returns
-    #     -------
-    #     Displays a visualization app.
-    #     """
-    #     if molecules:
-    #         if species is None:
-    #             species = list(self.molecules)
-    #     if species is None:
-    #         species = list(self.species)
-    #
-    #     if config.jupyter:
-    #         log.info(
-    #             "ZnVis visualizer currently does not support deployment from "
-    #             "jupyter. Please run your analysis as a python script to use"
-    #             "the visualizer."
-    #         )
-    #         return
-    #     else:
-    #         visualizer = SimulationVisualizer(
-    #             species=species, unwrapped=unwrapped, database_path=self.database_path
-    #         )
-    #         visualizer.run_visualization()
-
     @staticmethod
     def units_to_si(units_system):
         """
@@ -401,6 +360,100 @@ class Experiment(ExperimentDatabase):
 
         transformation_run = transformation(self, **kwargs)
         transformation_run.run_transformation()  # perform the transformation
+
+
+    def run_visualization(
+        self,
+        species: list = None,
+        molecules: bool = False,
+        unwrapped: bool = False,
+    ):
+        """
+        Perform a trajectory visualization.
+
+        Parameters
+        ----------
+        species : list
+                A list of species of molecules to study.
+        molecules : bool
+                If true, molecule groups will be used.
+        unwrapped : bool
+                If true, unwrapped coordinates will be visualized.
+
+        Returns
+        -------
+        Displays a visualization app.
+        """
+        import_error_msg = (
+            "It looks like you don't have the necessary plugin for "
+            "the visualizer extension. Please install znvis with"
+            " pip install znvis in order to use the MDSuite visualizer."
+        )
+        try:
+            from mdsuite.visualizer.znvis_visualizer import SimulationVisualizer
+        except ImportError:
+            log.info(import_error_msg)
+            return
+
+        if molecules:
+            if species is None:
+                species = list(self.molecules)
+        if species is None:
+            species = list(self.species)
+
+        if config.jupyter:
+            log.info(
+                "ZnVis visualizer currently does not support deployment from "
+                "jupyter. Please run your analysis as a python script to use"
+                "the visualizer."
+            )
+            return
+        else:
+            visualizer = SimulationVisualizer(
+                species=species, unwrapped=unwrapped, database_path=self.database_path
+            )
+            visualizer.run_visualization()
+
+    # def map_elements(self, mapping: dict = None):
+    #     """
+    #     Map numerical keys to element names in the Experiment class and database_path.
+    #
+    #     Returns
+    #     -------
+    #     Updates the class
+    #     """
+    #
+    #     if mapping is None:
+    #         log.info("Must provide a mapping")
+    #         return
+    #
+    #     # rename keys in species dictionary
+    #     for item in mapping:
+    #         self.species[mapping[item]] = self.species.pop(item)
+    #
+    #     # rename database_path groups
+    #     db_object = Database(name=os.path.join(self.database_path,
+    #     "database_path.hdf5"))
+    #     db_object.change_key_names(mapping)
+    #
+    #     self.save_class()  # update the class state
+    #
+    #
+    # def set_element(self, old_name, new_name):
+    #     """
+    #     Change the name of the element in the self.species dictionary
+    #
+    #     Parameters
+    #     ----------
+    #     old_name : str
+    #             Name of the element you want to change
+    #     new_name : str
+    #             New name of the element
+    #     """
+    #     # Check if the new name is new
+    #     if new_name != old_name:
+    #         self.species[new_name] = self.species[old_name]  # update dict
+    #         del self.species[old_name]  # remove old entry
 
     def set_charge(self, element: str, charge: float):
         """
@@ -608,7 +661,7 @@ class Experiment(ExperimentDatabase):
                 "charge": sp_info.charge,
                 "n_particles": sp_info.n_particles,
                 # legacy: calculators use this list to determine the number of particles
-                # TODO fix this, Christoph!
+                # TODO change this.
                 "indices": list(range(sp_info.n_particles)),
                 "properties": [prop_info.name for prop_info in sp_info.properties],
             }
@@ -666,7 +719,7 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
 def _species_list_to_architecture_dict(species_list, n_configurations):
     # TODO let the database handler use the species list directly instead of the dict
     """
-    converter from species list to leacy architecture dict
+    converter from species list to legacy architecture dict
     Parameters
     ----------
     species_list

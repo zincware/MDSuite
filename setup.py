@@ -26,7 +26,7 @@ Summary
 """
 import setuptools
 
-with open("README.rst", "r") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
@@ -35,13 +35,13 @@ with open("requirements.txt") as f:
 
 setuptools.setup(
     name="MDSuite",
-    version="0.0.1",
-    author="Samuel Tovey",
-    author_email="tovey.samuel@gmail.com",
+    version="0.1.0",
+    author="zincwarecode",
+    author_email="zincwarecode@gmail.com",
     description="A postprocessing tool for molecular dynamics simulations.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/SamTov/MDSuite",
+    url="https://github.com/zincware/MDSuite",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
