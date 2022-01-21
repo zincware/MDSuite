@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import logging
 from typing import List
 
 import numpy as np
@@ -33,8 +34,6 @@ from tqdm import tqdm
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -253,21 +252,23 @@ class MolecularMap(Transformations):
         """
         for item in self.molecules:
             self.reference_molecules[item] = {}
-            if 'smiles' in self.molecules[item]:
+            if "smiles" in self.molecules[item]:
                 mol, species = MolecularGraph(
                     self.experiment,
                     from_smiles=True,
                     smiles_string=self.molecules[item]["smiles"],
                 ).build_smiles_graph()
                 self.reference_molecules[item]["graph"] = mol
-            elif 'reference' in self.molecules[item]:
-                species = self.molecules[item]['reference']
+            elif "reference" in self.molecules[item]:
+                species = self.molecules[item]["reference"]
             else:
-                error_msg = "The minimum amount of data was not given to the mapping." \
-                            "Either provide a reference key with information about" \
-                            "Which species and the number of them are in the molecule," \
-                            "or provide a SMILES string that can be used to compute " \
-                            "this information."
+                error_msg = (
+                    "The minimum amount of data was not given to the mapping."
+                    "Either provide a reference key with information about"
+                    "Which species and the number of them are in the molecule,"
+                    "or provide a SMILES string that can be used to compute "
+                    "this information."
+                )
                 log.info(error_msg)
                 raise ValueError("Provide either a reference key or smiles string")
             self.reference_molecules[item]["species"] = list(species)
@@ -331,7 +332,9 @@ class MolecularMap(Transformations):
                 species=self.reference_molecules[item]["species"],
             )
             self.adjacency_graphs[item]["molecules"] = mol.reduce_graphs(
-                self.adjacency_graphs[item]["graph"], n_molecules=amount
+                self.adjacency_graphs[item]["graph"],
+                molecule_name=item,
+                n_molecules=amount,
             )
 
     def _load_batch(self, path_list: list, slice: np.s_, factor: list) -> tf.Tensor:
@@ -397,7 +400,11 @@ class MolecularMap(Transformations):
             )
             molecules[molecule_name]["mass"] = scaling_factor
             molecules[molecule_name]["groups"] = {}
-            for i in tqdm(range(self.n_batches), ncols=70, desc="Mapping molecules"):
+            for i in tqdm(
+                range(self.n_batches),
+                ncols=70,
+                desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
+            ):
                 start = i * self.batch_size
                 stop = start + self.batch_size
                 data = self._load_batch(
