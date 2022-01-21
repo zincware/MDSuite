@@ -147,12 +147,21 @@ class MolecularGraph:
     @staticmethod
     def _apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
         """
-        Enforce a cutoff on a tensor
+        Enforce a cutoff on a tensor.
+
+        In this context the cutoff is used to identify bonded atoms. We argue
+        that the closest atoms will be bonded as defined by a cutoff.
+        Constructing the mask of closest atoms will allow for the bonded ones to be
+        identified.
 
         Parameters
         ----------
         tensor : tf.Tensor
+                Tensor of any size or shape to be masked. In our case it is a distance
+                tensor of the atoms in a configuration.
         cutoff : float
+                Cutoff to use in the mask. If a distance is greater than this cutoff it
+                is marked as 0, if not, it is 1.
         """
 
         cutoff_mask = tf.cast(
