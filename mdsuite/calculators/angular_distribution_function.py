@@ -146,7 +146,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         batch_size: int = 1,
         minibatch: int = 50,
         number_of_configurations: int = 5,
-        cutoff: int = 6.0,
+        cutoff: float = 6.0,
         start: int = 1,
         stop: int = None,
         number_of_bins: int = 500,
@@ -583,7 +583,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         angles = {}
 
         # Loop over the batches.
-        for idx, batch in tqdm(enumerate(batch_ds), ncols=70):
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, total=self.n_batches):
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
 
             angles = self._build_histograms(

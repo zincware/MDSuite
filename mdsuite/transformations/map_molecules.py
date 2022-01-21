@@ -439,7 +439,7 @@ class MolecularMap(Transformations):
                     index=start,
                 )
             self.experiment.molecules = molecules
-            self.experiment.species.update(molecules)
+            # self.experiment.species.update(molecules)
 
     def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
         """

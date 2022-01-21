@@ -146,9 +146,12 @@ def get_triplets(
     memory issues.
 
     """
+    if n_batches >= n_atoms:
+        n_batches = n_atoms - 1
     r_ij = tf.norm(full_r_ij, axis=-1)
     r_ij = tf.cast(r_ij, dtype=tf.float16)  # Using float16 for maximal memory safety.
     r_ij = tf.where(r_ij == 0, tf.ones_like(r_ij) * r_cut, r_ij)
+
     batches = np.array_split(np.arange(1, n_atoms), n_batches)
     triples = []
     # batches would be [(1, 100), (101, 200), (201, 300), ...]

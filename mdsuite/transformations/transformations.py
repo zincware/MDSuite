@@ -285,7 +285,10 @@ class Transformations:
             output_length = 1
             path = join_path(self.output_property.name, self.output_property.name)
         else:
-            output_length = self.experiment.species[species]["n_particles"]
+            try:
+                output_length = self.experiment.species[species]["n_particles"]
+            except KeyError:
+                output_length = self.experiment.molecules[species]["n_particles"]
             path = join_path(species, self.output_property.name)
         n_dims = self.output_property.n_dims
 
@@ -327,7 +330,10 @@ class Transformations:
     def find_property_single_val(self, sp_name, prop):
         # TODO: properties in species_dict are all lowercase,
         # whereas the properties in the database are upper case
-        species_dict = self.experiment.species[sp_name]
+        try:
+            species_dict = self.experiment.species[sp_name]
+        except KeyError:
+            species_dict = self.experiment.molecules[sp_name]
         per_sp_value = species_dict.get(prop.name.lower())
         if per_sp_value is not None:
             return per_sp_value
@@ -487,6 +493,7 @@ class SingleSpeciesTrafo(Transformations):
                     f"Applying transformation '{self.output_property.name}' to"
                     f" '{species_name}'"
                 ),
+                total=self.n_batches
             ):
                 # remove species information from batch:
                 # the transformation only has to know about the property
@@ -586,6 +593,7 @@ class MultiSpeciesTrafo(Transformations):
             enumerate(data_set),
             ncols=70,
             desc=f"Applying transformation '{self.output_property.name}'",
+            total=self.n_batches
         ):
             batch_dict.pop(str.encode("data_size"))
             batch_dict_hierachical = {sp_name: {} for sp_name in species}
