@@ -30,18 +30,10 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
-
-switcher_transformations = {
-    "Translational_Dipole_Moment": "TranslationalDipoleMoment",
-    "Ionic_Current": "IonicCurrent",
-    "Integrated_Heat_Current": "IntegratedHeatCurrent",
-    "Thermal_Flux": "ThermalFlux",
-    "Momentum_Flux": "MomentumFlux",
-    "Kinaci_Heat_Current": "KinaciIntegratedHeatCurrent",
-}
 
 
 class MolecularMap(Transformations):
@@ -85,7 +77,7 @@ class MolecularMap(Transformations):
         self.molecules = None
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.dependency = "Unwrapped_Positions"
+        self.dependency = mdsuite_properties.unwrapped_positions
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
     def _prepare_database_entry(self, species, number_of_molecules: int) -> dict:
@@ -122,69 +114,10 @@ class MolecularMap(Transformations):
         -------
         Calls a resolve method if dependencies are not met.
         """
-        truth_array = []
-        path_list = [
-            join_path(species, self.dependency) for species in self.experiment.species
-        ]
-        for item in path_list:
-            truth_array.append(self.database.check_existence(item))
-        if all(truth_array):
-            return
-        else:
-            self._resolve_dependencies(self.dependency)
-
-    def _resolve_dependencies(self, dependency):
-        """
-        Resolve any calculation dependencies if possible.
-
-        Parameters
-        ----------
-        dependency : str
-                Name of the dependency to resolve.
-
-        Returns
-        -------
-
-        """
-
-        def _string_to_function(argument):
-            """
-            Select a transformation based on an input
-
-            Parameters
-            ----------
-            argument : str
-                    Name of the transformation required
-
-            Returns
-            -------
-            transformation call.
-            """
-
-            switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
-
-            switcher = {**switcher_unwrapping, **switcher_transformations}
-
-            try:
-                return switcher[argument]
-            except KeyError:
-                raise KeyError("Data not in database and can not be generated.")
-
-        transformation = _string_to_function(dependency)
-        self.experiment.perform_transformation(transformation)
-
-    def _unwrap_choice(self):
-        """
-        Unwrap either with indices or with box arrays.
-        Returns
-        -------
-
-        """
-        indices = self.database.check_existence("Box_Images")
-        if indices:
-            return "UnwrapViaIndices"
-        else:
-            return "UnwrapCoordinates"
+        for sp_name in self.experiment.species:
+            path = join_path(sp_name, self.dependency.name)
+            if not self.database.check_existence(path):
+                self.get_prop_through_transformation(sp_name, self.dependency)
 
     def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
         """

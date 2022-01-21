@@ -34,8 +34,19 @@ from mdsuite.database.simulation_database import PropertyInfo
 class MDSuiteProperties:
     """
     The names of properties used by MDSuite.
-    Intended for use as a global constant by file readers, transformations and
-    calculations to access the respective entries in the database.
+    Use members in the code whenever referencing properties. A string is only needed when
+    writing/reading the database.
+    Non-obvious members are described below:
+
+    Attributes
+    ----------
+    scaled_positions:
+        Particle positions relative to the box size. All entries are in [0, box_length]
+    box_length:
+        The lengths of the three sides of the simulation box. Assumes a cuboid.
+    sample_rate: int
+        The
+
     """
 
     temperature = PropertyInfo("Temperature", 1)
