@@ -110,7 +110,6 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
-        gpu: bool = False,
     ):
         """
         Python constructor
@@ -123,9 +122,6 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
                 Data range to use in the analysis.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
         """
         # set args that will affect the computation result
         self.args = Args(
@@ -134,8 +130,6 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
             tau_values=tau_values,
             atom_selection=np.s_[:],
         )
-
-        self.gpu = gpu
         self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)

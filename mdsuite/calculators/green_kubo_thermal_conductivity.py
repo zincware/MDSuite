@@ -105,7 +105,6 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         data_range=500,
         tau_values: np.s_ = np.s_[:],
         correlation_time: int = 1,
-        gpu: bool = False,
         integration_range: int = None,
     ):
         """
@@ -119,13 +118,9 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
                 Data range to use in the analysis.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
         integration_range : int
                 Range over which the integration should be performed.
         """
-        self.gpu = gpu
         self.plot = plot
         self.jacf: np.ndarray
         self.prefactor: float

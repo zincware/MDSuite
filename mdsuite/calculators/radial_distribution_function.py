@@ -136,8 +136,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         self.key_list = None
         self.rdf = None
 
-        self.correct_minibatch_batching = None
-
     @call
     def __call__(
         self,
@@ -151,7 +149,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         minibatch: int = -1,
         species: list = None,
         molecules: bool = False,
-        gpu: bool = False,
         **kwargs,
     ):
         """
@@ -184,8 +181,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             issues. Increase this value for better performance.
         molecules: bool
             If true, the molecules will be analyzed rather than the atoms.
-        gpu: bool
-            Calculate batch size based on GPU memory instead of CPU memory
         kwargs:
             overide_n_batches: int
                     override the automatic batch size calculation
@@ -209,7 +204,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         # usually performance or plotting
         self.rdf_minibatch = minibatch
         self.plot = plot
-        self.gpu = gpu
 
         # kwargs parsing
         self.use_tf_function = kwargs.pop("use_tf_function", False)
@@ -251,10 +245,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 self.args.species = list(self.experiment.molecules)
             else:
                 self.args.species = list(self.experiment.species)
-
-        if self.gpu:
-            self.correct_minibatch_batching = 100
-            # 100 seems to be a good value for most systems
 
         self._initialize_rdf_parameters()
 
