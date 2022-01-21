@@ -67,7 +67,9 @@ def run_example():
             "bf4": {"smiles": "[B-](F)(F)(F)F", "amount": 50, "cutoff": 2.4},
         }
     )
-    project.run.AngularDistributionFunction(start=0, stop=100, number_of_configurations=10, cutoff=3.0)
+    project.run.AngularDistributionFunction(
+        start=0, stop=100, number_of_configurations=10, cutoff=3.0
+    )
     project.experiments.bmim_bf4.run_visualization(molecules=False)
 
     print("Tutorial complete....... Files being deleted now.")
