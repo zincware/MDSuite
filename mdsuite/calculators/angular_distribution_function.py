@@ -144,7 +144,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
     def __call__(
         self,
         batch_size: int = 1,
-        minibatch: int = 50,
+        minibatch: int = -1,
         number_of_configurations: int = 5,
         cutoff: float = 6.0,
         start: int = 1,
@@ -215,9 +215,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.adf_minibatch = (
-            minibatch  # memory management for triples generation per batch.
-        )
+        self.adf_minibatch = minibatch
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
@@ -264,6 +262,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
+
+        if self.adf_minibatch == -1:
+            self.adf_minibatch = number_of_atoms
 
     def _prepare_data_structure(self):
         """
