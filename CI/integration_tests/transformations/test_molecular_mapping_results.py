@@ -83,14 +83,14 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         traj_file_path=traj_files[2], topol_file_path=traj_files[1]
     )
     project.add_experiment(
-        name=f"simple_water",
+        name="simple_water",
         timestep=0.002,
         temperature=300.0,
         units=gmx_units,
         simulation_data=file_reader_1,
     )
     project.add_experiment(
-        name=f"ligand_water",
+        name="ligand_water",
         timestep=0.002,
         temperature=300.0,
         units=gmx_units,
