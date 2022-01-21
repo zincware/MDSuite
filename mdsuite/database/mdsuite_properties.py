@@ -44,8 +44,10 @@ class MDSuiteProperties:
         Particle positions relative to the box size. All entries are in [0, box_length]
     box_length:
         The lengths of the three sides of the simulation box. Assumes a cuboid.
+    time_step: float
+        The time step of the simulation. Not to be confused with sample_rate.
     sample_rate: int
-        The
+        The number of timesteps between successive samples.
 
     """
 
