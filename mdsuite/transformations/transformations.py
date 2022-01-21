@@ -493,7 +493,7 @@ class SingleSpeciesTrafo(Transformations):
                     f"Applying transformation '{self.output_property.name}' to"
                     f" '{species_name}'"
                 ),
-                total=self.n_batches
+                total=self.n_batches,
             ):
                 # remove species information from batch:
                 # the transformation only has to know about the property
@@ -593,7 +593,7 @@ class MultiSpeciesTrafo(Transformations):
             enumerate(data_set),
             ncols=70,
             desc=f"Applying transformation '{self.output_property.name}'",
-            total=self.n_batches
+            total=self.n_batches,
         ):
             batch_dict.pop(str.encode("data_size"))
             batch_dict_hierachical = {sp_name: {} for sp_name in species}

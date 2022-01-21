@@ -28,8 +28,8 @@ Functional test for the analysis of a GROMACS water simulation.
 import os
 
 import mdsuite as mds
-from mdsuite.utils import Units
 import mdsuite.file_io.chemfiles_read
+from mdsuite.utils import Units
 
 
 def test_water_analysis(tmp_path):
@@ -63,4 +63,8 @@ def test_water_analysis(tmp_path):
     )
     project.run.CoordinateWrapper()
 
-    project.run.AngularDistributionFunction()
+    # project.run.AngularDistributionFunction()
+
+    project.run.MolecularMap(
+        molecules={"water": {"smiles": "[H]O[H]", "amount": 14, "cutoff": 1.7}}
+    )

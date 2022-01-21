@@ -25,25 +25,27 @@ Summary
 -------
 Module to test the molecular graph module.
 """
-from mdsuite.graph_modules.molecular_graph import MolecularGraph
+from pathlib import Path
 
 import numpy as np
-
-from pathlib import Path
 import tensorflow as tf
+
+from mdsuite.graph_modules.molecular_graph import MolecularGraph
 
 
 class MockExperiment:
     """
     Experiment class for a unit test
     """
-    database_path = Path('./')
+
+    database_path = Path("./")
 
 
 class TestMolecularGraph:
     """
     Class to test the molecular graph module.
     """
+
     graph_class = MolecularGraph(experiment=MockExperiment())
 
     def test_apply_system_cutoff(self):
@@ -60,7 +62,7 @@ class TestMolecularGraph:
             [12, 0.0, 4, 3.27, 1],
             [200, 38, 0, 1, 2.11],
             [5, 5, 5.8765342, 0, 5],
-            [1, 7, 3, 4.8762511, 0]
+            [1, 7, 3, 4.8762511, 0],
         ]
         cutoff_tensor = tf.constant(cutoff_data, dtype=tf.float32)
 
@@ -71,7 +73,7 @@ class TestMolecularGraph:
                 [0, 0, 1, 1, 1],
                 [0, 0, 0, 1, 1],
                 [0, 0, 0, 0, 0],
-                [1, 0, 1, 1, 0]
+                [1, 0, 1, 1, 0],
             ]
         )
         mask = self.graph_class._apply_system_cutoff(cutoff_tensor, cutoff=5)
@@ -107,16 +109,16 @@ class TestMolecularGraph:
         nacl = "[Na+].[Cl-]"
 
         data = {
-            emim: {'species': {'C': 6, 'N': 2, 'H': 12}, 'nodes': 20},
-            bmim: {'species': {'C': 8, "N": 2, 'H': 16}, 'nodes': 26},
-            pf: {'species': {'P': 1, "F": 6}, 'nodes': 7},
-            h2o: {'species': {'H': 2, 'O': 1}, 'nodes': 3},
-            bergenin: {'species': {'C': 14, 'H': 16, 'O': 9}, 'nodes': 39},
-            nacl: {'species': {'Na': 1, 'Cl': 1}, 'nodes': 2}
+            emim: {"species": {"C": 6, "N": 2, "H": 12}, "nodes": 20},
+            bmim: {"species": {"C": 8, "N": 2, "H": 16}, "nodes": 26},
+            pf: {"species": {"P": 1, "F": 6}, "nodes": 7},
+            h2o: {"species": {"H": 2, "O": 1}, "nodes": 3},
+            bergenin: {"species": {"C": 14, "H": 16, "O": 9}, "nodes": 39},
+            nacl: {"species": {"Na": 1, "Cl": 1}, "nodes": 2},
         }
 
         for item in data:
             self.graph_class.smiles_string = item
             graph_obj, species = self.graph_class.build_smiles_graph()
-            assert graph_obj.number_of_nodes() == data[item]['nodes']
-            assert species == data[item]['species']
+            assert graph_obj.number_of_nodes() == data[item]["nodes"]
+            assert species == data[item]["species"]
