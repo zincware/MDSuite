@@ -68,7 +68,7 @@ def run_example():
         }
     )
 
-    project.experiments.bmim_bf4.run_visualization(molecules=True)
+    # project.experiments.bmim_bf4.run_visualization(molecules=True) # has been removed
 
     print("Tutorial complete....... Files being deleted now.")
 

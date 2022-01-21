@@ -61,7 +61,7 @@ def run_example():
         units="metal",
         simulation_data="Ar_dft_short.extxyz",
     )
-    project.experiments.argon.run_visualization()
+    # project.experiments.argon.run_visualization() # has been removed
 
 
 if __name__ == "__main__":

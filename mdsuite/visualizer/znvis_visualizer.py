@@ -130,6 +130,7 @@ class SimulationVisualizer:
         return particle_list
 
     def run_visualization(self):
+        # has been removed
         """
         Run the visualization.
 
@@ -137,6 +138,6 @@ class SimulationVisualizer:
         -------
         Opens the ZnVis app and runs the visualization.
         """
-        particle_list = self._prepare_species()
-        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=50)
-        visualizer.run_visualization()
+        # particle_list = self._prepare_species()
+        # visualizer = znvis.Visualizer(particles=particle_list, frame_rate=50)
+        # visualizer.run_visualization()

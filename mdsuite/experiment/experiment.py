@@ -50,7 +50,6 @@ from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
 from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
@@ -361,6 +360,7 @@ class Experiment(ExperimentDatabase):
 
         transformation_run = transformation(self, **kwargs)
         transformation_run.run_transformation()  # perform the transformation
+
 
     def run_visualization(
         self,
@@ -719,7 +719,7 @@ def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
 def _species_list_to_architecture_dict(species_list, n_configurations):
     # TODO let the database handler use the species list directly instead of the dict
     """
-    converter from species list to leacy architecture dict
+    converter from species list to legacy architecture dict
     Parameters
     ----------
     species_list
