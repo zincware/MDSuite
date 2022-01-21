@@ -89,3 +89,34 @@ class TestMolecularGraph:
         mask = self.graph_class._apply_system_cutoff(cutoff_tensor, cutoff=200.01)
         np.testing.assert_array_equal(np.diagonal(mask), zeros)
         np.testing.assert_array_equal(mask, target)
+
+    def test_build_smiles_graph(self):
+        """
+        Test the build_smiles_graph method.
+
+        Returns
+        -------
+        This test checks that the SMILES graphs built by the module return the correct
+        molecule information for several scenarios.
+        """
+        emim = "CCN1C=C[N+](+C1)C"
+        bmim = "CCCCN1C=C[N+](+C1)C"
+        pf = "F[P-](F)(F)(F)(F)F"  # PF6
+        h2o = "[H]O[H]"
+        bergenin = "OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H]2[C@@H]1c3c(O)c(OC)c(O)cc3C(=O)O2"
+        nacl = "[Na+].[Cl-]"
+
+        data = {
+            emim: {'species': {'C': 6, 'N': 2, 'H': 12}, 'nodes': 20},
+            bmim: {'species': {'C': 8, "N": 2, 'H': 16}, 'nodes': 26},
+            pf: {'species': {'P': 1, "F": 6}, 'nodes': 7},
+            h2o: {'species': {'H': 2, 'O': 1}, 'nodes': 3},
+            bergenin: {'species': {'C': 14, 'H': 16, 'O': 9}, 'nodes': 39},
+            nacl: {'species': {'Na': 1, 'Cl': 1}, 'nodes': 2}
+        }
+
+        for item in data:
+            self.graph_class.smiles_string = item
+            graph_obj, species = self.graph_class.build_smiles_graph()
+            assert graph_obj.number_of_nodes() == data[item]['nodes']
+            assert species == data[item]['species']
