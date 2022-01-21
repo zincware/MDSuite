@@ -257,9 +257,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the number of atoms attribute.
         """
+        # TODO return to dotdict form when molecules is a dotdict
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += reference[item].n_particles
+            number_of_atoms += reference[item]["n_particles"]  # .n_particles
 
         self.number_of_atoms = number_of_atoms
 
@@ -284,7 +285,11 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.args.species:
-            stop_index += self.experiment.species[species].n_particles
+            try:
+                stop_index += self.experiment.species[species].n_particles
+            except KeyError:
+                # TODO return to dotdict form when molecules is a dotdict
+                stop_index += self.experiment.molecules[species]["n_particles"]
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 
