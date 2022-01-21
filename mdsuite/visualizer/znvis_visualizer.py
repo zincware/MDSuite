@@ -65,7 +65,7 @@ class SimulationVisualizer:
         """
         self.counter = 0
         # Particle information
-        self.database = Database(name=join_path(database_path, "database.hdf5"))
+        self.database = Database(join_path(database_path, "database.hdf5"))
         self.frame_rate = frame_rate
         self.species = species
         if unwrapped:
@@ -138,5 +138,5 @@ class SimulationVisualizer:
         Opens the ZnVis app and runs the visualization.
         """
         particle_list = self._prepare_species()
-        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=50)
+        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=17)
         visualizer.run_visualization()

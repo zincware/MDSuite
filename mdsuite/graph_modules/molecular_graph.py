@@ -51,6 +51,7 @@ class MolecularGraph:
         from_smiles: bool = False,
         from_configuration: bool = True,
         smiles_string: str = None,
+        reference_dict: dict = None,
         species: list = None,
     ):
         """
@@ -65,7 +66,17 @@ class MolecularGraph:
         from_configuration : bool
                 Build graphs from a configuration.
         smiles_string : str
-                SMILES string to read
+                SMILES string to read and used in the construction of a reference
+                graph with molecule information.
+        reference_dict : dict
+                Alternatively to the SMILES string a reference dict can be given to
+                construct a reference molecule. This dict should be of the form:
+
+                .. code-block: python
+
+                   {'PF6': {'P': 1, 'F': 6}}}
+
+                for a PF6 molecule.
         species : list
                 List of species to build a graph with.
         """
@@ -74,6 +85,7 @@ class MolecularGraph:
         self.from_configuration = from_configuration
 
         self.smiles_string = smiles_string
+        self.reference_dict = reference_dict
         self.species = species
 
         self.database = Database(self.experiment.database_path / "database.hdf5")
@@ -101,18 +113,11 @@ class MolecularGraph:
             If periodic boundary conditions are used, please supply the cell
             dimensions, e.g. [13.97, 13.97, 13.97]. If the cell is provided
             minimum image convention will be applied!
-        batch_size: int
-            Has to be evenly divisible by the the number of configurations.
 
         Returns
         -------
-        generator object which results all distances for the current batch of
-        time steps
-
-        To get the real r_ij matrix for one time_step you can use the following:
-            r_ij_mat = np.zeros((n_atoms, n_atoms, 3))
-            r_ij_mat[np.triu_indices(n_atoms, k = 1)] = get_neighbour_list(``*args``)
-            r_ij_mat -= r_ij_mat.transpose(1, 0, 2)
+        neighbour_list : tf.Tensor
+                Neighbour list for a single configuration.
 
         """
         r_ij_matrix = tf.reshape(positions, (1, len(positions), 3)) - tf.reshape(
@@ -163,8 +168,9 @@ class MolecularGraph:
         Parameters
         ----------
         cutoff : float
+                Cutoff over which to look for molecules.
         adjacency : bool
-                If true, the adjacent matrix is returned.
+                If true, the adjacency matrix is returned.
         Returns
         -------
 
@@ -252,9 +258,9 @@ class MolecularGraph:
         else:
             if len(molecules) != n_molecules:
                 raise ValueError(
-                    "Expected number of molecules does not "
-                    "match the amount computed, please adjust"
-                    "parameters."
+                    f"Expected number of molecules ({n_molecules}) does not "
+                    f"match the amount computed ({len(molecules)}), please adjust "
+                    f"parameters."
                 )
             else:
                 return molecules

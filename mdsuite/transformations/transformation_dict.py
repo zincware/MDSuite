@@ -25,7 +25,7 @@ Summary
 -------
 """
 
-# TODO remvoe this!
+# TODO remove when molecule mapping is adjusted.
 # map_molecules is the only transformation still working with it
 
 from mdsuite.transformations.integrated_heat_current import IntegratedHeatCurrent

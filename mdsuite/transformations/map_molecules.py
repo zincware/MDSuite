@@ -34,6 +34,11 @@ from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
+import logging
+
+log = logging.getLogger(__name__)
+
+
 switcher_transformations = {
     "Translational_Dipole_Moment": "TranslationalDipoleMoment",
     "Ionic_Current": "IonicCurrent",
@@ -53,8 +58,6 @@ class MolecularMap(Transformations):
     scale_function : dict
             A dictionary referencing the memory/time scaling function of the
             transformation.
-    experiment : object
-            Experiment object to work within.
     molecules : dict
             Molecule dictionary to use as reference. e.g.
 
@@ -67,19 +70,8 @@ class MolecularMap(Transformations):
     """
 
     def __init__(self):
-        """Constructor for the MolecularMap class.
-
-        Parameters
-        ----------
-        molecules : dict
-                Molecule dictionary to use as reference. e.g, the input for
-                emim-PF6 ionic liquid would be.
-
-                .. code-block::
-
-                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
-                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
-
+        """
+        Constructor for the MolecularMap class.
         """
         super().__init__()
         self.molecules = None
@@ -88,9 +80,16 @@ class MolecularMap(Transformations):
         self.dependency = "Unwrapped_Positions"
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
-    def _prepare_database_entry(self, species, number_of_molecules: int) -> dict:
+    def _prepare_database_entry(self, species: str, number_of_molecules: int) -> dict:
         """
         Call some housekeeping methods and prepare for the transformations.
+
+        Parameters
+        ----------
+        species
+                Name of the species to be added
+        number_of_molecules : int
+                Number of molecules to be added to the database.
         Returns
         -------
         data_structure : dict
@@ -240,20 +239,38 @@ class MolecularMap(Transformations):
 
     def _build_reference_graphs(self):
         """
-        Build the reference graphs from the SMILES strings.
+        Build the reference graphs from the reference input.
+        .
         Returns
         -------
-        Nothing.
+        Updates the reference molecules attribute of the class. It should be populated
+        after this call and look something like:
+
+        {'bmim': {'species': ['C', 'H', 'N'], 'mass': 200, 'graph': tf.Tensor}}
+
+        If a dict is used as a reference, the graph will not exist and stronger
+        isomorphism checks will not be possible.
         """
         for item in self.molecules:
             self.reference_molecules[item] = {}
-            mol, species = MolecularGraph(
-                self.experiment,
-                from_smiles=True,
-                smiles_string=self.molecules[item]["smiles"],
-            ).build_smiles_graph()
+            if 'smiles' in self.molecules[item]:
+                mol, species = MolecularGraph(
+                    self.experiment,
+                    from_smiles=True,
+                    smiles_string=self.molecules[item]["smiles"],
+                ).build_smiles_graph()
+                self.reference_molecules[item]["graph"] = mol
+            elif 'reference' in self.molecules[item]:
+                species = self.molecules[item]['reference']
+            else:
+                error_msg = "The minimum amount of data was not given to the mapping." \
+                            "Either provide a reference key with information about" \
+                            "Which species and the number of them are in the molecule," \
+                            "or provide a SMILES string that can be used to compute " \
+                            "this information."
+                log.info(error_msg)
+                raise ValueError("Provide either a reference key or smiles string")
             self.reference_molecules[item]["species"] = list(species)
-            self.reference_molecules[item]["graph"] = mol
             self.reference_molecules[item]["mass"] = self._get_molecular_mass(species)
 
     def _get_molecular_mass(self, species_dict: dict) -> float:
@@ -399,6 +416,7 @@ class MolecularMap(Transformations):
                 for t, molecule in enumerate(
                     self.adjacency_graphs[molecule_name]["molecules"]
                 ):
+                    # indices of the atoms inside the specific molecule.
                     indices = list(
                         self.adjacency_graphs[molecule_name]["molecules"][
                             molecule
@@ -425,7 +443,7 @@ class MolecularMap(Transformations):
         indices : list[int]
                 Indices of atoms belonging in the molecule
         species : list[str]
-                Elements in the molecules, in the order that they are loaded.
+                Species in the molecules, in the order that they are loaded.
         Returns
         -------
         group_dict : dict
@@ -458,6 +476,28 @@ class MolecularMap(Transformations):
     def run_transformation(self, molecules: dict):
         """
         Perform the transformation.
+
+        Parameters
+        ----------
+        molecules : dict
+                Molecule dictionary to use as reference. The reference component is the
+                most critical part. One can either use a smiles string or a reference
+                dict as demonstrated below.
+
+                e.g, the input for emim-PF6 ionic liquid would be:
+
+                .. code-block::
+
+                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
+                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
+
+                or:
+
+                .. code-block::
+
+                   {'emim': {'reference': {'C': , 'N': 'H': }}, 'amount': 20},
+                   'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20}}
+
         Returns
         -------
         Update the experiment database.
