@@ -72,5 +72,5 @@ __all__ = [
     "PotentialOfMeanForce",
     "RadialDistributionFunction",
     "StructureFactor",
-  # "SpatialDistributionFunction",
+    # "SpatialDistributionFunction",
 ]
