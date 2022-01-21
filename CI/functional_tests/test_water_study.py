@@ -80,7 +80,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     )
 
     project.add_experiment(
-        name=f"water_sim",
+        name="water_sim",
         timestep=0.002,
         temperature=300.0,
         units=gmx_units,
