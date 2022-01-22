@@ -141,13 +141,14 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     @call
     def __call__(
         self,
-        plot=True,
-        number_of_bins=None,
-        cutoff=None,
-        save=True,
-        start=0,
-        stop=None,
-        number_of_configurations=500,
+        plot: bool = True,
+        number_of_bins: int = None,
+        cutoff: float = None,
+        save: bool = True,
+        start: int = 0,
+        stop: int = None,
+        number_of_configurations: int = 500,
+        atom_selection: Union[np.s_, dict] = np.s_[:],
         minibatch: int = -1,
         species: list = None,
         molecules: bool = False,
@@ -178,6 +179,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         number_of_configurations: int
             The number of uniformly sampled configuration between start and
             stop to be used for the RDF.
+        atom_selection : Union[np.s_, dict]
+                Atoms to be used in the analysis.
         minibatch: int
             Size of a minibatch over atoms in the batch over configurations.
             Decrease this value if you run into memory
@@ -198,7 +201,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             cutoff=cutoff,
             start=start,
             stop=stop,
-            atom_selection=np.s_[:],
+            atom_selection=atom_selection,
             data_range=1,
             correlation_time=1,
             molecules=molecules,
@@ -335,9 +338,16 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 * len(self.experiment.molecules[species_split[0]]["indices"])
             )
         else:
+            if isinstance(self.args.atom_selection, dict):
+                n_species_0 = len(self.args.atom_selection[species_split[0]])
+                n_species_1 = len(self.args.atom_selection[species_split[1]])
+            else:
+                n_species_0 = self.experiment.species[species_split[0]].n_particles
+                n_species_1 = self.experiment.species[species_split[1]].n_particles
+
             # Density of all atoms / total volume
             rho = (
-                self.experiment.species[species_split[1]].n_particles
+                n_species_1
                 / self.experiment.volume
             )
             numerator = species_scale_factor
@@ -345,7 +355,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 self.args.number_of_configurations
                 * rho
                 * self.ideal_correction
-                * self.experiment.species[species_split[0]].n_particles
+                * n_species_0
             )
         prefactor = numerator / denominator
 
@@ -367,7 +377,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
         for names in self.key_list:
             self.selected_species = names.split("_")
-            # TODO use selected_species instead of names, it is more clear!
+            # TODO use selected_species instead of names, it is more clear
             prefactor = self._calculate_prefactor(names)  # calculate the prefactor
 
             self.rdf.update(
@@ -472,27 +482,30 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         log.debug(f"Computing species values took {timer() - start_time} s")
 
         minibatch_start = stop
-
         return minibatch_rdf, minibatch_start, stop
 
-    def compute_species_values(self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor):
+    def compute_species_values(
+            self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor
+    ) -> dict:
         """
         Compute species-wise histograms
 
         Parameters
         ----------
-        indices: tf.Tensor
+        indices : tf.Tensor
                 indices of the d_ij distances in the shape (x, 2)
-                start_batch: starts from 0 and increments by atoms_per_batch every batch
-                d_ij: d_ij matrix in the shape (x, batches) where x comes from the triu
+        start_batch :
+                starts from 0 and increments by atoms_per_batch every batch
+        d_ij : tf.Tensor
+                d_ij matrix in the shape (x, batches) where x comes from the triu
                 computation
         start_batch : int
-        d_ij : tf.Tensor
-                distance matrix for the atoms.
 
         Returns
         -------
-
+        rdf : dict
+                Dict of rdf values for each combination of species, e.g.:
+                {'H-O': tf.Tensor(...), 'H-H': ..., 'O-O': ...}
         """
         rdf = {
             name: tf.zeros(self.args.number_of_bins, dtype=tf.int32)
@@ -501,7 +514,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         indices = tf.transpose(indices)
 
         particles_list = self.particles_list
-
         for tuples in itertools.combinations_with_replacement(self.index_list, 2):
             names = self._get_species_names(tuples)
             start_ = tf.concat(
@@ -529,7 +541,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     def plot_data(self, data):
         """Plot the RDF data"""
         for selected_species, val in data.items():
-            # TODO fix units!
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
                 y_data=np.array(val[self.result_series_keys[1]]),
@@ -635,8 +646,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         bin_range
         number_of_bins : int
         cutoff : float
+                Cutoff to enforce on the distance tensor.
         """
-
         # select the indices that are within the boundaries of the current species /
         # molecule
         mask_1 = (indices[:, 0] > start[0]) & (indices[:, 0] < stop[0])
@@ -647,7 +658,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         bin_data = tf.histogram_fixed_width(
             values=values, value_range=bin_range, nbins=number_of_bins
         )
-
         return bin_data
 
     @staticmethod
@@ -708,10 +718,16 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 for item in self.experiment.molecules
             ]
         else:
-            particles_list = [
-                self.experiment.species[item].n_particles
-                for item in self.experiment.species
-            ]
+            if isinstance(self.args.atom_selection, dict):
+                particles_list = [
+                    len(self.args.atom_selection[item]) for item in self.args.species
+
+                ]
+            else:
+                particles_list = [
+                    self.experiment.species[item].n_particles
+                    for item in self.args.species
+                ]
 
         return particles_list
 

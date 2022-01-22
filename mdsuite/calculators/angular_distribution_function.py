@@ -137,8 +137,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$$\text{Angle} / \theta $$"
-        self.y_label = r"$$\text{ADF} / a.u.$$"
+        self.x_label = r"$\text{Angle} / \theta$"
+        self.y_label = r"$\text{ADF} / a.u.$"
 
     @call
     def __call__(
@@ -153,6 +153,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         species: list = None,
         use_tf_function: bool = False,
         molecules: bool = False,
+        atom_selection = np.s_[:],
         gpu: bool = False,
         plot: bool = True,
         norm_power: int = 4,
@@ -183,6 +184,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             of batches.
         species : list
             A list of species to use.
+        atom_selection : Union[np.s_, dict]
+                Atoms to be used in the analysis.
         norm_power: int
             The power of the normalization factor applied to the ADF histogram.
             If set to zero no distance normalization will be applied.
@@ -200,7 +203,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             cutoff=cutoff,
             start=start,
             stop=stop,
-            atom_selection=np.s_[:],
+            atom_selection=atom_selection,
             data_range=1,
             correlation_time=1,
             molecules=molecules,
@@ -260,7 +263,12 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         # TODO return to dotdict form when molecules is a dotdict
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += reference[item]["n_particles"]  # .n_particles
+            if isinstance(self.args.atom_selection, dict):
+                number_of_atoms = 0
+                for item in self.args.atom_selection:
+                    number_of_atoms += len(self.args.atom_selection[item])
+            else:
+                number_of_atoms += reference[item]["n_particles"]  # .n_particles
 
         self.number_of_atoms = number_of_atoms
 
@@ -286,7 +294,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         stop_index = 0
         for species in self.args.species:
             try:
-                stop_index += self.experiment.species[species].n_particles
+                if isinstance(self.args.atom_selection, dict):
+                    stop_index += len(self.args.atom_selection[species])
+                else:
+                    stop_index += self.experiment.species[species].n_particles
             except KeyError:
                 # TODO return to dotdict form when molecules is a dotdict
                 stop_index += self.experiment.molecules[species]["n_particles"]

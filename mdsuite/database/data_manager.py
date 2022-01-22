@@ -134,6 +134,12 @@ class DataManager:
         remainder : bool
                 If true, a remainder batch must be computed.
         loop_array : np.ndarray
+                If this is not None, elements of this array will be looped over in
+                in the batches which load data at their indices. For example,
+                    loop_array = [[1, 4, 7], [10, 13, 16], [19, 21, 24]]
+                In this case, in the fist batch, configurations 1, 4, and 7 will be
+                loaded for the analysis. This is particularly important in the
+                structural properties.
 
         Returns
         -------
@@ -187,7 +193,14 @@ class DataManager:
                     # TODO make default
 
                 if loop_array is not None:
-                    select_slice = np.s_[:, loop_array[batch]]
+                    if type(self.atom_selection) is dict:
+                        select_slice = {}
+                        for item in self.atom_selection:
+                            select_slice[item] = np.s_[
+                                self.atom_selection[item], loop_array[batch]
+                            ]
+                    else:
+                        select_slice = np.s_[self.atom_selection, loop_array[batch]]
                 elif system:
                     select_slice = np.s_[start:stop]
                 else:
