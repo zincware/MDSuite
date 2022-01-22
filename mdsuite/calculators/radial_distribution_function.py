@@ -346,10 +346,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 n_species_1 = self.experiment.species[species_split[1]].n_particles
 
             # Density of all atoms / total volume
-            rho = (
-                n_species_1
-                / self.experiment.volume
-            )
+            rho = n_species_1 / self.experiment.volume
             numerator = species_scale_factor
             denominator = (
                 self.args.number_of_configurations
@@ -485,7 +482,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         return minibatch_rdf, minibatch_start, stop
 
     def compute_species_values(
-            self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor
+        self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor
     ) -> dict:
         """
         Compute species-wise histograms
@@ -721,7 +718,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             if isinstance(self.args.atom_selection, dict):
                 particles_list = [
                     len(self.args.atom_selection[item]) for item in self.args.species
-
                 ]
             else:
                 particles_list = [

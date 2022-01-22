@@ -581,7 +581,7 @@ class Database:
             for i, item in enumerate(path_list):
                 if type(select_slice) is dict:
                     # index is the particle species name in the full item as a str.
-                    slice_index = item.decode().split('/')[0]
+                    slice_index = item.decode().split("/")[0]
                     my_slice = select_slice[slice_index]
                 else:
                     my_slice = select_slice
@@ -592,9 +592,11 @@ class Database:
                     )
                 except TypeError:
                     data[item] = (
-                            tf.convert_to_tensor(database[item][my_slice[0]][:, my_slice[1], :],
-                                                 dtype=tf.float64)
-                            * scaling[i]
+                        tf.convert_to_tensor(
+                            database[item][my_slice[0]][:, my_slice[1], :],
+                            dtype=tf.float64,
+                        )
+                        * scaling[i]
                     )
             data[str.encode("data_size")] = d_size
 

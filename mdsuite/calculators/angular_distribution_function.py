@@ -153,7 +153,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         species: list = None,
         use_tf_function: bool = False,
         molecules: bool = False,
-        atom_selection = np.s_[:],
+        atom_selection=np.s_[:],
         gpu: bool = False,
         plot: bool = True,
         norm_power: int = 4,
