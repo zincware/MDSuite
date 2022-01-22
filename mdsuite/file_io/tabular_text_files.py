@@ -143,7 +143,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
                 skip_n_lines(file, self.tabular_text_reader_data.n_header_lines)
                 n_header_lines_in_config = 0
 
-            for _ in tqdm.tqdm(range(n_batches)):
+            for _ in tqdm.tqdm(range(n_batches), ncols=70):
                 yield self._read_process_n_configurations(
                     file,
                     batch_size,

@@ -239,6 +239,7 @@ class MolecularGraph:
         # TODO speed up
         for i in tqdm(
             range(len(adjacency_matrix)),
+            ncols=70,
             desc=f"Building molecular graph from configuration for {molecule_name}",
         ):
             indices = tf.where(adjacency_matrix[i])
