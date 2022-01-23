@@ -858,7 +858,9 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         )
 
         # Loop over the batches.
-        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
+        for idx, batch in tqdm(
+            enumerate(batch_ds), ncols=70, disable=batch_tqm, total=self.n_batches
+        ):
             # Reformat the data.
             log.debug("Reformatting data.")
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
