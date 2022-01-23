@@ -41,7 +41,8 @@ def traj_files(tmp_path_factory) -> List[str]:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    water = DataHub(url="https://github.com/zincware/DataHub/tree/main/Water_14_Gromacs")
+    water = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/Water_14_Gromacs")
     water.get_file(temporary_path)
     file_paths = [(temporary_path / f).as_posix() for f in water.file_raw]
     return file_paths
@@ -117,29 +118,24 @@ def test_water_molecule_building(mdsuite_project):
     Tests that the molecule groups detected are done so correctly and that the
     constructed trajectory is also correct.
     """
-    reference_molecules = {
-        "water": {
-            "n_particles": 14,
-            "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-            "mass": 18.015,
-            "groups": {
-                "0": {"H": [0, 1], "O": [1]},
-                "1": {"H": [2, 3], "O": [2]},
-                "2": {"H": [4, 5], "O": [3]},
-                "3": {"H": [6, 7], "O": [4]},
-                "4": {"H": [8, 9], "O": [5]},
-                "5": {"H": [10, 11], "O": [6]},
-                "6": {"H": [12, 13], "O": [7]},
-                "7": {"H": [14, 15], "O": [8]},
-                "8": {"H": [16, 17], "O": [9]},
-                "9": {"H": [18, 19], "O": [10]},
-                "10": {"H": [20, 21], "O": [11]},
-                "11": {"H": [22, 23], "O": [12]},
-                "12": {"H": [24, 25], "O": [13]},
-                "13": {"H": [26, 27], "O": [14]},
-            },
-        }
-    }
+    reference_molecules = {'water': {'n_particles': 14,
+                                     'indices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                                 12, 13],
+                                     'mass': 18.015,
+                                     'groups': {'0': {'H': [0, 1], 'O': [0]},
+                                                '1': {'H': [2, 3], 'O': [1]},
+                                                '2': {'H': [4, 5], 'O': [2]},
+                                                '3': {'H': [6, 7], 'O': [3]},
+                                                '4': {'H': [8, 9], 'O': [4]},
+                                                '5': {'H': [10, 11], 'O': [5]},
+                                                '6': {'H': [12, 13], 'O': [6]},
+                                                '7': {'H': [14, 15], 'O': [7]},
+                                                '8': {'H': [16, 17], 'O': [8]},
+                                                '9': {'H': [18, 19], 'O': [9]},
+                                                '10': {'H': [20, 21], 'O': [10]},
+                                                '11': {'H': [22, 23], 'O': [11]},
+                                                '12': {'H': [24, 25], 'O': [12]},
+                                                '13': {'H': [26, 27], 'O': [13]}}}}
     mdsuite_project.experiments["simple_water"].run.MolecularMap(
         molecules={"water": {"smiles": "[H]O[H]", "amount": 14, "cutoff": 1.7}}
     )
@@ -149,29 +145,25 @@ def test_water_molecule_building(mdsuite_project):
     mdsuite_project.experiments["ligand_water"].species["OW"].mass = [15.999]
     mdsuite_project.experiments["ligand_water"].species["HW1"].mass = [1.00784]
     mdsuite_project.experiments["ligand_water"].species["HW2"].mass = [1.00784]
-    reference_molecules = {
-        "water": {
-            "n_particles": 14,
-            "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-            "mass": 18.014680000000002,
-            "groups": {
-                "0": {"OW": [0], "HW1": [1], "HW2": [1]},
-                "1": {"OW": [1], "HW1": [2], "HW2": [2]},
-                "2": {"OW": [2], "HW1": [3], "HW2": [3]},
-                "3": {"OW": [3], "HW1": [4], "HW2": [4]},
-                "4": {"OW": [4], "HW1": [5], "HW2": [5]},
-                "5": {"OW": [5], "HW1": [6], "HW2": [6]},
-                "6": {"OW": [6], "HW1": [7], "HW2": [7]},
-                "7": {"OW": [7], "HW1": [8], "HW2": [8]},
-                "8": {"OW": [8], "HW1": [9], "HW2": [9]},
-                "9": {"OW": [9], "HW1": [10], "HW2": [10]},
-                "10": {"OW": [10], "HW1": [11], "HW2": [11]},
-                "11": {"OW": [11], "HW1": [12], "HW2": [12]},
-                "12": {"OW": [12], "HW1": [13], "HW2": [13]},
-                "13": {"OW": [13], "HW1": [14], "HW2": [14]},
-            },
-        }
-    }
+    reference_molecules = {'water': {'n_particles': 14,
+                                     'indices': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
+                                                 12, 13],
+                                     'mass': 18.014680000000002,
+                                     'groups': {
+                                         '0': {'HW1': [0], 'OW': [0], 'HW2': [0]},
+                                         '1': {'HW1': [1], 'OW': [1], 'HW2': [1]},
+                                         '2': {'HW1': [2], 'OW': [2], 'HW2': [2]},
+                                         '3': {'HW1': [3], 'OW': [3], 'HW2': [3]},
+                                         '4': {'HW1': [4], 'OW': [4], 'HW2': [4]},
+                                         '5': {'HW1': [5], 'OW': [5], 'HW2': [5]},
+                                         '6': {'HW1': [6], 'OW': [6], 'HW2': [6]},
+                                         '7': {'HW1': [7], 'OW': [7], 'HW2': [7]},
+                                         '8': {'HW1': [8], 'OW': [8], 'HW2': [8]},
+                                         '9': {'HW1': [9], 'OW': [9], 'HW2': [9]},
+                                         '10': {'HW1': [10], 'OW': [10], 'HW2': [10]},
+                                         '11': {'HW1': [11], 'OW': [11], 'HW2': [11]},
+                                         '12': {'HW1': [12], 'OW': [12], 'HW2': [12]},
+                                         '13': {'HW1': [13], 'OW': [13], 'HW2': [13]}}}}
     mdsuite_project.experiments["ligand_water"].run.MolecularMap(
         molecules={
             "water": {

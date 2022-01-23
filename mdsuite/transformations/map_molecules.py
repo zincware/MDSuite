@@ -469,13 +469,13 @@ class MolecularMap(Transformations):
         for i, item in enumerate(species):
             if i == 0:
                 indices_dict[item] = np.sort(
-                    list(filter(lambda x: x < lengths[i], indices))
+                    np.array(list(filter(lambda x: x < lengths[i], indices)))
                 ).tolist()
             else:
                 greater_array = list(filter(lambda x: x >= lengths[i - 1], indices))
                 constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
                 indices_dict[item] = np.sort(
-                    np.array(constrained_array) - (lengths[i - 1] - 1)
+                    np.array(constrained_array) - (lengths[i - 1])
                 ).tolist()
 
         return indices_dict
@@ -491,7 +491,7 @@ class MolecularMap(Transformations):
                 most critical part. One can either use a smiles string or a reference
                 dict as demonstrated below.
 
-                e.g, the input for emim-PF6 ionic liquid would be:
+                e.g, the input for EMIM-PF6 ionic liquid would be:
 
                 .. code-block::
 
