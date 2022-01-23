@@ -354,6 +354,27 @@ class MolecularMap(Transformations):
 
         return tf.concat(data, axis=0)
 
+    @staticmethod
+    def _format_batch(batch: dict, scale_factor: np.array) -> tf.Tensor:
+        """
+        Reformat a batch of data into a tensor.
+
+        Parameters
+        ----------
+        batch : dict
+        scale_factor : np.array
+
+        Returns
+        -------
+        data : tf.Tensor
+        """
+        batch.pop(str.encode("data_size"))
+        data = []
+        for i, item in enumerate(batch):
+            data.append(batch[item] * scale_factor[i])
+
+        return tf.concat(data, 0)
+
     def _prepare_mass_array(self, species: list) -> list:
         """
         Prepare an array of atom masses for the scaling.
@@ -400,22 +421,48 @@ class MolecularMap(Transformations):
             )
             molecules[molecule_name]["mass"] = scaling_factor
             molecules[molecule_name]["groups"] = {}
-            for i in tqdm(
-                range(self.n_batches),
+            type_spec = {}
+            for item in path_list:
+                type_spec[str.encode(item)] = tf.TensorSpec(
+                    shape=(None, None, 3), dtype=self.dtype
+                )
+            type_spec.update(
+                {
+                    str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+                }
+            )
+            batch_generator, batch_generator_args = self.data_manager.batch_generator()
+            type_spec.update(
+                {
+                    str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+                }
+            )
+            data_set = tf.data.Dataset.from_generator(
+                batch_generator, args=batch_generator_args, output_signature=type_spec
+            )
+            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
+
+            for i, batch in tqdm(
+                enumerate(data_set),
                 ncols=70,
+                total=self.n_batches,
                 desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
             ):
-                start = i * self.batch_size
-                stop = start + self.batch_size
-                data = self._load_batch(
-                    path_list,
-                    np.s_[:, start:stop],
-                    factor=np.array(mass_factor) / scaling_factor,
+                # start = i * self.batch_size
+                # stop = start + self.batch_size
+                # data = self._load_batch(
+                #     path_list,
+                #     np.s_[:, start:stop],
+                #     factor=np.array(mass_factor) / scaling_factor,
+                # )
+                data = self._format_batch(
+                    batch, scale_factor=np.array(mass_factor) / scaling_factor
                 )
+                batch_size = data.shape[1]
                 trajectory = np.zeros(
                     shape=(
                         len(self.adjacency_graphs[molecule_name]["molecules"]),
-                        self.batch_size,
+                        batch_size,
                         3,
                     )
                 )
@@ -436,7 +483,7 @@ class MolecularMap(Transformations):
                 self._save_output(
                     data=trajectory,
                     data_structure=data_structure,
-                    index=start,
+                    index=i * self.batch_size,
                 )
             self.experiment.molecules = molecules
             # self.experiment.species.update(molecules)
