@@ -49,8 +49,7 @@ from mdsuite.experiment.run import RunComputation
 from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
-from mdsuite.transformations.transformation_dict import transformations_dict
-from mdsuite.utils.config import config
+from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
@@ -334,33 +333,6 @@ class Experiment(ExperimentDatabase):
             log.info("Creating a new experiment!")
             self._build_model()
             return False
-
-    def perform_transformation(self, transformation_name, **kwargs):
-        """
-        Perform a transformation on the experiment.
-
-        Parameters
-        ----------
-        transformation_name : str
-                Name of the transformation to perform.
-        **kwargs
-                Other arguments associated with the transformation.
-
-        Returns
-        -------
-        Update of the database_path.
-        """
-
-        try:
-            transformation = transformations_dict[transformation_name]
-        except KeyError:
-            raise ValueError(
-                f"{transformation_name} not found! \nAvailable transformations are:"
-                f" {[key for key in transformations_dict]}"
-            )
-
-        transformation_run = transformation(self, **kwargs)
-        transformation_run.run_transformation()  # perform the transformation
 
     def run_visualization(
         self,
