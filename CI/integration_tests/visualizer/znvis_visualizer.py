@@ -88,7 +88,7 @@ class TestZnvisVisualizer(unittest.TestCase):
             units="metal",
             simulation_data="Ar_dft_short.extxyz",
         )
-        project.experiments.argon.run_visualization()
+        # project.experiments.argon.run_visualization() # has been removed
 
         os.chdir("..")
         temp_dir.cleanup()

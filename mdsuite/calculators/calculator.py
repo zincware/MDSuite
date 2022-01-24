@@ -164,7 +164,7 @@ class Calculator(CalculatorDatabase):
             If the calculator returns a value for the whole system such as ionic
             conductivity or viscosity as opposed to a species-specific number.
     experimental : bool (default = False)
-            If true, a warning is raised upon calling this calcalator with more
+            If true, a warning is raised upon calling this calculator with more
             information about why it is experimental.
     selected_species: tuple
             Species currently being studied in a specific loop.

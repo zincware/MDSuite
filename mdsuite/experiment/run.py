@@ -13,7 +13,7 @@ from __future__ import annotations
 import functools
 from typing import TYPE_CHECKING, Any, List, Type, Union
 
-from mdsuite.calculators import (
+from mdsuite.calculators import (  # SpatialDistributionFunction,
     AngularDistributionFunction,
     CoordinationNumbers,
     EinsteinDiffusionCoefficients,
@@ -31,7 +31,6 @@ from mdsuite.calculators import (
     NernstEinsteinIonicConductivity,
     PotentialOfMeanForce,
     RadialDistributionFunction,
-    SpatialDistributionFunction,
     StructureFactor,
 )
 from mdsuite.transformations import (
@@ -236,6 +235,6 @@ class RunComputation:
     def EinsteinHelfandThermalConductivity(self) -> EinsteinHelfandThermalConductivity:
         return self.exp_wrapper(EinsteinHelfandThermalConductivity)(**self.kwargs)
 
-    @property
-    def SpatialDistributionFunction(self) -> SpatialDistributionFunction:
-        return self.exp_wrapper(SpatialDistributionFunction)(**self.kwargs)
+    # @property
+    # def SpatialDistributionFunction(self) -> SpatialDistributionFunction:
+    #     return self.exp_wrapper(SpatialDistributionFunction)(**self.kwargs)
