@@ -34,8 +34,21 @@ from mdsuite.database.simulation_database import PropertyInfo
 class MDSuiteProperties:
     """
     The names of properties used by MDSuite.
-    Intended for use as a global constant by file readers, transformations and
-    calculations to access the respective entries in the database.
+    Use members in the code whenever referencing properties. A string is only needed when
+    writing/reading the database.
+    Non-obvious members are described below:
+
+    Attributes
+    ----------
+    scaled_positions:
+        Particle positions relative to the box size. All entries are in [0, box_length]
+    box_length:
+        The lengths of the three sides of the simulation box. Assumes a cuboid.
+    time_step: float
+        The time step of the simulation. Not to be confused with sample_rate.
+    sample_rate: int
+        The number of timesteps between successive samples.
+
     """
 
     temperature = PropertyInfo("Temperature", 1)
@@ -64,8 +77,8 @@ class MDSuiteProperties:
     kinaci_heat_current = PropertyInfo("Kinaci_Heat_Current", 3)
     charge = PropertyInfo("Charge", 1)
     energy = PropertyInfo("Energy", 1)
-    kinetic_energy = PropertyInfo("KE", 1)  # TODO rename, also in calculators
-    potential_energy = PropertyInfo("PE", 1)  # TODO rename, also in calculators
+    kinetic_energy = PropertyInfo("Kinetic_Energy", 1)
+    potential_energy = PropertyInfo("Potential_Energy", 1)
     stress = PropertyInfo("Stress", 6)
     time_step = PropertyInfo("Time_Step", 1)
     sample_rate = PropertyInfo("Sample_Rate", 1)
