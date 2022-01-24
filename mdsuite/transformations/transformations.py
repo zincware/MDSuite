@@ -259,6 +259,7 @@ class Transformations:
         ) = self.memory_manager.get_batch_size()
         self.data_manager = DataManager(
             data_path=data_path,
+            data_range=1,
             database=self.database,
             batch_size=self.batch_size,
             n_batches=self.n_batches,

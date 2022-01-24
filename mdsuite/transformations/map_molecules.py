@@ -337,23 +337,6 @@ class MolecularMap(Transformations):
                 n_molecules=amount,
             )
 
-    def _load_batch(self, path_list: list, slice: np.s_, factor: list) -> tf.Tensor:
-        """
-        Load a batch of data and stack the configurations.
-        Returns
-        -------
-        data : tf.Tensor
-                A tensor of stacked data.
-        """
-        data_dict = self.database.load_data(
-            path_list=path_list, select_slice=slice, scaling=factor, dictionary=True
-        )
-        data = []
-        for item in path_list:
-            data.append(data_dict[item])
-
-        return tf.concat(data, axis=0)
-
     @staticmethod
     def _format_batch(batch: dict, scale_factor: np.array) -> tf.Tensor:
         """
@@ -362,11 +345,16 @@ class MolecularMap(Transformations):
         Parameters
         ----------
         batch : dict
+                Batch of data from the batch generator return as a dict. Each item in
+                the dict will be taken and stacked into a tensor.
         scale_factor : np.array
+                Factor by which to scale the coordinates as they are loaded. In this
+                case, the reduced mass of each species in the molecule.
 
         Returns
         -------
         data : tf.Tensor
+                Stacked data to be used in the mapping.
         """
         batch.pop(str.encode("data_size"))
         data = []
@@ -448,13 +436,6 @@ class MolecularMap(Transformations):
                 total=self.n_batches,
                 desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
             ):
-                # start = i * self.batch_size
-                # stop = start + self.batch_size
-                # data = self._load_batch(
-                #     path_list,
-                #     np.s_[:, start:stop],
-                #     factor=np.array(mass_factor) / scaling_factor,
-                # )
                 data = self._format_batch(
                     batch, scale_factor=np.array(mass_factor) / scaling_factor
                 )
@@ -485,6 +466,7 @@ class MolecularMap(Transformations):
                     data_structure=data_structure,
                     index=i * self.batch_size,
                 )
+
             self.experiment.molecules = molecules
             # self.experiment.species.update(molecules)
 
