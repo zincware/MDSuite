@@ -65,17 +65,6 @@ def _build_atomwise(data_scaling: int, system: bool = False):
         return np.ones((data_scaling, 4096, 3))
 
 
-@pytest.fixture(scope="session")
-def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
-    temporary_path = tmp_path_factory.getbasetemp()
-
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
-    NaCl.get_file(path=temporary_path)
-
-    return (temporary_path / NaCl.file_raw).as_posix()
-
-
 @pytest.fixture()
 def mdsuite_project(tmp_path) -> mdsuite.Project:
     """
@@ -88,7 +77,6 @@ def mdsuite_project(tmp_path) -> mdsuite.Project:
             MDSuite project to be used in the tests.
     """
     project = mdsuite.Project(storage_path=tmp_path.as_posix())
-    project.add_experiment("NaCl", simulation_data=traj_file)
 
     scaling_sizes = [10, 100, 500, 1000]
 
