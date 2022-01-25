@@ -78,6 +78,9 @@ def mdsuite_project(tmp_path) -> mdsuite.Project:
     project = mdsuite.Project(storage_path=tmp_path.as_posix())
 
     scaling_sizes = [10, 100, 500, 1000]
+    for item in scaling_sizes:
+        # Make database(s)
+        data = _build_atomwise(item, system=False)
 
     return project
 
