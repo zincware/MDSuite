@@ -260,7 +260,6 @@ class TrajectoryCalculator(Calculator, ABC):
             database=self.database,
             memory_fraction=0.8,
             scale_function=self.scale_function,
-            gpu=self.gpu,
         )
         (
             self.batch_size,

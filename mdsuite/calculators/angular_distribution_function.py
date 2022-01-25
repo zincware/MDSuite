@@ -154,7 +154,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         use_tf_function: bool = False,
         molecules: bool = False,
         atom_selection=np.s_[:],
-        gpu: bool = False,
         plot: bool = True,
         norm_power: int = 4,
         **kwargs,
@@ -191,9 +190,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             If set to zero no distance normalization will be applied.
         molecules : bool
                 if true, perform the analysis on molecules.
-        gpu : bool
-                if true, scale the memory requirements to that of the biggest
-                GPU on the machine.
         plot : bool
                 If true, plot the result of the analysis.
         """
@@ -215,7 +211,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         # Parse the user arguments.
         self.use_tf_function = use_tf_function
         self.cutoff = cutoff
-        self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
         self.adf_minibatch = minibatch

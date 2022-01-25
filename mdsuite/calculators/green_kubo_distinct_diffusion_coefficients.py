@@ -118,7 +118,6 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
-        gpu: bool = False,
         integration_range: int = None,
     ):
         """
@@ -142,9 +141,6 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Selection of atoms to use within the HDF5 database.
         export : bool
                 If true, export the data directly into a csv file.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
         integration_range : int
                 Range over which to perform the integration.
         """
@@ -162,7 +158,6 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             integration_range=integration_range,
         )
 
-        self.gpu = gpu
         self.plot = plot
         self.time = self._handle_tau_values()
 
