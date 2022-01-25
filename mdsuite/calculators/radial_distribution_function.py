@@ -44,7 +44,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
     apply_minimum_image,
     apply_system_cutoff,
@@ -120,7 +120,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
-        self.loaded_property = simulation_properties.positions
+        self.loaded_property = mdsuite_properties.positions
         self.x_label = r"$$r / nm$$"
         self.y_label = r"$$g(r)$$"
         self.analysis_name = "Radial_Distribution_Function"
@@ -128,7 +128,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
         self._dtype = tf.float32
 
-        self.minibatch = None
+        self.rdf_minibatch = None
         self.use_tf_function = None
         self.override_n_batches = None
         self.index_list = None
@@ -207,7 +207,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         )
         # args parsing that will not affect the computation result
         # usually performance or plotting
-        self.minibatch = minibatch
+        self.rdf_minibatch = minibatch
         self.plot = plot
         self.gpu = gpu
 
@@ -237,8 +237,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 self.experiment.number_of_configurations - 1
             )
 
-        if self.minibatch == -1:
-            self.minibatch = self.args.number_of_configurations
+        if self.rdf_minibatch == -1:
+            self.rdf_minibatch = self.args.number_of_configurations
 
         if self.args.number_of_bins is None:
             self.args.number_of_bins = int(
@@ -416,6 +416,15 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
+        if self.minibatch:
+            self.batch_size = 1
+            self.n_batches = self.args.number_of_configurations
+            self.remainder = 0
+            self.memory_manager.atom_batch_size = None
+            self.memory_manager.n_atom_batches = None
+            self.memory_manager.atom_remainder = None
+            self.minibatch = False
+
     def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """
         Run a minibatch loop
@@ -574,7 +583,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
 
         path_list = [
-            join_path(item, self.loaded_property[0]) for item in self.args.species
+            join_path(item, self.loaded_property.name) for item in self.args.species
         ]
         self._prepare_managers(path_list)
 
@@ -584,7 +593,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         # Get the correct dict keys.
         dict_keys = []
         for item in self.args.species:
-            dict_keys.append(str.encode(join_path(item, self.loaded_property[0])))
+            dict_keys.append(str.encode(join_path(item, self.loaded_property.name)))
 
         # Split the configurations into batches.
         split_arr = np.array_split(self.sample_configurations, self.n_batches)
@@ -838,7 +847,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
         # Loop over the batches.
         for idx, batch in tqdm(enumerate(batch_ds), ncols=70, disable=batch_tqm):
-
             # Reformat the data.
             log.debug("Reformatting data.")
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
@@ -858,7 +866,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             }
 
             for atoms in tqdm(
-                per_atoms_ds.batch(self.minibatch).prefetch(tf.data.AUTOTUNE),
+                per_atoms_ds.batch(self.rdf_minibatch).prefetch(tf.data.AUTOTUNE),
                 ncols=70,
                 disable=not batch_tqm,
                 desc=f"Running mini batch loop {idx + 1} / {self.n_batches}",

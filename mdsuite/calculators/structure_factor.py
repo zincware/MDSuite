@@ -200,7 +200,7 @@ class StructureFactor(Calculator):
             elif self.experiment.species[el]["charge"] < 0:
                 el_key = el + str(self.experiment.species[el]["charge"])[1:] + "-"
             else:
-                print("Impossible input")
+                log.warning("atomic form factors: Impossible input")
                 return
             el_frame = self.coeff_atomic_formfactor.loc[
                 self.coeff_atomic_formfactor["Element"] == el_key

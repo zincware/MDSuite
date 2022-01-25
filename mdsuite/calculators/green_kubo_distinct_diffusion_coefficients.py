@@ -23,9 +23,12 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for computing distinct diffusion coefficients using the Green-Kubo method.
 """
 import itertools
-from typing import Union
+from abc import ABC
+from dataclasses import dataclass
+from typing import Any, List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -33,11 +36,27 @@ from bokeh.models import Span
 from scipy import signal
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.meta_functions import join_path
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
-class GreenKuboDistinctDiffusionCoefficients(Calculator):
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    tau_values: np.s_
+    molecules: bool
+    species: list
+    integration_range: int
+
+
+class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     """
     Class for the Green-Kubo diffusion coefficient implementation
     Attributes
@@ -75,13 +94,17 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 5}}
-        self.loaded_property = "Velocities"
+        self.loaded_property = mdsuite_properties.velocities
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"\text{VACF}  / m^{2}/s^{2}$$"
+        self.y_label = r"$$\text{VACF}  / m^{2}/s^{2}$$"
         self.analysis_name = "Green_Kubo_Distinct_Diffusion_Coefficients"
         self.experimental = True
+        self.result_keys = ["diffusion_coefficient", "uncertainty"]
+        self.result_series_keys = ["time", "vacf"]
+        self._dtype = tf.float64
+        self.sigma = []
 
     @call
     def __call__(
@@ -91,6 +114,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         data_range: int = 500,
         save: bool = True,
         correlation_time: int = 1,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
         gpu: bool = False,
@@ -111,6 +136,8 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
                 if true, save the output.
         correlation_time : int
                 Correlation time to use in the window sampling.
+        molecules : bool
+                If true, molecules are used instead of atoms.
         atom_selection : np.s_
                 Selection of atoms to use within the HDF5 database.
         export : bool
@@ -121,102 +148,98 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         integration_range : int
                 Range over which to perform the integration.
         """
-        self.update_user_args(
-            plot=plot,
+        if integration_range is None:
+            integration_range = data_range
+
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
-            save=save,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
-            export=export,
-            gpu=gpu,
+            tau_values=tau_values,
+            molecules=molecules,
+            species=species,
+            integration_range=integration_range,
         )
+
+        self.gpu = gpu
+        self.plot = plot
+        self.time = self._handle_tau_values()
 
         self.species = species  # Which species to calculate for
 
-        self._return_arrays = {}
-
-        self.vacf = np.zeros(self.data_range)
-        self.sigma = []
-
-        if integration_range is None:
-            self.integration_range = self.data_range
-        else:
-            self.integration_range = integration_range
+        self.vacf = np.zeros(self.args.data_range)
 
         if self.species is None:
             self.species = list(self.experiment.species)
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
-    def _compute_vacf(self, data: dict, data_path: list, combination: tuple):
+    def ensemble_operation(self, data: dict, dict_ref: list, same_species: bool = False):
         """
         Compute the vacf on the given dictionary of data.
 
         Parameters
         ----------
+        dict_ref : tuple:
+                Names of the entries in the dictionary. Used to select a specific
+                element.
         data : dict
                 Dictionary of data returned by tensorflow
-        data_path : list
-                Data paths for accessing the dictionary
+        same_species : bool
+                If true, the species are the same and i=j should be skipped.
         Returns
         -------
         updates the class state
         """
-        for ensemble in tqdm(range(self.ensemble_loop), ncols=70, desc=str(combination)):
-            self.vacf = np.zeros(self.data_range)
-            start = ensemble * self.correlation_time
-            stop = start + self.data_range
-            vacf = np.zeros(self.data_range)
-            for i in range(len(data[str.encode(data_path[0])])):
-                for j in range(i + 1, len(data[str.encode(data_path[1])])):
-                    if i == j:
-                        continue
-                    else:
-                        vacf += sum(
-                            [
-                                signal.correlate(
-                                    data[str.encode(data_path[0])][i][start:stop, idx],
-                                    data[str.encode(data_path[1])][j][start:stop, idx],
-                                    mode="full",
-                                    method="auto",
-                                )
-                                for idx in range(3)
-                            ]
-                        )
-            self.vacf += vacf[int(self.data_range - 1) :]  # Update the averaged function
-            self.sigma.append(np.trapz(vacf[int(self.data_range - 1) :], x=self.time))
+        self.vacf = np.zeros(self.args.data_range)
+        vacf = np.zeros(2 * self.args.data_range - 1)
+        for i in range(len(data[dict_ref[0]])):
+            for j in range(i + 1, len(data[dict_ref[1]])):
+                if same_species and i == j:
+                    continue
+                else:
+                    vacf += sum(
+                        [
+                            signal.correlate(
+                                data[dict_ref[0]][i][:, idx],
+                                data[dict_ref[1]][j][:, idx],
+                                mode="full",
+                                method="auto",
+                            )
+                            for idx in range(3)
+                        ]
+                    )
+        self.vacf += vacf[int(self.args.data_range - 1) :]
+        self.sigma.append(np.trapz(vacf[int(self.args.data_range - 1) :], x=self.time))
 
-    def run_experimental_analysis(self):
+    def run_calculator(self):
         """
         Perform the distinct coefficient analysis analysis
         """
-        if type(self.atom_selection) is dict:
-            select_atoms = {}
-            for item in self.atom_selection:
-                select_atoms[
-                    str.encode(join_path(item, "Velocities"))
-                ] = self.atom_selection[item]
-            self.atom_selection = select_atoms
+        self.check_input()
         for combination in self.combinations:
-            type_spec = {}
-            data_path = [join_path(item, "Velocities") for item in combination]
-            self._prepare_managers(data_path=data_path)
-            type_spec = self._update_species_type_dict(type_spec, data_path, 3)
-            type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=self.dtype)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                dictionary=True
-            )
-            data_set = tf.data.Dataset.from_generator(
-                batch_generator, args=batch_generator_args, output_signature=type_spec
-            )
-            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch in data_set:
-                self._compute_vacf(batch, data_path, combination)
+            species_values = list(combination)
+            dict_ref = [
+                str.encode("/".join([species, self.loaded_property.name]))
+                for species in species_values
+            ]
+            batch_ds = self.get_batch_dataset(species_values)
+
+            for batch in tqdm(
+                batch_ds,
+                ncols=70,
+                desc=f"{combination[0]}-{combination[1]}",
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
+            ):
+                ensemble_ds = self.get_ensemble_dataset(batch, species_values)
+                for ensemble in ensemble_ds:
+                    self.ensemble_operation(ensemble, dict_ref)
+
             self._calculate_prefactor(combination)
-            self._apply_averaging_factor()
             self._post_operation_processes(combination)
-            self._return_arrays[str(combination)] = self.vacf
-        return self._return_arrays
+            self.sigma = []
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -234,40 +257,29 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
             atom_scale = self.experiment.species[species[0]].n_particles * (
                 self.experiment.species[species[1]].n_particles - 1
             )
+
         else:
             atom_scale = (
                 self.experiment.species[species[0]].n_particles
                 * self.experiment.species[species[1]].n_particles
             )
+
         numerator = self.experiment.units["length"] ** 2
         denominator = (
-            3 * self.experiment.units["time"] * (self.data_range - 1) * atom_scale
+            3 * self.experiment.units["time"] * (self.args.data_range - 1) * atom_scale
         )
 
         self.prefactor = numerator / denominator
 
-    def _apply_operation(self, data, index):
+    def check_input(self):
         """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        pass
-
-    def _apply_averaging_factor(self):
-        """
-        Apply an averaging factor to the tensor_values.
-        Returns
-        -------
-        averaged copy of the tensor_values
-        """
-        pass
+        self._run_dependency_check()
 
     def _post_operation_processes(self, species: Union[str, tuple] = None):
         """
@@ -279,39 +291,32 @@ class GreenKuboDistinctDiffusionCoefficients(Calculator):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            "diffusion_coefficient": np.mean(result).tolist(),
-            "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
-            "time": self.time.tolist(),
-            "acf": self.vacf.tolist(),
+            self.result_keys[0]: np.mean(result).tolist(),
+            self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
+            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[1]: self.vacf.tolist(),
         }
 
         self.queue_data(data=data, subjects=list(species))
 
-        # Update the plot if required
-        if self.plot:
+    def plot_data(self, data):
+        """Plot the data"""
+        for selected_species, val in data.items():
             span = Span(
-                location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1
-                ],
+                location=(
+                    np.array(val[self.result_series_keys[0]])
+                    * self.experiment.units["time"]
+                )[self.args.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
-                y_data=self.vacf.numpy(),
+                x_data=np.array(val[self.result_series_keys[0]])
+                * self.experiment.units["time"],
+                y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
-                    f"{species}: {np.mean(result): .3E} +-"
-                    f" {np.std(result) / (np.sqrt(len(result))): .3E}"
+                    f"{val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
                 ),
                 layouts=[span],
             )
-
-    def _update_output_signatures(self):
-        """
-        After having run _prepare managers, update the output signatures.
-
-        Returns
-        -------
-
-        """
-        pass

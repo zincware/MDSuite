@@ -39,7 +39,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import get_angles
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.neighbour_list import (
@@ -123,7 +123,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
         self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
-        self.loaded_property = simulation_properties.positions
+        self.loaded_property = mdsuite_properties.positions
 
         self.use_tf_function = None
         self.molecules = None
@@ -134,7 +134,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.result_series_keys = ["angle", "adf"]
         self._dtype = tf.float32
 
-        self.minibatch = None  # memory management for triples generation per batch.
+        self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
         self.x_label = r"$$\text{Angle} / \theta $$"
@@ -215,7 +215,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.gpu = gpu
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.minibatch = minibatch  # memory management for triples generation per batch.
+        self.adf_minibatch = (
+            minibatch  # memory management for triples generation per batch.
+        )
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
@@ -302,7 +304,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                     x,
                     r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.minibatch,
+                    n_batches=self.adf_minibatch,
                     disable_tqdm=True,
                 )
 
@@ -313,7 +315,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                     x,
                     r_cut=self.cutoff,
                     n_atoms=self.number_of_atoms,
-                    n_batches=self.minibatch,
+                    n_batches=self.adf_minibatch,
                     disable_tqdm=True,
                 )
 
@@ -522,6 +524,15 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
+        if self.minibatch:
+            self.batch_size = 1
+            self.n_batches = self.args.number_of_configurations
+            self.remainder = 0
+            self.memory_manager.atom_batch_size = None
+            self.memory_manager.n_atom_batches = None
+            self.memory_manager.atom_remainder = None
+            self.minibatch = False
+
     def prepare_computation(self):
         """
         Run steps necessary to prepare the computation for running.
@@ -531,7 +542,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         """
         path_list = [
-            join_path(item, self.loaded_property[0]) for item in self.args.species
+            join_path(species_name, self.loaded_property.name)
+            for species_name in self.args.species
         ]
         self._prepare_managers(path_list)
 
@@ -540,8 +552,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         # Get the correct dict keys.
         dict_keys = []
-        for item in self.args.species:
-            dict_keys.append(str.encode(join_path(item, self.loaded_property[0])))
+        for species_name in self.args.species:
+            dict_keys.append(
+                str.encode(join_path(species_name, self.loaded_property.name))
+            )
 
         # Split the configurations into batches.
         split_arr = np.array_split(self.sample_configurations, self.n_batches)

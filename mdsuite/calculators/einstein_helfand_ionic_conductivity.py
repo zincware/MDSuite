@@ -34,7 +34,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
@@ -80,8 +80,8 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = simulation_properties.translational_dipole_moment
-        self.dependency = simulation_properties.unwrapped_positions
+        self.loaded_property = mdsuite_properties.translational_dipole_moment
+        self.dependency = mdsuite_properties.unwrapped_positions
         self.system_property = True
 
         self.x_label = r"$$\text{Time} / s$$"
@@ -169,7 +169,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def ensemble_operation(self, ensemble):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
@@ -182,10 +182,10 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=0), ensemble[None, 0]
+            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
         )
-        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
+        self.msd_array += np.array(msd)[0, :]
 
     def _post_operation_processes(self):
         """
@@ -219,10 +219,10 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         self._calculate_prefactor()
 
         dict_ref = str.encode(
-            "/".join([self.loaded_property[0], self.loaded_property[0]])
+            "/".join([self.loaded_property.name, self.loaded_property.name])
         )
 
-        batch_ds = self.get_batch_dataset([self.loaded_property[0]])
+        batch_ds = self.get_batch_dataset([self.loaded_property.name])
 
         for batch in tqdm(
             batch_ds,
@@ -230,7 +230,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property[0])
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
 
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])

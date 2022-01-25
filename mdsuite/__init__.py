@@ -34,10 +34,10 @@ from .utils import config
 from .utils.report_computer_characteristics import Report
 
 __all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")

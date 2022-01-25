@@ -35,19 +35,21 @@ from .transformations import Transformations
 from .translational_dipole_moment import TranslationalDipoleMoment
 from .unwrap_coordinates import CoordinateUnwrapper
 from .unwrap_via_indices import UnwrapViaIndices
+from .velocity_from_positions import VelocityFromPositions
 from .wrap_coordinates import CoordinateWrapper
 
 __all__ = [
-    "CoordinateWrapper",
-    "Transformations",
-    "CoordinateUnwrapper",
-    "IntegratedHeatCurrent",
-    "IonicCurrent",
-    "KinaciIntegratedHeatCurrent",
-    "MolecularMap",
-    "MomentumFlux",
-    "ScaleCoordinates",
-    "ThermalFlux",
-    "TranslationalDipoleMoment",
-    "UnwrapViaIndices",
+    CoordinateWrapper.__name__,
+    Transformations.__name__,
+    CoordinateUnwrapper.__name__,
+    IntegratedHeatCurrent.__name__,
+    IonicCurrent.__name__,
+    KinaciIntegratedHeatCurrent.__name__,
+    MolecularMap.__name__,
+    MomentumFlux.__name__,
+    ScaleCoordinates.__name__,
+    ThermalFlux.__name__,
+    TranslationalDipoleMoment.__name__,
+    UnwrapViaIndices.__name__,
+    VelocityFromPositions.__name__,
 ]

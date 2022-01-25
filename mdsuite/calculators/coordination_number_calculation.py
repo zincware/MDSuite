@@ -217,18 +217,19 @@ class CoordinationNumbers(Calculator):
         # Check that more than one peak exists. If not, the GS search cannot be
         # performed.
         if len(peaks) < 2:
-            print(
-                "Not enough peaks were found for the minimum analysis (First shell)."
-                " Try adjusting the filter parameters or re-calculating the RDF for a"
+            msg = (
+                "Not enough peaks were found for the minimum analysis (First shell). Try"
+                " adjusting the filter parameters or re-calculating the RDF for a"
                 " smoother function."
             )
-            raise CannotPerformThisAnalysis
+            log.error(msg)
+            raise CannotPerformThisAnalysis(msg)
         else:
             return [peaks[0], peaks[1], peaks[2]]  # return peaks if they exist
 
-    def _find_minimums(self):
+    def _find_minima(self):
         """
-        Use min finding algorithm to determine the minimums of the function
+        Use min finding algorithm to determine the minima of the function
 
         Returns
         -------
@@ -268,7 +269,7 @@ class CoordinationNumbers(Calculator):
         Calculate the coordination numbers
         """
 
-        self.indices = self._find_minimums()  # get the minimums
+        self.indices = self._find_minima()  # get the minimums
 
         # Calculate the coordination numbers by averaging over the two values
         # returned by _find_minimums
@@ -329,7 +330,7 @@ class CoordinationNumbers(Calculator):
             density = self._get_density(self.selected_species[0])  # calculate the density
 
             self._integrate_rdf(density)  # integrate the rdf
-            self._find_minimums()  # get the minimums of the rdf being studied
+            self._find_minima()  # get the minimums of the rdf being studied
             _data = (
                 self._get_coordination_numbers()
             )  # calculate the coordination numbers and update the experiment

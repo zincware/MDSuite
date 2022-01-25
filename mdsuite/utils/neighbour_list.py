@@ -25,9 +25,13 @@ Summary
 -------
 """
 
+import logging
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
+
+log = logging.getLogger(__name__)
 
 
 def get_triu_indicies(n_atoms):
@@ -90,13 +94,13 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
     triu_mask = get_triu_indicies(n_atoms)
 
     if batch_size is not None:
-        try:
-            assert positions.shape[0] % batch_size == 0
-        except AssertionError:
-            print(
+        if not positions.shape[0] % batch_size == 0:
+            msg = (
                 "positions must be evenly divisible by batch_size, but are"
                 f" {positions.shape[0]} and {batch_size}"
             )
+            log.error(msg)
+            raise RuntimeError(msg)
 
         for positions_batch in tf.split(positions, batch_size):
             yield get_rij_mat(positions_batch, triu_mask, cell)

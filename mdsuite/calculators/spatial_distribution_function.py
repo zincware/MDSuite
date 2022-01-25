@@ -38,7 +38,7 @@ from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
-from mdsuite.database import simulation_properties
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
     cartesian_to_spherical_coordinates,
     get2dHistogram,
@@ -91,7 +91,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         super().__init__(experiment, experiments=experiments)
 
         self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
-        self.loaded_property = simulation_properties.positions
+        self.loaded_property = mdsuite_properties.positions
         self.x_label = r"$$\text{r} /  nm$$"  # None
         self.y_label = r"$$\text{g(r)}$$"  # None
         self.analysis_name = "Spatial_Distribution_Function"
@@ -144,7 +144,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         self.sample_configurations = np.linspace(
             start, stop, number_of_configurations, dtype=np.int
         )
-        self.plot = True
+        self.plot = False
 
         self.args = Args(
             molecules=molecules,
@@ -175,7 +175,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         loaded_data : tf.Tensor
                 tf.Tensor of tensor_values loaded from the hdf5 database_path
         """
-        path_list = [join_path(species, self.loaded_property[0])]
+        path_list = [join_path(species, self.loaded_property.name)]
 
         data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, indices]
@@ -191,7 +191,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
     def run_calculator(self):
         """Run the computation"""
         path_list = [
-            join_path(item, self.loaded_property[0]) for item in self.args.species
+            join_path(item, self.loaded_property.name) for item in self.args.species
         ]
         self._prepare_managers(path_list)
         # Iterate over batches
@@ -249,10 +249,9 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             subjects=["System"],
         )
 
-        if self.plot:
-            coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
-            colour_map = tf.reshape(sdf_values, [-1])
-            self._run_visualization(coordinates, colour_map)
+        coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins ** 2, 3])
+        colour_map = tf.reshape(sdf_values, [-1])
+        self._run_visualization(coordinates, colour_map)
 
     def _get_unit_sphere(self) -> tf.Tensor:
         """Get the coordinates on the sphere for the bins

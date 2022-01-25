@@ -26,7 +26,6 @@ Summary
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
@@ -76,9 +75,7 @@ class TimeSeries:
     def database(self):
         """Get the database"""
         if self._database is None:
-            self._database = Database(
-                name=Path(self.experiment.database_path, "database.hdf5")
-            )
+            self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
 
     @property
