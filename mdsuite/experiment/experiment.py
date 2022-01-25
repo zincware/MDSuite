@@ -607,7 +607,7 @@ class Experiment(ExperimentDatabase):
         ----------
         metadata: TrajectoryMetadata
         update_with_pubchempy: bool
-            Load data from pubchempy and add it to fill missing infomration
+            Load data from pubchempy and add it to fill missing information.
         """
         # new trajectory: store all metadata and construct a new database
         self.temperature = metadata.temperature
