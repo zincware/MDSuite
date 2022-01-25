@@ -25,16 +25,15 @@ Summary
 -------
 Module to test scaling coefficients.
 """
-import pytest
-from zinchub import DataHub
-import pandas as pd
-
-import mdsuite
-import mdsuite.transformations
-
 import sqlite3
 
 import numpy as np
+import pandas as pd
+import pytest
+from zinchub import DataHub
+
+import mdsuite
+import mdsuite.transformations
 
 
 def _build_atomwise(data_scaling: int, system: bool = False):
@@ -116,9 +115,9 @@ def get_memory_usage(database: str, callable_name: str) -> float:
     with sqlite3.connect(database) as db:
         data = pd.read_sql_query("SELECT * from TEST_METRICS", db)
 
-    data = data.loc[data['ITEM'] == callable_name]
+    data = data.loc[data["ITEM"] == callable_name]
 
-    return data['MEM_USAGE']
+    return data["MEM_USAGE"]
 
 
 def test_rdf_memory(mdsuite_project):
@@ -136,7 +135,7 @@ def test_rdf_memory(mdsuite_project):
     """
     memory_array = np.zeros((2,))
     mdsuite_project.run.RadialDistributionFunction(plot=False)
-    memory = get_memory_usage('pymon.db', test_rdf_memory.__name__)
+    memory = get_memory_usage("pymon.db", test_rdf_memory.__name__)
     memory_array[0] = memory
 
     print(memory_array)
