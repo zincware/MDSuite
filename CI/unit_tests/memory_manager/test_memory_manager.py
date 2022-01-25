@@ -22,7 +22,7 @@ Test for the memory manager module.
 import unittest
 
 import numpy as np
-
+import mdsuite
 from mdsuite.memory_management.memory_manager import MemoryManager
 
 
@@ -146,7 +146,6 @@ class TestMemoryManager(unittest.TestCase):
         # Test correct returns for 1 batch
         self.memory_manager.database = TestDatabase(data_size=500, rows=10, columns=10)
         self.memory_manager.data_path = ["Test/Path"]
-        self.memory_manager.memory_fraction = 0.5
         self.memory_manager.machine_properties["memory"] = 50000
         batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size(
             system=False
@@ -188,7 +187,8 @@ class TestMemoryManager(unittest.TestCase):
         the same value that is passed to it.
         """
         data = self.memory_manager._get_optimal_batch_size(10)
-        self.assertEqual(data, data)  # Todo: no shit, sherlock
+        self.assertEqual(data, 10)  # Todo: no shit, sherlock
+        mdsuite.config.memory_scaling_test = True
 
     def test_compute_atomwise_minibatch(self):
         """

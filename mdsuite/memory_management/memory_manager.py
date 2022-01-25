@@ -23,12 +23,12 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module to manage the memory use of MDSuite operations.
 """
 import logging
 from typing import Tuple
 
 import numpy as np
-import tensorflow as tf
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import get_machine_properties, gpu_available
@@ -38,6 +38,7 @@ from mdsuite.utils.scale_functions import (
     polynomial_scale_function,
     quadratic_scale_function,
 )
+from mdsuite.utils import config
 
 log = logging.getLogger(__name__)
 
@@ -58,11 +59,20 @@ class MemoryManager:
     Attributes
     ----------
     data_path : list
+            Path to reference the data in the hdf5 database.
     database : Database
+            Database to look through.
     parallel : bool
+            If true, batch sizes should take into account the use of multiple machines
+            with shared memory. TODO: This is outdated.
     memory_fraction : float
+            Amount of memory to use TODO: In a perfect scaling, this can be 100 % of the
+                                          free memory.
     scale_function : dict
+            Function to use to describe how the memory scaling changes with changing
+            data size.
     gpu : bool
+            If true, a gpu is available.
     """
 
     def __init__(
@@ -93,7 +103,8 @@ class MemoryManager:
         scale_function : dict
                 Scaling function to compute the memory scaling of a calculator.
         gpu : bool
-                If true, gpu should be used.
+                If true, a GPU has been detected and the available memory will be
+                calculated from the GPU.
         offset : int
                 If data is being loaded from a non-zero point in the database the
                 offset is used to take this into account. For example, expanding a
@@ -104,7 +115,6 @@ class MemoryManager:
         self.data_path = data_path
         self.parallel = parallel
         self.database = database
-        self.memory_fraction = memory_fraction
         self.offset = offset
 
         self.machine_properties = get_machine_properties()
@@ -115,9 +125,6 @@ class MemoryManager:
                     memory = self.machine_properties["gpu"][item]["memory"]
 
             self.machine_properties["memory"] = memory * 1e6
-            tf.device("gpu")
-        else:
-            tf.device("cpu")
 
         self.batch_size = None
         self.n_batches = None
@@ -209,13 +216,13 @@ class MemoryManager:
         )
         maximum_loaded_configurations = int(
             np.clip(
-                (self.memory_fraction * self.machine_properties["memory"])
+                (config.memory_fraction * self.machine_properties["memory"])
                 / per_configuration_memory,
                 1,
                 n_configs - self.offset,
             )
         )
-        batch_size = self._get_optimal_batch_size(maximum_loaded_configurations)
+        batch_size = self._get_optimal_batch_size(maximum_loaded_configurations, n_configs)
         number_of_batches, remainder = divmod((n_configs - self.offset), batch_size)
         self.batch_size = batch_size
         self.n_batches = number_of_batches
@@ -241,15 +248,19 @@ class MemoryManager:
         return np.log(n)
 
     @staticmethod
-    def _get_optimal_batch_size(naive_size):
+    def _get_optimal_batch_size(naive_size, n_configs: int):
         """
         Use the open/close and read speeds of the hdf5 database_path as well as the
         operation being performed to get an optimal batch size.
+
+        This is where the memory scaling test will be enforced.
 
         Parameters
         ----------
         naive_size : int
                 Naive batch size to be optimized
+        n_configs : int
+                Total number of configurations in the database.
 
         Returns
         -------
@@ -257,7 +268,10 @@ class MemoryManager:
                 An optimized batch size
         """
         # db_io_time = self.database.get_load_time()
-        return naive_size
+        if config.memory_scaling_test:
+            return n_configs
+        else:
+            return naive_size
 
     def _compute_atomwise_minibatch(self, data_range: int):
         """
@@ -310,7 +324,7 @@ class MemoryManager:
                 )
                 batch_size = int(
                     np.clip(
-                        self.memory_fraction
+                        config.memory_fraction
                         * self.machine_properties["memory"]
                         / per_atom_memory,
                         1,
@@ -323,7 +337,7 @@ class MemoryManager:
             atom_batch_memory = fraction * per_atom_memory
             batch_size = int(
                 np.clip(
-                    self.memory_fraction
+                    config.memory_fraction
                     * self.machine_properties["memory"]
                     / atom_batch_memory,
                     1,
