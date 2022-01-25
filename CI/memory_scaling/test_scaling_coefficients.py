@@ -30,7 +30,6 @@ import sqlite3
 import numpy as np
 import pandas as pd
 import pytest
-from zinchub import DataHub
 
 import mdsuite
 import mdsuite.transformations
