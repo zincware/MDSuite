@@ -31,6 +31,7 @@ from typing import Tuple
 import numpy as np
 
 from mdsuite.database.simulation_database import Database
+from mdsuite.utils import config
 from mdsuite.utils.meta_functions import get_machine_properties, gpu_available
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
@@ -38,7 +39,6 @@ from mdsuite.utils.scale_functions import (
     polynomial_scale_function,
     quadratic_scale_function,
 )
-from mdsuite.utils import config
 
 log = logging.getLogger(__name__)
 
@@ -222,7 +222,9 @@ class MemoryManager:
                 n_configs - self.offset,
             )
         )
-        batch_size = self._get_optimal_batch_size(maximum_loaded_configurations, n_configs)
+        batch_size = self._get_optimal_batch_size(
+            maximum_loaded_configurations, n_configs
+        )
         number_of_batches, remainder = divmod((n_configs - self.offset), batch_size)
         self.batch_size = batch_size
         self.n_batches = number_of_batches

@@ -22,6 +22,7 @@ Test for the memory manager module.
 import unittest
 
 import numpy as np
+
 import mdsuite
 from mdsuite.memory_management.memory_manager import MemoryManager
 
