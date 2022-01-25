@@ -226,6 +226,19 @@ class TrajectoryCalculator(Calculator, ABC):
 
         return times
 
+    def _check_remainder(self):
+        """
+        Check that the remainder is compatible with the calculator.
+
+        It may come to pass that the remainder computed by the memory manager is not
+        divisible by your data range. In this case, it must be clipped such that it is.
+
+        Returns
+        -------
+        Updates the remainder attribute if required.
+        """
+        return self.remainder - (self.remainder % self.args.data_range)
+
     def _prepare_managers(self, data_path: list, correct: bool = False):
         """
         Prepare the memory and tensor_values monitors for calculation.
@@ -263,6 +276,8 @@ class TrajectoryCalculator(Calculator, ABC):
             self.batch_size = self.memory_manager.batch_size
             self.n_batches = self.memory_manager.n_batches
             self.remainder = self.memory_manager.remainder
+
+        self._check_remainder()
 
         if correct:
             self._correct_batch_properties()

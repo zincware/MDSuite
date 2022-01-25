@@ -287,7 +287,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             self.calculate_prefactor(species)
 
             batch_ds = self.get_batch_dataset([species])
-
             for batch in tqdm(
                 batch_ds,
                 ncols=70,

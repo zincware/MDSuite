@@ -325,6 +325,7 @@ class DataManager:
             -------
             None
             """
+            ensemble_loop = int(np.clip((glob_data[b'data_size'] - data_range) / correlation_time, 1, None))
             for ensemble in range(ensemble_loop):
                 start = ensemble * correlation_time
                 stop = start + data_range
