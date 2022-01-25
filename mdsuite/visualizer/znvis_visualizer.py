@@ -130,6 +130,7 @@ class SimulationVisualizer:
         return particle_list
 
     def run_visualization(self):
+        # has been removed
         """
         Run the visualization.
 

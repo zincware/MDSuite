@@ -41,8 +41,8 @@ def load_data():
     -------
     Will store simulation data locally for the example.
     """
-    bmim = DataHub(url="https://github.com/zincware/DataHub/tree/main/Ar/Ar_dft")
-    bmim.get_file(path=".")
+    argon = DataHub(url="https://github.com/zincware/DataHub/tree/main/Ar/Ar_dft")
+    argon.get_file(path=".")
 
 
 def run_example():
@@ -53,7 +53,7 @@ def run_example():
     -------
 
     """
-    project = mds.Project("bmim_bf4_example")
+    project = mds.Project("Argon_Example")
     project.add_experiment(
         name="argon",
         timestep=0.1,
@@ -61,7 +61,7 @@ def run_example():
         units="metal",
         simulation_data="Ar_dft_short.extxyz",
     )
-    project.experiments.argon.run_visualization()
+    # project.experiments.argon.run_visualization() # has been removed
 
 
 if __name__ == "__main__":
