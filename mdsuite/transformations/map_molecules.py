@@ -181,7 +181,9 @@ class MolecularMap(Transformations):
         """
         reduced_mass_dict = {}
         for item in species:
-            reduced_mass_dict[item] = self.experiment.species[item]["mass"][0] / molecular_mass
+            reduced_mass_dict[item] = (
+                self.experiment.species[item]["mass"][0] / molecular_mass
+            )
 
         return reduced_mass_dict
 
@@ -216,7 +218,9 @@ class MolecularMap(Transformations):
             data_structure = self._prepare_database_entry(
                 molecule_name, molecular_graph.n_molecules
             )
-            path_list = [join_path(s, "Unwrapped_Positions") for s in molecular_graph.species]
+            path_list = [
+                join_path(s, "Unwrapped_Positions") for s in molecular_graph.species
+            ]
             self._prepare_monitors(data_path=path_list)
 
             type_spec = self._get_type_spec(path_list)
@@ -233,7 +237,7 @@ class MolecularMap(Transformations):
                 total=self.n_batches,
                 desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
             ):
-                batch_size = batch[b'data_size']
+                batch_size = batch[b"data_size"]
 
                 trajectory = np.zeros(
                     shape=(
@@ -251,8 +255,13 @@ class MolecularMap(Transformations):
                         batch_reference = str.encode(f"{item}/Unwrapped_Positions")
                         particles = molecular_graph.molecular_groups[molecule][item]
                         print(particles)
-                        particle_trajectories = tf.gather(batch[batch_reference], particles) * mass_dictionary[item]
-                        molecule_trajectory += tf.reduce_sum(particle_trajectories, axis=0)
+                        particle_trajectories = (
+                            tf.gather(batch[batch_reference], particles)
+                            * mass_dictionary[item]
+                        )
+                        molecule_trajectory += tf.reduce_sum(
+                            particle_trajectories, axis=0
+                        )
 
                     # Compute the COM trajectory
                     # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
@@ -301,7 +310,9 @@ class MolecularMap(Transformations):
         self.molecules = {}
         for item in molecules:
             self.molecules[item] = MolecularGraph(
-                experiment=self.experiment, molecule_name=item, molecule_input_data=molecules[item]
+                experiment=self.experiment,
+                molecule_name=item,
+                molecule_input_data=molecules[item],
             )
 
         self._map_molecules()

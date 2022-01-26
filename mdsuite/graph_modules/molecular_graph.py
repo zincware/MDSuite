@@ -44,6 +44,7 @@ class MolecularGraph:
     """
     Class for building and studying molecular graphs.
     """
+
     molecular_mass: float
     molecular_groups: dict
 
@@ -82,17 +83,19 @@ class MolecularGraph:
                    'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
 
         """
-        #TODO move to data dict for user input.
+        # TODO move to data dict for user input.
         self.experiment = experiment
         self.molecule_name = molecule_name
         self.database = Database(self.experiment.database_path / "database.hdf5")
-        self.cutoff = molecule_input_data['cutoff']
-        self.n_molecules = molecule_input_data['amount']
+        self.cutoff = molecule_input_data["cutoff"]
+        self.n_molecules = molecule_input_data["amount"]
 
-        if 'smiles' in molecule_input_data:
-            self.smiles_graph, self.species = build_smiles_graph(molecule_input_data['smiles'])
+        if "smiles" in molecule_input_data:
+            self.smiles_graph, self.species = build_smiles_graph(
+                molecule_input_data["smiles"]
+            )
         elif "reference" in molecule_name:
-            self.species = molecule_input_data['reference']
+            self.species = molecule_input_data["reference"]
             self.smiles_string = None
         else:
             error_msg = (
@@ -201,9 +204,9 @@ class MolecularGraph:
         molecules = {}
         # TODO speed up
         for i in tqdm(
-                range(len(adjacency_matrix)),
-                ncols=70,
-                desc=f"Building molecular graph from configuration for {self.molecule_name}",
+            range(len(adjacency_matrix)),
+            ncols=70,
+            desc=f"Building molecular graph from configuration for {self.molecule_name}",
         ):
             indices = tf.where(adjacency_matrix[i])
             indices = tf.reshape(indices, (len(indices)))
@@ -277,8 +280,12 @@ class MolecularGraph:
                         np.array(list(filter(lambda x: x < lengths[i], graph_dict[item])))
                     ).tolist()
                 else:
-                    greater_array = list(filter(lambda x: x >= lengths[i - 1], graph_dict[item]))
-                    constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
+                    greater_array = list(
+                        filter(lambda x: x >= lengths[i - 1], graph_dict[item])
+                    )
+                    constrained_array = list(
+                        filter(lambda x: x < lengths[i], greater_array)
+                    )
                     indices_dict[particle_species] = np.sort(
                         np.array(constrained_array) - (lengths[i - 1])
                     ).tolist()
