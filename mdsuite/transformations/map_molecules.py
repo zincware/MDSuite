@@ -64,7 +64,7 @@ class MolecularMap(Transformations):
         Constructor for the MolecularMap class.
         """
         super().__init__()
-        self.molecules = None
+        self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
         self.adjacency_graphs = {}
         self.dependency = mdsuite_properties.unwrapped_positions
@@ -86,7 +86,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(species, "Unwrapped_Positions")  # name of the new database_path
+        path = join_path(species, "Unwrapped_Positions")
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -116,185 +116,6 @@ class MolecularMap(Transformations):
             if not self.database.check_existence(path):
                 self.get_prop_through_transformation(sp_name, self.dependency)
 
-    def _update_type_dict(self, dictionary: dict, path_list: list, dimension: int):
-        """
-        Update a type spec dictionary.
-
-        Parameters
-        ----------
-        dictionary : dict
-                Dictionary to append
-        path_list : list
-                List of paths for the dictionary
-        dimension : int
-                Dimension of the property
-        Returns
-        -------
-        type dict : dict
-                Dictionary for the type spec.
-        """
-        for item in path_list:
-            dictionary[str.encode(item)] = tf.TensorSpec(
-                shape=(None, None, dimension), dtype=tf.float64
-            )
-
-        return dictionary
-
-    def _update_species_type_dict(
-        self, dictionary: dict, path_list: list, dimension: int
-    ):
-        """
-        Update a type spec dictionary for a species input.
-
-        Parameters
-        ----------
-        dictionary : dict
-                Dictionary to append
-        path_list : list
-                List of paths for the dictionary
-        dimension : int
-                Dimension of the property
-        Returns
-        -------
-        type dict : dict
-                Dictionary for the type spec.
-        """
-        for item in path_list:
-            species = item.split("/")[0]
-            n_atoms = self.experiment.species[species].n_particles
-            dictionary[str.encode(item)] = tf.TensorSpec(
-                shape=(n_atoms, None, dimension), dtype=tf.float64
-            )
-
-        return dictionary
-
-    def _build_reference_graphs(self):
-        """
-        Build the reference graphs from the reference input.
-        .
-        Returns
-        -------
-        Updates the reference molecules attribute of the class. It should be populated
-        after this call and look something like:
-
-        {'bmim': {'species': ['C', 'H', 'N'], 'mass': 200, 'graph': tf.Tensor}}
-
-        If a dict is used as a reference, the graph will not exist and stronger
-        isomorphism checks will not be possible.
-        """
-        for item in self.molecules:
-            self.reference_molecules[item] = {}
-            if "smiles" in self.molecules[item]:
-                mol, species = MolecularGraph(
-                    self.experiment,
-                    from_smiles=True,
-                    smiles_string=self.molecules[item]["smiles"],
-                ).build_smiles_graph()
-                self.reference_molecules[item]["graph"] = mol
-            elif "reference" in self.molecules[item]:
-                species = self.molecules[item]["reference"]
-            else:
-                error_msg = (
-                    "The minimum amount of data was not given to the mapping."
-                    "Either provide a reference key with information about"
-                    "Which species and the number of them are in the molecule,"
-                    "or provide a SMILES string that can be used to compute "
-                    "this information."
-                )
-                log.info(error_msg)
-                raise ValueError("Provide either a reference key or smiles string")
-            self.reference_molecules[item]["species"] = list(species)
-            self.reference_molecules[item]["mass"] = self._get_molecular_mass(species)
-
-    def _get_molecular_mass(self, species_dict: dict) -> float:
-        """
-        Get the mass of a SMILES molecule based on experiment data.
-
-        Parameters
-        ----------
-        species_dict : dict
-                Dictionary of species information along with number of species
-                present in the system.
-        Returns
-        -------
-        mass : float
-                mass of the molecule
-        """
-        mass = 0.0
-        for item in species_dict:
-            mass += self.experiment.species[item]["mass"][0] * species_dict[item]
-
-        return mass
-
-    def _build_configuration_graphs(self):
-        """
-        Build the adjacency graphs for the configurations
-
-        Returns
-        -------
-        Nothing.
-        """
-        for item in self.reference_molecules:
-            self.adjacency_graphs[item] = {}
-            mol = MolecularGraph(
-                self.experiment,
-                from_configuration=True,
-                species=self.reference_molecules[item]["species"],
-            )
-            self.adjacency_graphs[item]["graph"] = mol.build_configuration_graph(
-                cutoff=self.molecules[item]["cutoff"]
-            )
-
-    def _get_molecule_indices(self):
-        """
-        Collect the indices of the molecules.
-
-        Returns
-        -------
-        Nothing.
-        """
-        for item in self.adjacency_graphs:
-            try:
-                amount = self.molecules[item]["amount"]
-            except ValueError:
-                amount = None
-            mol = MolecularGraph(
-                self.experiment,
-                from_configuration=True,
-                species=self.reference_molecules[item]["species"],
-            )
-            self.adjacency_graphs[item]["molecules"] = mol.reduce_graphs(
-                self.adjacency_graphs[item]["graph"],
-                molecule_name=item,
-                n_molecules=amount,
-            )
-
-    @staticmethod
-    def _format_batch(batch: dict, scale_factor: np.array) -> tf.Tensor:
-        """
-        Reformat a batch of data into a tensor.
-
-        Parameters
-        ----------
-        batch : dict
-                Batch of data from the batch generator return as a dict. Each item in
-                the dict will be taken and stacked into a tensor.
-        scale_factor : np.array
-                Factor by which to scale the coordinates as they are loaded. In this
-                case, the reduced mass of each species in the molecule.
-
-        Returns
-        -------
-        data : tf.Tensor
-                Stacked data to be used in the mapping.
-        """
-        batch.pop(str.encode("data_size"))
-        data = []
-        for i, item in enumerate(batch):
-            data.append(batch[item] * scale_factor[i])
-
-        return tf.concat(data, 0)
-
     def _prepare_mass_array(self, species: list) -> list:
         """
         Prepare an array of atom masses for the scaling.
@@ -314,6 +135,56 @@ class MolecularMap(Transformations):
 
         return mass_array
 
+    def _get_type_spec(self, path_list: list) -> dict:
+        """
+        Compute the type spec of a list of data.
+
+        Parameters
+        ----------
+        path_list : list
+                List of paths for which the type species must be built.
+
+        Returns
+        -------
+        type_spec : dict
+        """
+        type_spec = {}
+        for item in path_list:
+            type_spec[str.encode(item)] = tf.TensorSpec(
+                shape=(None, None, 3), dtype=self.dtype
+            )
+        type_spec.update(
+            {
+                str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
+            }
+        )
+
+        return type_spec
+
+    def _build_reduced_mass_dict(self, species: list, molecular_mass) -> dict:
+        """
+        Build the reduced mass dictionary.
+
+        This is a dictionary of reduced masses for each species in a molecule,
+        i.e m_species / m_molecule. These are used in the COM positions computation
+        later.
+
+        Parameters
+        ----------
+        species : list
+                List of species to include in the dict.
+
+        Returns
+        -------
+        reduced_mass_dict : dict
+                Dictionary of reduced masses for each species.
+        """
+        reduced_mass_dict = {}
+        for item in species:
+            reduced_mass_dict[item] = self.experiment.species[item]["mass"][0] / molecular_mass
+
+        return reduced_mass_dict
+
     def _map_molecules(self):
         """
         Map the molecules and save the data in the database.
@@ -323,40 +194,34 @@ class MolecularMap(Transformations):
         Updates the database.
         """
         for molecule_name in self.molecules:
-            species = self.reference_molecules[molecule_name]["species"]
-            mass_factor = self._prepare_mass_array(species)
-            data_structure = self._prepare_database_entry(
-                molecule_name, len(self.adjacency_graphs[molecule_name]["molecules"])
-            )
-            path_list = [join_path(s, "Unwrapped_Positions") for s in species]
-            self._prepare_monitors(data_path=path_list)
-            scaling_factor = self.reference_molecules[molecule_name]["mass"]
+
+            # Update the experiment molecule information.
+            molecular_graph = self.molecules[molecule_name]
             molecules = self.experiment.molecules
             molecules[molecule_name] = {}
-            molecules[molecule_name]["n_particles"] = len(
-                self.adjacency_graphs[molecule_name]["molecules"]
-            )
+            molecules[molecule_name]["n_particles"] = molecular_graph.n_molecules
             molecules[molecule_name]["indices"] = list(
                 range(molecules[molecule_name]["n_particles"])
             )
-            molecules[molecule_name]["mass"] = scaling_factor
-            molecules[molecule_name]["groups"] = {}
-            type_spec = {}
-            for item in path_list:
-                type_spec[str.encode(item)] = tf.TensorSpec(
-                    shape=(None, None, 3), dtype=self.dtype
-                )
-            type_spec.update(
-                {
-                    str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
-                }
+            molecules[molecule_name]["mass"] = molecular_graph.molecular_mass
+            molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
+            print(molecules)
+            scaling_factor = molecular_graph.molecular_mass
+
+            mass_dictionary = self._build_reduced_mass_dict(
+                molecular_graph.species, scaling_factor
             )
+
+            # Prepare the data structures and monitors
+            data_structure = self._prepare_database_entry(
+                molecule_name, molecular_graph.n_molecules
+            )
+            path_list = [join_path(s, "Unwrapped_Positions") for s in molecular_graph.species]
+            self._prepare_monitors(data_path=path_list)
+
+            type_spec = self._get_type_spec(path_list)
             batch_generator, batch_generator_args = self.data_manager.batch_generator()
-            type_spec.update(
-                {
-                    str.encode("data_size"): tf.TensorSpec(shape=(), dtype=tf.int32),
-                }
-            )
+
             data_set = tf.data.Dataset.from_generator(
                 batch_generator, args=batch_generator_args, output_signature=type_spec
             )
@@ -368,31 +233,31 @@ class MolecularMap(Transformations):
                 total=self.n_batches,
                 desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
             ):
-                data = self._format_batch(
-                    batch, scale_factor=np.array(mass_factor) / scaling_factor
-                )
-                batch_size = data.shape[1]
+                batch_size = batch[b'data_size']
+
                 trajectory = np.zeros(
                     shape=(
-                        len(self.adjacency_graphs[molecule_name]["molecules"]),
+                        molecular_graph.n_molecules,
                         batch_size,
                         3,
                     )
                 )
 
-                for t, molecule in enumerate(
-                    self.adjacency_graphs[molecule_name]["molecules"]
-                ):
-                    # indices of the atoms inside the specific molecule.
-                    indices = list(
-                        self.adjacency_graphs[molecule_name]["molecules"][
-                            molecule
-                        ].numpy()
-                    )
-                    molecules[molecule_name]["groups"][t] = self._build_indices_dict(
-                        indices, species
-                    )
-                    trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
+                for t, molecule in enumerate(molecular_graph.molecular_groups):
+                    # Load species molecule-specific particles into a separate dict
+                    # and apply their respective scaling factor.
+                    molecule_trajectory = np.zeros((batch_size, 3))
+                    for item in molecular_graph.molecular_groups[molecule]:
+                        batch_reference = str.encode(f"{item}/Unwrapped_Positions")
+                        particles = molecular_graph.molecular_groups[molecule][item]
+                        print(particles)
+                        particle_trajectories = tf.gather(batch[batch_reference], particles) * mass_dictionary[item]
+                        molecule_trajectory += tf.reduce_sum(particle_trajectories, axis=0)
+
+                    # Compute the COM trajectory
+                    # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
+                    trajectory[t, :, :] = molecule_trajectory
+
                 self._save_output(
                     data=trajectory,
                     data_structure=data_structure,
@@ -400,46 +265,6 @@ class MolecularMap(Transformations):
                 )
 
             self.experiment.molecules = molecules
-            # self.experiment.species.update(molecules)
-
-    def _build_indices_dict(self, indices: List[int], species: List[str]) -> dict:
-        """
-        Build an indices dict to store the groups of atoms in each molecule.
-
-        Parameters
-        ----------
-        indices : list[int]
-                Indices of atoms belonging in the molecule
-        species : list[str]
-                Species in the molecules, in the order that they are loaded.
-        Returns
-        -------
-        group_dict : dict
-                A dictionary of atoms and indices that specify that indices of
-                this species is in a molecule.
-        """
-        indices_dict = {}
-        lengths = []
-        for i, item in enumerate(species):
-            length = self.experiment.species[item].n_particles
-            if i == 0:
-                lengths.append(length)
-            else:
-                lengths.append(length + lengths[i - 1])
-
-        for i, item in enumerate(species):
-            if i == 0:
-                indices_dict[item] = np.sort(
-                    np.array(list(filter(lambda x: x < lengths[i], indices)))
-                ).tolist()
-            else:
-                greater_array = list(filter(lambda x: x >= lengths[i - 1], indices))
-                constrained_array = list(filter(lambda x: x < lengths[i], greater_array))
-                indices_dict[item] = np.sort(
-                    np.array(constrained_array) - (lengths[i - 1])
-                ).tolist()
-
-        return indices_dict
 
     def run_transformation(self, molecules: dict):
         """
@@ -470,10 +295,14 @@ class MolecularMap(Transformations):
         -------
         Update the experiment database.
         """
-        self.molecules = molecules
         self._run_dependency_check()
-        self._build_reference_graphs()
-        self._build_configuration_graphs()
-        self._get_molecule_indices()
+
+        # Populate the molecules dict
+        self.molecules = {}
+        for item in molecules:
+            self.molecules[item] = MolecularGraph(
+                experiment=self.experiment, molecule_name=item, molecule_input_data=molecules[item]
+            )
+
         self._map_molecules()
         self.experiment.run.CoordinateWrapper(species=[key for key in self.molecules])

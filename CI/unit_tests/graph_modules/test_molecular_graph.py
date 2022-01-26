@@ -76,19 +76,19 @@ class TestMolecularGraph:
                 [1, 0, 1, 1, 0],
             ]
         )
-        mask = self.graph_class._apply_system_cutoff(cutoff_tensor, cutoff=5)
+        mask = _apply_system_cutoff(cutoff_tensor, cutoff=5)
         np.testing.assert_array_equal(np.diagonal(mask), zeros)
         np.testing.assert_array_equal(mask, target)
 
         # All zeros
         target = tf.zeros((5, 5))
-        mask = self.graph_class._apply_system_cutoff(cutoff_tensor, cutoff=0)
+        mask = _apply_system_cutoff(cutoff_tensor, cutoff=0)
         np.testing.assert_array_equal(np.diagonal(mask), zeros)
         np.testing.assert_array_equal(mask, target)
 
         # All ones
         target = tf.ones((5, 5)) - tf.eye(5)
-        mask = self.graph_class._apply_system_cutoff(cutoff_tensor, cutoff=200.01)
+        mask = _apply_system_cutoff(cutoff_tensor, cutoff=200.01)
         np.testing.assert_array_equal(np.diagonal(mask), zeros)
         np.testing.assert_array_equal(mask, target)
 
@@ -119,6 +119,6 @@ class TestMolecularGraph:
 
         for item in data:
             self.graph_class.smiles_string = item
-            graph_obj, species = self.graph_class.build_smiles_graph()
+            graph_obj, species = build_smiles_graph()
             assert graph_obj.number_of_nodes() == data[item]["nodes"]
             assert species == data[item]["species"]
