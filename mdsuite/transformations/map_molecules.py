@@ -67,7 +67,7 @@ class MolecularMap(Transformations):
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.dependency = mdsuite_properties.unwrapped_positions
+        self.dependency = mdsuite_properties.positions
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
     def _prepare_database_entry(self, species: str, number_of_molecules: int) -> dict:
@@ -86,7 +86,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(species, "Unwrapped_Positions")
+        path = join_path(species, "Positions")
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -218,7 +218,7 @@ class MolecularMap(Transformations):
                 molecule_name, molecular_graph.n_molecules
             )
             path_list = [
-                join_path(s, "Unwrapped_Positions") for s in molecular_graph.species
+                join_path(s, "Positions") for s in molecular_graph.species
             ]
             self._prepare_monitors(data_path=path_list)
 
@@ -247,7 +247,7 @@ class MolecularMap(Transformations):
                     # and apply their respective scaling factor.
                     molecule_trajectory = np.zeros((batch_size, 3))
                     for item in molecular_graph.molecular_groups[molecule]:
-                        batch_reference = str.encode(f"{item}/Unwrapped_Positions")
+                        batch_reference = str.encode(f"{item}/Positions")
                         particles = molecular_graph.molecular_groups[molecule][item]
                         particle_trajectories = (
                             tf.gather(batch[batch_reference], particles)
@@ -310,4 +310,4 @@ class MolecularMap(Transformations):
             )
 
         self._map_molecules()
-        self.experiment.run.CoordinateWrapper(species=[key for key in self.molecules])
+        self.experiment.run.CoordinateUnwrapper(species=[key for key in self.molecules])
