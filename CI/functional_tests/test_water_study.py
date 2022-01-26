@@ -86,7 +86,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         units=gmx_units,
         simulation_data=file_reader,
     )
-    project.run.CoordinateWrapper()
+    project.run.CoordinateUnwrapper()
     return project
 
 

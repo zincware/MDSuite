@@ -207,7 +207,6 @@ class MolecularMap(Transformations):
             )
             molecules[molecule_name]["mass"] = molecular_graph.molecular_mass
             molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
-            print(molecules)
             scaling_factor = molecular_graph.molecular_mass
 
             mass_dictionary = self._build_reduced_mass_dict(
@@ -231,12 +230,8 @@ class MolecularMap(Transformations):
             )
             data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
 
-            for i, batch in tqdm(
-                enumerate(data_set),
-                ncols=70,
-                total=self.n_batches,
-                desc=f"Mapping molecule graphs onto trajectory for {molecule_name}",
-            ):
+            log.info(f"Mapping molecule graphs onto trajectory for {molecule_name}")
+            for i, batch in tqdm(enumerate(data_set), ncols=70, total=self.n_batches):
                 batch_size = batch[b"data_size"]
 
                 trajectory = np.zeros(
@@ -254,7 +249,6 @@ class MolecularMap(Transformations):
                     for item in molecular_graph.molecular_groups[molecule]:
                         batch_reference = str.encode(f"{item}/Unwrapped_Positions")
                         particles = molecular_graph.molecular_groups[molecule][item]
-                        print(particles)
                         particle_trajectories = (
                             tf.gather(batch[batch_reference], particles)
                             * mass_dictionary[item]

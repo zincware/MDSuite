@@ -44,7 +44,8 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         # If more are added, link here the mdsuite property to the name of the property
         # attribute in chemfiles.Frame
         self.properties_to_chemfile_attr_dict = {
-            mdsuite_properties.unwrapped_positions: "positions",
+            # mdsuite_properties.unwrapped_positions: "positions",
+            mdsuite_properties.positions: "positions",
             mdsuite_properties.velocities: "velocities",
         }
 

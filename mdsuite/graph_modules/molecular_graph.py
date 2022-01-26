@@ -36,6 +36,11 @@ from tqdm import tqdm
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
+import logging
+
+log = logging.getLogger(__name__)
+
+
 if TYPE_CHECKING:
     from mdsuite.experiment import Experiment
 
@@ -90,11 +95,16 @@ class MolecularGraph:
         self.cutoff = molecule_input_data["cutoff"]
         self.n_molecules = molecule_input_data["amount"]
 
+        if 'configuration' in molecule_input_data:
+            self.reference_configuration = molecule_input_data['configuration']
+        else:
+            self.reference_configuration = 0
+
         if "smiles" in molecule_input_data:
             self.smiles_graph, self.species = build_smiles_graph(
                 molecule_input_data["smiles"]
             )
-        elif "reference" in molecule_name:
+        elif "reference" in molecule_input_data:
             self.species = molecule_input_data["reference"]
             self.smiles_string = None
         else:
@@ -106,16 +116,18 @@ class MolecularGraph:
                 "this information."
             )
             raise ValueError(error_msg)
-
         self._get_molecular_mass()
         self._build_molecule_groups()  # populate the class attributes
+        self._perform_isomorphism_tests()  # run the graphs tests.
 
-    def _get_molecular_mass(self) -> float:
+    def _get_molecular_mass(self):
         """
         Get the mass of a SMILES molecule based on experiment data.
 
         Returns
         -------
+        Updates the following class attributes:
+
         mass : float
                 mass of the molecule
         """
@@ -125,22 +137,20 @@ class MolecularGraph:
 
         self.molecular_mass = mass
 
-    def build_configuration_graph(self):
+    def build_configuration_graph(self) -> tf.Tensor:
         """
         Build a graph for the configuration.
 
-        Parameters
-        ----------
-        cutoff : float
-                Cutoff over which to look for molecules.
-        adjacency : bool
-                If true, the adjacency matrix is returned.
         Returns
         -------
-
+        adjacency_matrix : tf.Tensor
+                An adjacency matrix for the configuration describing which atoms are
+                bonded to which others.
         """
-        path_list = [join_path(species, "Positions") for species in self.species]
-        data_dict = self.database.load_data(path_list=path_list, select_slice=np.s_[:, 0])
+        path_list = [join_path(species, "Unwrapped_Positions") for species in self.species]
+        data_dict = self.database.load_data(
+            path_list=path_list, select_slice=np.s_[:, self.reference_configuration]
+        )
         data = []
         for item in path_list:
             data.append(data_dict[item])
@@ -180,8 +190,11 @@ class MolecularGraph:
         Returns
         -------
         reduced_graphs : dict
+                A dict of sub graphs constructed from the decomposition of the adjacency
+                matrix. Of the form {'0': [], '1': []}
         """
-
+        # TODO: wrap this in an optimizer to iteratively improve the cutoff until the
+        #       number is correct.
         def check_a_in_b(a, b):
             """Check if any value of a is in b
 
@@ -202,12 +215,9 @@ class MolecularGraph:
             return False
 
         molecules = {}
+        log.info(f"Building molecular graph from configuration for {self.molecule_name}")
         # TODO speed up
-        for i in tqdm(
-            range(len(adjacency_matrix)),
-            ncols=70,
-            desc=f"Building molecular graph from configuration for {self.molecule_name}",
-        ):
+        for i in tqdm(range(len(adjacency_matrix)), ncols=70):
             indices = tf.where(adjacency_matrix[i])
             indices = tf.reshape(indices, (len(indices)))
             if len(molecules) == 0:
@@ -236,17 +246,86 @@ class MolecularGraph:
         for item in del_list:
             molecules.pop(item)
 
+        return molecules
+
+    def _perform_isomorphism_tests(self):
+        """
+        Run isomorphism checks to determine whether or not the graphs computed are
+        correct.
+
+        Currently runs the following tests:
+
+        1. Checks that the number of decomposed graphs is equal to the number of
+           expected molecules.
+        2. Checks that the number of particles of each constituent species for each
+           molecule matches that given by the SMILES string or the user provided
+           reference data.
+
+        Returns
+        -------
+
+        """
+        # amount of molecules test
+        self._amount_isomorphism_test()
+        # groups equality test
+        self._molecule_group_equality_isomorphism_test()
+
+    def _amount_isomorphism_test(self):
+        """
+        Test that the amount of computed molecules is equal to the expected amount.
+
+        Returns
+        -------
+        Returns nothing, raises a value error if condition is not met.
+        """
+        log.info("Performing molecule number isomorphism test.")
+        # number of molecules test
         if self.n_molecules is None:
-            return molecules
+            log.info("No molecule amount to check against, skipping test.")
         else:
-            if len(molecules) != self.n_molecules:
+            if len(self.molecular_groups) != self.n_molecules:
                 raise ValueError(
                     f"Expected number of molecules ({self.n_molecules}) does not "
-                    f"match the amount computed ({len(molecules)}), please adjust "
-                    "parameters."
+                    f"match the amount computed ({len(self.molecular_groups)}), "
+                    f"please adjust cutoff parameters."
                 )
             else:
-                return molecules
+                log.info("Amount of molecules test passed.")
+
+    def _molecule_group_equality_isomorphism_test(self):
+        """
+        Test that the molecule groups computed match that of the reference.
+
+        Returns
+        -------
+        Nothing, will raise an exception if the test fails.
+        """
+        log.info("Performing group equality isomorphism test.")
+        for mol_number, mol_data in self.molecular_groups.items():
+            for species, indices in mol_data.items():
+                try:
+                    assert len(indices) == self.species[species]
+                except AssertionError:
+                    error_msg = f"Molecule group {mol_number}, with molecule data {mol_data}," \
+                                f"did not match with the reference data in {self.species}."
+                    raise AssertionError(error_msg)
+
+        log.info("Group equality isomorphism test passed.")
+
+    def _adjacency_graph_isomorphism_test(self):
+        """
+        Determine approximate isomorphism between the computed adjacency graph and a
+        reference graph.
+
+        Returns
+        -------
+        Nothing, will raise an exception if the test fails.
+
+        Notes
+        -----
+        This must be implemented, however, will be quite an expensive operation.
+        """
+        pass
 
     def _split_decomposed_graphs(self, graph_dict: dict) -> dict:
         """
@@ -381,6 +460,7 @@ def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
     r_ij_matrix = tf.reshape(positions, (1, len(positions), 3)) - tf.reshape(
         positions, (len(positions), 1, 3)
     )
+
     if cell:
         r_ij_matrix -= tf.math.rint(r_ij_matrix / cell) * cell
     return tf.norm(r_ij_matrix, ord="euclidean", axis=2)

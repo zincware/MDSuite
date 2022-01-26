@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for the computation of kirkwood buff integrals.
 """
 import logging
 from dataclasses import dataclass
