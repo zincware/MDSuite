@@ -27,7 +27,7 @@ Summary
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import numpy as np
 import tensorflow as tf
@@ -83,7 +83,7 @@ class MolecularGraph:
 
                 .. code-block::
 
-                   {'emim': {'reference': {'C': , 'N': 'H': }}, 'amount': 20, "cutoff": 1.7},
+                   {'emim': {'reference': {'C': , 'N': 'H': }}, 'amount': 20},
                    'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
 
         """
