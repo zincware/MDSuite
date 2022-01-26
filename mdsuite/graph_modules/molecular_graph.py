@@ -26,6 +26,7 @@ Summary
 """
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, List
 
 import numpy as np
@@ -35,8 +36,6 @@ from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
-
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -95,8 +94,8 @@ class MolecularGraph:
         self.cutoff = molecule_input_data["cutoff"]
         self.n_molecules = molecule_input_data["amount"]
 
-        if 'configuration' in molecule_input_data:
-            self.reference_configuration = molecule_input_data['configuration']
+        if "configuration" in molecule_input_data:
+            self.reference_configuration = molecule_input_data["configuration"]
         else:
             self.reference_configuration = 0
 
@@ -147,7 +146,9 @@ class MolecularGraph:
                 An adjacency matrix for the configuration describing which atoms are
                 bonded to which others.
         """
-        path_list = [join_path(species, "Unwrapped_Positions") for species in self.species]
+        path_list = [
+            join_path(species, "Unwrapped_Positions") for species in self.species
+        ]
         data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, self.reference_configuration]
         )
@@ -287,7 +288,7 @@ class MolecularGraph:
                 raise ValueError(
                     f"Expected number of molecules ({self.n_molecules}) does not "
                     f"match the amount computed ({len(self.molecular_groups)}), "
-                    f"please adjust cutoff parameters."
+                    "please adjust cutoff parameters."
                 )
             else:
                 log.info("Amount of molecules test passed.")
@@ -306,8 +307,10 @@ class MolecularGraph:
                 try:
                     assert len(indices) == self.species[species]
                 except AssertionError:
-                    error_msg = f"Molecule group {mol_number}, with molecule data {mol_data}," \
-                                f"did not match with the reference data in {self.species}."
+                    error_msg = (
+                        f"Molecule group {mol_number}, with molecule data {mol_data},"
+                        f"did not match with the reference data in {self.species}."
+                    )
                     raise AssertionError(error_msg)
 
         log.info("Group equality isomorphism test passed.")
