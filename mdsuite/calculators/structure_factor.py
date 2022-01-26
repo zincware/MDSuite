@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from importlib.resources import open_text
 
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.integrate import cumtrapz, simps
 from tqdm import tqdm
@@ -53,7 +54,9 @@ class StructureFactor(Calculator):
 	"""
 	Class for the calculation of the total structure factor for X-ray scattering
 	using the Faber-Ziman partial structure factors. This analysis is valid for a
-	magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom
+	magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom. This means that
+	the radii of the rdf has to be in nanometers, otherwise it wont work. So
+	the code will work with either 'real' or 'metal' lammps units.
 	Explicitly equations 9, 10 and 11 of the paper
 
 	'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
@@ -132,7 +135,7 @@ class StructureFactor(Calculator):
 			)  # stores coefficients for atomic form factors
 
 	@call
-	def __call__(self, plot=True, data_range=1):
+	def __call__(self, plot=True,  save=True, data_range=1):
 		"""
 		Parameters
 		----------
@@ -151,14 +154,14 @@ class StructureFactor(Calculator):
 		self.args = Args(data_range=data_range)
 
 		out = {}
-		print('\n number of atomas are ', self.experiment.number_of_atoms)
-		print('\n number of atomas are ', self.experiment.species)
 
 		self.number_of_atoms = 0
 		for species in self.experiment.species:
 			print('species', species)
 			self.number_of_atoms += self.experiment.species[species][
 				'n_particles']
+
+		for species in self.experiment.species:
 			self.elements_dict[species] = {}
 			self.elements_dict[species]['particle_density'] = \
 			self.experiment.species[species]['n_particles'] / (
@@ -166,14 +169,22 @@ class StructureFactor(Calculator):
 					self.experiment.box_array[1] *
 					self.experiment.box_array[2])
 
-		print('\n number of atoms are ', self.number_of_atoms)
-		self.plot = plot
+			self.elements_dict[species]['molar_fraction'] = self.experiment.species[species]['n_particles'] / self.number_of_atoms
+
+		log.info(f'The species dictionary of the experiment class {self.experiment.species}')
+		log.info(f' number of atoms are now {self.number_of_atoms}')
+		log.info(f'the elements_dict {self.elements_dict}')
 
 		self.rho = self.number_of_atoms / (
 			self.experiment.box_array[0]
 			* self.experiment.box_array[1]
 			* self.experiment.box_array[2]
 		)
+
+		log.info(f'total particle density: {self.rho}')
+
+		self.plot = plot
+		self.plot_partial_structure_factor = True
 
 	@staticmethod
 	def gauss(a, b, scattering_scalar):
@@ -189,12 +200,12 @@ class StructureFactor(Calculator):
 		"""
 		atomic_form_di = {}
 		for el in list(self.experiment.species):
-			if self.experiment.species[el]["charge"] == 0:
+			if self.experiment.species[el]["charge"][0] == 0:
 				el_key = el
-			elif self.experiment.species[el]["charge"] > 0:
-				el_key = el + str(self.experiment.species[el]["charge"]) + "+"
-			elif self.experiment.species[el]["charge"] < 0:
-				el_key = el + str(self.experiment.species[el]["charge"])[
+			elif self.experiment.species[el]["charge"][0] > 0:
+				el_key = el + str(self.experiment.species[el]["charge"][0]) + "+"
+			elif self.experiment.species[el]["charge"][0] < 0:
+				el_key = el + str(self.experiment.species[el]["charge"][0])[
 				              1:] + "-"
 			else:
 				log.warning("atomic form factors: Impossible input")
@@ -215,44 +226,8 @@ class StructureFactor(Calculator):
 			)
 			atomic_form_di[el] = {}
 			atomic_form_di[el]["atomic_form_factor"] = atomic_form_fac
+
 		return atomic_form_di
-
-	@property
-	def molar_fractions(self) -> dict:
-		"""
-		Calculates the molar fractions for all elements in the species
-		dictionary and add it to the species dictionary
-
-		# TODO value is not cached!
-		"""
-		molar_fractions = {}
-
-		for el in self.experiment.species:
-			molar_fractions[el] = (
-				self.experiment.species[el].n_particles / self.number_of_atoms
-			)
-
-		return molar_fractions
-
-	@property
-	def species_densities(self):
-		"""Calculates the particle densities
-
-		Calculates the particle densities for all the species in the species
-		dictionary and add it to the species dictionary
-
-		# TODO this is uncached!!
-		# TODO was species[x]["species_densities"] ever used somewhere?
-		#   this needs tests!
-		"""
-		species_densities = {}
-		for el in self.experiment.species:
-			species_densities[el] = self.experiment.species[el].n_particles / (
-				self.experiment.box_array[0]
-				* self.experiment.box_array[1]
-				* self.experiment.box_array[2]
-			)
-		return species_densities
 
 	def average_atomic_form_factor(self, scattering_scalar):
 		"""
@@ -261,7 +236,7 @@ class StructureFactor(Calculator):
 		sum1 = 0
 		atomic_form_facs = self.atomic_form_factors(scattering_scalar)
 		for el in self.experiment.species:
-			sum1 += self.molar_fractions[el] * atomic_form_facs[el][
+			sum1 += self.elements_dict[el]['molar_fraction'] * atomic_form_facs[el][
 				"atomic_form_factor"]
 		average_atomic_factor = sum1 ** 2
 		return average_atomic_factor
@@ -283,6 +258,12 @@ class StructureFactor(Calculator):
 				/ (scattering_scalar * radius)
 				* (self.rdf[counter] - 1)
 			)
+
+		# if self.plot_partial_structure_factor:
+		# 	plt.figure()
+		# 	plt.plot(self.radii, integrand)
+		# 	plt.show()
+
 		running_integral = cumtrapz(integrand, self.radii, initial=0.0)
 		integral = simps(integrand, self.radii)
 		particle_density = self.elements_dict[elements[0]][
@@ -295,8 +276,8 @@ class StructureFactor(Calculator):
 		"""
 		Calculates the weight factor
 		"""
-		c_a = self.molar_fractions[species_lst[0]]
-		c_b = self.molar_fractions[species_lst[1]]
+		c_a = self.elements_dict[species_lst[0]]['molar_fraction']
+		c_b = self.elements_dict[species_lst[1]]['molar_fraction']
 		form_factors = self.atomic_form_factors(scattering_scalar)
 		avg_form_fac = self.average_atomic_form_factor(scattering_scalar)
 		atom_form_fac_a = form_factors[species_lst[0]]["atomic_form_factor"]
@@ -316,7 +297,15 @@ class StructureFactor(Calculator):
 			# log.debug(f"Loaded data: {data_}")
 			# self._load_rdf_from_file(data_)
 			self.radii = self.rdf_dict[rdf_name]['x']
+
+			# self.radii = np.array(self.radii) * 10
+
 			self.rdf = self.rdf_dict[rdf_name]['y']
+
+			# plt.figure()
+			# plt.plot(self.radii, self.rdf)
+			# plt.title(f'{rdf_name}')
+			# plt.show()
 			# log.debug(f"Loaded RDF: {self.rdf.shape} and radii: {self.radii.shape}")
 			elements = rdf_name.split('_')
 			log.debug(f"Elements are: {elements}")
@@ -346,10 +335,9 @@ class StructureFactor(Calculator):
 		for key in self.rdf_dict:
 			print('the keys are', key)
 
-		print('the species are ', self.experiment.species)
 
-		molar_fractions = self.molar_fractions
-		species_densities = self.species_densities
+		# molar_fractions = self.molar_fractions
+		# species_densities = self.species_densities
 		total_structure_factor_li = []
 		for counter, scattering_scalar in tqdm(
 			enumerate(self.Q_arr),
