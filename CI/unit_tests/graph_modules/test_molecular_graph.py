@@ -30,7 +30,10 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
-from mdsuite.graph_modules.molecular_graph import MolecularGraph
+from mdsuite.graph_modules.molecular_graph import (
+    _apply_system_cutoff,
+    build_smiles_graph,
+)
 
 
 class MockExperiment:
@@ -45,8 +48,6 @@ class TestMolecularGraph:
     """
     Class to test the molecular graph module.
     """
-
-    graph_class = MolecularGraph(experiment=MockExperiment())
 
     def test_apply_system_cutoff(self):
         """
@@ -118,7 +119,6 @@ class TestMolecularGraph:
         }
 
         for item in data:
-            self.graph_class.smiles_string = item
-            graph_obj, species = build_smiles_graph()
+            graph_obj, species = build_smiles_graph(item)
             assert graph_obj.number_of_nodes() == data[item]["nodes"]
             assert species == data[item]["species"]
