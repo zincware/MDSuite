@@ -217,9 +217,7 @@ class MolecularMap(Transformations):
             data_structure = self._prepare_database_entry(
                 molecule_name, molecular_graph.n_molecules
             )
-            path_list = [
-                join_path(s, "Positions") for s in molecular_graph.species
-            ]
+            path_list = [join_path(s, "Positions") for s in molecular_graph.species]
             self._prepare_monitors(data_path=path_list)
 
             type_spec = self._get_type_spec(path_list)

@@ -25,6 +25,7 @@ Summary
 -------
 Module to test the molecular graph module.
 """
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +35,31 @@ from mdsuite.graph_modules.molecular_graph import (
     _apply_system_cutoff,
     build_smiles_graph,
 )
+
+
+@dataclass
+class SmilesTestData:
+    """
+    A data class to be used in the smiles string unit test.
+
+    Attributes
+    ----------
+    name : str
+            Name of the molecule e.g. emim
+    smiles_string : str
+            SMILES string for the molecule e.g. CCN1C=C[N+](+C1)C
+    nodes : int
+            Number of nodes that will exists in the adjacency graph built from the
+            smiles string. This will correspond to the number of atoms in the molecule.
+    species : dict
+            A dictionary of species information for the test stating how many of each
+            particle species is in the group e.g. {'C': 6, 'H': 14}
+    """
+
+    name: str
+    smiles_string: str
+    nodes: int
+    species: dict
 
 
 class MockExperiment:
@@ -102,23 +128,42 @@ class TestMolecularGraph:
         This test checks that the SMILES graphs built by the module return the correct
         molecule information for several scenarios.
         """
-        emim = "CCN1C=C[N+](+C1)C"
-        bmim = "CCCCN1C=C[N+](+C1)C"
-        pf = "F[P-](F)(F)(F)(F)F"  # PF6
-        h2o = "[H]O[H]"
-        bergenin = "OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H]2[C@@H]1c3c(O)c(OC)c(O)cc3C(=O)O2"
-        nacl = "[Na+].[Cl-]"
+        emim = SmilesTestData(
+            name="emim",
+            smiles_string="CCN1C=C[N+](+C1)C",
+            nodes=20,
+            species={"C": 6, "N": 2, "H": 12},
+        )
+        bmim = SmilesTestData(
+            name="bmim",
+            smiles_string="CCCCN1C=C[N+](+C1)C",
+            nodes=26,
+            species={"C": 8, "N": 2, "H": 16},
+        )
+        pf = SmilesTestData(
+            name="pf6",
+            smiles_string="F[P-](F)(F)(F)(F)F",
+            nodes=7,
+            species={"P": 1, "F": 6},
+        )
+        h2o = SmilesTestData(
+            name="h2o", smiles_string="[H]O[H]", nodes=3, species={"H": 2, "O": 1}
+        )
+        bergenin = SmilesTestData(
+            name="bergenin",
+            smiles_string=(
+                "OC[C@@H](O1)[C@@H](O)[C@H](O)[C@@H]2[C@@H]1c3c(O)c(OC)c(O)cc3C(=O)O2"
+            ),
+            nodes=39,
+            species={"C": 14, "H": 16, "O": 9},
+        )
+        nacl = SmilesTestData(
+            name="nacl", smiles_string="[Na+].[Cl-]", nodes=2, species={"Na": 1, "Cl": 1}
+        )
 
-        data = {
-            emim: {"species": {"C": 6, "N": 2, "H": 12}, "nodes": 20},
-            bmim: {"species": {"C": 8, "N": 2, "H": 16}, "nodes": 26},
-            pf: {"species": {"P": 1, "F": 6}, "nodes": 7},
-            h2o: {"species": {"H": 2, "O": 1}, "nodes": 3},
-            bergenin: {"species": {"C": 14, "H": 16, "O": 9}, "nodes": 39},
-            nacl: {"species": {"Na": 1, "Cl": 1}, "nodes": 2},
-        }
+        data = [emim, bmim, pf, h2o, bergenin, nacl]
 
         for item in data:
-            graph_obj, species = build_smiles_graph(item)
-            assert graph_obj.number_of_nodes() == data[item]["nodes"]
-            assert species == data[item]["species"]
+            graph_obj, species = build_smiles_graph(item.smiles_string)
+            assert graph_obj.number_of_nodes() == item.nodes
+            assert species == item.species
