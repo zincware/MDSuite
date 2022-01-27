@@ -25,6 +25,7 @@ Summary
 -------
 """
 import logging
+from typing import List
 
 import numpy as np
 import tensorflow as tf
@@ -34,8 +35,6 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
-
-from typing import List
 from mdsuite.utils.molecule import Molecule
 
 log = logging.getLogger(__name__)

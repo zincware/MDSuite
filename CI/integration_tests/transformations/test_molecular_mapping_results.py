@@ -223,10 +223,18 @@ def _test_ionic_liquid(mdsuite_project):
     check the effect of parsing a specific reference configuration.
     """
     bmim_molecule = mdsuite.Molecule(
-        name="bmim", smiles="CCCCN1C=C[N+](+C1)C", amount=50, cutoff=2.1, reference_configuration=100
+        name="bmim",
+        smiles="CCCCN1C=C[N+](+C1)C",
+        amount=50,
+        cutoff=2.1,
+        reference_configuration=100,
     )
     bf_molecule = mdsuite.Molecule(
-        name="bf4", smiles="[B-](F)(F)(F)F", amount=50, cutoff=2.4, reference_configuration=100
+        name="bf4",
+        smiles="[B-](F)(F)(F)F",
+        amount=50,
+        cutoff=2.4,
+        reference_configuration=100,
     )
     mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
         molecules=[bmim_molecule, bf_molecule]
