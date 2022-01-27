@@ -288,7 +288,7 @@ class MolecularMap(Transformations):
 
                 .. code-block::
 
-                   {'emim': {'reference': {'C': , 'N': 'H': }}, 'amount': 20},
+                   {'emim': {'reference': {'C': 6, 'N': 2, 'H': 12}}, 'amount': 20},
                    'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20}}
 
         Returns
