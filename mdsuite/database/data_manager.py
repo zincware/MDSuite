@@ -180,12 +180,10 @@ class DataManager:
             -------
             """
             database = Database(database)
-            if self.remainder > 0:
-                remainder = True
-            else:
-                remainder = False
 
-            for batch in range(batch_number + int(remainder)):
+            loop_over_remainder = self.remainder > 0
+
+            for batch in range(batch_number + int(loop_over_remainder)):
                 start = int(batch * batch_size) + self.offset
                 stop = int(start + batch_size)
                 data_size = tf.cast(batch_size, dtype=tf.int32)
