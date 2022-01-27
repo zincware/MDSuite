@@ -97,7 +97,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
     def __call__(
         self,
         plot=True,
-        data_range=500,
+        data_range=100,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
     ):

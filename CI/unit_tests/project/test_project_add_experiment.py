@@ -217,8 +217,8 @@ def test_gromacs_read(traj_files, tmp_path):
 
     project.add_experiment("xtc_test", simulation_data=file_reader)
     exp = project.experiments["xtc_test"]
-    pos = exp.load_matrix(species=["C1"], property_name="Unwrapped_Positions")[
-        "C1/Unwrapped_Positions"
+    pos = exp.load_matrix(species=["C1"], property_name="Positions")[
+        "C1/Positions"
     ]
     box_l = exp.box_array
 
