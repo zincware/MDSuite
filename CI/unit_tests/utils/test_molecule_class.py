@@ -26,6 +26,7 @@ Summary
 Unit tests for the molecule data class.
 """
 import pytest
+
 import mdsuite
 from mdsuite.utils.molecule import Molecule
 
@@ -44,11 +45,11 @@ def test_instantiation():
     """
     with pytest.raises(TypeError):
         my_molecule = Molecule()
-        my_molecule = Molecule(name='test')
-        my_molecule = Molecule(name='test', amount=2)
-        my_molecule = Molecule(name='test', cutoff=4)
+        my_molecule = Molecule(name="test")
+        my_molecule = Molecule(name="test", amount=2)
+        my_molecule = Molecule(name="test", cutoff=4)
 
-    my_molecule = Molecule(name='test', amount=2, cutoff=4)
+    my_molecule = Molecule(name="test", amount=2, cutoff=4)
 
     assert my_molecule.reference_configuration == 0
     assert my_molecule.smiles is None
@@ -59,4 +60,4 @@ def test_project_import():
     """
     Test that the molecule can be import directly from the mdsuite import.
     """
-    molecule = mdsuite.Molecule(name='test', amount=1, cutoff=1.0)
+    molecule = mdsuite.Molecule(name="test", amount=1, cutoff=1.0)
