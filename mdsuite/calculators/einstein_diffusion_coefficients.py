@@ -183,7 +183,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             numerator = self.experiment.units["length"] ** 2
             denominator = (
                 self.experiment.units["time"]
-                * len(self.experiment.molecules[species]["indices"])
+                * self.experiment.molecules[species]["n_particles"]
             ) * 6
         else:
             # Calculate the prefactor

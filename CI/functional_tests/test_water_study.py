@@ -95,9 +95,9 @@ def test_water_analysis(mdsuite_project):
 
     water = mdsuite_project.experiments["water_sim"]
 
-    water.run.MolecularMap(
-        molecules={"water": {"smiles": "[H]O[H]", "amount": 14, "cutoff": 1.7}}
-    )
+    water_molecule = mds.Molecule(name="water", smiles="[H]O[H]", amount=14, cutoff=1.7)
+
+    water.run.MolecularMap(molecules=[water_molecule])
     mdsuite_project.run.AngularDistributionFunction(plot=False)
     mdsuite_project.run.RadialDistributionFunction(plot=False)
     mdsuite_project.run.AngularDistributionFunction(plot=False, molecules=True)

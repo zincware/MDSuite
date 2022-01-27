@@ -130,7 +130,6 @@ def test_water_molecule_smiles(mdsuite_project):
     reference_molecules = {
         "water": {
             "n_particles": 14,
-            "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
             "mass": 18.015,
             "groups": {
                 "0": {"H": [0, 1], "O": [0]},
@@ -183,7 +182,6 @@ def test_water_molecule_reference_dict(mdsuite_project):
     reference_molecules = {
         "water": {
             "n_particles": 14,
-            "indices": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
             "mass": 18.014680000000002,
             "groups": {
                 "0": {"HW1": [0], "OW": [0], "HW2": [0]},

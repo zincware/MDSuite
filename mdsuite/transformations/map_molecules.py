@@ -203,9 +203,7 @@ class MolecularMap(Transformations):
             molecules = self.experiment.molecules
             molecules[molecule_name] = {}
             molecules[molecule_name]["n_particles"] = molecular_graph.n_molecules
-            molecules[molecule_name]["indices"] = list(
-                range(molecules[molecule_name]["n_particles"])
-            )
+
             molecules[molecule_name]["mass"] = molecular_graph.molecular_mass
             molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
             scaling_factor = molecular_graph.molecular_mass
@@ -293,4 +291,6 @@ class MolecularMap(Transformations):
             )
 
         self._map_molecules()
+        # TODO: the species call can be removed when molecules are treated in some
+        #       as ordinary species and are checked for in dependencies.
         self.experiment.run.CoordinateUnwrapper(species=[key for key in self.molecules])
