@@ -91,7 +91,14 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
 
 
 def test_water_analysis(mdsuite_project):
-    """Run a functional test by performing a study on an MD simulation of water"""
+    """
+    Run a functional test by performing a study on an MD simulation of water
+
+    Notes
+    -----
+    The diffusion, angle, and eventually coordination data tested here are comparable
+    with values taken from experiment and published studies.
+    """
 
     water = mdsuite_project.experiments["water_sim"]
 
@@ -99,13 +106,11 @@ def test_water_analysis(mdsuite_project):
 
     water.run.MolecularMap(molecules=[water_molecule])
     atomistic_adf = mdsuite_project.run.AngularDistributionFunction(plot=False)
-    atomistic_rdf = mdsuite_project.run.RadialDistributionFunction(plot=False)
+    mdsuite_project.run.RadialDistributionFunction(plot=False)
     molecule_adf = mdsuite_project.run.AngularDistributionFunction(
         plot=False, molecules=True, norm_power=8
     )
-    molecule_rdf = mdsuite_project.run.RadialDistributionFunction(
-        plot=False, molecules=True
-    )
+    mdsuite_project.run.RadialDistributionFunction(plot=False, molecules=True)
     atomistic_diffusion = mdsuite_project.run.EinsteinDiffusionCoefficients(
         plot=False, data_range=500
     )
