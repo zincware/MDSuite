@@ -36,6 +36,7 @@ from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.molecule import Molecule
 
 log = logging.getLogger(__name__)
 
@@ -55,8 +56,7 @@ class MolecularGraph:
     def __init__(
         self,
         experiment: Experiment,
-        molecule_name: str = None,
-        molecule_input_data: dict = None,
+        molecule_input_data: Molecule,
     ):
         """
         Constructor for the MolecularGraph class.
@@ -65,8 +65,6 @@ class MolecularGraph:
         ----------
         experiment : Experiment
                 Experiment object from which to read.
-        molecule_name : str
-                Name of the molecule.
         molecule_input_data : dict
                 Molecule dictionary to use as reference. The reference component is the
                 most critical part. One can either use a smiles string or a reference
@@ -83,28 +81,28 @@ class MolecularGraph:
 
                 .. code-block::
 
-                   {'emim': {'reference': {'C': , 'N': 'H': }}, 'amount': 20},
+                   {'emim': {'reference': {'C': 6, 'N': 2, 'H': 12}}, 'amount': 20},
                    'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
 
         """
         # TODO move to data dict for user input.
         self.experiment = experiment
-        self.molecule_name = molecule_name
+        self.molecule_name = molecule_input_data.name
         self.database = Database(self.experiment.database_path / "database.hdf5")
-        self.cutoff = molecule_input_data["cutoff"]
-        self.n_molecules = molecule_input_data["amount"]
+        self.cutoff = molecule_input_data.cutoff
+        self.n_molecules = molecule_input_data.amount
 
-        if "configuration" in molecule_input_data:
-            self.reference_configuration = molecule_input_data["configuration"]
+        if isinstance(molecule_input_data.reference_configuration, int):
+            self.reference_configuration = molecule_input_data.reference_configuration
         else:
             self.reference_configuration = 0
 
-        if "smiles" in molecule_input_data:
+        if isinstance(molecule_input_data.smiles, str):
             self.smiles_graph, self.species = build_smiles_graph(
-                molecule_input_data["smiles"]
+                molecule_input_data.smiles
             )
-        elif "reference" in molecule_input_data:
-            self.species = molecule_input_data["reference"]
+        elif isinstance(molecule_input_data.species_dict, dict):
+            self.species = molecule_input_data.species_dict
             self.smiles_string = None
         else:
             error_msg = (
@@ -115,9 +113,10 @@ class MolecularGraph:
                 "this information."
             )
             raise ValueError(error_msg)
+
         self._get_molecular_mass()
-        self._build_molecule_groups()  # populate the class attributes
-        self._perform_isomorphism_tests()  # run the graphs tests.
+        self._build_molecule_groups()  # populate the class group attribute
+        self._perform_isomorphism_tests()  # run the graph tests.
 
     def _get_molecular_mass(self):
         """

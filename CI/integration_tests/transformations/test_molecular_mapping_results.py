@@ -25,7 +25,7 @@ Summary
 -------
 Test the outcome of molecular mapping.
 """
-from typing import List
+from typing import List, Tuple
 
 import pytest
 from zinchub import DataHub
@@ -37,14 +37,18 @@ from mdsuite.utils import Units
 
 
 @pytest.fixture(scope="session")
-def traj_files(tmp_path_factory) -> List[str]:
+def traj_files(tmp_path_factory) -> Tuple[List[str], str]:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
     water = DataHub(url="https://github.com/zincware/DataHub/tree/main/Water_14_Gromacs")
     water.get_file(temporary_path)
     file_paths = [(temporary_path / f).as_posix() for f in water.file_raw]
-    return file_paths
+
+    bmim_bf4 = DataHub(url="https://github.com/zincware/DataHub/tree/main/Bmim_BF4")
+    bmim_bf4.get_file(path="./")
+
+    return file_paths, bmim_bf4.file_raw
 
 
 @pytest.fixture()
@@ -65,6 +69,9 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     project: mdsuite.Project
             An MDSuite project to be tested.
     """
+    water_files = traj_files[0]
+    bmim_file = traj_files[1]
+
     gmx_units = Units(
         time=1e-12,
         length=1e-10,
@@ -77,10 +84,10 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     project = mdsuite.Project(storage_path=tmp_path.as_posix())
 
     file_reader_1 = mdsuite.file_io.chemfiles_read.ChemfilesRead(
-        traj_file_path=traj_files[2], topol_file_path=traj_files[0]
+        traj_file_path=water_files[2], topol_file_path=water_files[0]
     )
     file_reader_2 = mdsuite.file_io.chemfiles_read.ChemfilesRead(
-        traj_file_path=traj_files[2], topol_file_path=traj_files[1]
+        traj_file_path=water_files[2], topol_file_path=water_files[1]
     )
     project.add_experiment(
         name="simple_water",
@@ -97,7 +104,9 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         simulation_data=file_reader_2,
     )
 
-    project.run.CoordinateWrapper()
+    project.add_experiment("bmim_bf4", simulation_data=bmim_file)
+
+    project.run.CoordinateUnwrapper()
 
     return project
 
@@ -141,8 +150,11 @@ def test_water_molecule_smiles(mdsuite_project):
             },
         }
     }
+    water_molecule = mdsuite.Molecule(
+        name="water", smiles="[H]O[H]", amount=14, cutoff=1.7
+    )
     mdsuite_project.experiments["simple_water"].run.MolecularMap(
-        molecules={"water": {"smiles": "[H]O[H]", "amount": 14, "cutoff": 1.7}}
+        molecules=[water_molecule]
     )
     molecules = mdsuite_project.experiments["simple_water"].molecules
     assert molecules == reference_molecules
@@ -191,16 +203,31 @@ def test_water_molecule_reference_dict(mdsuite_project):
             },
         }
     }
+    water_molecule = mdsuite.Molecule(
+        name="water", species_dict={"OW": 1, "HW1": 1, "HW2": 1}, amount=14, cutoff=1.7
+    )
     mdsuite_project.experiments["ligand_water"].run.MolecularMap(
-        molecules={
-            "water": {
-                "reference": {"OW": 1, "HW1": 1, "HW2": 1},
-                "amount": 14,
-                "cutoff": 1.7,
-            }
-        }
+        molecules=[water_molecule]
     )
     molecules = mdsuite_project.experiments["ligand_water"].molecules
     assert molecules == reference_molecules
 
     assert "water" not in mdsuite_project.experiments["ligand_water"].species
+
+
+def _test_ionic_liquid(mdsuite_project):
+    """
+    Test molecule mapping on a more complex ionic liquid.
+
+    This test will ensure that one can pass multiple molecules to the mapper as well as
+    check the effect of parsing a specific reference configuration.
+    """
+    bmim_molecule = mdsuite.Molecule(
+        name="bmim", smiles="CCCCN1C=C[N+](+C1)C", amount=50, cutoff=2.1, reference_configuration=100
+    )
+    bf_molecule = mdsuite.Molecule(
+        name="bf4", smiles="[B-](F)(F)(F)F", amount=50, cutoff=2.4, reference_configuration=100
+    )
+    mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
+        molecules=[bmim_molecule, bf_molecule]
+    )

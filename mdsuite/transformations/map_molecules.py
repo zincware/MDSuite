@@ -35,6 +35,9 @@ from mdsuite.graph_modules.molecular_graph import MolecularGraph
 from mdsuite.transformations.transformations import Transformations
 from mdsuite.utils.meta_functions import join_path
 
+from typing import List
+from mdsuite.utils.molecule import Molecule
+
 log = logging.getLogger(__name__)
 
 
@@ -266,30 +269,15 @@ class MolecularMap(Transformations):
 
             self.experiment.molecules = molecules
 
-    def run_transformation(self, molecules: dict):
+    def run_transformation(self, molecules: List[Molecule]):
         """
         Perform the transformation.
 
         Parameters
         ----------
-        molecules : dict
-                Molecule dictionary to use as reference. The reference component is the
-                most critical part. One can either use a smiles string or a reference
-                dict as demonstrated below.
-
-                e.g, the input for EMIM-PF6 ionic liquid would be:
-
-                .. code-block::
-
-                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20},
-                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20}}
-
-                or:
-
-                .. code-block::
-
-                   {'emim': {'reference': {'C': 6, 'N': 2, 'H': 12}}, 'amount': 20},
-                   'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20}}
+        molecules : List[Molecule]
+                A list of MDSuite Molecule objects. For each, a molecule will be
+                mapped.
 
         Returns
         -------
@@ -300,10 +288,9 @@ class MolecularMap(Transformations):
         # Populate the molecules dict
         self.molecules = {}
         for item in molecules:
-            self.molecules[item] = MolecularGraph(
+            self.molecules[item.name] = MolecularGraph(
                 experiment=self.experiment,
-                molecule_name=item,
-                molecule_input_data=molecules[item],
+                molecule_input_data=item,
             )
 
         self._map_molecules()
