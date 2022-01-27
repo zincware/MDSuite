@@ -131,6 +131,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.number_of_atoms = None
         self.norm_power = None
         self.sample_configurations = None
+        self.result_keys = ["max_peak"]
         self.result_series_keys = ["angle", "adf"]
         self._dtype = tf.float32
 
@@ -465,8 +466,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
             self.data_range = self.args.number_of_configurations
             log.debug(f"species are {species}")
-
+            max_angle = bin_range_to_angles[tf.math.argmax(hist.numpy())]
             data = {
+                self.result_keys[0]: max_angle,
                 self.result_series_keys[0]: bin_range_to_angles.tolist(),
                 self.result_series_keys[1]: hist.numpy().tolist(),
             }
