@@ -44,10 +44,10 @@ def test_instantiation():
     * Use the correct defaults.
     """
     with pytest.raises(TypeError):
-        my_molecule = Molecule()
-        my_molecule = Molecule(name="test")
-        my_molecule = Molecule(name="test", amount=2)
-        my_molecule = Molecule(name="test", cutoff=4)
+        Molecule()
+        Molecule(name="test")
+        Molecule(name="test", amount=2)
+        Molecule(name="test", cutoff=4)
 
     my_molecule = Molecule(name="test", amount=2, cutoff=4)
 
@@ -60,4 +60,4 @@ def test_project_import():
     """
     Test that the molecule can be import directly from the mdsuite import.
     """
-    molecule = mdsuite.Molecule(name="test", amount=1, cutoff=1.0)
+    mdsuite.Molecule(name="test", amount=1, cutoff=1.0)
