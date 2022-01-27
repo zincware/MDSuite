@@ -100,7 +100,6 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
-        gpu: bool = False,
     ):
         """
         Python constructor
@@ -113,9 +112,6 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
                 Number of configurations to use in each ensemble
         correlation_time : int
                 Correlation time to use in the analysis.
-        gpu : bool
-                If true, reduce memory usage to the maximum GPU capability.
-
         """
 
         # set args that will affect the computation result
@@ -126,7 +122,6 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
             atom_selection=np.s_[:],
         )
 
-        self.gpu = gpu
         self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)

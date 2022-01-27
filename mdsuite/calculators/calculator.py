@@ -160,8 +160,6 @@ class Calculator(CalculatorDatabase):
             List of experiments on which to run the calculator.
     plot : bool
             If true, the results will be plotted.
-    gpu : bool
-            If true, the memory will be scaled down to the best GPU on the system.
     system_property: bool (default = False)
             If the calculator returns a value for the whole system such as ionic
             conductivity or viscosity as opposed to a species-specific number.
@@ -219,7 +217,6 @@ class Calculator(CalculatorDatabase):
             self.experiments = [self.experiment]
 
         self.plot = False
-        self.gpu = False
 
         # SQL data attributes.
         self.result_keys = None
