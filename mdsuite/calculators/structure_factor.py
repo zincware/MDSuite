@@ -55,8 +55,7 @@ class StructureFactor(Calculator):
     Class for the calculation of the total structure factor for X-ray scattering
     using the Faber-Ziman partial structure factors. This analysis is valid for a
     magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom. This means that
-    the radii of the rdf has to be in nanometers, otherwise it wont work. So
-    the code will work with either 'real' or 'metal' lammps units.
+    the radii of the rdf has to be in Angstrom, otherwise it wont work.
     Explicitly equations 9, 10 and 11 of the paper
 
     'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
@@ -292,7 +291,8 @@ class StructureFactor(Calculator):
         for rdf_name in self.rdf_dict:
             self.radii = self.rdf_dict[rdf_name]["x"]
 
-            # self.radii = np.array(self.radii) * 10
+            # IMPORTANT: the units need to be in Angstrom so convert from nm
+            self.radii = np.array(self.radii) * 10
 
             self.rdf = self.rdf_dict[rdf_name]["y"]
 
