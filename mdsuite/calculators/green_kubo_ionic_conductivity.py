@@ -116,7 +116,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
-        gpu: bool = False,
         integration_range: int = None,
     ):
         """
@@ -129,14 +128,10 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
                 Data range to use in the analysis.
         correlation_time : int
                 Correlation time to use in the window sampling.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
         integration_range : int
                 Range over which integration should be performed.
         """
 
-        self.gpu = gpu
         self.plot = plot
         self.jacf: np.ndarray
         self.sigma = []

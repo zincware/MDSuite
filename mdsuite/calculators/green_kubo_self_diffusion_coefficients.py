@@ -118,7 +118,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         correlation_time: int = 1,
         atom_selection=np.s_[:],
         molecules: bool = False,
-        gpu: bool = False,
         tau_values: Union[int, List, Any] = np.s_[:],
         integration_range: int = None,
     ):
@@ -139,9 +138,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Selection of atoms to use within the HDF5 database.
         molecules : bool
                 If true, molecules are used instead of atoms.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
         integration_range : int
                 Range over which to integrate. Default is to integrate over
                 the full data range.
@@ -165,7 +161,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             integration_range=integration_range,
         )
 
-        self.gpu = gpu
         self.plot = plot
         self.time = self._handle_tau_values()
         self.vacf = np.zeros(self.data_resolution)

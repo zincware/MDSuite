@@ -112,7 +112,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         atom_selection: np.s_ = np.s_[:],
         molecules: bool = False,
         tau_values: Union[int, List, Any] = np.s_[:],
-        gpu: bool = False,
     ):
         """
 
@@ -132,9 +131,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 If true, molecules are used instead of atoms.
         tau_values : Union[int, list, np.s_]
                 Selection of tau values to use in the window sliding.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
 
         Returns
         -------
@@ -154,7 +150,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             molecules=molecules,
             species=species,
         )
-        self.gpu = gpu
         self.plot = plot
         self.system_property = False
         self.time = self._handle_tau_values()

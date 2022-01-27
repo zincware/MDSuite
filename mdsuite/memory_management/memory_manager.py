@@ -31,7 +31,7 @@ import numpy as np
 import tensorflow as tf
 
 from mdsuite.database.simulation_database import Database
-from mdsuite.utils.meta_functions import get_machine_properties
+from mdsuite.utils.meta_functions import get_machine_properties, gpu_available
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
     linearithmic_scale_function,
@@ -72,7 +72,7 @@ class MemoryManager:
         parallel: bool = False,
         memory_fraction: float = 0.2,
         scale_function: dict = None,
-        gpu: bool = False,
+        gpu: bool = gpu_available(),
         offset: int = 0,
     ):
         """

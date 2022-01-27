@@ -104,7 +104,6 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
-        gpu: bool = False,
         integration_range: int = None,
     ):
         """
@@ -117,8 +116,6 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         data_range : int
                 Number of configurations to include in each ensemble
         """
-
-        self.gpu = gpu
         self.plot = plot
         self.sigma = []
 

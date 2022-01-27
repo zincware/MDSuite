@@ -37,12 +37,18 @@ from typing import Callable
 import GPUtil
 import numpy as np
 import psutil
+import tensorflow as tf
 from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
 
 log = logging.getLogger(__name__)
+
+
+def gpu_available() -> bool:
+    """Check if TensorFlow has access to any GPU device"""
+    return len(tf.config.list_physical_devices("GPU")) > 1
 
 
 # https://stackoverflow.com/questions/42033142/is-there-an-easy-way-to-check-if-an-object-is-json-serializable-in-python

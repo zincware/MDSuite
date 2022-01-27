@@ -123,7 +123,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
-        gpu: bool = False,
     ):
         """
         Parameters
@@ -143,9 +142,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Selection of atoms to use within the HDF5 database.
         export : bool
                 If true, export the data directly into a csv file.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
 
         Returns
         -------
@@ -157,7 +153,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(species, 2))
 
-        self.gpu = gpu
         self.plot = plot
 
         # set args that will affect the computation result
