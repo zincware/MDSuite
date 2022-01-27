@@ -116,11 +116,11 @@ class StructureFactor(Calculator):
         self.elements = []
         self.elements_dict = {}
         self.number_of_atoms = None
-        self.Q_arr = np.linspace(0.5, 25, 700)
+        self.q_arr = np.linspace(0.5, 25, 700)
 
         self.post_generation = True
 
-        self.x_label = r"$$\text{Q} / nm ^{-1}$$"
+        self.x_label = r"$$\text{Q} / \mathring{A} ^{-1}$$"
         self.y_label = r"$$\text{S(Q)}$$"
         self.analysis_name = "total_structure_factor"
 
@@ -156,7 +156,7 @@ class StructureFactor(Calculator):
 
         self.number_of_atoms = 0
         for species in self.experiment.species:
-            print("species", species)
+            log.debug("species used:", species)
             self.number_of_atoms += self.experiment.species[species]["n_particles"]
 
         for species in self.experiment.species:
@@ -173,11 +173,11 @@ class StructureFactor(Calculator):
                 self.experiment.species[species]["n_particles"] / self.number_of_atoms
             )
 
-        log.info(
+        log.debug(
             f"The species dictionary of the experiment class {self.experiment.species}"
         )
-        log.info(f" number of atoms are now {self.number_of_atoms}")
-        log.info(f"the elements_dict {self.elements_dict}")
+        log.debug(f"number of atoms are now {self.number_of_atoms}")
+        log.debug(f"the elements_dict {self.elements_dict}")
 
         self.rho = self.number_of_atoms / (
             self.experiment.box_array[0]
@@ -311,15 +311,15 @@ class StructureFactor(Calculator):
     def run_calculator(self):
         """
         Calculates the total structure factor for all the different Q-values
-        of the Q_arr (magnitude of the scattering vector)
+        of the q_arr (magnitude of the scattering vector)
         """
         data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.rdf_dict = data.data_dict
 
         total_structure_factor_li = []
         for counter, scattering_scalar in tqdm(
-            enumerate(self.Q_arr),
-            total=len(self.Q_arr),
+            enumerate(self.q_arr),
+            total=len(self.q_arr),
             desc="Structure factor calculation",
         ):
             total_structure_factor_li.append(
@@ -328,7 +328,7 @@ class StructureFactor(Calculator):
         total_structure_factor_li = np.array(total_structure_factor_li)
 
         data = {
-            self.result_series_keys[0]: self.Q_arr.tolist(),
+            self.result_series_keys[0]: self.q_arr.tolist(),
             self.result_series_keys[1]: total_structure_factor_li.tolist(),
         }
 
