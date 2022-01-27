@@ -487,6 +487,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 d_ij matrix in the shape (x, batches) where x comes from the triu
                 computation
         start_batch : int
+                Atom index within a single configuration from to start the computation
+                based on the current minibatch that is being computed.
 
         Returns
         -------
