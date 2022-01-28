@@ -120,7 +120,8 @@ class StructureFactor(Calculator):
 
         self.post_generation = True
 
-        self.x_label = r"$$\text{Q} / \mathring{A} ^{-1}$$"
+        # self.x_label = r"$$\text{Q} / \mathring{A} ^{-1}$$"
+        self.x_label = r"$$\text{Q} / nm ^{-1}$$"
         self.y_label = r"$$\text{S(Q)}$$"
         self.analysis_name = "total_structure_factor"
 
@@ -326,6 +327,9 @@ class StructureFactor(Calculator):
                 self.total_structure_factor(scattering_scalar)
             )
         total_structure_factor_li = np.array(total_structure_factor_li)
+
+        # Convert back from Angstrom to nm
+        self.q_arr = self.q_arr/10
 
         data = {
             self.result_series_keys[0]: self.q_arr.tolist(),
