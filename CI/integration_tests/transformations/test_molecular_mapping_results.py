@@ -46,9 +46,9 @@ def traj_files(tmp_path_factory) -> Tuple[List[str], str]:
     file_paths = [(temporary_path / f).as_posix() for f in water.file_raw]
 
     bmim_bf4 = DataHub(url="https://github.com/zincware/DataHub/tree/main/Bmim_BF4")
-    bmim_bf4.get_file(path="./")
+    bmim_bf4.get_file(path=temporary_path)
 
-    return file_paths, bmim_bf4.file_raw
+    return file_paths, (temporary_path / bmim_bf4.file_raw).as_posix()
 
 
 @pytest.fixture()
