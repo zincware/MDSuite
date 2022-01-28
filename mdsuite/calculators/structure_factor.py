@@ -156,7 +156,6 @@ class StructureFactor(Calculator):
 
         self.number_of_atoms = 0
         for species in self.experiment.species:
-            log.debug("species used:", species)
             self.number_of_atoms += self.experiment.species[species]["n_particles"]
 
         for species in self.experiment.species:
@@ -173,19 +172,19 @@ class StructureFactor(Calculator):
                 self.experiment.species[species]["n_particles"] / self.number_of_atoms
             )
 
-        log.debug(
-            f"The species dictionary of the experiment class {self.experiment.species}"
+        log.info(
+            f"\nThe species dictionary of the experiment class"
+            f" Make sure the masses and charges "
+            f"are correct! \n{self.experiment.species}\n"
         )
-        log.debug(f"number of atoms are now {self.number_of_atoms}")
-        log.debug(f"the elements_dict {self.elements_dict}")
+        log.info(f"Species information that is only "
+                 f"relevant for the structure factor {self.elements_dict}")
 
         self.rho = self.number_of_atoms / (
             self.experiment.box_array[0]
             * self.experiment.box_array[1]
             * self.experiment.box_array[2]
         )
-
-        log.info(f"total particle density: {self.rho}")
 
         self.plot = plot
         self.plot_partial_structure_factor = True
@@ -297,7 +296,6 @@ class StructureFactor(Calculator):
             self.rdf = self.rdf_dict[rdf_name]["y"]
 
             elements = rdf_name.split("_")
-            log.debug(f"Elements are: {elements}")
             s_12, _, _ = self.partial_structure_factor(scattering_scalar, elements)
             s_in = self.weight_factor(scattering_scalar, elements) * s_12
             if elements[0] != elements[1]:  # S_ab and S_ba need to be considered
