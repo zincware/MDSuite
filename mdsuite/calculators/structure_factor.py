@@ -173,12 +173,14 @@ class StructureFactor(Calculator):
             )
 
         log.info(
-            f"\nThe species dictionary of the experiment class"
-            f" Make sure the masses and charges "
+            "\nThe species dictionary of the experiment class"
+            " Make sure the masses and charges "
             f"are correct! \n{self.experiment.species}\n"
         )
-        log.info(f"Species information that is only "
-                 f"relevant for the structure factor {self.elements_dict}")
+        log.info(
+            "Species information that is only "
+            f"relevant for the structure factor {self.elements_dict}"
+        )
 
         self.rho = self.number_of_atoms / (
             self.experiment.box_array[0]
