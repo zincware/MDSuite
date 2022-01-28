@@ -111,129 +111,136 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     return project
 
 
-def test_water_molecule_smiles(mdsuite_project):
+class TestMoleculeMapping:
     """
-    Test that water molecules are built correctly using a SMILES string. Also check
-    that the molecule information is stored correctly in the experiment.
-
-    Parameters
-    ----------
-    mdsuite_project : Callable
-            Callable that returns an MDSuite project created in a temporary
-            directory.
-
-    Returns
-    -------
-    Tests that the molecule groups detected are done so correctly and that the
-    constructed trajectory is also correct.
+    Class to wrap test suite so we can run all tests within PyCharm.
     """
-    reference_molecules = {
-        "water": {
-            "n_particles": 14,
-            "mass": 18.015,
-            "groups": {
-                "0": {"H": [0, 1], "O": [0]},
-                "1": {"H": [2, 3], "O": [1]},
-                "2": {"H": [4, 5], "O": [2]},
-                "3": {"H": [6, 7], "O": [3]},
-                "4": {"H": [8, 9], "O": [4]},
-                "5": {"H": [10, 11], "O": [5]},
-                "6": {"H": [12, 13], "O": [6]},
-                "7": {"H": [14, 15], "O": [7]},
-                "8": {"H": [16, 17], "O": [8]},
-                "9": {"H": [18, 19], "O": [9]},
-                "10": {"H": [20, 21], "O": [10]},
-                "11": {"H": [22, 23], "O": [11]},
-                "12": {"H": [24, 25], "O": [12]},
-                "13": {"H": [26, 27], "O": [13]},
-            },
+
+    def test_water_molecule_smiles(self, mdsuite_project):
+        """
+        Test that water molecules are built correctly using a SMILES string. Also check
+        that the molecule information is stored correctly in the experiment.
+
+        Parameters
+        ----------
+        mdsuite_project : Callable
+                Callable that returns an MDSuite project created in a temporary
+                directory.
+
+        Returns
+        -------
+        Tests that the molecule groups detected are done so correctly and that the
+        constructed trajectory is also correct.
+        """
+        reference_molecules = {
+            "water": {
+                "n_particles": 14,
+                "mass": 18.015,
+                "groups": {
+                    "0": {"H": [0, 1], "O": [0]},
+                    "1": {"H": [2, 3], "O": [1]},
+                    "2": {"H": [4, 5], "O": [2]},
+                    "3": {"H": [6, 7], "O": [3]},
+                    "4": {"H": [8, 9], "O": [4]},
+                    "5": {"H": [10, 11], "O": [5]},
+                    "6": {"H": [12, 13], "O": [6]},
+                    "7": {"H": [14, 15], "O": [7]},
+                    "8": {"H": [16, 17], "O": [8]},
+                    "9": {"H": [18, 19], "O": [9]},
+                    "10": {"H": [20, 21], "O": [10]},
+                    "11": {"H": [22, 23], "O": [11]},
+                    "12": {"H": [24, 25], "O": [12]},
+                    "13": {"H": [26, 27], "O": [13]},
+                },
+            }
         }
-    }
-    water_molecule = mdsuite.Molecule(
-        name="water", smiles="[H]O[H]", amount=14, cutoff=1.7
-    )
-    mdsuite_project.experiments["simple_water"].run.MolecularMap(
-        molecules=[water_molecule]
-    )
-    molecules = mdsuite_project.experiments["simple_water"].molecules
-    assert molecules == reference_molecules
+        water_molecule = mdsuite.Molecule(
+            name="water", smiles="[H]O[H]", amount=14, cutoff=1.7, mol_pbc=True
+        )
+        mdsuite_project.experiments["simple_water"].run.MolecularMap(
+            molecules=[water_molecule]
+        )
+        molecules = mdsuite_project.experiments["simple_water"].molecules
+        assert molecules == reference_molecules
 
-    assert "water" not in mdsuite_project.experiments["simple_water"].species
+        assert "water" not in mdsuite_project.experiments["simple_water"].species
 
+    def test_water_molecule_reference_dict(self, mdsuite_project):
+        """
+        Test that water molecules are built correctly using a reference dict.
 
-def test_water_molecule_reference_dict(mdsuite_project):
-    """
-    Test that water molecules are built correctly using a reference dict.
+        Parameters
+        ----------
+        mdsuite_project : Callable
+                Callable that returns an MDSuite project created in a temporary
+                directory.
 
-    Parameters
-    ----------
-    mdsuite_project : Callable
-            Callable that returns an MDSuite project created in a temporary
-            directory.
-
-    Returns
-    -------
-    Tests that the molecule groups detected are done so correctly and that the
-    constructed trajectory is also correct.
-    """
-    mdsuite_project.experiments["ligand_water"].species["OW"].mass = [15.999]
-    mdsuite_project.experiments["ligand_water"].species["HW1"].mass = [1.00784]
-    mdsuite_project.experiments["ligand_water"].species["HW2"].mass = [1.00784]
-    reference_molecules = {
-        "water": {
-            "n_particles": 14,
-            "mass": 18.014680000000002,
-            "groups": {
-                "0": {"HW1": [0], "OW": [0], "HW2": [0]},
-                "1": {"HW1": [1], "OW": [1], "HW2": [1]},
-                "2": {"HW1": [2], "OW": [2], "HW2": [2]},
-                "3": {"HW1": [3], "OW": [3], "HW2": [3]},
-                "4": {"HW1": [4], "OW": [4], "HW2": [4]},
-                "5": {"HW1": [5], "OW": [5], "HW2": [5]},
-                "6": {"HW1": [6], "OW": [6], "HW2": [6]},
-                "7": {"HW1": [7], "OW": [7], "HW2": [7]},
-                "8": {"HW1": [8], "OW": [8], "HW2": [8]},
-                "9": {"HW1": [9], "OW": [9], "HW2": [9]},
-                "10": {"HW1": [10], "OW": [10], "HW2": [10]},
-                "11": {"HW1": [11], "OW": [11], "HW2": [11]},
-                "12": {"HW1": [12], "OW": [12], "HW2": [12]},
-                "13": {"HW1": [13], "OW": [13], "HW2": [13]},
-            },
+        Returns
+        -------
+        Tests that the molecule groups detected are done so correctly and that the
+        constructed trajectory is also correct.
+        """
+        mdsuite_project.experiments["ligand_water"].species["OW"].mass = [15.999]
+        mdsuite_project.experiments["ligand_water"].species["HW1"].mass = [1.00784]
+        mdsuite_project.experiments["ligand_water"].species["HW2"].mass = [1.00784]
+        reference_molecules = {
+            "water": {
+                "n_particles": 14,
+                "mass": 18.014680000000002,
+                "groups": {
+                    "0": {"HW1": [0], "OW": [0], "HW2": [0]},
+                    "1": {"HW1": [1], "OW": [1], "HW2": [1]},
+                    "2": {"HW1": [2], "OW": [2], "HW2": [2]},
+                    "3": {"HW1": [3], "OW": [3], "HW2": [3]},
+                    "4": {"HW1": [4], "OW": [4], "HW2": [4]},
+                    "5": {"HW1": [5], "OW": [5], "HW2": [5]},
+                    "6": {"HW1": [6], "OW": [6], "HW2": [6]},
+                    "7": {"HW1": [7], "OW": [7], "HW2": [7]},
+                    "8": {"HW1": [8], "OW": [8], "HW2": [8]},
+                    "9": {"HW1": [9], "OW": [9], "HW2": [9]},
+                    "10": {"HW1": [10], "OW": [10], "HW2": [10]},
+                    "11": {"HW1": [11], "OW": [11], "HW2": [11]},
+                    "12": {"HW1": [12], "OW": [12], "HW2": [12]},
+                    "13": {"HW1": [13], "OW": [13], "HW2": [13]},
+                },
+            }
         }
-    }
-    water_molecule = mdsuite.Molecule(
-        name="water", species_dict={"OW": 1, "HW1": 1, "HW2": 1}, amount=14, cutoff=1.7
-    )
-    mdsuite_project.experiments["ligand_water"].run.MolecularMap(
-        molecules=[water_molecule]
-    )
-    molecules = mdsuite_project.experiments["ligand_water"].molecules
-    assert molecules == reference_molecules
+        water_molecule = mdsuite.Molecule(
+            name="water",
+            species_dict={"OW": 1, "HW1": 1, "HW2": 1},
+            amount=14,
+            cutoff=1.7,
+            mol_pbc=True
+        )
+        mdsuite_project.experiments["ligand_water"].run.MolecularMap(
+            molecules=[water_molecule]
+        )
+        molecules = mdsuite_project.experiments["ligand_water"].molecules
+        assert molecules == reference_molecules
 
-    assert "water" not in mdsuite_project.experiments["ligand_water"].species
+        assert "water" not in mdsuite_project.experiments["ligand_water"].species
 
+    def test_ionic_liquid(self, mdsuite_project):
+        """
+        Test molecule mapping on a more complex ionic liquid.
 
-def _test_ionic_liquid(mdsuite_project):
-    """
-    Test molecule mapping on a more complex ionic liquid.
-
-    This test will ensure that one can pass multiple molecules to the mapper as well as
-    check the effect of parsing a specific reference configuration.
-    """
-    bmim_molecule = mdsuite.Molecule(
-        name="bmim",
-        smiles="CCCCN1C=C[N+](+C1)C",
-        amount=50,
-        cutoff=2.1,
-        reference_configuration=100,
-    )
-    bf_molecule = mdsuite.Molecule(
-        name="bf4",
-        smiles="[B-](F)(F)(F)F",
-        amount=50,
-        cutoff=2.4,
-        reference_configuration=100,
-    )
-    mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
-        molecules=[bmim_molecule, bf_molecule]
-    )
+        This test will ensure that one can pass multiple molecules to the mapper as well as
+        check the effect of parsing a specific reference configuration.
+        """
+        bmim_molecule = mdsuite.Molecule(
+            name="bmim",
+            species_dict={'C': 8, 'N': 2, 'H': 15},
+            amount=50,
+            cutoff=1.9,
+            reference_configuration=100,
+        )
+        bf_molecule = mdsuite.Molecule(
+            name="bf4",
+            smiles="[B-](F)(F)(F)F",
+            amount=50,
+            cutoff=2.4,
+            reference_configuration=100,
+        )
+        mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
+            molecules=[bmim_molecule, bf_molecule]
+        )

@@ -48,6 +48,11 @@ if TYPE_CHECKING:
 class MolecularGraph:
     """
     Class for building and studying molecular graphs.
+
+    Attributes
+    ----------
+    reference_property : str
+            MDSuite property to use for reference during the unwrapping.
     """
 
     molecular_mass: float
@@ -85,12 +90,17 @@ class MolecularGraph:
                    'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
 
         """
-        # TODO move to data dict for user input.
         self.experiment = experiment
         self.molecule_name = molecule_input_data.name
         self.database = Database(self.experiment.database_path / "database.hdf5")
         self.cutoff = molecule_input_data.cutoff
         self.n_molecules = molecule_input_data.amount
+        self.mol_pbc = molecule_input_data.mol_pbc
+
+        if self.mol_pbc:
+            self.reference_property = 'Positions'
+        else:
+            self.reference_property = "Unwrapped_Positions"
 
         if isinstance(molecule_input_data.reference_configuration, int):
             self.reference_configuration = molecule_input_data.reference_configuration
@@ -146,7 +156,7 @@ class MolecularGraph:
                 bonded to which others.
         """
         path_list = [
-            join_path(species, "Unwrapped_Positions") for species in self.species
+            join_path(species, self.reference_property) for species in self.species
         ]
         data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, self.reference_configuration]
@@ -463,6 +473,7 @@ def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
         positions, (len(positions), 1, 3)
     )
 
+    # Pretty sure we never need min image for mapping.
     if cell:
         r_ij_matrix -= tf.math.rint(r_ij_matrix / cell) * cell
     return tf.norm(r_ij_matrix, ord="euclidean", axis=2)

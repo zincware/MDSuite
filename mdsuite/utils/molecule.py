@@ -53,6 +53,9 @@ class Molecule:
             bond distance in the system, perhaps with some buffer depending on the
             flexibility of bonds in the molecule and their distribution in the reference
             configuration.
+    mol_pbc : bool
+            If true, the simulation that was run was using molecule-based PBC, i.e.
+            molecules were not allowed to break in the simulation.
     """
 
     name: str
@@ -61,3 +64,4 @@ class Molecule:
     smiles: str = None
     species_dict: dict = None
     reference_configuration: int = 0
+    mol_pbc: bool = False

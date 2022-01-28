@@ -102,7 +102,9 @@ def test_water_analysis(mdsuite_project):
 
     water = mdsuite_project.experiments["water_sim"]
 
-    water_molecule = mds.Molecule(name="water", smiles="[H]O[H]", amount=14, cutoff=1.7)
+    water_molecule = mds.Molecule(
+        name="water", smiles="[H]O[H]", amount=14, cutoff=1.7, mol_pbc=True
+    )
 
     water.run.MolecularMap(molecules=[water_molecule])
     atomistic_adf = mdsuite_project.run.AngularDistributionFunction(plot=False)

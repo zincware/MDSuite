@@ -68,6 +68,7 @@ class MolecularMap(Transformations):
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
         self.adjacency_graphs = {}
+        self.mapping_property = "Unwrapped_Positions"
         self.dependency = mdsuite_properties.positions
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
@@ -87,7 +88,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(species, "Positions")
+        path = join_path(species, self.mapping_property)
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -162,7 +163,7 @@ class MolecularMap(Transformations):
 
         return type_spec
 
-    def _build_reduced_mass_dict(self, species: list, molecular_mass) -> dict:
+    def _build_reduced_mass_dict(self, species: dict, molecular_mass) -> dict:
         """
         Build the reduced mass dictionary.
 
@@ -188,7 +189,7 @@ class MolecularMap(Transformations):
 
         return reduced_mass_dict
 
-    def _map_molecules(self):
+    def _map_molecules(self, molecular_graph: MolecularGraph):
         """
         Map the molecules and save the data in the database.
 
@@ -196,73 +197,70 @@ class MolecularMap(Transformations):
         -------
         Updates the database.
         """
-        for molecule_name in self.molecules:
+        molecule_name = molecular_graph.molecule_name
+        molecules = self.experiment.molecules
+        molecules[molecule_name] = {}
+        molecules[molecule_name]["n_particles"] = molecular_graph.n_molecules
 
-            # Update the experiment molecule information.
-            molecular_graph = self.molecules[molecule_name]
-            molecules = self.experiment.molecules
-            molecules[molecule_name] = {}
-            molecules[molecule_name]["n_particles"] = molecular_graph.n_molecules
+        molecules[molecule_name]["mass"] = molecular_graph.molecular_mass
+        molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
+        scaling_factor = molecular_graph.molecular_mass
 
-            molecules[molecule_name]["mass"] = molecular_graph.molecular_mass
-            molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
-            scaling_factor = molecular_graph.molecular_mass
+        mass_dictionary = self._build_reduced_mass_dict(
+            molecular_graph.species, scaling_factor
+        )
 
-            mass_dictionary = self._build_reduced_mass_dict(
-                molecular_graph.species, scaling_factor
+        # Prepare the data structures and monitors
+        data_structure = self._prepare_database_entry(
+            molecule_name, molecular_graph.n_molecules
+        )
+        path_list = [join_path(s, self.mapping_property) for s in molecular_graph.species]
+        self._prepare_monitors(data_path=path_list)
+
+        type_spec = self._get_type_spec(path_list)
+        batch_generator, batch_generator_args = self.data_manager.batch_generator()
+
+        data_set = tf.data.Dataset.from_generator(
+            batch_generator, args=batch_generator_args, output_signature=type_spec
+        )
+        data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
+
+        log.info(f"Mapping molecule graphs onto trajectory for {molecule_name}")
+        for i, batch in tqdm(enumerate(data_set), ncols=70, total=self.n_batches):
+            batch_size = batch[b"data_size"]
+
+            trajectory = np.zeros(
+                shape=(
+                    molecular_graph.n_molecules,
+                    batch_size,
+                    3,
+                )
             )
 
-            # Prepare the data structures and monitors
-            data_structure = self._prepare_database_entry(
-                molecule_name, molecular_graph.n_molecules
-            )
-            path_list = [join_path(s, "Positions") for s in molecular_graph.species]
-            self._prepare_monitors(data_path=path_list)
-
-            type_spec = self._get_type_spec(path_list)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator()
-
-            data_set = tf.data.Dataset.from_generator(
-                batch_generator, args=batch_generator_args, output_signature=type_spec
-            )
-            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-
-            log.info(f"Mapping molecule graphs onto trajectory for {molecule_name}")
-            for i, batch in tqdm(enumerate(data_set), ncols=70, total=self.n_batches):
-                batch_size = batch[b"data_size"]
-
-                trajectory = np.zeros(
-                    shape=(
-                        molecular_graph.n_molecules,
-                        batch_size,
-                        3,
+            for t, molecule in enumerate(molecular_graph.molecular_groups):
+                # Load species molecule-specific particles into a separate dict
+                # and apply their respective scaling factor.
+                molecule_trajectory = np.zeros((batch_size, 3))
+                for item in molecular_graph.molecular_groups[molecule]:
+                    batch_reference = str.encode(f"{item}/{self.mapping_property}")
+                    particles = molecular_graph.molecular_groups[molecule][item]
+                    particle_trajectories = (
+                        tf.gather(batch[batch_reference], particles)
+                        * mass_dictionary[item]
                     )
-                )
+                    molecule_trajectory += tf.reduce_sum(
+                        particle_trajectories, axis=0
+                    )
 
-                for t, molecule in enumerate(molecular_graph.molecular_groups):
-                    # Load species molecule-specific particles into a separate dict
-                    # and apply their respective scaling factor.
-                    molecule_trajectory = np.zeros((batch_size, 3))
-                    for item in molecular_graph.molecular_groups[molecule]:
-                        batch_reference = str.encode(f"{item}/Positions")
-                        particles = molecular_graph.molecular_groups[molecule][item]
-                        particle_trajectories = (
-                            tf.gather(batch[batch_reference], particles)
-                            * mass_dictionary[item]
-                        )
-                        molecule_trajectory += tf.reduce_sum(
-                            particle_trajectories, axis=0
-                        )
+                # Compute the COM trajectory
+                # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
+                trajectory[t, :, :] = molecule_trajectory
 
-                    # Compute the COM trajectory
-                    # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
-                    trajectory[t, :, :] = molecule_trajectory
-
-                self._save_output(
-                    data=trajectory,
-                    data_structure=data_structure,
-                    index=i * self.batch_size,
-                )
+            self._save_output(
+                data=trajectory,
+                data_structure=data_structure,
+                index=i * self.batch_size,
+            )
 
             self.experiment.molecules = molecules
 
@@ -283,14 +281,17 @@ class MolecularMap(Transformations):
         self._run_dependency_check()
 
         # Populate the molecules dict
-        self.molecules = {}
         for item in molecules:
-            self.molecules[item.name] = MolecularGraph(
+            molecular_graph = MolecularGraph(
                 experiment=self.experiment,
                 molecule_input_data=item,
             )
+            if item.mol_pbc:
+                self.mapping_property = 'Positions'
 
-        self._map_molecules()
-        # TODO: the species call can be removed when molecules are treated in some
-        #       as ordinary species and are checked for in dependencies.
-        self.experiment.run.CoordinateUnwrapper(species=[key for key in self.molecules])
+            self._map_molecules(molecular_graph)
+
+            if item.mol_pbc:
+                self.experiment.run.CoordinateUnwrapper(species=[item.name])
+            else:
+                self.experiment.run.CoordinateWrapper(species=[item.name])
