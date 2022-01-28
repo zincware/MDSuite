@@ -224,8 +224,8 @@ class TestMoleculeMapping:
         """
         Test molecule mapping on a more complex ionic liquid.
 
-        This test will ensure that one can pass multiple molecules to the mapper as well as
-        check the effect of parsing a specific reference configuration.
+        This test will ensure that one can pass multiple molecules to the mapper as
+        well as check the effect of parsing a specific reference configuration.
         """
         bmim_molecule = mdsuite.Molecule(
             name="bmim",

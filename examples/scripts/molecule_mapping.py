@@ -63,20 +63,20 @@ def run_example():
     project.experiments.bmim_bf4.run.UnwrapViaIndices()
 
     bmim = mds.Molecule(
-        name='bmim',
-        species_dict={'C': 8, "N": 2, "H": 15},
+        name="bmim",
+        species_dict={"C": 8, "N": 2, "H": 15},
         amount=50,
         cutoff=1.9,
-        reference_configuration=400
+        reference_configuration=400,
     )
     bf = mds.Molecule(
-        name='bf4',
+        name="bf4",
         smiles="[B-](F)(F)(F)F",
-        amount=50, cutoff=2.4, reference_configuration=400
+        amount=50,
+        cutoff=2.4,
+        reference_configuration=400,
     )
-    project.run.MolecularMap(
-        molecules=[bf, bmim]
-    )
+    project.run.MolecularMap(molecules=[bf, bmim])
     project.run.RadialDistributionFunction(
         start=0, stop=400, number_of_configurations=300, molecules=True
     )
