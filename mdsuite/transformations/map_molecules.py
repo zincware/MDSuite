@@ -248,9 +248,7 @@ class MolecularMap(Transformations):
                         tf.gather(batch[batch_reference], particles)
                         * mass_dictionary[item]
                     )
-                    molecule_trajectory += tf.reduce_sum(
-                        particle_trajectories, axis=0
-                    )
+                    molecule_trajectory += tf.reduce_sum(particle_trajectories, axis=0)
 
                 # Compute the COM trajectory
                 # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
@@ -287,7 +285,7 @@ class MolecularMap(Transformations):
                 molecule_input_data=item,
             )
             if item.mol_pbc:
-                self.mapping_property = 'Positions'
+                self.mapping_property = "Positions"
 
             self._map_molecules(molecular_graph)
 

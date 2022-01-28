@@ -210,7 +210,7 @@ class TestMoleculeMapping:
             species_dict={"OW": 1, "HW1": 1, "HW2": 1},
             amount=14,
             cutoff=1.7,
-            mol_pbc=True
+            mol_pbc=True,
         )
         mdsuite_project.experiments["ligand_water"].run.MolecularMap(
             molecules=[water_molecule]
@@ -229,7 +229,7 @@ class TestMoleculeMapping:
         """
         bmim_molecule = mdsuite.Molecule(
             name="bmim",
-            species_dict={'C': 8, 'N': 2, 'H': 15},
+            species_dict={"C": 8, "N": 2, "H": 15},
             amount=50,
             cutoff=1.9,
             reference_configuration=100,

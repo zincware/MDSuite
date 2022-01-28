@@ -98,7 +98,7 @@ class MolecularGraph:
         self.mol_pbc = molecule_input_data.mol_pbc
 
         if self.mol_pbc:
-            self.reference_property = 'Positions'
+            self.reference_property = "Positions"
         else:
             self.reference_property = "Unwrapped_Positions"
 
