@@ -290,9 +290,7 @@ class MolecularGraph:
         log.info("Performing group equality isomorphism test.")
         for mol_number, mol_data in self.molecular_groups.items():
             for species, indices in mol_data.items():
-                try:
-                    assert len(indices) == self.species[species]
-                except AssertionError:
+                if not len(indices) == self.species[species]
                     error_msg = (
                         f"Molecule group {mol_number}, with molecule data {mol_data},"
                         f"did not match with the reference data in {self.species}."
