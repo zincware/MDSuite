@@ -204,24 +204,6 @@ class MolecularGraph:
         """
         # TODO: wrap this in an optimizer to iteratively improve the cutoff until the
         #       number is correct.
-        def check_a_in_b(a, b):
-            """Check if any value of a is in b
-
-            Parameters
-            ----------
-            a: tf.Tensor
-            b: tf.Tensor
-
-            Returns
-            -------
-            bool
-
-            """
-            x = tf.unstack(a)
-            for x1 in x:
-                if tf.reduce_any(b == x1):
-                    return True
-            return False
 
         molecules = {}
         log.info(f"Building molecular graph from configuration for {self.molecule_name}")
@@ -476,3 +458,23 @@ def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
     if cell:
         r_ij_matrix -= tf.math.rint(r_ij_matrix / cell) * cell
     return tf.norm(r_ij_matrix, ord="euclidean", axis=2)
+
+
+def check_a_in_b(a, b):
+    """Check if any value of a is in b
+
+    Parameters
+    ----------
+    a: tf.Tensor
+    b: tf.Tensor
+
+    Returns
+    -------
+    bool
+
+    """
+    x = tf.unstack(a)
+    for x1 in x:
+        if tf.reduce_any(b == x1):
+            return True
+    return False
