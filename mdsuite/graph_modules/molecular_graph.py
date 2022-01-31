@@ -385,8 +385,7 @@ def build_smiles_graph(smiles_string: str) -> tuple:
         if item in species:
             species[item] += 1
         else:
-            species[item] = 0
-            species[item] += 1
+            species[item] = 1
 
     return mol, species
 
