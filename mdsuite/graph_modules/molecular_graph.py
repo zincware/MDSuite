@@ -251,10 +251,6 @@ class MolecularGraph:
         2. Checks that the number of particles of each constituent species for each
            molecule matches that given by the SMILES string or the user provided
            reference data.
-
-        Returns
-        -------
-
         """
         # amount of molecules test
         self._amount_isomorphism_test()
