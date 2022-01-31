@@ -552,7 +552,8 @@ def sort_array_by_column(array: np.ndarray, column_idx: int):
 
 
 def check_a_in_b(a, b):
-    """Check if any value of a is in b
+    """
+    Check if any value of a is in b
 
     Parameters
     ----------

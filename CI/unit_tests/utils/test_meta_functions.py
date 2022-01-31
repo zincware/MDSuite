@@ -243,5 +243,21 @@ class TestMetaFunction:
 
         Returns
         -------
+        Tests the following:
 
+        * If a is in b a True is returned
+        * If a is not in b a False is returned.
         """
+        b = tf.constant(
+            [
+                [1, 2, 3],
+                [4, 5, 6],
+                [7, 8, 9]
+            ]
+        )
+        a = tf.constant([4, 5, 6])
+        c = tf.constant([10, 11, 12])
+
+        assert check_a_in_b(a, b)
+        assert not check_a_in_b(c, b)
+
