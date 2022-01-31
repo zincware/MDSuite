@@ -336,9 +336,6 @@ class DataManager:
                     if item == str.encode("data_size"):
                         pass
                     else:
-                        # if system:
-                        #     output_dict[item] = glob_data[item][start:stop]
-                        # else:
                         output_dict[item] = glob_data[item][:, start:stop]
 
                 yield output_dict
