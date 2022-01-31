@@ -440,7 +440,7 @@ class Experiment(ExperimentDatabase):
         """
 
         species = self.species
-        species[element]["charge"] = [charge]  # update entry
+        species[element]["charge"] = charge  # update entry
         self.species = species
 
     def set_mass(self, element: str, mass: float):
