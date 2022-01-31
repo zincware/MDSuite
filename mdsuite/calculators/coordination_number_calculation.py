@@ -422,3 +422,6 @@ class CoordinationNumbers(Calculator):
                 ),
                 "right",
             )
+            rdf_radii = self.rdf_data[selected_species]["x"]
+            rdf_gr = self.rdf_data[selected_species]["y"]
+            fig.line(rdf_radii, rdf_gr, y_range_name="Diffusion range", color="#bc5090")
