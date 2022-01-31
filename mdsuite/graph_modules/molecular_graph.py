@@ -314,7 +314,7 @@ class MolecularGraph:
         -----
         This must be implemented, however, will be quite an expensive operation.
         """
-        pass
+        raise NotImplemented
 
     def _split_decomposed_graphs(self, graph_dict: dict) -> dict:
         """
