@@ -35,6 +35,8 @@ import mdsuite.file_io.chemfiles_read
 import mdsuite.transformations
 from mdsuite.utils import Units
 
+from numpy.testing import assert_almost_equal
+
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> Tuple[List[str], str]:
@@ -186,7 +188,7 @@ class TestMoleculeMapping:
         reference_molecules = {
             "water": {
                 "n_particles": 14,
-                "mass": 18.014680000000002,
+                "mass": 18.01468,
                 "groups": {
                     "0": {"HW1": [0], "OW": [0], "HW2": [0]},
                     "1": {"HW1": [1], "OW": [1], "HW2": [1]},
@@ -216,7 +218,7 @@ class TestMoleculeMapping:
             molecules=[water_molecule]
         )
         molecules = mdsuite_project.experiments["ligand_water"].molecules
-        assert molecules == reference_molecules
+        assert_almost_equal(molecules, reference_molecules)
 
         assert "water" not in mdsuite_project.experiments["ligand_water"].species
 
