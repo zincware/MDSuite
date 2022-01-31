@@ -33,7 +33,13 @@ from mdsuite.utils import config
 from mdsuite.utils.molecule import Molecule
 from mdsuite.utils.report_computer_characteristics import Report
 
-__all__ = ["Project", "Experiment", "Report", "config", "Molecule"]
+__all__ = [
+    Project.__name__,
+    Experiment.__name__,
+    Report.__name__,
+    config.__name__,
+    Molecule.__name__
+]
 __version__ = "0.1.0"
 
 logger = logging.getLogger(__name__)
