@@ -68,7 +68,7 @@ class MolecularMap(Transformations):
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.mapping_property = "Unwrapped_Positions"
+        self.mapping_property = mdsuite_properties.unwrapped_positions
         self.dependency = mdsuite_properties.positions
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
@@ -285,7 +285,7 @@ class MolecularMap(Transformations):
                 molecule_input_data=item,
             )
             if item.mol_pbc:
-                self.mapping_property = "Positions"
+                self.mapping_property = mdsuite_properties.positions
 
             self._map_molecules(molecular_graph)
 

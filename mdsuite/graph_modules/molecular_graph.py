@@ -37,6 +37,7 @@ from tqdm import tqdm
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.molecule import Molecule
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 log = logging.getLogger(__name__)
 
@@ -98,9 +99,9 @@ class MolecularGraph:
         self.mol_pbc = molecule_input_data.mol_pbc
 
         if self.mol_pbc:
-            self.reference_property = "Positions"
+            self.reference_property = mdsuite_properties.positions
         else:
-            self.reference_property = "Unwrapped_Positions"
+            self.reference_property = mdsuite_properties.unwrapped_positions
 
         if isinstance(molecule_input_data.reference_configuration, int):
             self.reference_configuration = molecule_input_data.reference_configuration
