@@ -75,3 +75,24 @@ def test_experiment(traj_file, true_values, tmp_path):
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
+
+
+def test_computation_parameter(traj_file, true_values, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.experiments.NaCl.run.RadialDistributionFunction(
+        plot=False,
+        number_of_bins=50,
+        cutoff=5,
+        number_of_configurations=150,
+        species=["Na"],
+    )
+
+    assert computation.computation_parameter["number_of_bins"] == 50
+    assert computation.computation_parameter["cutoff"] == 5
+    assert computation.computation_parameter["number_of_configurations"] == 150
+    assert computation.computation_parameter["species"] == ["Na"]
