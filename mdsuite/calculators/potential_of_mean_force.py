@@ -34,6 +34,7 @@ from bokeh.models import BoxAnnotation
 from scipy.signal import find_peaks
 
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
 from mdsuite.utils.units import boltzmann_constant
 
@@ -48,6 +49,9 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
+    number_of_configurations: int
+    cutoff: float
+    number_of_shells: int
 
 
 class PotentialOfMeanForce(Calculator):
@@ -126,33 +130,43 @@ class PotentialOfMeanForce(Calculator):
     @call
     def __call__(
         self,
+        rdf_data: Computation,
         plot=True,
-        data_range=1,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
+        number_of_shells: int = 1,
     ):
         """
         Python constructor for the class
 
         Parameters
         ----------
+        rdf_data : Computation
+                RDF data to use in the computation.
         plot : bool (default=True)
                             Decision to plot the analysis.
-        data_range : int (default=500)
-                            Range over which the property should be evaluated.
-                            This is not applicable to the current analysis as
-                            the full rdf will be calculated.
         savgol_order : int
                 Order of the savgol polynomial filter
         savgol_window_length : int
                 Window length of the savgol filter.
+        number_of_shells : int
+                Number of shells to integrate through.
         """
 
+        if isinstance(rdf_data, Computation):
+            self.rdf_data = rdf_data
+        else:
+            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
+
+        number_of_configurations, cutoff = self._populate_args()
         self.plot = plot
         self.data_files = []
 
         self.args = Args(
-            savgol_order=savgol_order, savgol_window_length=savgol_window_length
+            savgol_order=savgol_order,
+            savgol_window_length=savgol_window_length,
+            number_of_configurations=number_of_configurations,
+            cutoff=cutoff,
         )
 
     def _calculate_potential_of_mean_force(self):
@@ -164,6 +178,24 @@ class PotentialOfMeanForce(Calculator):
             -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
         )
         self.pomf *= 6.242e8  # convert to eV
+
+    def _populate_args(self) -> tuple:
+        """
+        Use the provided RDF data to populate the args class.
+
+        Returns
+        -------
+        number_of_configurations : int
+                The data range used in the RDF calculation.
+        cutoff : float
+                The cutoff (in nm) used in the RDF calculation
+        """
+        raw_data = self.rdf_data.data_dict
+        keys = list(raw_data)
+        number_of_configurations = len(raw_data[keys[0]]["x"])
+        cutoff = raw_data[keys[0]]["x"][-1]
+
+        return number_of_configurations, cutoff
 
     def _get_max_values(self):
         """
