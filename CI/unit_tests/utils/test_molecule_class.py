@@ -51,7 +51,7 @@ def test_instantiation():
 
     my_molecule = Molecule(name="test", amount=2, cutoff=4)
 
-    assert my_molecule.reference_configuration == 0
+    assert my_molecule.reference_configuration_idx == 0
     assert my_molecule.smiles is None
     assert my_molecule.species_dict is None
 

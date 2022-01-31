@@ -444,7 +444,7 @@ def golden_section_search(
         )
 
 
-def round_down(a: int, b: int) -> int:
+def get_nearest_divisor(a: int, b: int) -> int:
     """
     Function to get the nearest lower divisor.
 
@@ -549,3 +549,24 @@ def sort_array_by_column(array: np.ndarray, column_idx: int):
     # even though the id column could have number type.
     to_sort_by_column = np.asarray(array[:, column_idx], dtype=float)
     return array[to_sort_by_column.argsort()]
+
+
+def check_a_in_b(a, b):
+    """
+    Check if any value of a is in b
+
+    Parameters
+    ----------
+    a: tf.Tensor
+    b: tf.Tensor
+
+    Returns
+    -------
+    bool
+
+    """
+    x = tf.unstack(a)
+    for x1 in x:
+        if tf.reduce_any(b == x1):
+            return True
+    return False
