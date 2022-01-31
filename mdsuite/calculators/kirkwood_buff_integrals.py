@@ -110,7 +110,7 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, data_range=1):
+    def __call__(self, plot=True):
         """
         Doc string for this one.
         Parameters
@@ -118,8 +118,6 @@ class KirkwoodBuffIntegral(Calculator):
         plot : bool
                 If true, the output will be displayed in a figure. This figure will also
                 be saved.
-        data_range : int
-                Default to 1 for this analysis
         """
         self.plot = plot
 

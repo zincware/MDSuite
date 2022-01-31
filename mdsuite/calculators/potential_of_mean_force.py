@@ -30,7 +30,8 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from bokeh.models import BoxAnnotation
+from bokeh.models import HoverTool, Span
+from bokeh.plotting import figure
 from scipy.signal import find_peaks
 
 from mdsuite.calculators.calculator import Calculator, call
@@ -49,7 +50,7 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
-    number_of_configurations: int
+    number_of_bins: int
     cutoff: float
     number_of_shells: int
 
@@ -121,7 +122,7 @@ class PotentialOfMeanForce(Calculator):
         self.y_label = r"$$w^{(2)}(r)$$"
         self.data_range = 1
 
-        self.result_keys = ["min_pomf", "uncertainty", "left", "right"]
+        self.result_keys = []
         self.result_series_keys = ["r", "pomf"]
 
         self.analysis_name = "Potential_of_Mean_Force"
@@ -158,26 +159,44 @@ class PotentialOfMeanForce(Calculator):
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        number_of_configurations, cutoff = self._populate_args()
+        number_of_bins, cutoff = self._populate_args()
         self.plot = plot
         self.data_files = []
 
         self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
-            number_of_configurations=number_of_configurations,
+            number_of_bins=number_of_bins,
             cutoff=cutoff,
+            number_of_shells=number_of_shells,
         )
+        # Auto-populate the args.
+        for i in range(self.args.number_of_shells):
+            self.result_keys.append(f"POMF_{i + 1}")
+            self.result_keys.append(f"POMF_{i + 1}_error")
 
-    def _calculate_potential_of_mean_force(self):
+    def _calculate_potential_of_mean_force(self, rdf: np.ndarray) -> np.ndarray:
         """
         Calculate the potential of mean force
-        """
 
-        self.pomf = (
-            -1 * boltzmann_constant * self.experiment.temperature * np.log(self.rdf)
-        )
-        self.pomf *= 6.242e8  # convert to eV
+        Parameters
+        ----------
+        rdf : np.ndarray
+                RDF data to use in the computation.
+
+        Returns
+        -------
+        pomf : np.ndarray
+                The computed pomf array.
+
+        Notes
+        -----
+        Units here are always eV as the data stored in the RDF is constant independent
+        of what was in the simulation.
+        """
+        pomf = -1 * boltzmann_constant * self.experiment.temperature * np.log(rdf)
+
+        return pomf * 6.242e8  # convert to eV
 
     def _populate_args(self) -> tuple:
         """
@@ -185,130 +204,176 @@ class PotentialOfMeanForce(Calculator):
 
         Returns
         -------
-        number_of_configurations : int
+        number_of_bins : int
                 The data range used in the RDF calculation.
         cutoff : float
                 The cutoff (in nm) used in the RDF calculation
         """
         raw_data = self.rdf_data.data_dict
         keys = list(raw_data)
-        number_of_configurations = len(raw_data[keys[0]]["x"])
+        number_of_bins = len(raw_data[keys[0]]["x"])
         cutoff = raw_data[keys[0]]["x"][-1]
 
-        return number_of_configurations, cutoff
+        return number_of_bins, cutoff
 
-    def _get_max_values(self):
+    def get_pomf_peaks(self, pomf_data: np.ndarray) -> np.ndarray:
         """
-        Calculate the maximums of the rdf
+        Calculate the maximums of the rdf.
+
+        Parameters
+        ----------
+        pomf_data : np.ndarray
+                POMF data to use in the peak detection.
+
+        Returns
+        -------
+        peaks : np.ndarray
+                Peaks to be used in the calculation.
+
+        Raises
+        ------
+        ValueError
+                Raised if the number of peaks required for the analysis are not met.
         """
         filtered_data = apply_savgol_filter(
-            self.pomf,
+            pomf_data,
             order=self.args.savgol_order,
             window_length=self.args.savgol_window_length,
         )
 
+        required_peaks = self.args.number_of_shells + 1
+
         # Find the maximums in the filtered dataset
         peaks = find_peaks(filtered_data)[0]
 
-        return [peaks[0], peaks[1]]
+        # Check that the required number of peaks exist.
+        if len(peaks) < required_peaks:
+            msg = (
+                "Not enough peaks were detecting in the RDF to perform the desired "
+                "analysis. Try reducing the number of desired peaks or improving the "
+                "quality of the RDF provided."
+            )
+            log.error(msg)
+            raise ValueError(msg)
+        else:
+            return peaks
 
-    def _find_minimum(self):
+    def _find_minimum(self, pomf_data: np.ndarray, radii_data: np.ndarray) -> dict:
         """
         Find the minimum of the pomf function
 
         This function calls an implementation of the Golden-section search
         algorithm to determine the minimum of the potential of mean-force function.
 
+        Parameters
+        ----------
+        pomf_data : np.ndarray
+                POMF data to use in the min finding.
+        radii_data : np.ndarray
+                Radii data to use in the min finding.
+
         Returns
         -------
-        pomf_indices : list
-                Location of the minimums of the pomf values.
+        pomf_shells : dict
+                Dict of all shells detected based on user arguments, e.g:
+                {'1': [0.1, 0.2]} indicates that the first pomf peak is betwee 0.1 and
+                0.2 angstrom.
         """
 
-        peaks = (
-            self._get_max_values()
-        )  # get the peaks of the tensor_values post-filtering
+        # get the peaks of the tensor_values post-filtering
+        peaks = self.get_pomf_peaks(pomf_data)
 
-        # Calculate the radii of the minimum range
-        pomf_radii = golden_section_search(
-            [self.radii, self.pomf], self.radii[peaks[1]], self.radii[peaks[0]]
-        )
+        pomf_shells = {}
+        for i in range(self.args.number_of_shells):
+            pomf_shells[i] = np.zeros(2, dtype=int)
+            pomf_radii_range = golden_section_search(
+                [radii_data, pomf_data], radii_data[peaks[i + 1]], radii_data[peaks[i]]
+            )
+            for j in range(2):
+                pomf_shells[i][j] = np.where(radii_data == pomf_radii_range[j])[0][0]
 
-        pomf_indices = list(
-            [
-                np.where(self.radii == pomf_radii[0])[0][0],
-                np.where(self.radii == pomf_radii[1])[0][0],
-            ]
-        )
+        return pomf_shells
 
-        return pomf_indices
-
-    def _get_pomf_value(self):
+    def _get_pomf_values(self, pomf: np.ndarray, radii: np.ndarray) -> dict:
         """
-        Use a min-finding algorithm to calculate the potential of mean force value
+        Use a min-finding algorithm to calculate pomf values along the curve.
+
+        Parameters
+        ----------
+        pomf : np.ndarray
+                POMF function from which to compute properties.
+        radii : np.ndarray
+                Array of radii values to use in the min finding.
+
+        Returns
+        -------
+        pomf_data : dict
+                A dictionary of the pomf values and their uncertainty. e,g:
+                {"POMF_1": 5.6, "POMF_1_error": 0.01}
         """
+        pomf_shells = self._find_minimum(pomf, radii)
 
-        self.indices = (
-            self._find_minimum()
-        )  # update the class with the minimum value indices
+        pomf_data = {}
+        for key, val in pomf_shells.items():
+            lower_bound = pomf[val[0]]
+            upper_bound = pomf[val[1]]
+            pomf_data[f"POMF_{int(key) + 1}"] = np.mean([lower_bound, upper_bound])
+            pomf_data[f"POMF_{int(key) + 1}_error"] = np.std(
+                [lower_bound, upper_bound]
+            ) / np.sqrt(2)
 
-        # Calculate the value and error of the potential of mean-force
-        pomf_value = np.mean([self.pomf[self.indices[0]], self.pomf[self.indices[1]]])
-        pomf_error = np.std(
-            [self.pomf[self.indices[0]], self.pomf[self.indices[1]]]
-        ) / np.sqrt(2)
-
-        return pomf_value, pomf_error
+        return pomf_data
 
     def run_calculator(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        # fill the tensor_values array with tensor_values
-        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
-        self.data_range = calculations.data_range
-        for selected_species, vals in calculations.data_dict.items():
-            self.selected_species = selected_species.split("_")
+        for selected_species, vals in self.rdf_data.data_dict.items():
+            selected_species = selected_species.split("_")
+            radii = np.array(vals["x"]).astype(float)[1:]
+            rdf = np.array(vals["y"]).astype(float)[1:]
 
-            self.radii = np.array(vals["x"]).astype(float)[1:]
-            self.rdf = np.array(vals["y"]).astype(float)[1:]
+            log.debug(f"rdf: {rdf} \t radii: {radii}")
+            pomf = self._calculate_potential_of_mean_force(rdf)
 
-            log.debug(f"rdf: {self.rdf} \t radii: {self.radii}")
-            self._calculate_potential_of_mean_force()
-            (
-                pomf_value,
-                pomf_error,
-            ) = (
-                self._get_pomf_value()
-            )  # Determine the min values of the function and update experiment
+            pomf_data = self._get_pomf_values(pomf, radii)
 
             data = {
-                self.result_keys[0]: pomf_value.tolist(),
-                self.result_keys[1]: pomf_error.tolist(),
-                self.result_keys[2]: self.radii[self.indices[0]],
-                self.result_keys[3]: self.radii[self.indices[1]],
-                self.result_series_keys[0]: self.radii.tolist(),
-                self.result_series_keys[1]: self.pomf.tolist(),
+                self.result_series_keys[0]: radii[1:].tolist(),
+                self.result_series_keys[1]: pomf.tolist(),
             }
+            for item in self.result_keys:
+                data[item] = pomf_data[item]
 
-            self.queue_data(data=data, subjects=self.selected_species)
+            self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
         """Plot the POMF"""
         log.debug("Start plotting the POMF.")
         for selected_species, val in data.items():
-            model = BoxAnnotation(
-                left=val[self.result_keys[2]],
-                right=val[self.result_keys[3]],
-                fill_alpha=0.1,
-                fill_color="red",
-            )
-            self.run_visualization(
-                x_data=val[self.result_series_keys[0]],
-                y_data=val[self.result_series_keys[1]],
-                title=(
-                    fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    fr" {val[self.result_keys[1]]: 0.3E}"
+            fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+
+            # Add vertical lines to the plot
+            for i in range(self.args.number_of_shells):
+                pomf_value = val[f"POMF_{i + 1}"]
+                index = np.argmin(
+                    np.abs(np.array(val[self.result_series_keys[1]]) - pomf_value)
+                )
+                r_location = val[self.result_series_keys[0]][index]
+                span = Span(location=r_location, dimension="height", line_dash="dashed")
+                fig.add_layout(span)
+
+            # Add the CN line and hover tool
+            fig.line(
+                val[self.result_series_keys[0]],
+                val[self.result_series_keys[1]],
+                color="#003f5c",
+                # legend labels are always the first shell and first shell error.
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
                 ),
-                layouts=[model],
             )
+            fig.add_tools(HoverTool())
+
+            self.plot_array.append(fig)

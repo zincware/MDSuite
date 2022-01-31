@@ -51,7 +51,7 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
-    number_of_configurations: int
+    number_of_bins: int
     cutoff: float
     number_of_shells: int
 
@@ -192,13 +192,13 @@ class CoordinationNumbers(Calculator):
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        number_of_configurations, cutoff = self._populate_args()
+        number_of_bins, cutoff = self._populate_args()
 
         # set args that will affect the computation result
         self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
-            number_of_configurations=number_of_configurations,
+            number_of_bins=number_of_bins,
             cutoff=cutoff,
             number_of_shells=number_of_shells,
         )
@@ -216,17 +216,17 @@ class CoordinationNumbers(Calculator):
 
         Returns
         -------
-        number_of_configurations : int
+        number_of_bins : int
                 The data range used in the RDF calculation.
         cutoff : float
                 The cutoff (in nm) used in the RDF calculation
         """
         raw_data = self.rdf_data.data_dict
         keys = list(raw_data)
-        number_of_configurations = len(raw_data[keys[0]]["x"])
+        number_of_bins = len(raw_data[keys[0]]["x"])
         cutoff = raw_data[keys[0]]["x"][-1]
 
-        return number_of_configurations, cutoff
+        return number_of_bins, cutoff
 
     def _compute_nm_volume(self):
         """
@@ -250,7 +250,7 @@ class CoordinationNumbers(Calculator):
 
         return rdf_number_of_atoms / self.volume
 
-    def _get_rdf_peaks(self, rdf: np.ndarray):
+    def _get_rdf_peaks(self, rdf: np.ndarray) -> np.ndarray:
         """
         Get the max values of the rdf for use in the minimum calculation
 
@@ -264,6 +264,11 @@ class CoordinationNumbers(Calculator):
         peaks : np.ndarray
                 If an exception is not raised, the function will return a list of peaks
                 in the rdf.
+
+        Raises
+        ------
+        ValueError
+                Raised if the number of peaks required for the analysis are not met.
         """
 
         filtered_data = apply_savgol_filter(
@@ -284,7 +289,7 @@ class CoordinationNumbers(Calculator):
             log.error(msg)
             raise CannotPerformThisAnalysis(msg)
         else:
-            return peaks  # return first 3 peaks if they exist
+            return peaks
 
     def _find_minima(self, radii: np.ndarray, rdf: np.ndarray) -> dict:
         """
@@ -407,6 +412,7 @@ class CoordinationNumbers(Calculator):
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
                 color="#003f5c",
+                # legend labels are always the first shell and first shell error.
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
