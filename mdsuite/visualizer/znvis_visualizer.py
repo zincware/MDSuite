@@ -138,5 +138,5 @@ class SimulationVisualizer:
         Opens the ZnVis app and runs the visualization.
         """
         particle_list = self._prepare_species()
-        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=17)
+        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=24)
         visualizer.run_visualization()
