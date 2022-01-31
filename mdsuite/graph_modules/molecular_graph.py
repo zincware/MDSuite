@@ -155,7 +155,7 @@ class MolecularGraph:
                 bonded to which others.
         """
         path_list = [
-            join_path(species, self.reference_property) for species in self.species
+            join_path(species, self.reference_property.name) for species in self.species
         ]
         data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, self.reference_configuration]
@@ -290,7 +290,7 @@ class MolecularGraph:
         log.info("Performing group equality isomorphism test.")
         for mol_number, mol_data in self.molecular_groups.items():
             for species, indices in mol_data.items():
-                if not len(indices) == self.species[species]
+                if not len(indices) == self.species[species]:
                     error_msg = (
                         f"Molecule group {mol_number}, with molecule data {mol_data},"
                         f"did not match with the reference data in {self.species}."

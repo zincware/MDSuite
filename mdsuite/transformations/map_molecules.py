@@ -88,7 +88,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(species, self.mapping_property)
+        path = join_path(species, self.mapping_property.name)
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -214,7 +214,9 @@ class MolecularMap(Transformations):
         data_structure = self._prepare_database_entry(
             molecule_name, molecular_graph.n_molecules
         )
-        path_list = [join_path(s, self.mapping_property) for s in molecular_graph.species]
+        path_list = [
+            join_path(s, self.mapping_property.name) for s in molecular_graph.species
+        ]
         self._prepare_monitors(data_path=path_list)
 
         type_spec = self._get_type_spec(path_list)
@@ -242,7 +244,7 @@ class MolecularMap(Transformations):
                 # and apply their respective scaling factor.
                 molecule_trajectory = np.zeros((batch_size, 3))
                 for item in molecular_graph.molecular_groups[molecule]:
-                    batch_reference = str.encode(f"{item}/{self.mapping_property}")
+                    batch_reference = str.encode(f"{item}/{self.mapping_property.name}")
                     particles = molecular_graph.molecular_groups[molecule][item]
                     particle_trajectories = (
                         tf.gather(batch[batch_reference], particles)
