@@ -1,8 +1,5 @@
 import mdsuite as mds
 
-from mdsuite.calculators.structure_factor import StructureFactor
-
-
 project = mds.Project("struc_fac")
 project.add_experiment(
     name="NaCl_1399K",

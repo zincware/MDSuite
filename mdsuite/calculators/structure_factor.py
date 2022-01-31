@@ -34,9 +34,7 @@ from scipy.integrate import cumtrapz, simps
 from tqdm import tqdm
 
 from mdsuite import data
-from mdsuite.calculators.calculator import Calculator
-
-from mdsuite.calculators.calculator import call
+from mdsuite.calculators.calculator import Calculator, call
 
 log = logging.getLogger(__name__)
 
@@ -152,8 +150,6 @@ class StructureFactor(Calculator):
         """
 
         self.args = Args(data_range=data_range)
-
-        out = {}
 
         self.number_of_atoms = 0
         for species in self.experiment.species:
@@ -329,7 +325,7 @@ class StructureFactor(Calculator):
         total_structure_factor_li = np.array(total_structure_factor_li)
 
         # Convert back from Angstrom to nm
-        self.q_arr = self.q_arr/10
+        self.q_arr = self.q_arr / 10
 
         data = {
             self.result_series_keys[0]: self.q_arr.tolist(),
