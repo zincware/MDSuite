@@ -118,9 +118,9 @@ class MolecularMap(Transformations):
             if not self.database.check_existence(path):
                 self.get_prop_through_transformation(sp_name, self.dependency)
 
-    def _prepare_mass_array(self, species: list) -> list:
+    def _get_mass_array(self, species: list) -> list:
         """
-        Prepare an array of atom masses for the scaling.
+        Return an array of atom masses for the scaling.
 
         Parameters
         ----------
@@ -131,11 +131,7 @@ class MolecularMap(Transformations):
         mass_array : list
                 A list of masses.
         """
-        mass_array = []
-        for item in species:
-            mass_array.append(self.experiment.species[item]["mass"])
-
-        return mass_array
+        return [self.experiment.species[item]["mass"] for item in species]
 
     def _get_type_spec(self, path_list: list) -> dict:
         """
