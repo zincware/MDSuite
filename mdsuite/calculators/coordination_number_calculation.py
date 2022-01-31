@@ -29,7 +29,9 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from bokeh.models import BoxAnnotation
+from bokeh.models import LinearAxis, Span
+from bokeh.models.ranges import Range1d
+from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from scipy.signal import find_peaks
 
@@ -272,8 +274,7 @@ class CoordinationNumbers(Calculator):
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
         required_peaks = self.args.number_of_shells + 1
 
-        # Check that more than one peak exists. If not, the GS search cannot be
-        # performed.
+        # Check that the required number of peaks exist.
         if len(peaks) < required_peaks:
             msg = (
                 "Not enough peaks were detecting in the RDF to perform the desired "
@@ -385,26 +386,39 @@ class CoordinationNumbers(Calculator):
 
     def plot_data(self, data):
         """Plot the CN"""
-        # Plot the tensor_values if required
+        # Plot the values if required
         for selected_species, val in data.items():
-            model_1 = BoxAnnotation(
-                left=val[self.result_keys[2]],
-                right=val[self.result_keys[3]],
-                fill_alpha=0.1,
-                fill_color="red",
-            )
-            model_2 = BoxAnnotation(
-                left=val[self.result_keys[4]],
-                right=val[self.result_keys[5]],
-                fill_alpha=0.1,
-                fill_color="red",
-            )
-            self.run_visualization(
-                x_data=val[self.result_series_keys[0]],
-                y_data=val[self.result_series_keys[1]],
-                title=(
-                    fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    fr" {val[self.result_keys[1]]: 0.3E}"
+            fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+
+            # Add vertical lines to the plot
+            for i in range(self.args.number_of_shells):
+                coordination_number = val[f"CN_{i + 1}"]
+                index = np.argmin(
+                    np.abs(
+                        np.array(val[self.result_series_keys[1]]) - coordination_number
+                    )
+                )
+                r_location = val[self.result_series_keys[0]][index]
+                span = Span(location=r_location, dimension="height", line_dash="dashed")
+                fig.add_layout(span)
+
+            # Add the CN line
+            fig.line(
+                val[self.result_series_keys[0]],
+                val[self.result_series_keys[1]],
+                color="#003f5c",
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
                 ),
-                layouts=[model_1, model_2],
+            )
+
+            # Add second axis and RDF plot
+            fig.extra_y_ranges = {"g(r)": Range1d(start=0, end=10)}
+            fig.add_layout(
+                LinearAxis(
+                    y_range_name="g(r)",
+                    axis_label="g(r)",
+                ),
+                "right",
             )
