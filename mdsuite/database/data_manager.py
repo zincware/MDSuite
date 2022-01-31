@@ -194,7 +194,7 @@ class DataManager:
                     # TODO make default
 
                 if loop_array is not None:
-                    if type(self.atom_selection) is dict:
+                    if isinstance(self.atom_selection, dict):
                         select_slice = {}
                         for item in self.atom_selection:
                             select_slice[item] = np.s_[
