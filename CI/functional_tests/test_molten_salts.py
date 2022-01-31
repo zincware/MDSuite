@@ -49,6 +49,7 @@ def traj_files(tmp_path_factory) -> Tuple[str, str]:
     return NaCl_out, KCl_out
 
 
+@pytest.fixture()
 def mdsuite_project(traj_files, tmp_path) -> mds.Project:
     """
     Create the MDSuite project and add data to be used for the rest of the tests.
