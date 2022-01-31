@@ -44,7 +44,8 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         # If more are added, link here the mdsuite property to the name of the property
         # attribute in chemfiles.Frame
         self.properties_to_chemfile_attr_dict = {
-            mdsuite_properties.unwrapped_positions: "positions",
+            # mdsuite_properties.unwrapped_positions: "positions",
+            mdsuite_properties.positions: "positions",
             mdsuite_properties.velocities: "velocities",
         }
 
@@ -130,7 +131,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         with chemfiles.Trajectory(str(self.traj_file_path)) as traj:
             if self.topol_file_path is not None:
                 traj.set_topology(str(self.topol_file_path))
-            for _ in tqdm.tqdm(range(n_batches)):
+            for _ in tqdm.tqdm(range(n_batches), ncols=70):
                 yield self._read_process_n_configurations(traj, batch_size)
             if n_configs_remainder > 0:
                 yield self._read_process_n_configurations(traj, n_configs_remainder)

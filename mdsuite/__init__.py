@@ -27,13 +27,19 @@ Summary
 import logging
 import sys
 
-from .experiment import Experiment
-from .graph_modules import adjacency_matrix
-from .project import Project
-from .utils import config
-from .utils.report_computer_characteristics import Report
+from mdsuite.experiment import Experiment
+from mdsuite.project import Project
+from mdsuite.utils import config
+from mdsuite.utils.molecule import Molecule
+from mdsuite.utils.report_computer_characteristics import Report
 
-__all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
+__all__ = [
+    Project.__name__,
+    Experiment.__name__,
+    Report.__name__,
+    "config",
+    Molecule.__name__,
+]
 __version__ = "0.1.0"
 
 logger = logging.getLogger(__name__)

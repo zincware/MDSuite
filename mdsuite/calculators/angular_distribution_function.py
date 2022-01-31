@@ -131,28 +131,30 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.number_of_atoms = None
         self.norm_power = None
         self.sample_configurations = None
+        self.result_keys = ["max_peak"]
         self.result_series_keys = ["angle", "adf"]
         self._dtype = tf.float32
 
         self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$$\text{Angle} / \theta $$"
-        self.y_label = r"$$\text{ADF} / a.u.$$"
+        self.x_label = r"$\text{Angle} / \theta$"
+        self.y_label = r"$\text{ADF} / a.u.$"
 
     @call
     def __call__(
         self,
         batch_size: int = 1,
-        minibatch: int = 50,
+        minibatch: int = -1,
         number_of_configurations: int = 5,
-        cutoff: int = 6.0,
+        cutoff: float = 6.0,
         start: int = 1,
         stop: int = None,
         number_of_bins: int = 500,
         species: list = None,
         use_tf_function: bool = False,
         molecules: bool = False,
+        atom_selection=np.s_[:],
         plot: bool = True,
         norm_power: int = 4,
         **kwargs,
@@ -182,6 +184,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             of batches.
         species : list
             A list of species to use.
+        atom_selection : Union[np.s_, dict]
+                Atoms to be used in the analysis.
         norm_power: int
             The power of the normalization factor applied to the ADF histogram.
             If set to zero no distance normalization will be applied.
@@ -196,7 +200,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             cutoff=cutoff,
             start=start,
             stop=stop,
-            atom_selection=np.s_[:],
+            atom_selection=atom_selection,
             data_range=1,
             correlation_time=1,
             molecules=molecules,
@@ -210,9 +214,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.cutoff = cutoff
         self.plot = plot
         self._batch_size = batch_size  # memory management for all batches
-        self.adf_minibatch = (
-            minibatch  # memory management for triples generation per batch.
-        )
+        self.adf_minibatch = minibatch
         self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
@@ -254,11 +256,20 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the number of atoms attribute.
         """
+        # TODO return to dotdict form when molecules is a dotdict
         number_of_atoms = 0
         for item in self.args.species:
-            number_of_atoms += reference[item].n_particles
+            if isinstance(self.args.atom_selection, dict):
+                number_of_atoms = 0
+                for item in self.args.atom_selection:
+                    number_of_atoms += len(self.args.atom_selection[item])
+            else:
+                number_of_atoms += reference[item]["n_particles"]  # .n_particles
 
         self.number_of_atoms = number_of_atoms
+
+        if self.adf_minibatch == -1:
+            self.adf_minibatch = number_of_atoms
 
     def _prepare_data_structure(self):
         """
@@ -278,7 +289,14 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         start_index = 0
         stop_index = 0
         for species in self.args.species:
-            stop_index += self.experiment.species[species].n_particles
+            try:
+                if isinstance(self.args.atom_selection, dict):
+                    stop_index += len(self.args.atom_selection[species])
+                else:
+                    stop_index += self.experiment.species[species].n_particles
+            except KeyError:
+                # TODO return to dotdict form when molecules is a dotdict
+                stop_index += self.experiment.molecules[species]["n_particles"]
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 
@@ -448,8 +466,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
             self.data_range = self.args.number_of_configurations
             log.debug(f"species are {species}")
-
+            max_angle = bin_range_to_angles[tf.math.argmax(hist.numpy())]
             data = {
+                self.result_keys[0]: max_angle,
                 self.result_series_keys[0]: bin_range_to_angles.tolist(),
                 self.result_series_keys[1]: hist.numpy().tolist(),
             }
@@ -510,6 +529,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
+        self.remainder = 0
         if self.batch_size > self.args.number_of_configurations:
             self.batch_size = self.args.number_of_configurations
             self.n_batches = 1
@@ -522,7 +542,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         if self.minibatch:
             self.batch_size = 1
             self.n_batches = self.args.number_of_configurations
-            self.remainder = 0
             self.memory_manager.atom_batch_size = None
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
@@ -578,7 +597,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         angles = {}
 
         # Loop over the batches.
-        for idx, batch in tqdm(enumerate(batch_ds), ncols=70):
+        for idx, batch in tqdm(enumerate(batch_ds), ncols=70, total=self.n_batches):
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
 
             angles = self._build_histograms(

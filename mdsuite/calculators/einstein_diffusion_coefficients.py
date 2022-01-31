@@ -91,8 +91,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
-        self.x_label = r"$ \text{Time} / s$"
-        self.y_label = r"$ \text{MSD} / m^{2}$"
+        self.x_label = r"$\text{Time}$ / $s$"
+        self.y_label = r"$\text{MSD}$ / $m^{2}$"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
         self.analysis_name = "Einstein Self-Diffusion Coefficients"
@@ -183,7 +183,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             numerator = self.experiment.units["length"] ** 2
             denominator = (
                 self.experiment.units["time"]
-                * len(self.experiment.molecules[species]["indices"])
+                * self.experiment.molecules[species]["n_particles"]
             ) * 6
         else:
             # Calculate the prefactor
@@ -282,7 +282,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             self.calculate_prefactor(species)
 
             batch_ds = self.get_batch_dataset([species])
-
             for batch in tqdm(
                 batch_ds,
                 ncols=70,

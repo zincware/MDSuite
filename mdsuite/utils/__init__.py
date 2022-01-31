@@ -25,7 +25,7 @@ Summary
 -------
 """
 
-from .config import config
-from .units import Units
+from mdsuite.utils.config import config
+from mdsuite.utils.units import Units
 
 __all__ = ["config", "Units"]

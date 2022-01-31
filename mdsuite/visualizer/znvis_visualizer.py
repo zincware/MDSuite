@@ -33,6 +33,7 @@ import znvis
 from PIL.ImageColor import getcolor
 
 import mdsuite.data
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
 
@@ -69,9 +70,9 @@ class SimulationVisualizer:
         self.frame_rate = frame_rate
         self.species = species
         if unwrapped:
-            self.identifier = "Unwrapped_Positions"
+            self.identifier = mdsuite_properties.unwrapped_positions
         else:
-            self.identifier = "Positions"
+            self.identifier = mdsuite_properties.positions
 
     @staticmethod
     def _get_species_properties(species: str):
@@ -116,12 +117,11 @@ class SimulationVisualizer:
         particle_list = []
         for item in self.species:
             colour, radius = self._get_species_properties(item)
-            trajectory = np.transpose(
-                self.database.load_data(
-                    [join_path(item, self.identifier)], select_slice=np.s_[:]
-                )[join_path(item, self.identifier)],
-                axes=[1, 0, 2],
+            trajectory = self.database.load_data(
+                [join_path(item, self.identifier.name)], select_slice=np.s_[:]
             )
+            trajectory = trajectory[join_path(item, self.identifier.name)]
+            trajectory = np.transpose(trajectory, axes=[1, 0, 2])
             sphere = znvis.Sphere(colour=colour, radius=radius, resolution=10)
             particle_list.append(
                 znvis.Particle(name=item, mesh=sphere, position=trajectory)
@@ -130,7 +130,6 @@ class SimulationVisualizer:
         return particle_list
 
     def run_visualization(self):
-        # has been removed
         """
         Run the visualization.
 
@@ -138,6 +137,6 @@ class SimulationVisualizer:
         -------
         Opens the ZnVis app and runs the visualization.
         """
-        # particle_list = self._prepare_species()
-        # visualizer = znvis.Visualizer(particles=particle_list, frame_rate=50)
-        # visualizer.run_visualization()
+        particle_list = self._prepare_species()
+        visualizer = znvis.Visualizer(particles=particle_list, frame_rate=24)
+        visualizer.run_visualization()

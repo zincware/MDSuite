@@ -289,7 +289,7 @@ class CoordinationNumbers(Calculator):
             / np.sqrt(2)
         )
 
-        # # TODO what about second shell?!
+        # # TODO what about second shell?
         # second_shell = (
         #     np.mean(
         #         [
