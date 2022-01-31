@@ -233,14 +233,14 @@ class TestMoleculeMapping:
             species_dict={"C": 8, "N": 2, "H": 15},
             amount=50,
             cutoff=1.9,
-            reference_configuration=100,
+            reference_configuration_idx=100,
         )
         bf_molecule = mdsuite.Molecule(
             name="bf4",
             smiles="[B-](F)(F)(F)F",
             amount=50,
             cutoff=2.4,
-            reference_configuration=100,
+            reference_configuration_idx=100,
         )
         mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
             molecules=[bmim_molecule, bf_molecule]
