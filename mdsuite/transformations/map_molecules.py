@@ -249,7 +249,7 @@ class MolecularMap(Transformations):
                     molecule_trajectory += tf.reduce_sum(particle_trajectories, axis=0)
 
                 # Compute the COM trajectory
-                trajectory[t, :, :] = molecule_trajectory
+                trajectory[t] = molecule_trajectory
 
             self._save_output(
                 data=trajectory,
