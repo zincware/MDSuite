@@ -71,24 +71,7 @@ class MolecularGraph:
         ----------
         experiment : Experiment
                 Experiment object from which to read.
-        molecule_input_data : dict
-                Molecule dictionary to use as reference. The reference component is the
-                most critical part. One can either use a smiles string or a reference
-                dict as demonstrated below.
-
-                e.g, the input for EMIM-PF6 ionic liquid would be:
-
-                .. code-block::
-
-                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20, "cutoff": 1.7},
-                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20, "cutoff": 1.7}}
-
-                or:
-
-                .. code-block::
-
-                   {'emim': {'reference': {'C': 6, 'N': 2, 'H': 12}}, 'amount': 20},
-                   'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
+        molecule_input_data :An MDSuite Molecule instance.
 
         """
         self.experiment = experiment

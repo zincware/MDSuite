@@ -444,7 +444,7 @@ def golden_section_search(
         )
 
 
-def round_down(a: int, b: int) -> int:
+def get_nearest_divisor(a: int, b: int) -> int:
     """
     Function to get the nearest lower divisor.
 

@@ -35,13 +35,13 @@ from mdsuite.utils.meta_functions import (
     find_item,
     get_dimensionality,
     get_machine_properties,
+    get_nearest_divisor,
     golden_section_search,
     gpu_available,
     join_path,
     line_counter,
     linear_fitting_function,
     optimize_batch_size,
-    round_down,
     simple_file_read,
     split_array,
 )
@@ -198,7 +198,7 @@ class TestMetaFunction:
         b = 10
         a = 9
 
-        assert round_down(a, b) == 5
+        assert get_nearest_divisor(a, b) == 5
 
     def test_split_arrays(self):
         """
@@ -230,7 +230,7 @@ class TestMetaFunction:
         assert find_item(test_1, "a") == 4
         assert find_item(test_2, "aee") == 1
 
-    def test_gpu_available():
+    def test_gpu_available(self):
         """
         Ideally this should be checked against something else than tf.config
         but I don't have any better measure.
