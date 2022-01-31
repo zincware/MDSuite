@@ -74,13 +74,6 @@ def _integrate_rdf(radii_data: np.array, rdf_data: np.array, density: float) -> 
     integral_data : np.array
             Cumulative integral of the RDF scaled by the radius and denisty.
     """
-    integral_data = np.zeros((len(radii_data) - 1))
-
-    for i in range(1, len(radii_data) - 1):  # Loop over number_of_bins in the rdf
-        # Integrate the function up to the bin.
-        integral_data[i] = np.trapz(
-            (radii_data[1:i] ** 2) * rdf_data[1:i], x=radii_data[1:i]
-        )
     integral_data = cumtrapz(y=radii_data[1:] ** 2 * rdf_data[1:], x=radii_data[1:])
 
     return 4 * np.pi * density * integral_data
@@ -126,7 +119,7 @@ class CoordinationNumbers(Calculator):
 
     .. code-block:: python
 
-        experiment.run_computation.CoordinationNumbers(
+        experiment.run.CoordinationNumbers(
             savgol_order = 2, savgol_window_length = 17
         )
 

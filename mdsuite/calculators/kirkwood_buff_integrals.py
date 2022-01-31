@@ -29,8 +29,10 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.integrate import cumtrapz
 
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +45,29 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
+
+
+def _calculate_kb_integral(radii_data: np.ndarray, rdf_data: np.ndarray):
+    """
+    calculate the Kirkwood-Buff integral
+
+    Parameters
+    ----------
+    radii_data : np.ndarray
+            Radii data to use in the computation.
+    rdf_data : np.ndarray
+            RDF data to use in the computation.
+
+    Returns
+    -------
+    kb_integral : np.ndarray
+            KB integral to be saved.
+    """
+    integral_data = cumtrapz(
+        y=(rdf_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
+    )
+
+    return 4 * np.pi * integral_data
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -81,7 +106,7 @@ class KirkwoodBuffIntegral(Calculator):
 
     Examples
     --------
-    experiment.run_computation.KirkwoodBuffIntegral()
+    experiment.run.KirkwoodBuffIntegral()
     """
 
     def __init__(self, **kwargs):
@@ -110,57 +135,42 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True):
+    def __call__(self, rdf_data: Computation = None, plot=True):
         """
-        Doc string for this one.
+        Call method for the KB integrals.
+
         Parameters
         ----------
+        rdf_data : Computation
+                MDSuite Computation data schema from which to load the RDF data and
+                store relevant SQL meta-data information. If not give, an RDF will be
+                computed using the default RDF arguments.
         plot : bool
-                If true, the output will be displayed in a figure. This figure will also
-                be saved.
+                If true, the output will be displayed in a figure.
         """
+        if isinstance(rdf_data, Computation):
+            self.rdf_data = rdf_data
+        else:
+            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.plot = plot
-
-    def _calculate_kb_integral(self):
-        """
-        calculate the Kirkwood-Buff integral
-        """
-
-        self.kb_integral = []  # empty the integration tensor_values
-
-        for i in range(1, len(self.radii)):
-            self.kb_integral.append(
-                4
-                * np.pi
-                * (
-                    np.trapz(
-                        (self.rdf[1:i] - 1) * (self.radii[1:i]) ** 2, x=self.radii[1:i]
-                    )
-                )
-            )
 
     def run_calculator(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
-        self.data_range = calculations.data_range
-        for (
-            selected_species,
-            vals,
-        ) in calculations.data_dict.items():  # Loop over all existing RDFs
-            self.selected_species = selected_species.split("_")
+        for selected_species, vals in self.rdf_data.data_dict.items():
+            selected_species = selected_species.split("_")
 
-            self.radii = np.array(vals["x"]).astype(float)[1:]
-            self.rdf = np.array(vals["y"]).astype(float)[1:]
-            self._calculate_kb_integral()  # Integrate the rdf
+            radii = np.array(vals["x"]).astype(float)[1:]
+            rdf = np.array(vals["y"]).astype(float)[1:]
+            kb_integral = _calculate_kb_integral(radii_data=radii, rdf_data=rdf)
 
             data = {
-                self.result_series_keys[0]: self.radii[1:].tolist(),
-                self.result_series_keys[1]: self.kb_integral,
+                self.result_series_keys[0]: radii[1:].tolist(),
+                self.result_series_keys[1]: kb_integral.tolist(),
             }
 
-            self.queue_data(data=data, subjects=self.selected_species)
+            self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
         """Plot the data"""
