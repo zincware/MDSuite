@@ -35,6 +35,7 @@ from PIL.ImageColor import getcolor
 import mdsuite.data
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
 class SimulationVisualizer:
@@ -69,9 +70,9 @@ class SimulationVisualizer:
         self.frame_rate = frame_rate
         self.species = species
         if unwrapped:
-            self.identifier = "Unwrapped_Positions"
+            self.identifier = mdsuite_properties.unwrapped_positions
         else:
-            self.identifier = "Positions"
+            self.identifier = mdsuite_properties.positions
 
     @staticmethod
     def _get_species_properties(species: str):
@@ -117,8 +118,9 @@ class SimulationVisualizer:
         for item in self.species:
             colour, radius = self._get_species_properties(item)
             trajectory = self.database.load_data(
-                [join_path(item, self.identifier)], select_slice=np.s_[:]
-            )[join_path(item, self.identifier)]
+                [join_path(item, self.identifier.name)], select_slice=np.s_[:]
+            )
+            trajectory = trajectory[join_path(item, self.identifier.name)]
             trajectory = np.transpose(trajectory, axes=[1, 0, 2])
             sphere = znvis.Sphere(colour=colour, radius=radius, resolution=10)
             particle_list.append(
