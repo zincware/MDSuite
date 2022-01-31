@@ -33,9 +33,9 @@ import znvis
 from PIL.ImageColor import getcolor
 
 import mdsuite.data
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import Database
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
 class SimulationVisualizer:

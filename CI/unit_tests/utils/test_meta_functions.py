@@ -31,6 +31,7 @@ import numpy as np
 import tensorflow as tf
 
 from mdsuite.utils.meta_functions import (
+    check_a_in_b,
     find_item,
     get_dimensionality,
     get_machine_properties,
@@ -43,7 +44,6 @@ from mdsuite.utils.meta_functions import (
     round_down,
     simple_file_read,
     split_array,
-    check_a_in_b
 )
 
 
@@ -125,8 +125,8 @@ class TestMetaFunction:
         _file_size = 100
         _memory = 250
         batch_size = optimize_batch_size(
-                "None", number_of_configurations, _file_size, _memory, test=True
-            )
+            "None", number_of_configurations, _file_size, _memory, test=True
+        )
         assert batch_size == 5
 
     def test_linear_fitting_function(self):
@@ -248,16 +248,9 @@ class TestMetaFunction:
         * If a is in b a True is returned
         * If a is not in b a False is returned.
         """
-        b = tf.constant(
-            [
-                [1, 2, 3],
-                [4, 5, 6],
-                [7, 8, 9]
-            ]
-        )
+        b = tf.constant([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
         a = tf.constant([4, 5, 6])
         c = tf.constant([10, 11, 12])
 
         assert check_a_in_b(a, b)
         assert not check_a_in_b(c, b)
-

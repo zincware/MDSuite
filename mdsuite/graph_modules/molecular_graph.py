@@ -34,10 +34,10 @@ import tensorflow as tf
 from pysmiles import read_smiles
 from tqdm import tqdm
 
-from mdsuite.database.simulation_database import Database
-from mdsuite.utils.meta_functions import join_path, check_a_in_b
-from mdsuite.utils.molecule import Molecule
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.database.simulation_database import Database
+from mdsuite.utils.meta_functions import check_a_in_b, join_path
+from mdsuite.utils.molecule import Molecule
 
 log = logging.getLogger(__name__)
 
@@ -103,8 +103,8 @@ class MolecularGraph:
         else:
             self.reference_property = mdsuite_properties.unwrapped_positions
 
-        if isinstance(molecule_input_data.reference_configuration, int):
-            self.reference_configuration = molecule_input_data.reference_configuration
+        if isinstance(molecule_input_data.reference_configuration_idx, int):
+            self.reference_configuration = molecule_input_data.reference_configuration_idx
         else:
             self.reference_configuration = 0
 
@@ -142,7 +142,9 @@ class MolecularGraph:
         """
         self.molecular_mass = 0.0
         for item in self.species:
-            self.molecular_mass += self.experiment.species[item]["mass"][0] * self.species[item]
+            self.molecular_mass += (
+                self.experiment.species[item]["mass"][0] * self.species[item]
+            )
 
     def build_configuration_graph(self) -> tf.Tensor:
         """
@@ -312,7 +314,7 @@ class MolecularGraph:
         -----
         This must be implemented, however, will be quite an expensive operation.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     def _split_decomposed_graphs(self, graph_dict: dict) -> dict:
         """
