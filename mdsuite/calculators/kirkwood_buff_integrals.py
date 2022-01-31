@@ -33,6 +33,7 @@ from scipy.integrate import cumtrapz
 
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
+from mdsuite.utils.meta_functions import apply_savgol_filter
 
 log = logging.getLogger(__name__)
 
@@ -45,29 +46,9 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
-
-
-def _calculate_kb_integral(radii_data: np.ndarray, rdf_data: np.ndarray):
-    """
-    calculate the Kirkwood-Buff integral
-
-    Parameters
-    ----------
-    radii_data : np.ndarray
-            Radii data to use in the computation.
-    rdf_data : np.ndarray
-            RDF data to use in the computation.
-
-    Returns
-    -------
-    kb_integral : np.ndarray
-            KB integral to be saved.
-    """
-    integral_data = cumtrapz(
-        y=(rdf_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
-    )
-
-    return 4 * np.pi * integral_data
+    number_of_bins: int
+    number_of_configurations: int
+    cutoff: float
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -135,7 +116,13 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     @call
-    def __call__(self, rdf_data: Computation = None, plot=True):
+    def __call__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+    ):
         """
         Call method for the KB integrals.
 
@@ -147,12 +134,54 @@ class KirkwoodBuffIntegral(Calculator):
                 computed using the default RDF arguments.
         plot : bool
                 If true, the output will be displayed in a figure.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
         """
         if isinstance(rdf_data, Computation):
             self.rdf_data = rdf_data
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.plot = plot
+
+        # set args that will affect the computation result
+        self.args = Args(
+            savgol_order=savgol_order,
+            savgol_window_length=savgol_window_length,
+            number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
+            cutoff=self.rdf_data.computation_parameter["cutoff"],
+            number_of_configurations=self.rdf_data.computation_parameter[
+                "number_of_configurations"
+            ],
+        )
+
+    def _calculate_kb_integral(self, radii_data: np.ndarray, rdf_data: np.ndarray):
+        """
+        calculate the Kirkwood-Buff integral
+
+        Parameters
+        ----------
+        radii_data : np.ndarray
+                Radii data to use in the computation.
+        rdf_data : np.ndarray
+                RDF data to use in the computation.
+
+        Returns
+        -------
+        kb_integral : np.ndarray
+                KB integral to be saved.
+        """
+        filtered_data = apply_savgol_filter(
+            rdf_data,
+            order=self.args.savgol_order,
+            window_length=self.args.savgol_window_length,
+        )
+        integral_data = cumtrapz(
+            y=(filtered_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
+        )
+
+        return 4 * np.pi * integral_data
 
     def run_calculator(self):
         """
@@ -163,7 +192,7 @@ class KirkwoodBuffIntegral(Calculator):
 
             radii = np.array(vals["x"]).astype(float)[1:]
             rdf = np.array(vals["y"]).astype(float)[1:]
-            kb_integral = _calculate_kb_integral(radii_data=radii, rdf_data=rdf)
+            kb_integral = self._calculate_kb_integral(radii_data=radii, rdf_data=rdf)
 
             data = {
                 self.result_series_keys[0]: radii[1:].tolist(),

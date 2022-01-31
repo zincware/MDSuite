@@ -51,6 +51,7 @@ class Args:
     savgol_order: int
     savgol_window_length: int
     number_of_bins: int
+    number_of_configurations: int
     cutoff: float
     number_of_shells: int
 
@@ -163,14 +164,19 @@ class PotentialOfMeanForce(Calculator):
         self.plot = plot
         self.data_files = []
 
+        # set args that will affect the computation result
         self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
-            number_of_bins=number_of_bins,
-            cutoff=cutoff,
+            number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
+            cutoff=self.rdf_data.computation_parameter["cutoff"],
+            number_of_configurations=self.rdf_data.computation_parameter[
+                "number_of_configurations"
+            ],
             number_of_shells=number_of_shells,
         )
-        # Auto-populate the args.
+
+        # Auto-populate the results.
         for i in range(self.args.number_of_shells):
             self.result_keys.append(f"POMF_{i + 1}")
             self.result_keys.append(f"POMF_{i + 1}_error")

@@ -52,6 +52,7 @@ class Args:
     savgol_order: int
     savgol_window_length: int
     number_of_bins: int
+    number_of_configurations: int
     cutoff: float
     number_of_shells: int
 
@@ -185,16 +186,19 @@ class CoordinationNumbers(Calculator):
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        number_of_bins, cutoff = self._populate_args()
-
         # set args that will affect the computation result
         self.args = Args(
             savgol_order=savgol_order,
             savgol_window_length=savgol_window_length,
-            number_of_bins=number_of_bins,
-            cutoff=cutoff,
+            number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
+            cutoff=self.rdf_data.computation_parameter["cutoff"],
+            number_of_configurations=self.rdf_data.computation_parameter[
+                "number_of_configurations"
+            ],
             number_of_shells=number_of_shells,
         )
+
+        # Auto-populate the result keys.
         for i in range(self.args.number_of_shells):
             self.result_keys.append(f"CN_{i + 1}")
             self.result_keys.append(f"CN_{i + 1}_error")
@@ -202,24 +206,6 @@ class CoordinationNumbers(Calculator):
         self._compute_nm_volume()
 
         self.plot = plot
-
-    def _populate_args(self) -> tuple:
-        """
-        Use the provided RDF data to populate the args class.
-
-        Returns
-        -------
-        number_of_bins : int
-                The data range used in the RDF calculation.
-        cutoff : float
-                The cutoff (in nm) used in the RDF calculation
-        """
-        raw_data = self.rdf_data.data_dict
-        keys = list(raw_data)
-        number_of_bins = len(raw_data[keys[0]]["x"])
-        cutoff = raw_data[keys[0]]["x"][-1]
-
-        return number_of_bins, cutoff
 
     def _compute_nm_volume(self):
         """
