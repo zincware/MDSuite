@@ -159,7 +159,7 @@ class MolecularMap(Transformations):
 
         return type_spec
 
-    def _build_reduced_mass_dict(self, species: dict, molecular_mass) -> dict:
+    def _get_reduced_mass_dict(self, species: dict, molecular_mass) -> dict:
         """
         Build the reduced mass dictionary.
 
@@ -202,7 +202,7 @@ class MolecularMap(Transformations):
         molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
         scaling_factor = molecular_graph.molecular_mass
 
-        mass_dictionary = self._build_reduced_mass_dict(
+        mass_dictionary = self._get_reduced_mass_dict(
             molecular_graph.species, scaling_factor
         )
 
