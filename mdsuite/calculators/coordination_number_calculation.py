@@ -29,7 +29,7 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from bokeh.models import LinearAxis, Span
+from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
@@ -76,7 +76,7 @@ def _integrate_rdf(radii_data: np.array, rdf_data: np.array, density: float) -> 
     """
     integral_data = np.zeros((len(radii_data) - 1))
 
-    for i in range(1, len(radii_data)):  # Loop over number_of_bins in the rdf
+    for i in range(1, len(radii_data) - 1):  # Loop over number_of_bins in the rdf
         # Integrate the function up to the bin.
         integral_data[i] = np.trapz(
             (radii_data[1:i] ** 2) * rdf_data[1:i], x=radii_data[1:i]
@@ -307,7 +307,7 @@ class CoordinationNumbers(Calculator):
         # Calculate the range in which the coordination numbers should exist.
         coordination_shells = {}
         for i in range(self.args.number_of_shells):
-            coordination_shells[i] = np.zeros(2, dtype=float)
+            coordination_shells[i] = np.zeros(2, dtype=int)
             cn_radii_range = golden_section_search(
                 [radii, rdf], radii[peaks[i + 1]], radii[peaks[i]]
             )
@@ -377,12 +377,12 @@ class CoordinationNumbers(Calculator):
 
             data = {
                 self.result_series_keys[0]: radii[1:].tolist(),
-                self.result_series_keys[1]: self.integral_data.tolist(),
+                self.result_series_keys[1]: integral_data.tolist(),
             }
             for item in self.result_keys:
                 data[item] = coordination_numbers[item]
 
-            self.queue_data(data=data, subjects=self.selected_species)
+            self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
         """Plot the CN"""
@@ -402,7 +402,7 @@ class CoordinationNumbers(Calculator):
                 span = Span(location=r_location, dimension="height", line_dash="dashed")
                 fig.add_layout(span)
 
-            # Add the CN line
+            # Add the CN line and hover tool
             fig.line(
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
@@ -412,9 +412,14 @@ class CoordinationNumbers(Calculator):
                     f" {val[self.result_keys[1]]: 0.3E}"
                 ),
             )
+            fig.add_tools(HoverTool())
 
             # Add second axis and RDF plot
-            fig.extra_y_ranges = {"g(r)": Range1d(start=0, end=10)}
+            rdf_radii = self.rdf_data[selected_species]["x"]
+            rdf_gr = self.rdf_data[selected_species]["y"]
+            fig.extra_y_ranges = {
+                "g(r)": Range1d(start=0, end=int(max(rdf_gr[1:]) + 0.5))
+            }
             fig.add_layout(
                 LinearAxis(
                     y_range_name="g(r)",
@@ -422,6 +427,7 @@ class CoordinationNumbers(Calculator):
                 ),
                 "right",
             )
-            rdf_radii = self.rdf_data[selected_species]["x"]
-            rdf_gr = self.rdf_data[selected_species]["y"]
-            fig.line(rdf_radii, rdf_gr, y_range_name="Diffusion range", color="#bc5090")
+
+            fig.line(rdf_radii, rdf_gr, y_range_name="g(r)", color="#bc5090")
+
+            self.plot_array.append(fig)
