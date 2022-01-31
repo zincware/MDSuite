@@ -332,13 +332,8 @@ class MolecularGraph:
         particle_groups = {}
         for item in graph_dict:
             indices_dict = {}
-            lengths = []
-            for i, particle_species in enumerate(self.species):
-                length = self.experiment.species[particle_species].n_particles
-                if i == 0:
-                    lengths.append(length)
-                else:
-                    lengths.append(length + lengths[i - 1])
+            lengths = [self.experiment.species[item].n_particles for item in self.species]
+            lengths = np.cumsum(lengths)
 
             for i, particle_species in enumerate(self.species):
                 if i == 0:
