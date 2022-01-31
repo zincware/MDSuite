@@ -140,11 +140,9 @@ class MolecularGraph:
         mass : float
                 mass of the molecule
         """
-        mass = 0.0
+        self.molecular_mass = 0.0
         for item in self.species:
-            mass += self.experiment.species[item]["mass"][0] * self.species[item]
-
-        self.molecular_mass = mass
+            self.molecular_mass += self.experiment.species[item]["mass"][0] * self.species[item]
 
     def build_configuration_graph(self) -> tf.Tensor:
         """
