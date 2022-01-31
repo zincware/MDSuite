@@ -210,7 +210,7 @@ class MolecularGraph:
         # TODO speed up
         for i in tqdm(range(len(adjacency_matrix)), ncols=70):
             indices = tf.where(adjacency_matrix[i])
-            indices = tf.reshape(indices, (len(indices)))
+            indices = tf.reshape(indices, -1)
             if len(molecules) == 0:
                 molecule = 0
                 molecules[molecule] = indices
