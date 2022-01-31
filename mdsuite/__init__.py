@@ -37,7 +37,7 @@ __all__ = [
     Project.__name__,
     Experiment.__name__,
     Report.__name__,
-    config.__name__,
+    "config",
     Molecule.__name__
 ]
 __version__ = "0.1.0"

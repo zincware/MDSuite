@@ -35,7 +35,7 @@ from pysmiles import read_smiles
 from tqdm import tqdm
 
 from mdsuite.database.simulation_database import Database
-from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.meta_functions import join_path, check_a_in_b
 from mdsuite.utils.molecule import Molecule
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 
@@ -451,23 +451,3 @@ def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
     if cell:
         r_ij_matrix -= tf.math.rint(r_ij_matrix / cell) * cell
     return tf.norm(r_ij_matrix, ord="euclidean", axis=2)
-
-
-def check_a_in_b(a, b):
-    """Check if any value of a is in b
-
-    Parameters
-    ----------
-    a: tf.Tensor
-    b: tf.Tensor
-
-    Returns
-    -------
-    bool
-
-    """
-    x = tf.unstack(a)
-    for x1 in x:
-        if tf.reduce_any(b == x1):
-            return True
-    return False

@@ -26,7 +26,6 @@ Summary
 Test the meta functions module.
 """
 import os
-import unittest
 
 import numpy as np
 import tensorflow as tf
@@ -44,18 +43,11 @@ from mdsuite.utils.meta_functions import (
     round_down,
     simple_file_read,
     split_array,
+    check_a_in_b
 )
 
 
-def test_gpu_available():
-    """
-    Ideally this should be checked against something else than tf.config
-    but I don't have any better measure.
-    """
-    assert gpu_available() == (len(tf.config.list_physical_devices("GPU")) > 1)
-
-
-class TestMetaFunction(unittest.TestCase):
+class TestMetaFunction:
     """
     A test class for the meta functions module.
     """
@@ -68,7 +60,7 @@ class TestMetaFunction(unittest.TestCase):
         -------
         assert that join_path('a', 'b') is 'a/b'
         """
-        self.assertEqual(join_path("a", "b"), "a/b")
+        assert join_path("a", "b") == "a/b"
 
     def test_get_dimensionality(self):
         """
@@ -81,9 +73,9 @@ class TestMetaFunction(unittest.TestCase):
         one_d = [1, 0, 0]
         two_d = [1, 1, 0]
         three_d = [1, 1, 1]
-        self.assertEqual(get_dimensionality(one_d), 1)
-        self.assertEqual(get_dimensionality(two_d), 2)
-        self.assertEqual(get_dimensionality(three_d), 3)
+        assert get_dimensionality(one_d) == 1
+        assert get_dimensionality(two_d) == 2
+        assert get_dimensionality(three_d) == 3
 
     def test_get_machine_properties(self):
         """
@@ -108,7 +100,7 @@ class TestMetaFunction(unittest.TestCase):
         with open(name, "w") as f:
             for item in data:
                 f.write(f"{item[0]}\n")
-        self.assertEqual(line_counter(name), 4)
+        assert line_counter(name) == 4
         os.remove(name)
 
     def test_optimize_batch_size(self):
@@ -123,23 +115,19 @@ class TestMetaFunction(unittest.TestCase):
         number_of_configurations = 10
         _file_size = 100
         _memory = 1000000
-        self.assertEqual(
-            optimize_batch_size(
-                "None", number_of_configurations, _file_size, _memory, test=True
-            ),
-            10,
+        batch_size = optimize_batch_size(
+            "None", number_of_configurations, _file_size, _memory, test=True
         )
+        assert batch_size == 10
 
         # Assert that the batch number is the half the trajectory.
         number_of_configurations = 10
         _file_size = 100
         _memory = 250
-        self.assertEqual(
-            optimize_batch_size(
+        batch_size = optimize_batch_size(
                 "None", number_of_configurations, _file_size, _memory, test=True
-            ),
-            5,
-        )
+            )
+        assert batch_size == 5
 
     def test_linear_fitting_function(self):
         """
@@ -196,8 +184,8 @@ class TestMetaFunction(unittest.TestCase):
         x_dat = np.linspace(-10, 10, 1000)
         data = [x_dat, func(x_dat)]
         output = golden_section_search(data, 10, -10)
-        self.assertEqual(output[0], 0.010010010010010006)
-        self.assertEqual(output[1], 0.03003003003003002)
+        assert output[0] == 0.010010010010010006
+        assert output[1] == 0.03003003003003002
 
     def test_round_down(self):
         """
@@ -210,7 +198,7 @@ class TestMetaFunction(unittest.TestCase):
         b = 10
         a = 9
 
-        self.assertEqual(round_down(a, b), 5)
+        assert round_down(a, b) == 5
 
     def test_split_arrays(self):
         """
@@ -239,5 +227,21 @@ class TestMetaFunction(unittest.TestCase):
             "b": {"be": {"bee": 4}},
         }  # test the case when the if statement fails.
 
-        self.assertEqual(find_item(test_1, "a"), 4)
-        self.assertEqual(find_item(test_2, "aee"), 1)
+        assert find_item(test_1, "a") == 4
+        assert find_item(test_2, "aee") == 1
+
+    def test_gpu_available():
+        """
+        Ideally this should be checked against something else than tf.config
+        but I don't have any better measure.
+        """
+        assert gpu_available() == (len(tf.config.list_physical_devices("GPU")) > 1)
+
+    def test_check_a_in_b(self):
+        """
+        Test that the a_in_b method works correctly.
+
+        Returns
+        -------
+
+        """
