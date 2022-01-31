@@ -296,6 +296,32 @@ class Computation(Base):
             )
 
     @property
+    def computation_parameter(self) -> dict:
+        """Get a dict of all used computation parameters
+
+        Examples
+        --------
+        The following example is taken from the RDF calculator
+        {
+            "number_of_bins": null,
+            "number_of_configurations": 100,
+            "correlation_time": 1,
+            "atom_selection": "slice(None, None, None)",
+            "data_range": 1,
+            "cutoff": null,
+            "start": 0,
+            "stop": null,
+            "species": null,
+            "molecules": false,
+            "version": 1
+        }
+        """
+        computation_parameter = {}
+        for comp_attr in self.computation_attributes:
+            computation_parameter[comp_attr.name] = comp_attr.data["serialized_value"]
+        return computation_parameter
+
+    @property
     def data_range(self) -> int:
         """Get the data_range stored in computation_attributes"""
         for comp_attr in self.computation_attributes:
