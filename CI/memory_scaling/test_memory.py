@@ -14,7 +14,7 @@ mdsuite.config.memory_fraction = 1.0
 mdsuite.config.memory_scaling_test = True
 
 
-@pytest.fixture(params=[60, 70, 80, 90, 100])
+@pytest.fixture(params=[60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200])
 def project(tmp_path, request) -> mdsuite.Project:
     """Build a MDSuite Project with dummy data
 
