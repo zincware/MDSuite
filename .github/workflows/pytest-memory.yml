@@ -38,12 +38,12 @@ jobs:
           TF_CPP_MIN_LOG_LEVEL: 3
           # this might be really dumb, but we have to suppress libcudart error
         run: |
-          pytest -m "memory"
+          pytest -m "memory" ./CI/
       - name: Write CML report
         env:
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Post reports as comments in GitHub PRs
           echo "# Memory Scaling" >> report.md
-          sqlite3 -header -markdown ./CI/memory_scaling/.pymon "SELECT * FROM TEST_METRICS" >> report.md
+          sqlite3 -header -markdown .pymon "SELECT * FROM TEST_METRICS" >> report.md
           cml-send-comment report.md
