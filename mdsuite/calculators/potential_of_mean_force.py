@@ -160,7 +160,6 @@ class PotentialOfMeanForce(Calculator):
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        number_of_bins, cutoff = self._populate_args()
         self.plot = plot
         self.data_files = []
 

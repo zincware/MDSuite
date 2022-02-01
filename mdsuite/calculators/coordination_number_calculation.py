@@ -343,7 +343,7 @@ class CoordinationNumbers(Calculator):
         Calculate the coordination numbers and perform error analysis
         """
 
-        for (selected_species, vals) in self.rdf_data.data_dict.items():
+        for selected_species, vals in self.rdf_data.data_dict.items():
             log.debug(f"Computing coordination numbers for {selected_species}")
 
             radii = np.array(vals["x"]).astype(float)[1:]
