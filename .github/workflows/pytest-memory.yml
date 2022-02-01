@@ -5,13 +5,7 @@ name: pytest
 
 on:
   push:
-    branches:
-      - main
-      - development
   pull_request:
-    branches:
-      - main
-      - development
 
 jobs:
   build:
@@ -20,13 +14,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: 
-        - 3.7
-        - 3.8
+        python-version:
         - 3.9
 
     steps:
       - uses: actions/checkout@v2
+      - uses: iterative/setup-cml@v1
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -35,6 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r dev-requirements.txt
+          pip install pytest-monitor
       - name: Install package
         run: |
           pip install .
@@ -44,9 +38,12 @@ jobs:
           TF_CPP_MIN_LOG_LEVEL: 3
           # this might be really dumb, but we have to suppress libcudart error
         run: |
-          coverage run -m pytest -m "not memory"
-      - name: Coveralls
+          pytest -m "memory"
+      - name: Write CML report
         env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          coveralls
+          # Post reports as comments in GitHub PRs
+          echo "# Memory Scaling" >> report.md
+          sqlite3 -header -markdown ./CI/memory_scaling/.pymon "SELECT * FROM TEST_METRICS" >> report.md
+          cml-send-comment report.md
