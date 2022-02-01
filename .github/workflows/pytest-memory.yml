@@ -50,5 +50,6 @@ jobs:
           python -c "import pandas as pd; df = pd.read_csv('data.csv'); df = df.set_index('ITEM_VARIANT'); df.index = df.index.str.extract('(\d+)', expand=False).astype(int); df.plot().figure.savefig('plot.png')"
           echo "# Memory Scaling" >> report.md
           /usr/share/miniconda/envs/test/bin/sqlite3 -header -markdown .pymon "SELECT ITEM_VARIANT, MEM_USAGE, CPU_USAGE, USER_TIME FROM TEST_METRICS" >> report.md
+          echo "# Scaling Plot" >> report.md
           cml publish ./plot.png --md >> report.md
           cml-send-comment report.md
