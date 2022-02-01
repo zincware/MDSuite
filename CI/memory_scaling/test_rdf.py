@@ -16,6 +16,12 @@ mdsuite.config.memory_scaling_test = True
 
 @pytest.fixture(params=[50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000])
 def project(tmp_path, request) -> mdsuite.Project:
+    """Build a MDSuite Project with dummy data
+
+    This creates a project with data for velocities and positions
+    generated randomly for 100 configurations and a variable size of
+    particles given by the fixture definition
+    """
     n_configs = 100
     n_parts = request.param
     n_dims = 3
