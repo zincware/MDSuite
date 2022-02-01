@@ -14,7 +14,7 @@ mdsuite.config.memory_fraction = 1.0
 mdsuite.config.memory_scaling_test = True
 
 
-@pytest.fixture(params=[50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 10000])
+@pytest.fixture(params=[50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000])
 def project(tmp_path, request) -> mdsuite.Project:
     """Build a MDSuite Project with dummy data
 
@@ -61,4 +61,4 @@ def project(tmp_path, request) -> mdsuite.Project:
 
 @pytest.mark.memory
 def test_adf(project):
-    _ = project.run.AngularDistributionFunction(number_of_configurations=10, plot=False)
+    _ = project.run.AngularDistributionFunction(number_of_configurations=2, plot=False)
