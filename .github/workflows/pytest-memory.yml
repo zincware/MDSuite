@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update -y
-          sudo apt install -y sqlit3
+          sudo apt install -y sqlite3
           python -m pip install --upgrade pip
           pip install -r dev-requirements.txt
           pip install pytest-monitor
