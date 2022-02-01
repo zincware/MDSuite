@@ -46,7 +46,7 @@ class Molecule:
             e.g. {'C': 6, 'N': 2, 'H': 12}
     amount : int
             Number of molecules of this species in the trajectory.
-    reference_configuration : int (default=0)
+    reference_configuration_idx : int (default=0)
             A specific configuration to use in the construction of the molecules.
     cutoff : float
             A cutoff value to use when identifying bonded pairs. Should be the largest
@@ -63,5 +63,5 @@ class Molecule:
     cutoff: float
     smiles: str = None
     species_dict: dict = None
-    reference_configuration: int = 0
+    reference_configuration_idx: int = 0
     mol_pbc: bool = False

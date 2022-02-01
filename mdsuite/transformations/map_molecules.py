@@ -68,7 +68,7 @@ class MolecularMap(Transformations):
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
         self.adjacency_graphs = {}
-        self.mapping_property = "Unwrapped_Positions"
+        self.mapping_property = mdsuite_properties.unwrapped_positions
         self.dependency = mdsuite_properties.positions
         self.scale_function = {"quadratic": {"outer_scale_factor": 5}}
 
@@ -88,7 +88,7 @@ class MolecularMap(Transformations):
                 A data structure for the incoming data.
         """
         # collect machine properties and determine batch size
-        path = join_path(species, self.mapping_property)
+        path = join_path(species, self.mapping_property.name)
         dataset_structure = {
             path: (number_of_molecules, self.experiment.number_of_configurations, 3)
         }
@@ -118,9 +118,9 @@ class MolecularMap(Transformations):
             if not self.database.check_existence(path):
                 self.get_prop_through_transformation(sp_name, self.dependency)
 
-    def _prepare_mass_array(self, species: list) -> list:
+    def _get_mass_array(self, species: list) -> list:
         """
-        Prepare an array of atom masses for the scaling.
+        Return an array of atom masses for the scaling.
 
         Parameters
         ----------
@@ -131,11 +131,7 @@ class MolecularMap(Transformations):
         mass_array : list
                 A list of masses.
         """
-        mass_array = []
-        for item in species:
-            mass_array.append(self.experiment.species[item]["mass"])
-
-        return mass_array
+        return [self.experiment.species[item]["mass"] for item in species]
 
     def _get_type_spec(self, path_list: list) -> dict:
         """
@@ -163,7 +159,7 @@ class MolecularMap(Transformations):
 
         return type_spec
 
-    def _build_reduced_mass_dict(self, species: dict, molecular_mass) -> dict:
+    def _get_reduced_mass_dict(self, species: dict, molecular_mass) -> dict:
         """
         Build the reduced mass dictionary.
 
@@ -206,7 +202,7 @@ class MolecularMap(Transformations):
         molecules[molecule_name]["groups"] = molecular_graph.molecular_groups
         scaling_factor = molecular_graph.molecular_mass
 
-        mass_dictionary = self._build_reduced_mass_dict(
+        mass_dictionary = self._get_reduced_mass_dict(
             molecular_graph.species, scaling_factor
         )
 
@@ -214,7 +210,9 @@ class MolecularMap(Transformations):
         data_structure = self._prepare_database_entry(
             molecule_name, molecular_graph.n_molecules
         )
-        path_list = [join_path(s, self.mapping_property) for s in molecular_graph.species]
+        path_list = [
+            join_path(s, self.mapping_property.name) for s in molecular_graph.species
+        ]
         self._prepare_monitors(data_path=path_list)
 
         type_spec = self._get_type_spec(path_list)
@@ -242,7 +240,7 @@ class MolecularMap(Transformations):
                 # and apply their respective scaling factor.
                 molecule_trajectory = np.zeros((batch_size, 3))
                 for item in molecular_graph.molecular_groups[molecule]:
-                    batch_reference = str.encode(f"{item}/{self.mapping_property}")
+                    batch_reference = str.encode(f"{item}/{self.mapping_property.name}")
                     particles = molecular_graph.molecular_groups[molecule][item]
                     particle_trajectories = (
                         tf.gather(batch[batch_reference], particles)
@@ -251,8 +249,7 @@ class MolecularMap(Transformations):
                     molecule_trajectory += tf.reduce_sum(particle_trajectories, axis=0)
 
                 # Compute the COM trajectory
-                # trajectory[t, :, :] = np.sum(np.array(data)[indices], axis=0)
-                trajectory[t, :, :] = molecule_trajectory
+                trajectory[t] = molecule_trajectory
 
             self._save_output(
                 data=trajectory,
@@ -285,7 +282,7 @@ class MolecularMap(Transformations):
                 molecule_input_data=item,
             )
             if item.mol_pbc:
-                self.mapping_property = "Positions"
+                self.mapping_property = mdsuite_properties.positions
 
             self._map_molecules(molecular_graph)
 

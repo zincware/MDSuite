@@ -34,6 +34,7 @@ import mdsuite
 import mdsuite.file_io.chemfiles_read
 import mdsuite.transformations
 from mdsuite.utils import Units
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -186,7 +187,7 @@ class TestMoleculeMapping:
         reference_molecules = {
             "water": {
                 "n_particles": 14,
-                "mass": 18.014680000000002,
+                "mass": 18.01468,
                 "groups": {
                     "0": {"HW1": [0], "OW": [0], "HW2": [0]},
                     "1": {"HW1": [1], "OW": [1], "HW2": [1]},
@@ -216,7 +217,7 @@ class TestMoleculeMapping:
             molecules=[water_molecule]
         )
         molecules = mdsuite_project.experiments["ligand_water"].molecules
-        assert molecules == reference_molecules
+        assertDeepAlmostEqual(molecules, reference_molecules)
 
         assert "water" not in mdsuite_project.experiments["ligand_water"].species
 
@@ -232,14 +233,14 @@ class TestMoleculeMapping:
             species_dict={"C": 8, "N": 2, "H": 15},
             amount=50,
             cutoff=1.9,
-            reference_configuration=100,
+            reference_configuration_idx=100,
         )
         bf_molecule = mdsuite.Molecule(
             name="bf4",
             smiles="[B-](F)(F)(F)F",
             amount=50,
             cutoff=2.4,
-            reference_configuration=100,
+            reference_configuration_idx=100,
         )
         mdsuite_project.experiments["bmim_bf4"].run.MolecularMap(
             molecules=[bmim_molecule, bf_molecule]

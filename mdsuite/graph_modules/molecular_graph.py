@@ -34,8 +34,9 @@ import tensorflow as tf
 from pysmiles import read_smiles
 from tqdm import tqdm
 
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.database.simulation_database import Database
-from mdsuite.utils.meta_functions import join_path
+from mdsuite.utils.meta_functions import check_a_in_b, join_path
 from mdsuite.utils.molecule import Molecule
 
 log = logging.getLogger(__name__)
@@ -70,24 +71,7 @@ class MolecularGraph:
         ----------
         experiment : Experiment
                 Experiment object from which to read.
-        molecule_input_data : dict
-                Molecule dictionary to use as reference. The reference component is the
-                most critical part. One can either use a smiles string or a reference
-                dict as demonstrated below.
-
-                e.g, the input for EMIM-PF6 ionic liquid would be:
-
-                .. code-block::
-
-                   {'emim': {'smiles': 'CCN1C=C[N+](+C1)C', 'amount': 20, "cutoff": 1.7},
-                   'PF6': {'smiles': 'F[P-](F)(F)(F)(F)F', 'amount': 20, "cutoff": 1.7}}
-
-                or:
-
-                .. code-block::
-
-                   {'emim': {'reference': {'C': 6, 'N': 2, 'H': 12}}, 'amount': 20},
-                   'PF6': {'reference': {'P': 1, 'F': 6}, 'amount': 20, "cutoff": 1.7}}
+        molecule_input_data :An MDSuite Molecule instance.
 
         """
         self.experiment = experiment
@@ -98,12 +82,12 @@ class MolecularGraph:
         self.mol_pbc = molecule_input_data.mol_pbc
 
         if self.mol_pbc:
-            self.reference_property = "Positions"
+            self.reference_property = mdsuite_properties.positions
         else:
-            self.reference_property = "Unwrapped_Positions"
+            self.reference_property = mdsuite_properties.unwrapped_positions
 
-        if isinstance(molecule_input_data.reference_configuration, int):
-            self.reference_configuration = molecule_input_data.reference_configuration
+        if isinstance(molecule_input_data.reference_configuration_idx, int):
+            self.reference_configuration = molecule_input_data.reference_configuration_idx
         else:
             self.reference_configuration = 0
 
@@ -139,11 +123,9 @@ class MolecularGraph:
         mass : float
                 mass of the molecule
         """
-        mass = 0.0
-        for item in self.species:
-            mass += self.experiment.species[item]["mass"][0] * self.species[item]
-
-        self.molecular_mass = mass
+        self.molecular_mass = 0.0
+        for species, number in self.species.items():
+            self.molecular_mass += self.experiment.species[species]["mass"][0] * number
 
     def build_configuration_graph(self) -> tf.Tensor:
         """
@@ -156,7 +138,7 @@ class MolecularGraph:
                 bonded to which others.
         """
         path_list = [
-            join_path(species, self.reference_property) for species in self.species
+            join_path(species, self.reference_property.name) for species in self.species
         ]
         data_dict = self.database.load_data(
             path_list=path_list, select_slice=np.s_[:, self.reference_configuration]
@@ -205,31 +187,13 @@ class MolecularGraph:
         """
         # TODO: wrap this in an optimizer to iteratively improve the cutoff until the
         #       number is correct.
-        def check_a_in_b(a, b):
-            """Check if any value of a is in b
-
-            Parameters
-            ----------
-            a: tf.Tensor
-            b: tf.Tensor
-
-            Returns
-            -------
-            bool
-
-            """
-            x = tf.unstack(a)
-            for x1 in x:
-                if tf.reduce_any(b == x1):
-                    return True
-            return False
 
         molecules = {}
         log.info(f"Building molecular graph from configuration for {self.molecule_name}")
         # TODO speed up
         for i in tqdm(range(len(adjacency_matrix)), ncols=70):
             indices = tf.where(adjacency_matrix[i])
-            indices = tf.reshape(indices, (len(indices)))
+            indices = tf.reshape(indices, -1)
             if len(molecules) == 0:
                 molecule = 0
                 molecules[molecule] = indices
@@ -270,10 +234,6 @@ class MolecularGraph:
         2. Checks that the number of particles of each constituent species for each
            molecule matches that given by the SMILES string or the user provided
            reference data.
-
-        Returns
-        -------
-
         """
         # amount of molecules test
         self._amount_isomorphism_test()
@@ -313,9 +273,7 @@ class MolecularGraph:
         log.info("Performing group equality isomorphism test.")
         for mol_number, mol_data in self.molecular_groups.items():
             for species, indices in mol_data.items():
-                try:
-                    assert len(indices) == self.species[species]
-                except AssertionError:
+                if not len(indices) == self.species[species]:
                     error_msg = (
                         f"Molecule group {mol_number}, with molecule data {mol_data},"
                         f"did not match with the reference data in {self.species}."
@@ -337,7 +295,7 @@ class MolecularGraph:
         -----
         This must be implemented, however, will be quite an expensive operation.
         """
-        pass
+        raise NotImplementedError
 
     def _split_decomposed_graphs(self, graph_dict: dict) -> dict:
         """
@@ -357,13 +315,8 @@ class MolecularGraph:
         particle_groups = {}
         for item in graph_dict:
             indices_dict = {}
-            lengths = []
-            for i, particle_species in enumerate(self.species):
-                length = self.experiment.species[particle_species].n_particles
-                if i == 0:
-                    lengths.append(length)
-                else:
-                    lengths.append(length + lengths[i - 1])
+            lengths = [self.experiment.species[item].n_particles for item in self.species]
+            lengths = np.cumsum(lengths)
 
             for i, particle_species in enumerate(self.species):
                 if i == 0:
@@ -410,8 +363,7 @@ def build_smiles_graph(smiles_string: str) -> tuple:
         if item in species:
             species[item] += 1
         else:
-            species[item] = 0
-            species[item] += 1
+            species[item] = 1
 
     return mol, species
 
