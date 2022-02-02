@@ -73,12 +73,21 @@ def test_rdf(tmp_path, n_parts):
 @pytest.mark.parametrize("n_configs", [x for x in range(100, 12000, 200)])
 @pytest.mark.memory
 def test_einstein_diffusion(tmp_path, n_configs):
+    # TODO What do we want to actually loop over
     project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
     _ = project.run.EinsteinDiffusionCoefficients(plot=False)
+
+
+@pytest.mark.parametrize("data_range", [x for x in range(10, 10000, 200)])
+@pytest.mark.memory
+def test_einstein_diffusion_data_range(tmp_path, data_range):
+    project = get_project(tmp_path, n_configs=12000, n_parts=100)
+    _ = project.run.EinsteinDiffusionCoefficients(plot=False, data_range=data_range)
 
 
 @pytest.mark.parametrize("n_configs", [x for x in range(500, 12000, 200)])
 @pytest.mark.memory
 def test_gk_diffusion(tmp_path, n_configs):
+    # TODO What do we want to actually loop over
     project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
     _ = project.run.GreenKuboDiffusionCoefficients(plot=False)
