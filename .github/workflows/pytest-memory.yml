@@ -18,7 +18,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r dev-requirements.txt
-          pip install pytest-monitor
+          pip install pytest-monitor tabulate
       - name: Install package
         run: |
           pip install .
