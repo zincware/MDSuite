@@ -44,7 +44,7 @@ jobs:
           TF_CPP_MIN_LOG_LEVEL: 3
           # this might be really dumb, but we have to suppress libcudart error
         run: |
-          coverage run -m pytest -m "not memory"
+          coverage run -m pytest
       - name: Coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
