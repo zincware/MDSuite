@@ -10,8 +10,8 @@ from mdsuite.database.simulation_database import (
 )
 from mdsuite.file_io import script_input
 
-mdsuite.config.memory_fraction = 1.0
-mdsuite.config.memory_scaling_test = True
+# mdsuite.config.memory_fraction = 1.0
+# mdsuite.config.memory_scaling_test = True
 
 
 def get_project(tmp_path, n_configs, n_parts) -> mdsuite.Project:
