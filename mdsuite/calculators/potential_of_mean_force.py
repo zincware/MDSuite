@@ -275,8 +275,8 @@ class PotentialOfMeanForce(Calculator):
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
                 title=(
-                    fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    fr" {val[self.result_keys[1]]: 0.3E}"
+                    rf"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    rf" {val[self.result_keys[1]]: 0.3E}"
                 ),
                 layouts=[model],
             )
