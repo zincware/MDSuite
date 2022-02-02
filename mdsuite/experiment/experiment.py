@@ -37,6 +37,7 @@ import numpy as np
 import pubchempy as pcp
 
 import mdsuite.file_io.extxyz_files
+import mdsuite.file_io.file_read
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
 from mdsuite.database.experiment_database import ExperimentDatabase
@@ -46,7 +47,6 @@ from mdsuite.database.simulation_database import (
     TrajectoryMetadata,
 )
 from mdsuite.experiment.run import RunComputation
-from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
 from mdsuite.utils import config
@@ -149,9 +149,6 @@ class Experiment(ExperimentDatabase):
         ----------
         experiment_name : str
                 The name of the analysis being performed e.g. NaCl_1400K
-        storage_path : str
-                Path to where the tensor_values should be stored (best to have  drive
-                capable of storing large files)
         temperature : float
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
@@ -523,7 +520,7 @@ class Experiment(ExperimentDatabase):
                 Whether or not to look for the masses of the species in pubchempy
         """
 
-        already_read = str(FileProcessor) in self.read_files
+        already_read = str(file_processor) in self.read_files
         if already_read and not force:
             log.info(
                 "This file has already been read, skipping this now."
@@ -553,7 +550,7 @@ class Experiment(ExperimentDatabase):
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
-        self.read_files = self.read_files + [str(FileProcessor)]
+        self.read_files = self.read_files + [str(file_processor)]
 
     def load_matrix(
         self,
