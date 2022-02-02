@@ -79,13 +79,14 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         traj_file_path=traj_files[2], topol_file_path=traj_files[0]
     )
 
-    project.add_experiment(
+    exp = project.add_experiment(
         name="water_sim",
         timestep=0.002,
         temperature=300.0,
         units=gmx_units,
         simulation_data=file_reader,
     )
+    exp.sample_rate = 5000
     project.run.CoordinateUnwrapper()
     return project
 
