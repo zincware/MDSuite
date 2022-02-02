@@ -251,7 +251,7 @@ class StructureFactor(Calculator):
         atomic_form_facs = self.atomic_form_factors(scattering_scalar)
         for el in self.experiment.species:
             sum1 += self.molar_fractions[el] * atomic_form_facs[el]["atomic_form_factor"]
-        average_atomic_factor = sum1 ** 2
+        average_atomic_factor = sum1**2
         return average_atomic_factor
 
     def partial_structure_factor(self, scattering_scalar, elements):
@@ -266,7 +266,7 @@ class StructureFactor(Calculator):
                 integrand[counter] = 0
                 continue
             integrand[counter] = (
-                radius ** 2
+                radius**2
                 * np.sin(scattering_scalar * radius)
                 / (scattering_scalar * radius)
                 * (self.rdf[counter] - 1)

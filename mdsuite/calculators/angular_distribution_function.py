@@ -421,7 +421,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
             # Get the indices required.
             angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
-            pre_factor = 1 / pre_factor ** self.norm_power
+            pre_factor = 1 / pre_factor**self.norm_power
             histogram, _ = np.histogram(
                 angle_vals,
                 bins=self.args.number_of_bins,

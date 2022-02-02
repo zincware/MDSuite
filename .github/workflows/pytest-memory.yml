@@ -1,0 +1,45 @@
+name: pytest-memory profiling
+
+on:
+  push:
+
+jobs:
+  memory-profiling:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: iterative/setup-cml@v1
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r dev-requirements.txt
+          pip install pytest-monitor tabulate
+      - name: Install package
+        run: |
+          pip install .
+      - name: Pytest
+        continue-on-error: true
+        env:
+          CUDA_VISIBLE_DEVICES: -1
+          TF_CPP_MIN_LOG_LEVEL: 3
+          # this might be really dumb, but we have to suppress libcudart error
+        run: |
+          pytest -m "memory" ./CI/
+      - name: Write CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Post reports as comments in GitHub PRs
+          echo "# Memory Scaling" >> report.md
+          python ./CI/memory_scaling/plot_results.py ./.pymon plot.png > table.md
+          cml publish ./plot.png --md >> report.md
+          echo "# Raw data" >> report.md
+          echo "Activate in workflow file" >> report.md
+          # cat table.md >> report.md
+          # cml-send-comment --pr --update report.md
+          cml-send-comment report.md

@@ -182,7 +182,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         """
 
         # evaluate the prefactor
-        numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
+        numerator = self.experiment.number_of_atoms * (elementary_charge**2)
         denominator = (
             boltzmann_constant
             * self.experiment.temperature
@@ -227,7 +227,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         """
 
         # evaluate the prefactor
-        numerator = self.experiment.number_of_atoms * (elementary_charge ** 2)
+        numerator = self.experiment.number_of_atoms * (elementary_charge**2)
         denominator = (
             boltzmann_constant
             * self.experiment.temperature

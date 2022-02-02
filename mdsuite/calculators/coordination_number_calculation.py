@@ -279,15 +279,12 @@ class CoordinationNumbers(Calculator):
                 self.integral_data[self.indices[0][1]],
             ]
         )
-        first_shell_error = (
-            np.std(
-                [
-                    self.integral_data[self.indices[0][0]],
-                    self.integral_data[self.indices[0][1]],
-                ]
-            )
-            / np.sqrt(2)
-        )
+        first_shell_error = np.std(
+            [
+                self.integral_data[self.indices[0][0]],
+                self.integral_data[self.indices[0][1]],
+            ]
+        ) / np.sqrt(2)
 
         # # TODO what about second shell?
         # second_shell = (
@@ -368,8 +365,8 @@ class CoordinationNumbers(Calculator):
                 x_data=val[self.result_series_keys[0]],
                 y_data=val[self.result_series_keys[1]],
                 title=(
-                    fr"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    fr" {val[self.result_keys[1]]: 0.3E}"
+                    rf"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    rf" {val[self.result_keys[1]]: 0.3E}"
                 ),
                 layouts=[model_1, model_2],
             )
