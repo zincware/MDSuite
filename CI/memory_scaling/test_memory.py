@@ -10,8 +10,8 @@ from mdsuite.database.simulation_database import (
 )
 from mdsuite.file_io import script_input
 
-# mdsuite.config.memory_fraction = 1.0
-# mdsuite.config.memory_scaling_test = True
+mdsuite.config.memory_fraction = 1.0
+mdsuite.config.memory_scaling_test = True
 
 
 def get_project(tmp_path, n_configs, n_parts) -> mdsuite.Project:
@@ -56,38 +56,58 @@ def get_project(tmp_path, n_configs, n_parts) -> mdsuite.Project:
     return project
 
 
-@pytest.mark.parametrize("n_parts", [x for x in range(10, 300, 10)])
-@pytest.mark.memory
-def test_adf(tmp_path, n_parts):
-    project = get_project(tmp_path, n_configs=5, n_parts=n_parts)
-    _ = project.run.AngularDistributionFunction(number_of_configurations=2, plot=False)
-
-
-@pytest.mark.parametrize("n_parts", [x for x in range(100, 12000, 200)])
+@pytest.mark.parametrize("n_parts", [x for x in range(100, 10000, 200)])
 @pytest.mark.memory
 def test_rdf(tmp_path, n_parts):
     project = get_project(tmp_path, n_configs=15, n_parts=n_parts)
     _ = project.run.RadialDistributionFunction(number_of_configurations=10, plot=False)
 
 
-@pytest.mark.parametrize("n_configs", [x for x in range(100, 12000, 200)])
+@pytest.fixture(params=[x for x in range(100, 10000, 200)])
+def rdf_project(tmp_path, request):
+    project = get_project(tmp_path, n_configs=15, n_parts=request.param)
+    return project
+
+
 @pytest.mark.memory
-def test_einstein_diffusion(tmp_path, n_configs):
-    # TODO What do we want to actually loop over
-    project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
-    _ = project.run.EinsteinDiffusionCoefficients(plot=False)
+def test_rdf_w_fixt(rdf_project):
+    _ = rdf_project.run.RadialDistributionFunction(
+        number_of_configurations=10, plot=False
+    )
 
 
-@pytest.mark.parametrize("data_range", [x for x in range(10, 10000, 200)])
-@pytest.mark.memory
-def test_einstein_diffusion_data_range(tmp_path, data_range):
-    project = get_project(tmp_path, n_configs=12000, n_parts=100)
-    _ = project.run.EinsteinDiffusionCoefficients(plot=False, data_range=data_range)
-
-
-@pytest.mark.parametrize("n_configs", [x for x in range(500, 12000, 200)])
-@pytest.mark.memory
-def test_gk_diffusion(tmp_path, n_configs):
-    # TODO What do we want to actually loop over
-    project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
-    _ = project.run.GreenKuboDiffusionCoefficients(plot=False)
+# @pytest.mark.parametrize("n_parts", [x for x in range(10, 300, 10)])
+# @pytest.mark.memory
+# def test_adf(tmp_path, n_parts):
+#     project = get_project(tmp_path, n_configs=5, n_parts=n_parts)
+#     _ = project.run.AngularDistributionFunction(number_of_configurations=2, plot=False)
+#
+#
+# @pytest.mark.parametrize("n_parts", [x for x in range(100, 12000, 200)])
+# @pytest.mark.memory
+# def test_rdf(tmp_path, n_parts):
+#     project = get_project(tmp_path, n_configs=15, n_parts=n_parts)
+#     _ = project.run.RadialDistributionFunction(number_of_configurations=10, plot=False)
+#
+#
+# @pytest.mark.parametrize("n_configs", [x for x in range(100, 12000, 200)])
+# @pytest.mark.memory
+# def test_einstein_diffusion(tmp_path, n_configs):
+#     # TODO What do we want to actually loop over
+#     project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
+#     _ = project.run.EinsteinDiffusionCoefficients(plot=False)
+#
+#
+# @pytest.mark.parametrize("data_range", [x for x in range(10, 10000, 200)])
+# @pytest.mark.memory
+# def test_einstein_diffusion_data_range(tmp_path, data_range):
+#     project = get_project(tmp_path, n_configs=12000, n_parts=100)
+#     _ = project.run.EinsteinDiffusionCoefficients(plot=False, data_range=data_range)
+#
+#
+# @pytest.mark.parametrize("n_configs", [x for x in range(500, 12000, 200)])
+# @pytest.mark.memory
+# def test_gk_diffusion(tmp_path, n_configs):
+#     # TODO What do we want to actually loop over
+#     project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
+#     _ = project.run.GreenKuboDiffusionCoefficients(plot=False)

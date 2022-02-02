@@ -41,4 +41,5 @@ jobs:
           echo "# Raw data" >> report.md
           echo "Activate in workflow file" >> report.md
           # cat table.md >> report.md
-          cml-send-comment --pr --update report.md
+          # cml-send-comment --pr --update report.md
+          cml-send-comment report.md
