@@ -65,5 +65,4 @@ def test_project(traj_file, true_values, tmp_path):
     )
 
     computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
-    print(computation["NaCl"].data_dict)
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-6)
