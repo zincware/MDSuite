@@ -64,3 +64,8 @@ def project(tmp_path, request) -> mdsuite.Project:
 @pytest.mark.memory
 def test_adf(project):
     _ = project.run.AngularDistributionFunction(number_of_configurations=2, plot=False)
+
+
+@pytest.mark.memory
+def test_rdf(project):
+    _ = project.run.RadialDistributionFunction(number_of_configurations=10, plot=False)
