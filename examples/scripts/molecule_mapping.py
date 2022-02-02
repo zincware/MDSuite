@@ -61,14 +61,28 @@ def run_example():
         simulation_data="bmim_bf4.lammpstraj",
     )
     project.experiments.bmim_bf4.run.UnwrapViaIndices()
-    project.run.MolecularMap(
-        molecules={
-            "bmim": {"smiles": "CCCCN1C=C[N+](+C1)C", "amount": 50, "cutoff": 1.9},
-            "bf4": {"smiles": "[B-](F)(F)(F)F", "amount": 50, "cutoff": 2.4},
-        }
-    )
 
-    # project.experiments.bmim_bf4.run_visualization(molecules=True) # has been removed
+    bmim = mds.Molecule(
+        name="bmim",
+        species_dict={"C": 8, "N": 2, "H": 15},
+        amount=50,
+        cutoff=1.9,
+        reference_configuration=400,
+    )
+    bf = mds.Molecule(
+        name="bf4",
+        smiles="[B-](F)(F)(F)F",
+        amount=50,
+        cutoff=2.4,
+        reference_configuration=400,
+    )
+    project.run.MolecularMap(molecules=[bf, bmim])
+    project.run.RadialDistributionFunction(
+        start=0, stop=400, number_of_configurations=300, molecules=True
+    )
+    print(project.experiments.bmim_bf4.box_array)
+
+    project.experiments.bmim_bf4.run_visualization(molecules=True)
 
     print("Tutorial complete....... Files being deleted now.")
 
