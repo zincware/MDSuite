@@ -2,7 +2,6 @@ name: pytest-memory profiling
 
 on:
   push:
-  pull_request:
 
 jobs:
   memory-profiling:
