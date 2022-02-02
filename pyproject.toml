@@ -10,3 +10,28 @@ multi_line_output = 3
 markers = [
     "memory: marks tests that are used for memory profiling",
 ]
+
+[tool.pylint.messages_control]
+
+max-line-length = 90
+disable = [
+    "logging-fstring-interpolation",
+    "too-many-arguments",
+    # seems to fail for some cases
+    "no-else-return",
+    # allow for open TODOs
+    "fixme",
+]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+# Regexes for lines to exclude from consideration
+omit =["*/Temp/*", "*/AppData/*", "*/CI/*"]
+
+[tool.coverage.report]
+# omit anything in a Temp directory anywhere
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"
