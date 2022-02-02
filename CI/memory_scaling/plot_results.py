@@ -22,7 +22,7 @@ if __name__ == "__main__":
     df["test"] = df["ITEM_VARIANT"].str.split("[").str[0]
     # set the index to the number of points
     df = df.set_index("ITEM_VARIANT")
-    df.index = df.index.str.extract(r"(\d+)", expand=False)
+    df.index = df.index.str.extract(r"(\d+)", expand=False).astype(float)
 
     # group by memory usage
     grouped = df[["MEM_USAGE", "test"]].groupby("test")
@@ -36,7 +36,8 @@ if __name__ == "__main__":
         grouped.get_group(key).plot(ax=ax)
         ax.legend()
         ax.set_title(key)
-
+        ax.set_ylabel("MEM_USAGE / MB")
+    plt.tight_layout()
     fig.savefig(parsed.plot)
     print(
         df[
