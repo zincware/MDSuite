@@ -37,6 +37,7 @@ jobs:
           echo "# Memory Scaling" >> report.md
           python ./CI/memory_scaling/plot_results.py ./.pymon plot.png > table.md
           cml publish ./plot.png --md >> report.md
-          echo "# Raw data"
-          cat table.md >> report.md
+          echo "# Raw data" >> report.md
+          echo "Activate in workflow file" >> report.md
+          # cat table.md >> report.md
           cml-send-comment --pr --update report.md
