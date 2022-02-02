@@ -40,4 +40,4 @@ jobs:
           cml publish ./plot.png --md >> report.md
           echo "# Raw data"
           cat table.md >> report.md
-          cml-send-comment report.md
+          cml-send-comment --pr --update report.md
