@@ -56,22 +56,29 @@ def get_project(tmp_path, n_configs, n_parts) -> mdsuite.Project:
     return project
 
 
-@pytest.mark.parametrize("n_parts", [x for x in range(10, 200, 10)])
+@pytest.mark.parametrize("n_parts", [x for x in range(10, 300, 10)])
 @pytest.mark.memory
 def test_adf(tmp_path, n_parts):
     project = get_project(tmp_path, n_configs=5, n_parts=n_parts)
     _ = project.run.AngularDistributionFunction(number_of_configurations=2, plot=False)
 
 
-@pytest.mark.parametrize("n_parts", [x for x in range(10, 10000, 200)])
+@pytest.mark.parametrize("n_parts", [x for x in range(100, 12000, 200)])
 @pytest.mark.memory
 def test_rdf(tmp_path, n_parts):
     project = get_project(tmp_path, n_configs=15, n_parts=n_parts)
     _ = project.run.RadialDistributionFunction(number_of_configurations=10, plot=False)
 
 
-@pytest.mark.parametrize("n_configs", [x for x in range(10, 10000, 200)])
+@pytest.mark.parametrize("n_configs", [x for x in range(100, 12000, 200)])
 @pytest.mark.memory
 def test_einstein_diffusion(tmp_path, n_configs):
     project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
     _ = project.run.EinsteinDiffusionCoefficients(plot=False)
+
+
+@pytest.mark.parametrize("n_configs", [x for x in range(500, 12000, 200)])
+@pytest.mark.memory
+def test_gk_diffusion(tmp_path, n_configs):
+    project = get_project(tmp_path, n_configs=n_configs, n_parts=100)
+    _ = project.run.GreenKuboDiffusionCoefficients(plot=False)
