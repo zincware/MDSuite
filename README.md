@@ -3,6 +3,7 @@
 [![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)
 ![license](https://img.shields.io/badge/License-EPLv2.0-purple.svg?style=flat)
 [![coverage](https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main)](https://coveralls.io/github/zincware/MDSuite?branch=main)
+[![Maintainability](https://api.codeclimate.com/v1/badges/268dae1d7098161ff81d/maintainability)](https://codeclimate.com/github/zincware/MDSuite/maintainability)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zincware/MDSuite/HEAD)
 
 
