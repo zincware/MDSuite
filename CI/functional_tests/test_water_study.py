@@ -65,7 +65,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
             An MDSuite project to be tested.
     """
     gmx_units = Units(
-        time=1e-15,
+        time=1e-12,
         length=1e-10,
         energy=1.6022e-19,
         NkTV2p=1.6021765e6,
@@ -140,13 +140,13 @@ def test_water_analysis(mdsuite_project):
     # Test diffusion data
     assert atomistic_diffusion["water_sim"].data_dict["O"][
         "diffusion_coefficient"
-    ] == pytest.approx(4.1e-3, rel=0.01)
+    ] == pytest.approx(4.1e-9, rel=0.01)
     assert atomistic_diffusion["water_sim"].data_dict["H"][
         "diffusion_coefficient"
-    ] == pytest.approx(5.05e-3, rel=0.01)
+    ] == pytest.approx(5.05e-9, rel=0.01)
     assert molecular_diffusion["water_sim"].data_dict["water"][
         "diffusion_coefficient"
-    ] == pytest.approx(4.3e-3, rel=0.01)
+    ] == pytest.approx(4.3e-9, rel=0.01)
 
     # Test group selected data
     assert atom_group_adf["water_sim"].data_dict["O_H_H"]["max_peak"] == pytest.approx(
@@ -154,7 +154,7 @@ def test_water_analysis(mdsuite_project):
     )
     assert atom_group_diffusion["water_sim"].data_dict["O"][
         "diffusion_coefficient"
-    ] == pytest.approx(2.9e-4, rel=0.1)
+    ] == pytest.approx(2.9e-9, rel=0.1)
     assert atom_group_diffusion["water_sim"].data_dict["H"][
         "diffusion_coefficient"
-    ] == pytest.approx(3.0e-4, rel=0.1)
+    ] == pytest.approx(3.0e-9, rel=0.1)
