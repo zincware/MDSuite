@@ -91,8 +91,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
-        self.x_label = r"$\text{Time}$ / $s$"
-        self.y_label = r"$\text{MSD}$ / $m^{2}$"
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{MSD} / $m^{2}$$"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
         self.analysis_name = "Einstein Self-Diffusion Coefficients"
@@ -169,7 +169,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         msd = tf.math.squared_difference(
             tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
         )
-
         # average over particles, sum over dimensions
         msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
         # sum up ensembles to average in post processing
@@ -183,10 +182,11 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array *= self.experiment.units["length"] ** 2
         self.time *= self.experiment.units["time"]
+
         fit_slope, fit_slope_std = fit_einstein_curve([self.time, self.msd_array])
 
         data = {
-            self.result_keys[0]: 1 / 6 * fit_slope,
+            self.result_keys[0]: 1 / 6.0 * fit_slope,
             self.result_keys[1]: 1 / 6.0 * fit_slope_std,
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.msd_array.tolist(),
@@ -201,6 +201,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         for species in self.args.species:
             # Here for now to avoid issues. Should be moved out when calculators become
             # species-wise
+            self.time = None
             self.time = self._handle_tau_values()
             self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))

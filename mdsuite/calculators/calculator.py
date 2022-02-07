@@ -299,10 +299,8 @@ class Calculator(CalculatorDatabase):
         """
         for selected_species, val in data.items():
             self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
-                y_data=np.array(val[self.result_series_keys[1]])
-                * self.experiment.units["time"],
+                x_data=np.array(val[self.result_series_keys[0]]),
+                y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
                     f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
