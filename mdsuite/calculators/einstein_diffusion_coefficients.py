@@ -152,8 +152,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         )
         self.plot = plot
         self.system_property = False
-        self.time = self._handle_tau_values()
-        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
 
     def ensemble_operation(self, ensemble):
         """
@@ -201,6 +199,10 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         self._run_dependency_check()
         for species in self.args.species:
+            # Here for now to avoid issues. Should be moved out when calculators become
+            # species-wise
+            self.time = self._handle_tau_values()
+            self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
             batch_ds = self.get_batch_dataset([species])
 
