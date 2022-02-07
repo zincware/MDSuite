@@ -273,21 +273,23 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             )
 
             fig.extra_y_ranges = {
-                "Diffusion": Range1d(start=0.6 * min(integral), end=1.3 * max(integral))
+                "Diffusion_range": Range1d(
+                    start=0.6 * min(integral), end=1.3 * max(integral)
+                )
             }
-            fig.line(time[1:], integral, y_range_name="Diffusion range", color="#bc5090")
+            fig.line(time[1:], integral, y_range_name="Diffusion_range", color="#bc5090")
             fig.varea(
                 time[1:],
                 integral - integral_err,
                 integral + integral_err,
                 alpha=0.3,
                 color="#ffa600",
-                y_range_name="Diffusion range",
+                y_range_name="Diffusion_range",
             )
 
             fig.add_layout(
                 LinearAxis(
-                    y_range_name="Cond_range",
+                    y_range_name="Diffusion_range",
                     axis_label=r"$$\text{Diffusion Coefficient} / m^{2}s^{-1}$$",
                 ),
                 "right",
