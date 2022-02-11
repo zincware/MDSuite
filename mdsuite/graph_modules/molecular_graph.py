@@ -125,7 +125,7 @@ class MolecularGraph:
         """
         self.molecular_mass = 0.0
         for species, number in self.species.items():
-            self.molecular_mass += self.experiment.species[species]["mass"][0] * number
+            self.molecular_mass += self.experiment.species[species].mass[0] * number
 
     def build_configuration_graph(self) -> tf.Tensor:
         """

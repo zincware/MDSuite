@@ -26,15 +26,15 @@ Summary
 """
 from __future__ import annotations
 
+import dataclasses
 import logging
-from dataclasses import asdict
 from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
 
 import mdsuite.database.scheme as db
+from mdsuite.database.simulation_database import SpeciesInfo
 from mdsuite.utils.database import get_or_create
-from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
 
 if TYPE_CHECKING:
@@ -191,7 +191,7 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self) -> Dict[str, DotDict]:
+    def species(self) -> Dict[str, SpeciesInfo]:
         """Get species
 
         Returns
@@ -211,7 +211,8 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._species = {
-                    key: DotDict(val) for key, val in experiment.get_species().items()
+                    key: SpeciesInfo(**val)
+                    for key, val in experiment.get_species().items()
                 }
 
         return self._species
@@ -232,6 +233,8 @@ class ExperimentDatabase:
         """
         if value is None:
             return
+        if isinstance(value, SpeciesInfo):
+            value = dataclasses.asdict(value)
 
         # Do not allow the key "indices" in the SQL database!
         for single_species in value.values():
@@ -311,7 +314,7 @@ class ExperimentDatabase:
         """Set the units of the experiment"""
         if value is None:
             return
-        self.set_db(name="units", value=asdict(value))
+        self.set_db(name="units", value=dataclasses.asdict(value))
 
     @property
     def read_files(self):
