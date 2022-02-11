@@ -211,7 +211,7 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._species = {
-                    key: SpeciesInfo(**val)
+                    key: SpeciesInfo(name=key, **val)
                     for key, val in experiment.get_species().items()
                 }
 
