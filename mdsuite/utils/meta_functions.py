@@ -70,7 +70,8 @@ def is_jsonable(x: dict) -> bool:
 
 
 def join_path(a, b):
-    """Join a and b and make sure to use forward slashes
+    """
+    Join a and b and make sure to use forward slashes
 
     Parameters
     ----------
@@ -94,12 +95,15 @@ def join_path(a, b):
 
 def get_dimensionality(box: list) -> int:
     """
-    Calculate the dimensionality of the experiment box
+    Calculate the dimensionality of the experiment box.
+
+    Run np where to check where in the box a non-zero number occurs. Set these numbers
+    to 1 and sum over them.
 
     Parameters
     ----------
     box : list
-            box array of the experiment of the form [x, y, z]
+            box array of the experiment of the form [x, y, z] shape (N,)
 
     Returns
     -------
@@ -108,25 +112,7 @@ def get_dimensionality(box: list) -> int:
             make sense just yet)
     """
 
-    # Check if the x, y, or z entries are empty, i.e. 2 dimensions
-    if box[0] == 0 or box[1] == 0 or box[2] == 0:
-        if (
-            box[0] == 0
-            and box[1] == 0
-            or box[0] == 0
-            and box[2] == 0
-            or box[1] == 0
-            and box[2] == 0
-        ):
-            dimensions = 1
-        else:
-            dimensions = 2
-
-    # Other option is 3 dimensions.
-    else:
-        dimensions = 3
-
-    return dimensions
+    return np.where(box != 0, 0, 1, 0).sum()
 
 
 def get_machine_properties() -> dict:
@@ -223,11 +209,11 @@ def optimize_batch_size(
         computer_statistics = get_machine_properties()  # Get computer statistics
         file_size = os.path.getsize(filepath)  # Get the size of the file
         database_memory = (
-            0.1 * computer_statistics["memory"]
+                0.1 * computer_statistics["memory"]
         )  # We take 10% of the available memory
 
     memory_per_configuration = (
-        file_size / number_of_configurations
+            file_size / number_of_configurations
     )  # get the memory per configuration
     initial_batch_number = int(
         database_memory / (5 * memory_per_configuration)
@@ -330,7 +316,7 @@ def timeit(f: Callable) -> Callable:
 
 
 def apply_savgol_filter(
-    data: list, order: int = 2, window_length: int = 17
+        data: list, order: int = 2, window_length: int = 17
 ) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing
@@ -380,15 +366,15 @@ def closest_point(data: np.ndarray, value: float):
 
 
 def golden_section_search(
-    data: np.array,
-    a: float,
-    b: float,
-    tol: float = 1e-5,
-    h: float = None,
-    c: float = None,
-    d: float = None,
-    fc: float = None,
-    fd: float = None,
+        data: np.array,
+        a: float,
+        b: float,
+        tol: float = 1e-5,
+        h: float = None,
+        c: float = None,
+        d: float = None,
+        fc: float = None,
+        fd: float = None,
 ) -> tuple:
     """
     Perform a golden-section search for function minimums
@@ -492,7 +478,7 @@ def split_array(data: np.array, condition: np.array) -> list:
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if (
-        len(initial_split[1]) == 0
+            len(initial_split[1]) == 0
     ):  # if the condition is never met, return only the raw tensor_values
         return list([data[condition]])
     else:  # else return the whole array
