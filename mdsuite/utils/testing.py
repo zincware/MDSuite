@@ -24,7 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import multiprocessing
+import traceback
+
 import numpy as np
+import tensorflow as tf
 
 
 def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
@@ -48,7 +52,7 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
     https://github.com/larsbutler/oq-engine/blob/master/tests/utils/helpers.py
 
     """
-    if isinstance(expected, (int, float, complex, np.ndarray, list)):
+    if isinstance(expected, (int, float, complex, np.ndarray, list, tf.Tensor)):
         np.testing.assert_array_almost_equal(expected, actual, *args, **kwargs)
     elif isinstance(expected, dict):
         assert set(expected) == set(actual)
@@ -58,12 +62,35 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
         assert expected == actual
 
 
-if __name__ == "__main__":
-    dict_1 = {"a": [1, 2, 3, 4]}
-    dict_2a = {"a": {"b": np.array([1, 2, 3, 4])}}
-    dict_2b = {"a": {"b": [1, 2, 3, 4]}}
-    dict_3a = {"a": {"c": np.array([1.10, 2.10, 3.11, 4.0])}}
-    dict_3b = {"a": {"c": np.array([1.11, 2.09, 3.10, 4.0])}}
+class MDSuiteProcess(multiprocessing.Process):
+    """
+    Process class for use in ZnVis testing.
+    """
 
-    print(assertDeepAlmostEqual(dict_3a, dict_3b, decimal=1))
-    print(assertDeepAlmostEqual(dict_2a, dict_2b, decimal=1))
+    def __init__(self, *args, **kwargs):
+        """
+        Multiprocessing class constructor.
+        """
+        super(MDSuiteProcess, self).__init__(*args, **kwargs)
+        self._pconn, self._cconn = multiprocessing.Pipe()
+        self._exception = None
+
+    def run(self):
+        """
+        Run the process and catch exceptions.
+        """
+        try:
+            multiprocessing.Process.run(self)
+            self._cconn.send(None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self._cconn.send((e, tb))
+
+    @property
+    def exception(self):
+        """
+        Exception property to be stored by the process.
+        """
+        if self._pconn.poll():
+            self._exception = self._pconn.recv()
+        return self._exception

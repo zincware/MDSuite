@@ -24,31 +24,40 @@ If you use this module please cite us with:
 Summary
 -------
 """
-
-from mdsuite.transformations.scale_coordinates import ScaleCoordinates
-from mdsuite.transformations.unwrap_via_indices import UnwrapViaIndices
-from mdsuite.transformations.ionic_current import IonicCurrent
-from mdsuite.transformations.translational_dipole_moment import (
-    TranslationalDipoleMoment,
-)
-from mdsuite.transformations.integrated_heat_current import IntegratedHeatCurrent
-from mdsuite.transformations.thermal_flux import ThermalFlux
-from mdsuite.transformations.momentum_flux import MomentumFlux
-from mdsuite.transformations.kinaci_integrated_heat_current import (
+from mdsuite.database.mdsuite_properties import mdsuite_properties as mdp
+from mdsuite.transformations import (
+    CoordinateUnwrapper,
+    CoordinateWrapper,
+    IntegratedHeatCurrent,
+    IonicCurrent,
     KinaciIntegratedHeatCurrent,
+    MomentumFlux,
+    ScaleCoordinates,
+    ThermalFlux,
+    TranslationalDipoleMoment,
+    UnwrapViaIndices,
+    VelocityFromPositions,
 )
-from mdsuite.transformations.wrap_coordinates import CoordinateWrapper
-from mdsuite.transformations.unwrap_coordinates import CoordinateUnwrapper
 
-transformations_dict = {
-    "UnwrapCoordinates": CoordinateUnwrapper,
-    "WrapCoordinates": CoordinateWrapper,
-    "ScaleCoordinates": ScaleCoordinates,
-    "UnwrapViaIndices": UnwrapViaIndices,
-    "IonicCurrent": IonicCurrent,
-    "TranslationalDipoleMoment": TranslationalDipoleMoment,
-    "IntegratedHeatCurrent": IntegratedHeatCurrent,
-    "ThermalFlux": ThermalFlux,
-    "MomentumFlux": MomentumFlux,
-    "KinaciIntegratedHeatCurrent": KinaciIntegratedHeatCurrent,
+"""
+Use this dictionary to determine which property can be obtained by which transformation.
+Needed for transformation dependency resolution.
+"""
+
+property_to_transformation_dict = {
+    mdp.integrated_heat_current: IntegratedHeatCurrent,
+    mdp.ionic_current: IonicCurrent,
+    mdp.kinaci_heat_current: KinaciIntegratedHeatCurrent,
+    mdp.momentum_flux: MomentumFlux,
+    mdp.positions: [
+        ScaleCoordinates,
+        CoordinateWrapper,
+    ],
+    mdp.thermal_flux: ThermalFlux,
+    mdp.translational_dipole_moment: TranslationalDipoleMoment,
+    mdp.unwrapped_positions: [
+        UnwrapViaIndices,
+        CoordinateUnwrapper,
+    ],
+    mdp.velocities_from_positions: VelocityFromPositions,
 }

@@ -25,70 +25,41 @@ Summary
 -------
 """
 import os
-from tempfile import TemporaryDirectory
-import pytest
-import mdsuite as mds
+
 import numpy as np
-from dataclasses import asdict
 import pytest
-import os
+from zinchub import DataHub
+
 import mdsuite as mds
-import urllib.request
-import json
-import shutil
-
-temp_dir = TemporaryDirectory()
-cwd = os.getcwd()
-
-base_path = "https://github.com/zincware/ExampleData/blob/add_CI_data/NaCl_gk_i_q/"
+import mdsuite.file_io.lammps_trajectory_files
 
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
-    compressed_file = "NaCl_gk_i_q.zip"
-    uncompressed_file = "NaCl_gk_i_q.lammpstraj"
-
-    conv_raw = "?raw=true"
-    compressed_file_path = base_path + compressed_file + conv_raw
-
     temporary_path = tmp_path_factory.getbasetemp()
-    urllib.request.urlretrieve(
-        compressed_file_path, filename=temporary_path / compressed_file
-    )
 
-    shutil.unpack_archive(
-        filename=temporary_path / compressed_file, extract_dir=temporary_path
-    )
+    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl.get_file(path=temporary_path)
 
-    return (temporary_path / uncompressed_file).as_posix()
-
-
-@pytest.fixture(autouse=True)
-def prepare_env():
-    """Prepare temporary environment"""
-    temp_dir = TemporaryDirectory()
-    os.chdir(temp_dir.name)
-
-    yield
-
-    os.chdir(cwd)
-    temp_dir.cleanup()
+    return (temporary_path / NaCl.file_raw).as_posix()
 
 
 def test_read_files(tmp_path, traj_file):
     """Test that read_files is saved correctly"""
     os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01", data=traj_file)
+    file_proc = mdsuite.file_io.lammps_trajectory_files.LAMMPSTrajectoryFile(traj_file)
+    project_1.add_experiment(name="Exp01", timestep=0.1)  # todo bad place for time step
+    project_1.experiments["Exp01"].add_data(file_proc)
     assert len(project_1.experiments["Exp01"].read_files) == 1
 
 
-def test_project_temperature():
+def test_project_temperature(tmp_path):
     """Test that the project description is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].temperature = 9000
 
     project_2 = mds.Project()
@@ -96,11 +67,11 @@ def test_project_temperature():
     assert project_2.experiments["Exp01"].temperature == 9000
 
 
-def test_project_time_step():
+def test_project_time_step(tmp_path):
     """Test that the project description is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].time_step = 1
 
     project_2 = mds.Project()
@@ -108,11 +79,11 @@ def test_project_time_step():
     assert project_2.experiments["Exp01"].time_step == 1
 
 
-def test_project_number_of_configurations():
+def test_project_number_of_configurations(tmp_path):
     """Test that the project description is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].number_of_configurations = 100
 
     project_2 = mds.Project()
@@ -120,11 +91,11 @@ def test_project_number_of_configurations():
     assert project_2.experiments["Exp01"].number_of_configurations == 100
 
 
-def test_project_number_of_atoms():
+def test_project_number_of_atoms(tmp_path):
     """Test that the project description is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].number_of_atoms = 100
 
     project_2 = mds.Project()
@@ -132,16 +103,16 @@ def test_project_number_of_atoms():
     assert project_2.experiments["Exp01"].number_of_atoms == 100
 
 
-def test_species():
+def test_species(tmp_path):
     """Test that the species are stored correctly in the database"""
-
+    os.chdir(tmp_path)
     species = {
         "H": {"indices": [1, 2, 3], "mass": 1},
         "Cl": {"indices": [4, 5, 6], "mass": 35.45},
     }
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].species = species
 
     project_2 = mds.Project()
@@ -149,16 +120,16 @@ def test_species():
     assert project_2.experiments["Exp01"].species == species
 
 
-def test_molecules():
+def test_molecules(tmp_path):
     """Test that the molecules are stored correctly in the database"""
-
+    os.chdir(tmp_path)
     molecule = {
         "Proton": {"indices": [1, 2, 3], "mass": 1},
         "Chloride": {"indices": [4, 5, 6], "mass": 35.45},
     }
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].molecules = molecule
 
     project_2 = mds.Project()
@@ -166,13 +137,13 @@ def test_molecules():
     assert project_2.experiments["Exp01"].molecules == molecule
 
 
-def test_project_box_array():
+def test_project_box_array(tmp_path):
     """Test that the project description is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     box_array = np.array([1.0, 1.414, 1.732])
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].box_array = box_array
 
     project_2 = mds.Project()
@@ -180,9 +151,9 @@ def test_project_box_array():
     np.testing.assert_array_equal(project_2.experiments["Exp01"].box_array, box_array)
 
 
-def test_experiment_simulation_data():
+def test_experiment_simulation_data(tmp_path):
     """Test that the experiment simulation data is stored correctly in the database"""
-
+    os.chdir(tmp_path)
     simulation_data = {
         "a_5": [10.0, 11.0, 12.0],
         "b_test": "HelloWorld",
@@ -190,7 +161,7 @@ def test_experiment_simulation_data():
     }  # can only handle float and str
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
@@ -200,15 +171,15 @@ def test_experiment_simulation_data():
         assert val == simulation_data[key]
 
 
-def test_experiment_simulation_data_nested():
+def test_experiment_simulation_data_nested(tmp_path):
     """
     Test that nested experiment simulation data is stored correctly in the database
     """
-
+    os.chdir(tmp_path)
     simulation_data = {"a": {"one": [1.0, 2.0, 3.0], "two": [4.0, 5.0, 6.0]}}
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01")
+    project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].simulation_data = simulation_data
 
     project_2 = mds.Project()
@@ -218,10 +189,11 @@ def test_experiment_simulation_data_nested():
         assert val == simulation_data[key]
 
 
-def test_experiment_units():
+def test_experiment_units(tmp_path):
     """Test that the experiment simulation data is stored correctly in the database"""
-    from mdsuite.utils.units import si, Units
+    from mdsuite.utils.units import Units, si
 
+    os.chdir(tmp_path)
     custom_units = Units(
         time=1.0,
         length=1.0,
@@ -233,8 +205,8 @@ def test_experiment_units():
     )
 
     project_1 = mds.Project()
-    project_1.add_experiment(experiment="Exp01", units="si")
-    project_1.add_experiment(experiment="Exp02", units=custom_units)
+    project_1.add_experiment(name="Exp01", units="si")
+    project_1.add_experiment(name="Exp02", units=custom_units)
 
     project_2 = mds.Project()
 

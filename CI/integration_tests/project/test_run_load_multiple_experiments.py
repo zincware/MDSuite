@@ -24,11 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
+
 import os
+
 import pytest
-import urllib.request
-import gzip
-import shutil
+from zinchub import DataHub
 
 import mdsuite as mds
 
@@ -36,32 +36,25 @@ import mdsuite as mds
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
     """Download files into a temporary directory and keep them for all tests"""
-    # time_step = 0.002
-    # temperature = 1400.0
-    base_url = "https://github.com/zincware/ExampleData/raw/main/"
+    base_url = "https://github.com/zincware/DataHub/tree/main"
 
-    files_in_url = [
+    files_to_load = [
         "NaCl_gk_i_q.lammpstraj",
         "NaCl_gk_ni_nq.lammpstraj",
         "NaCl_i_q.lammpstraj",
         "NaCl_ni_nq.lammpstraj",
     ]
 
-    files = []
     temporary_path = tmp_path_factory.getbasetemp()
+    file_paths = []
+    for fname in files_to_load:
+        folder = fname.split(".")[0]
+        url = f"{base_url}/{folder}"
+        dhub_file = DataHub(url=url)
+        dhub_file.get_file(temporary_path)
+        file_paths.append((temporary_path / dhub_file.file_raw).as_posix())
 
-    for item in files_in_url:
-        filename, headers = urllib.request.urlretrieve(
-            f"{base_url}{item}.gz", filename=f"{temporary_path / item}.gz"
-        )
-        with gzip.open(filename, "rb") as f_in:
-            new_file = temporary_path / item
-            with open(new_file, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-
-            files.append(new_file.as_posix())
-
-    return files
+    return file_paths
 
 
 @pytest.fixture(scope="session")
@@ -79,16 +72,16 @@ def test_add_run_load_data(project, traj_files):
     Test the run_computation and load_data method on multiple experiments
     """
     project.add_experiment(
-        "NaCl0", data=traj_files[0], timestep=0.002, temperature=1400
+        "NaCl0", simulation_data=traj_files[0], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl1", data=traj_files[1], timestep=0.002, temperature=1400
+        "NaCl1", simulation_data=traj_files[1], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl2", data=traj_files[2], timestep=0.002, temperature=1400
+        "NaCl2", simulation_data=traj_files[2], timestep=0.002, temperature=1400
     )
     project.add_experiment(
-        "NaCl3", data=traj_files[3], timestep=0.002, temperature=1400
+        "NaCl3", simulation_data=traj_files[3], timestep=0.002, temperature=1400
     )
 
     # Check that 4 experiments have been created

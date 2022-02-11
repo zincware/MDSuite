@@ -24,12 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import pathlib
+from typing import List, Union
+
 import numpy as np
-from bokeh.plotting import figure, show
+from bokeh.io import output_file, output_notebook
 from bokeh.layouts import gridplot
-from bokeh.io import output_notebook, output_file
 from bokeh.models import HoverTool
-from typing import Union, List
+from bokeh.plotting import figure, show
+
 from mdsuite.utils import config
 
 
@@ -38,7 +41,7 @@ class DataVisualizer2D:
     Visualizer for two-dimensional data.
     """
 
-    def __init__(self, title: str):
+    def __init__(self, title: str, path: pathlib.Path):
         """
         Constructor for the data visualizer.
 
@@ -46,11 +49,14 @@ class DataVisualizer2D:
         ----------
         title : str
                 title of the plot.
+        path : pathlib.Path
+                path to the saving directory of the plot
         """
+
         if config.jupyter:
             output_notebook()
         else:
-            output_file(f"{title}.html", title=title)
+            output_file(f"{path / title}.html")
 
     def construct_plot(
         self,
@@ -81,7 +87,11 @@ class DataVisualizer2D:
         figure : figure
                 A bokeh figure object.
         """
-        fig = figure(x_axis_label=x_label, y_axis_label=y_label)
+        fig = figure(
+            x_axis_label=x_label,
+            y_axis_label=y_label,
+            sizing_mode=config.bokeh_sizing_mode,
+        )
         fig.line(x_data, y_data, legend_label=title)
         fig.add_tools(HoverTool())
         if layouts is not None:

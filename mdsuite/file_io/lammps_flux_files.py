@@ -24,177 +24,133 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import numpy as np
-from mdsuite.file_io.flux_files import FluxFile
-from mdsuite.utils.meta_functions import optimize_batch_size, join_path
-import copy
+import pathlib
+import typing
 
-var_names = {
-    "Temperature": ["temp"],
-    "Time": ["time"],
-    "Thermal_Flux": ["c_flux_thermal[1]", "c_flux_thermal[2]", "c_flux_thermal[3]"],
-    "Stress_visc": ["pxy", "pxz", "pyz"],
+import mdsuite.database.simulation_database
+import mdsuite.file_io.file_read
+import mdsuite.file_io.lammps_trajectory_files
+import mdsuite.file_io.tabular_text_files
+from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.file_io.lammps_trajectory_files import extract_properties_from_header
+from mdsuite.file_io.tabular_text_files import (
+    get_species_list_from_tabular_text_reader_data,
+)
+
+column_names = {
+    mdsuite_properties.temperature: ["temp"],
+    mdsuite_properties.time: ["time"],
+    mdsuite_properties.thermal_flux: [
+        "c_flux_thermal[1]",
+        "c_flux_thermal[2]",
+        "c_flux_thermal[3]",
+    ],
+    mdsuite_properties.stress_viscosity: ["pxy", "pxz", "pyz"],
 }
 
 
-class LAMMPSFluxFile(FluxFile):
-    """
-    Child class for the lammps file reader to read Flux files from LAMMPS.
+class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
+    """LAMMPS Flux file reader"""
 
-    Attributes
-    ----------
-    obj : object
-            Experiment class instance to add to
-
-    header_lines : int
-            Number of header lines in the file format (lammps = 9)
-
-    file_path : str
-            Path to the trajectory file.
-    """
-
-    def __init__(self, obj, header_lines=9, file_path=None, sort: bool = False):
+    def __init__(
+        self,
+        file_path: typing.Union[str, pathlib.Path],
+        sample_rate: int,
+        box_l: list,
+        n_header_lines: int = 2,
+        custom_data_map: dict = None,
+    ):
         """
-        Python class constructor
-        """
-
-        super().__init__(
-            obj, header_lines, file_path, sort=sort
-        )  # fill the experiment class
-        self.experiment.flux = True
-        self.time = None
-
-    def _get_line_length(self):
-        """
-        Get the length of a line of tensor_values in the file.
-
-        Returns
-        -------
-
-        """
-        with open(self.file_path) as f:
-            for i in range(self.header_lines):
-                f.readline()
-
-            line_length = len(f.readline().split())
-
-        return line_length
-
-    def process_trajectory_file(self, update_class=True, rename_cols=None):
-        """Get additional information from the trajectory file
-
-        In this method, there are several doc string styled comments. This is included
-        as there are several components of the method that are all related to the
-        analysis of the trajectory file.
-
+        Initialize the lammps flux reader. Since the flux file does not have a fixed
+        expected content, you need to provide the necessary metadata
+        (sample_rate, box_l) here manually
         Parameters
         ----------
-        rename_cols : dict
-                Will map some observable to keys found in the dump file.
-        update_class : bool
-                Boolean decision on whether or not to update the class. If yes, the
-                full saved class instance will be updated with new information. This
-                is necessary on the first run of tensor_values addition to the
-                database_path. After this point, when new tensor_values is added, this
-                is no longer required as other methods will take care of updating the
-                properties that change with new tensor_values. In fact, it will set the
-                number of configurations to only the new tensor_values, which will be
-                wrong.
+        file_path
+            Location of the file
+        sample_rate
+            Number of time steps between successive samples
+        box_l
+            Array of box lengths
+        n_header_lines
+            Number of header lines on the top of the file
+            first (n_header_lines-1) lines will be skipped, line n_header_lines must
+            contain the column names
+        custom_data_map
+            Dictionary connecting the name in the mdsuite database to the name of the
+            corresponding columns
+            example:
+            {"Thermal_Flux":["c_flux_thermal[1]","c_flux_thermal[2]","c_flux_thermal[3]"]}
         """
-
-        # user custom names for variables.
-        if rename_cols is not None:
-            var_names.update(rename_cols)
-
-        n_lines_header = 0  # number of lines of header
-        with open(self.file_path) as f:
-            header = []
-            for line in f:
-                n_lines_header += 1
-                if line.startswith("#"):
-                    header.append(line.split())
-                else:
-                    header_line = (
-                        line.split()
-                    )  # after the comments, we have the line with the variables
-                    break
-
-        self.header_lines = n_lines_header
-
-        with open(self.file_path) as f:
-            number_of_configurations = sum(1 for _ in f) - n_lines_header
-
-        # Find properties available for analysis
-        column_dict_properties = self._get_column_properties(header_line)
-        self.experiment.property_groups = self._extract_properties(
-            copy.deepcopy(var_names), column_dict_properties
+        super(LAMMPSFluxFile, self).__init__(
+            file_path,
+            file_format_column_names=column_names,
+            custom_column_names=custom_data_map,
         )
 
-        batch_size = optimize_batch_size(self.file_path, number_of_configurations)
+        self.sample_rate = sample_rate
+        self.box_l = box_l
 
-        # get time related properties of the experiment
-        with open(self.file_path) as f:
-            # skip the header
-            for _ in range(n_lines_header):
-                next(f)
-            time_0_line = f.readline().split()
-            time_0 = float(time_0_line[column_dict_properties["time"]])
-            time_1_line = f.readline().split()
-            time_1 = float(time_1_line[column_dict_properties["time"]])
+        self.n_header_lines = n_header_lines
 
-        sample_rate = (time_1 - time_0) / self.experiment.time_step
+    def _get_tabular_text_reader_mdata(
+        self,
+    ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
+        """
+        Implement abstract parent method
+        """
+        with open(self.file_path, "r") as file:
+            with open(self.file_path, "r") as file:
+                file.seek(0)
+                mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
+                # lammps log files can have multiple blocks of data interrupted
+                # by blocks of log info we read only the first block starting after
+                # n_header_lines this will mess up batching if this block is significantly
+                # smaller than the total file but it will only affect performance,
+                # not safety
 
-        # Update class attributes with calculated tensor_values
-        self.experiment.batch_size = batch_size
-        # self.properties = properties_summary
-        self.experiment.number_of_configurations = number_of_configurations
-        self.experiment.sample_rate = sample_rate
-        self.time_0 = time_0
+                first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(
+                    file, 1
+                )[0]
+                n_columns = len(first_data_line.split())
+                n_steps = 1
+                for line in file:
+                    if len(line.split()) != n_columns:
+                        break
+                    n_steps += 1
 
-        # Get the number of atoms if not set in initialization
-        if self.experiment.number_of_atoms is None:
-            self.experiment.number_of_atoms = int(
-                header[2][1]
-            )  # hopefully always in the same position
+                file.seek(0)
+                headers = mdsuite.file_io.tabular_text_files.read_n_lines(
+                    file, self.n_header_lines
+                )
+                column_header = headers[-1]
+                properties_dict = extract_properties_from_header(
+                    column_header.split(), self._column_name_dict
+                )
 
-        # Get the volume, if not set in initialization
-        if self.experiment.volume is None:
-            print(float(header[4][7]))
-            self.experiment.volume = float(
-                header[4][7]
-            )  # hopefully always in the same position
+            species_dict = {"Observables": [0]}
+            return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(
+                n_configs=n_steps,
+                species_name_to_line_idx_dict=species_dict,
+                property_to_column_idx_dict=properties_dict,
+                n_header_lines=self.n_header_lines,
+                n_particles=1,
+                header_lines_for_each_config=False,
+            )
 
-        self.experiment.species = {"1": []}
-
-        if update_class:
-            self.experiment.batch_size = batch_size
-            self.experiment.volume = self.experiment.volume
-
-        else:
-            self.experiment.batch_size = batch_size
-
-        line_length = self._get_line_length()
-        return (
-            self._build_architecture(
-                self.experiment.property_groups,
-                self.experiment.number_of_atoms,
-                number_of_configurations,
-            ),
-            line_length,
+    def _get_metadata(self):
+        """
+        Gets the metadata for database creation as an implementation of the parent
+        class virtual function.
+        """
+        species_list = get_species_list_from_tabular_text_reader_data(
+            self.tabular_text_reader_data
         )
 
-    def build_file_structure(self):
-        """
-        Build a skeleton of the file so that the database_path class can process it
-        correctly.
-        """
+        mdata = mdsuite.database.simulation_database.TrajectoryMetadata(
+            n_configurations=self.tabular_text_reader_data.n_configs,
+            species_list=species_list,
+            box_l=self.box_l,
+        )
 
-        structure = {}  # define initial dictionary
-
-        for observable in self.experiment.property_groups:
-            path = join_path(observable, observable)
-            columns = self.experiment.property_groups[observable]
-
-            structure[path] = {"indices": np.s_[:], "columns": columns, "length": 1}
-
-        return structure
+        return mdata

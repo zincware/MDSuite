@@ -26,12 +26,10 @@ Summary
 """
 import logging
 
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import declarative_base, relationship
 
-from .types import MutableDict, JSONEncodedDict
-
+from .types import JSONEncodedDict, MutableDict
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +47,7 @@ class SpeciesAssociation(Base):
     computation_results_id = Column(
         ForeignKey("computation_results.id"), primary_key=True
     )
-    experiment_species_id = Column(
-        ForeignKey("experiment_species.id"), primary_key=True
-    )
+    experiment_species_id = Column(ForeignKey("experiment_species.id"), primary_key=True)
 
     count = Column(
         Integer, default=1
@@ -271,12 +267,40 @@ class Computation(Base):
 
         return species_dict
 
+    def __getitem__(self, item):
+        """Allow for subscription
+
+        Parameters
+        ----------
+        item: str
+            The key of self.data_dict to access
+
+        Returns
+        -------
+        The value inside self.data_dict[item], usually a dict or single value.
+            raises a KeyError if the given key is not available
+
+        Examples
+        --------
+        >>> Computation["Na"]
+        instead of
+        >>> Computation.data_dict["Na"]
+
+
+        """
+        try:
+            return self.data_dict[item]
+        except KeyError:
+            raise KeyError(
+                f"Could not find {item} - available keys are {self.data_dict.keys()}"
+            )
+
     @property
     def data_range(self) -> int:
         """Get the data_range stored in computation_attributes"""
         for comp_attr in self.computation_attributes:
             if comp_attr.name == "data_range":
-                return int(comp_attr.data['serialized_value'])
+                return int(comp_attr.data["serialized_value"])
 
     @property
     def subjects(self) -> list:

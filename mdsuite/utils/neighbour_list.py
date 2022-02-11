@@ -25,9 +25,13 @@ Summary
 -------
 """
 
+import logging
+
+import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-import numpy as np
+
+log = logging.getLogger(__name__)
 
 
 def get_triu_indicies(n_atoms):
@@ -90,13 +94,13 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
     triu_mask = get_triu_indicies(n_atoms)
 
     if batch_size is not None:
-        try:
-            assert positions.shape[0] % batch_size == 0
-        except AssertionError:
-            print(
+        if not positions.shape[0] % batch_size == 0:
+            msg = (
                 "positions must be evenly divisible by batch_size, but are"
                 f" {positions.shape[0]} and {batch_size}"
             )
+            log.error(msg)
+            raise RuntimeError(msg)
 
         for positions_batch in tf.split(positions, batch_size):
             yield get_rij_mat(positions_batch, triu_mask, cell)
@@ -142,9 +146,12 @@ def get_triplets(
     memory issues.
 
     """
+    if n_batches >= n_atoms:
+        n_batches = n_atoms - 1
     r_ij = tf.norm(full_r_ij, axis=-1)
     r_ij = tf.cast(r_ij, dtype=tf.float16)  # Using float16 for maximal memory safety.
     r_ij = tf.where(r_ij == 0, tf.ones_like(r_ij) * r_cut, r_ij)
+
     batches = np.array_split(np.arange(1, n_atoms), n_batches)
     triples = []
     # batches would be [(1, 100), (101, 200), (201, 300), ...]

@@ -29,10 +29,18 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    """Collection of MDSuite configurations"""
+    """Collection of MDSuite configurations
+
+    Attributes
+    -----------
+    bokeh_sizing_mode: str
+        The way bokeh scales plots.
+        see bokeh / sizing_mode for more information
+    """
 
     jupyter: bool = False
     GPU: bool = False
+    bokeh_sizing_mode: str = "stretch_both"
 
 
 config = Config()
@@ -41,3 +49,7 @@ try:
     config.jupyter = get_ipython().__class__.__name__ == "ZMQInteractiveShell"
 except NameError:
     pass
+
+if config.jupyter:
+    # change default in Jupyter Notebooks
+    config.bokeh_sizing_mode = None

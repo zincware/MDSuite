@@ -23,25 +23,37 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of viscosity using the Green-Kubo relation as applied
+to the stress on a system.
 """
-import warnings
+from abc import ABC
+from dataclasses import dataclass
+
 import numpy as np
-from tqdm import tqdm
 import tensorflow as tf
 import tensorflow_probability as tfp
-from mdsuite.calculators.calculator import Calculator, call
 from bokeh.models import Span
+from tqdm import tqdm
 
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
-
-
-# Set style preferences, turn off warning, and suppress the duplication of loading bars.
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
-class GreenKuboViscosityFlux(Calculator):
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    data_range: int
+    correlation_time: int
+    tau_values: np.s_
+    atom_selection: np.s_
+    integration_range: int
+
+
+class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
     """
     Class for the Green Kubo viscosity from flux implementation
 
@@ -73,19 +85,17 @@ class GreenKuboViscosityFlux(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = "Stress_visc"  # Property to be loaded for the analysis
+        self.loaded_property = mdsuite_properties.stress_viscosity
         self.system_property = True
 
-        self.database_group = (  # Which database_path group to save the tensor_values
-            "Viscosity"
-        )
         self.analysis_name = "Viscosity_Flux"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$"
 
         self.prefactor: float
-        self.jacf = np.zeros(self.data_range)
+        self.jacf: np.ndarray
         self.sigma = []
+        self._dtype = tf.float64
 
     @call
     def __call__(
@@ -93,8 +103,7 @@ class GreenKuboViscosityFlux(Calculator):
         plot=False,
         data_range=500,
         correlation_time=1,
-        save=True,
-        gpu: bool = False,
+        tau_values: np.s_ = np.s_[:],
         integration_range: int = None,
     ):
         """
@@ -107,49 +116,37 @@ class GreenKuboViscosityFlux(Calculator):
         data_range : int
                 Number of configurations to include in each ensemble
         """
-
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            gpu=gpu,
-        )
-
-        self.jacf = np.zeros(self.data_range)
+        self.plot = plot
         self.sigma = []
 
         if integration_range is None:
-            self.integration_range = self.data_range
-        else:
-            self.integration_range = integration_range
+            integration_range = data_range
 
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range, correlation_time=correlation_time
+        # set args that will affect the computation result
+        self.args = Args(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
+            atom_selection=np.s_[:],
+            integration_range=integration_range,
         )
 
-    def _update_output_signatures(self):
+        self.time = self._handle_tau_values()
+        self.jacf = np.zeros(self.data_resolution)
+
+    def check_input(self):
         """
-        Update the output signature for the IC.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(self.batch_size, 3), dtype=tf.float64
-        )
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(self.data_range, 3), dtype=tf.float64
-        )
+        self._run_dependency_check()
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -159,9 +156,9 @@ class GreenKuboViscosityFlux(Calculator):
         numerator = self.experiment.volume
         denominator = (
             3
-            * (self.data_range - 1)
+            * (self.args.data_range - 1)
             * self.experiment.temperature
-            * self.experiment.units["boltzman"]
+            * self.experiment.units["boltzmann"]
         )
 
         prefactor_units = (
@@ -182,7 +179,7 @@ class GreenKuboViscosityFlux(Calculator):
         """
         self.jacf /= max(self.jacf)
 
-    def _apply_operation(self, ensemble, index):
+    def ensemble_operation(self, ensemble):
         """
         Calculate and return the vacf.
 
@@ -194,20 +191,22 @@ class GreenKuboViscosityFlux(Calculator):
         -------
         updates class vacf with the tensor_values.
         """
-        jacf = self.data_range * tf.reduce_sum(
+        jacf = self.args.data_range * tf.reduce_sum(
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
-        self.jacf += jacf[int(self.data_range - 1) :]
+        self.jacf += jacf[int(self.args.data_range - 1) :]
         self.sigma.append(
             np.trapz(
-                jacf[: self.integration_range], x=self.time[: self.integration_range]
+                jacf[: self.args.integration_range],
+                x=self.time[: self.args.integration_range],
             )
         )
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
+
         Returns
         -------
 
@@ -227,7 +226,7 @@ class GreenKuboViscosityFlux(Calculator):
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units["time"])[
-                    self.integration_range - 1
+                    self.args.integration_range - 1
                 ],
                 dimension="height",
                 line_dash="dashed",
@@ -238,3 +237,36 @@ class GreenKuboViscosityFlux(Calculator):
                 title=f"{result[0]} +- {result[1]}",
                 layouts=[span],
             )
+
+    def run_calculator(self):
+        """
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        self.check_input()
+        # Compute the pre-factor early.
+        self._calculate_prefactor()
+
+        dict_ref = str.encode(
+            "/".join([self.loaded_property.name, self.loaded_property.name])
+        )
+
+        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+
+        for batch in tqdm(
+            batch_ds,
+            ncols=70,
+            total=self.n_batches,
+            disable=self.memory_manager.minibatch,
+        ):
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+
+            for ensemble in ensemble_ds:
+                self.ensemble_operation(ensemble[dict_ref])
+
+        # Scale, save, and plot the data.
+        self._apply_averaging_factor()
+        self._post_operation_processes()

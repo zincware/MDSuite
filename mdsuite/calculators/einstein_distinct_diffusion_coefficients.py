@@ -23,23 +23,45 @@ If you use this module please cite us with:
 
 Summary
 -------
+Module for computing distinct diffusion coefficients using the Einstein method.
 """
-from typing import Union
-import numpy as np
-import warnings
-from tqdm import tqdm
-import tensorflow as tf
 import itertools
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.meta_functions import join_path
+import warnings
+from dataclasses import dataclass
+from typing import Any, List, Union
+
+import numpy as np
+import tensorflow as tf
+from tqdm import tqdm
+
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+
+
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    data_range: int
+    correlation_time: int
+    atom_selection: np.s_
+    tau_values: np.s_
+    molecules: bool
+    species: list
+
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
 
 
-class EinsteinDistinctDiffusionCoefficients(Calculator):
+class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     """
     Class for the Green-Kubo diffusion coefficient implementation
+
     Attributes
     ----------
     experiment :  object
@@ -78,31 +100,29 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         super().__init__(**kwargs)
 
         self.scale_function = {"linear": {"scale_factor": 10}}
-        self.loaded_property = (  # Property to be loaded for the analysis
-            "Unwrapped_Positions"
-        )
+        self.loaded_property = mdsuite_properties.unwrapped_positions
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s $$"
         self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
         self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
         self.experimental = True
-
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
-
+        self.result_keys = ["diffusion_coefficient", "uncertainty"]
+        self.result_series_keys = ["time", "msd"]
         self.combinations = []
 
     @call
     def __call__(
         self,
-        plot: bool = False,
+        plot: bool = True,
         species: list = None,
         data_range: int = 500,
         save: bool = True,
         correlation_time: int = 1,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
-        gpu: bool = False,
     ):
         """
         Parameters
@@ -122,9 +142,6 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
                 Selection of atoms to use within the HDF5 database.
         export : bool
                 If true, export the data directly into a csv file.
-        gpu : bool
-                If true, scale the memory requirement down to the amount of
-                the biggest GPU in the system.
 
         Returns
         -------
@@ -132,38 +149,46 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
 
         """
 
-        if self.species is None:
-            self.species = list(self.experiment.species)
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
+        if species is None:
+            species = list(self.experiment.species)
+        self.combinations = list(itertools.combinations_with_replacement(species, 2))
 
-        self.update_user_args(
-            plot=plot,
-            data_range=data_range,
-            save=save,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            export=export,
-            gpu=gpu,
-        )
+        self.plot = plot
 
-        self.species = species  # Which species to calculate for
-        self.msd_array = np.zeros(self.data_range)  # define empty msd array
-        self.species = species  # Which species to calculate for
-        if self.species is None:
-            self.species = list(self.experiment.species)
-
-        self.combinations = list(
-            itertools.combinations_with_replacement(self.species, 2)
-        )
-
-        return self.update_db_entry_with_kwargs(
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
+            tau_values=tau_values,
+            molecules=molecules,
             species=species,
         )
+        self.time = self._handle_tau_values()
+
+        self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
+
+    def msd_operation(self, ensemble: tf.Tensor, square: bool = True):
+        """
+        Perform a simple msd operation.
+
+        Parameters
+        ----------
+        ensemble : tf.Tensor
+            Trajectory over which to compute the msd.
+        square : bool
+            If true, square the result, else just return the difference.
+        Returns
+        -------
+        msd : tf.Tensor shape=(n_atoms, data_range, 3)
+                Mean square displacement.
+        """
+        if square:
+            return tf.math.squared_difference(
+                tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+            )
+        else:
+            return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
@@ -172,63 +197,27 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         Parameters
         ----------
         data : dict
-                Dictionary of data returned by tensorflow
+                Dictionary of data returned by tensorflow.
         data_path : list
-                Data paths for accessing the dictionary
+                Data paths for accessing the dictionary.
+        combination : tuple
+                Tuple being studied in the msd, i.e. ('Na', 'Cl) or ('Na', 'Na').
         Returns
         -------
         updates the class state
         """
-        for ensemble in tqdm(
-            range(self.ensemble_loop), ncols=70, desc=str(combination)
-        ):
-            start = ensemble * self.correlation_time
-            stop = start + self.data_range
-            msd_a = self._msd_operation(
-                data[str.encode(data_path[0])][:, start:stop], square=False
-            )
-            msd_b = self._msd_operation(
-                data[str.encode(data_path[0])][:, start:stop], square=False
-            )
+        # shape = (n_atoms, data_range, 3)
+        msd_a = self.msd_operation(data[data_path[0]], square=False)
+        msd_b = self.msd_operation(data[data_path[0]], square=False)
 
-            for i in range(len(data[str.encode(data_path[0])])):
-                for j in range(i + 1, len(data[str.encode(data_path[1])])):
-                    if i == j:
-                        continue
-                    else:
-                        self.msd_array += self.prefactor * np.array(
-                            tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
-                        )
-
-    def run_experimental_analysis(self):
-        """
-        Perform the distinct coefficient analysis analysis
-        """
-        if type(self.atom_selection) is dict:
-            select_atoms = {}
-            for item in self.atom_selection:
-                select_atoms[
-                    str.encode(join_path(item, "Unwrapped_Positions"))
-                ] = self.atom_selection[item]
-            self.atom_selection = select_atoms
-        for combination in self.combinations:
-            type_spec = {}
-            self._calculate_prefactor(combination)
-            data_path = [join_path(item, "Unwrapped_Positions") for item in combination]
-            self._prepare_managers(data_path=data_path)
-            type_spec = self._update_species_type_dict(type_spec, data_path, 3)
-            type_spec[str.encode("data_size")] = tf.TensorSpec(None, dtype=tf.int16)
-            batch_generator, batch_generator_args = self.data_manager.batch_generator(
-                dictionary=True
-            )
-            data_set = tf.data.Dataset.from_generator(
-                batch_generator, args=batch_generator_args, output_signature=type_spec
-            )
-            data_set = data_set.prefetch(tf.data.experimental.AUTOTUNE)
-            for batch in data_set:
-                self._compute_msd(batch, data_path, combination)
-            self._apply_averaging_factor()
-            self._post_operation_processes(combination)
+        for i in range(len(data[data_path[0]])):
+            for j in range(len(data[data_path[1]])):
+                if combination[0] == combination[1] and i == j:
+                    continue
+                else:
+                    self.msd_array += self.prefactor * np.array(
+                        tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
+                    )
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -240,33 +229,21 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
                 Species property if required.
         Returns
         -------
-
+        Updates the prefactor attribute of the class.
         """
         if species[0] == species[1]:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * (
-                len(self.experiment.species[species[1]]["indices"]) - 1
+            atom_scale = self.experiment.species[species[0]].n_particles * (
+                self.experiment.species[species[1]].n_particles - 1
             )
         else:
-            atom_scale = len(self.experiment.species[species[0]]["indices"]) * len(
-                self.experiment.species[species[1]]["indices"]
+            atom_scale = (
+                self.experiment.species[species[0]].n_particles
+                * self.experiment.species[species[1]].n_particles
             )
+
         numerator = self.experiment.units["length"] ** 2
         denominator = 6 * self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator
-
-    def _apply_operation(self, data, index):
-        """
-        Perform operation on an ensemble.
-
-        Parameters
-        ----------
-        One tensor_values range of tensor_values to operate on.
-
-        Returns
-        -------
-
-        """
-        pass
 
     def _apply_averaging_factor(self):
         """
@@ -284,32 +261,61 @@ class EinsteinDistinctDiffusionCoefficients(Calculator):
         -------
 
         """
-        if np.sign(self.msd_array[-1]) == -1:
-            result = self._fit_einstein_curve([self.time, abs(self.msd_array)])
+        try:
+            result = fit_einstein_curve([self.time, self.msd_array])
+            data = {
+                "diffusion_coefficient": np.mean(result).tolist(),
+                "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                "time": self.time.tolist(),
+                "msd": self.msd_array.tolist(),
+            }
+        except ValueError:
+            result = fit_einstein_curve([self.time, abs(self.msd_array)])
 
-            data = {"diffusion_coefficient": -1 * result[0], "uncertainty": result[1]}
-        else:
-            result = self._fit_einstein_curve([self.time, self.msd_array])
-            data = {"diffusion_coefficient": result[0], "uncertainty": result[1]}
+            data = {
+                self.result_keys[0]: (-1 * np.mean(result)).tolist(),
+                self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                self.result_series_keys[0]: self.time.tolist(),
+                self.result_series_keys[1]: self.msd_array.tolist(),
+            }
 
         data.update({"time": self.time.tolist(), "msd": self.msd_array.tolist()})
 
         self.queue_data(data=data, subjects=list(species))
 
-        # Update the plot if required
-        if self.plot:
-            self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
-                y_data=self.msd_array * self.experiment.units["time"],
-                title=species,
-            )
-
-    def _update_output_signatures(self):
+    def check_input(self):
         """
-        After having run _prepare managers, update the output signatures.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        pass
+        self._run_dependency_check()
+
+    def run_calculator(self):
+        """
+        Perform the distinct coefficient analysis analysis
+        """
+        self.check_input()
+        for combination in self.combinations:
+            species_values = list(combination)
+            dict_ref = [
+                str.encode("/".join([species, self.loaded_property.name]))
+                for species in species_values
+            ]
+            batch_ds = self.get_batch_dataset(species_values)
+            self._calculate_prefactor(combination)
+
+            for batch in tqdm(
+                batch_ds,
+                ncols=70,
+                desc=f"{combination[0]}-{combination[1]}",
+                total=self.n_batches,
+                disable=self.memory_manager.minibatch,
+            ):
+                ensemble_ds = self.get_ensemble_dataset(batch, species_values)
+                for ensemble in ensemble_ds:
+                    self._compute_msd(ensemble, dict_ref, combination)
+
+            self._post_operation_processes(combination)

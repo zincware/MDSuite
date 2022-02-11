@@ -24,36 +24,177 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
+import logging
+import pathlib
+import time
+import typing
+from typing import List
+
 import h5py as hf
 import numpy as np
-from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.exceptions import DatabaseDoesNotExist
 import tensorflow as tf
-import time
-from typing import Union
-import pandas as pd
 
-var_names = [
-    "Temperature",
-    "Time",
-    "Thermal_Flux",
-    "Stress_visc",
-    "Positions",
-    "Scaled_Positions",
-    "Unwrapped_Positions",
-    "Scaled_Unwrapped_Positions",
-    "Velocities",
-    "Forces",
-    "Box_Images",
-    "Dipole_Orientation_Magnitude",
-    "Angular_Velocity_Spherical",
-    "Angular_Velocity_Non_Spherical",
-    "Torque",
-    "Charge",
-    "KE",
-    "PE",
-    "Stress",
-]
+from mdsuite.utils.meta_functions import join_path
+
+log = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass(frozen=True)
+class PropertyInfo:
+    """
+    Information of a trajectory property.
+    example:
+    pos_info = PropertyInfo('Positions', 3)
+    vel_info = PropertyInfo('Velocities', 3)
+
+    Attributes
+    ----------
+    name:
+        The name of the property
+    n_dims:
+        The dimensionality of the property
+    """
+
+    name: str
+    n_dims: int
+
+
+@dataclasses.dataclass
+class SpeciesInfo:
+    """
+    Information of a species
+
+    Attributes
+    ----------
+    name
+        Name of the species (e.g. 'Na')
+    n_particles
+        Number of particles of that species
+    properties: list of PropertyInfo
+        List of the properties that were recorded for the species
+        mass and charge are optional
+    """
+
+    name: str
+    n_particles: int
+    properties: List[PropertyInfo]
+    mass: float = None
+    charge: float = 0
+
+    def __eq__(self, other):
+        same = (
+            self.name == other.name
+            and self.n_particles == other.n_particles
+            and self.mass == other.mass
+            and self.charge == other.charge
+        )
+        if len(self.properties) != len(other.properties):
+            return False
+
+        for prop_s, prop_o in zip(self.properties, other.properties):
+            same = same and prop_s == prop_o
+        return same
+
+
+@dataclasses.dataclass
+class TrajectoryMetadata:
+    """
+    This metadata must be extracted from trajectory files to build the database into
+    which the trajectory will be stored
+
+    Attributes
+    ----------
+    n_configurations : int
+        Number of configurations of the whole trajectory.
+    species_list: list of SpeciesInfo
+        The information about all species in the system.
+    box_l: list of float
+        The simulation box size in three dimensions
+    sample_rate : int optional
+        The number of timesteps between consecutive samples
+        # todo remove in favour of sample_step
+    sample_step : int optional
+        The time between consecutive configurations.
+        E.g. for a simulation with time step 0.1 where the trajectory is written
+        every 5 steps: sample_step = 0.5. Does not have to be specified
+        (e.g. configurations from Monte Carlo scheme), but is needed for all
+        dynamic observables.
+    temperature : float optional
+        The set temperature of the system.
+        Optional because only applicable for MD simulations with thermostat.
+        Needed for certain observables.
+    simulation_data : str|Path, optional
+        All other simulation data that can be extracted from the trajectory metadata.
+        E.g. software version, pressure in NPT simulations, time step, ...
+    """
+
+    n_configurations: int
+    species_list: List[SpeciesInfo]
+    box_l: list = None
+    sample_rate: int = 1
+    sample_step: float = None
+    temperature: float = None
+    simulation_data: dict = dataclasses.field(default_factory=dict)
+
+
+class TrajectoryChunkData:
+    """
+    Class to specify the data format for transfer from the file to the database
+    """
+
+    def __init__(self, species_list: List[SpeciesInfo], chunk_size: int):
+        """
+
+        Parameters
+        ----------
+        species_list : List[SpeciesInfo]
+            List of SpeciesInfo.
+            It contains the information which species are there and which properties
+            are recorded for each
+        chunk_size : int
+            The number of configurations to be stored in this chunk
+        """
+        self.chunk_size = chunk_size
+        self.species_list = species_list
+        self._data = dict()
+        for sp_info in species_list:
+            self._data[sp_info.name] = dict()
+            for prop_info in sp_info.properties:
+                self._data[sp_info.name][prop_info.name] = np.zeros(
+                    (chunk_size, sp_info.n_particles, prop_info.n_dims)
+                )
+
+    def add_data(self, data: np.ndarray, config_idx, species_name, property_name):
+        """
+        Add configuration data to the chunk
+        Parameters
+        ----------
+        data:
+            The data to be added, with shape (n_configs, n_particles, n_dims).
+            n_particles and n_dims relates to the species and the property that is
+            being added
+        config_idx:
+            Start index of the configs that are being added.
+        species_name
+            Name of the species to which the data belongs
+        property_name
+            Name of the property being added
+
+        example:
+        Storing velocity Information for 42 Na atoms in the 17th iteration of a loop
+        that reads 5 configs per loop:
+        add_data(vel_array, 16*5, 'Na', 'Velocities')
+        where vel.data.shape == (5,42,3)
+
+        """
+        n_configs = len(data)
+        self._data[species_name][property_name][
+            config_idx : config_idx + n_configs, :, :
+        ] = data
+
+    def get_data(self):
+        return self._data
 
 
 class Database:
@@ -67,46 +208,27 @@ class Database:
 
     Attributes
     ----------
-    architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-
-    name : str
+    path : str|Path
             The name of the database_path in question.
     """
 
-    def __init__(self, architecture: str = "simulation", name: str = "database"):
+    def __init__(self, path: typing.Union[str, pathlib.Path] = "database"):
         """
         Constructor for the database_path class.
 
         Parameters
         ----------
-        architecture : str
-                The type of the database_path implemented, either a simulation
-                database_path, or an analysis database_path.
-        name : str
+        path : str|Path
                 The name of the database_path in question.
         """
-
-        self.architecture = architecture  # architecture of database_path
-        self.name = name  # name of the database_path
-
-    @staticmethod
-    def close(database: hf.File):
-        """
-        Close the database_path
-
-        Parameters
-        ----------
-        database : hf.File
-                Database to close
-
-        Returns
-        -------
-        Closes the database_path object
-        """
-
-        database.close()
+        if isinstance(path, pathlib.Path):
+            self.path = path.as_posix()
+        elif isinstance(path, str):
+            self.path = path  # name of the database_path
+        else:
+            # TODO fix this!
+            log.debug(f"Expected str|Path but found {type(path)}")
+            self.path = path
 
     @staticmethod
     def _update_indices(
@@ -180,154 +302,50 @@ class Database:
 
         return architecture
 
-    def open(self, mode: str = "a") -> hf.File:
+    def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
-        Open the database_path
-
+        Add new data to the dataset.
         Parameters
         ----------
-        mode : str
-                Mode in which to open the database_path
-
-        Returns
-        -------
-        database_path : hf.File
-                returns a database_path object
+        chunk:
+            a data chunk
+        start_idx:
+            Configuration at which to start writing
         """
 
-        return hf.File(self.name, mode)
+        workaround_time_in_axis_1 = True
 
-    def add_data(
-        self,
-        data: np.array,
-        structure: dict,
-        start_index: int,
-        batch_size: int,
-        tensor: bool = False,
-        system_tensor: bool = False,
-        flux: bool = False,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
-        """
-        Add a set of tensor_values to the database_path.
+        chunk_data = chunk.get_data()
 
-        Parameters
-        ----------
-        flux : bool
-                If true, the atom dimension is not included in the slicing.
-        system_tensor : bool
-                If true, no atom information is looked for when saving
-        tensor : bool
-                If true, this will skip the type enforcement
-        batch_size : int
-                Number of configurations in each batch
-        start_index : int
-                Point in database_path from which to start filling.
+        with hf.File(self.path, "r+") as database:
+            stop_index = start_idx + chunk.chunk_size
 
-        structure : dict
-                Structure of the tensor_values to be loaded into the database_path e.g.
-                {'Na/Velocities': {'indices': [1, 3, 7, 8, ... ], 'columns' = [3, 4, 5],
-                'length': 500}}
-        data : np.array
-                Data to be loaded in.
-        sort : bool
-                If true, tensor_values is sorted before being dumped into the
-                database_path.
-        n_atoms : int
-                Necessary if the sort function is called. Total number of atoms in the
-                experiment.
-        Returns
-        -------
-        Adds tensor_values to the database_path
-        """
+            for sp_info in chunk.species_list:
+                for prop_info in sp_info.properties:
+                    dataset_name = f"{sp_info.name}/{prop_info.name}"
+                    write_data = chunk_data[sp_info.name][prop_info.name]
 
-        with hf.File(self.name, "r+") as database:
-            stop_index = start_index + batch_size  # get the stop index
-            for item in structure:
-                if tensor:
-                    database[item][:, start_index:stop_index, :] = data[:, :, 0:3]
-                elif system_tensor:
-                    database[item][start_index:stop_index, :] = data[:, 0:3]
-                elif flux:
-                    database[item][start_index:stop_index, :] = data[
-                        structure[item]["indices"]
-                    ][
-                        np.s_[
-                            :,
-                            structure[item]["columns"][0] : structure[item]["columns"][
-                                -1
-                            ]
-                            + 1,
+                    dataset_shape = database[dataset_name].shape
+                    if len(dataset_shape) == 2:
+                        # only one particle
+                        database[dataset_name][start_idx:stop_index, :] = write_data[
+                            :, 0, :
                         ]
-                    ].astype(
-                        float
-                    )
-                else:
-                    database[item][:, start_index:stop_index, :] = self._get_data(
-                        data, structure, item, batch_size, sort, n_atoms=n_atoms
-                    )
 
-    def _get_data(
-        self,
-        data: np.array,
-        structure: dict,
-        item: str,
-        batch_size: int,
-        sort: bool = False,
-        n_atoms: int = None,
-    ):
-        """
-        Fetch tensor_values with some format from a large array.
+                    elif len(dataset_shape) == 3:
+                        if workaround_time_in_axis_1:
+                            database[dataset_name][
+                                :, start_idx:stop_index, :
+                            ] = np.swapaxes(write_data, 0, 1)
+                        else:
+                            database[dataset_name][start_idx:stop_index, ...] = write_data
+                    else:
+                        raise ValueError(
+                            "dataset shape must be either (n_part,n_config,n_dim) or"
+                            " (n_config, n_dim)"
+                        )
 
-        Returns
-        -------
-
-        """
-        if sort:
-            indices = self._update_indices(
-                data, structure[item]["indices"], batch_size, n_atoms
-            )
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-        else:
-            indices = structure[item]["indices"]
-            return (
-                data[indices][
-                    np.s_[
-                        :,
-                        structure[item]["columns"][0] : structure[item]["columns"][-1]
-                        + 1,
-                    ]
-                ]
-                .astype(float)
-                .reshape(
-                    (
-                        structure[item]["length"],
-                        batch_size,
-                        len(structure[item]["columns"]),
-                    ),
-                    order="F",
-                )
-            )
-
-    def resize_dataset(self, structure: dict):
+    def resize_datasets(self, structure: dict):
         """
         Resize a dataset so more tensor_values can be added
 
@@ -342,34 +360,26 @@ class Database:
         -------
 
         """
-        # ensure the database_path already exists
-        try:
-            database = hf.File(self.name, "r+")
-        except DatabaseDoesNotExist:
-            raise DatabaseDoesNotExist
+        with hf.File(self.path, "r+") as db:
+            # construct the architecture dict
+            architecture = self._build_path_input(structure=structure)
 
-        # construct the architecture dict
-        architecture = self._build_path_input(structure=structure)
+            # Check for a type error in the dataset information
+            for identifier in architecture:
+                dataset_information = architecture[identifier]
+                if not isinstance(dataset_information, tuple):
+                    raise TypeError("Invalid input for dataset generation")
 
-        # Check for a type error in the dataset information
-        for identifier in architecture:
-            dataset_information = architecture[identifier]
-            try:
-                if type(dataset_information) is not tuple:
-                    print("Invalid input for dataset generation")
-                    raise TypeError
-            except TypeError:
-                raise TypeError
+                # get the correct maximum shape for the dataset -- changes if an
+                # experiment property or an atomic property
+                if len(dataset_information[:-1]) == 1:
+                    axis = 0
+                    expansion = dataset_information[0] + db[identifier].shape[0]
+                else:
+                    axis = 1
+                    expansion = dataset_information[1] + db[identifier].shape[1]
 
-            # get the correct maximum shape for the dataset -- changes if an
-            # experiment property or an atomic property
-            if len(dataset_information[:-1]) == 1:
-                axis = 0
-                expansion = dataset_information[0] + database[identifier].shape[0]
-            else:
-                axis = 1
-                expansion = dataset_information[1] + database[identifier].shape[1]
-            database[identifier].resize(expansion, axis)
+                db[identifier].resize(expansion, axis)
 
     def initialize_database(self, structure: dict):
         """
@@ -386,14 +396,20 @@ class Database:
                 General structure of the dictionary with relevant dataset sizes.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}, 'Pressure': (5000, 6),
                 'Temperature': (5000, 1)} In this case, the last value in the tuple
-                 corresponds to the number of components that wil be parsed to the
-                 database_path.
+                corresponds to the number of components that wil be parsed to the
+                database_path.
         Returns
         -------
 
         """
 
         self.add_dataset(structure)  # add a dataset to the groups
+
+    def database_exists(self) -> bool:
+        """
+        Check if the database file already exists
+        """
+        return pathlib.Path(self.path).exists()
 
     def add_dataset(self, structure: dict):
         """
@@ -418,10 +434,8 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
-            architecture = self._build_path_input(
-                structure
-            )  # get the correct file path
+        with hf.File(self.path, "a") as database:
+            architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path
@@ -429,8 +443,7 @@ class Database:
                 # Check for a type error in the dataset information
                 try:
                     if type(dataset_information) is not tuple:
-                        print("Invalid input for dataset generation")
-                        raise TypeError
+                        raise TypeError("Invalid input for dataset generation")
                 except TypeError:
                     raise TypeError
 
@@ -469,12 +482,12 @@ class Database:
         Updates the database_path directly.
         """
 
-        with hf.File(self.name, "a") as database:
+        with hf.File(self.path, "a") as database:
             # Build file paths for the addition.
             architecture = self._build_path_input(structure=structure)
             for item in list(architecture):
                 if item in database:
-                    print("Group structure already exists")
+                    log.info("Group structure already exists")
                 else:
                     database.create_group(item)
 
@@ -488,7 +501,7 @@ class Database:
                 A dictionary of the memory information of the groups in the
                 database_path
         """
-        with hf.File(self.name, "r") as database:
+        with hf.File(self.path, "r") as database:
             memory_database = {}
             for item in database:
                 for ds in database[item]:
@@ -510,11 +523,11 @@ class Database:
         response : bool
                 If true, the path exists, else, it does not.
         """
-        with hf.File(self.name, "r") as database_object:
+        with hf.File(self.path, "r") as database_object:
             keys = []
             database_object.visit(
                 lambda item: keys.append(database_object[item].name)
-                if type(database_object[item]) is hf.Dataset
+                if isinstance(database_object[item], hf.Dataset)
                 else None
             )
             path = f"/{path}"  # add the / to avoid name overlapping
@@ -535,9 +548,7 @@ class Database:
         -------
         Updates the database_path
         """
-
-        # db = hf.File(self.name, 'r+')  # open the database_path object
-        with hf.File(self.name, "r+") as db:
+        with hf.File(self.path, "r+") as db:
             groups = list(db.keys())
 
             for item in groups:
@@ -562,42 +573,34 @@ class Database:
         -------
 
         """
-        data: Union[list, dict] = {}
         if scaling is None:
             scaling = [1 for _ in range(len(path_list))]
 
-        with hf.File(self.name, "r") as database:
-            if not dictionary:
-                data = []
-                for i, item in enumerate(path_list):
-                    data.append(
+        with hf.File(self.path, "r") as database:
+            data = {}
+            for i, item in enumerate(path_list):
+                if type(select_slice) is dict:
+                    # index is the particle species name in the full item as a str.
+                    slice_index = item.decode().split("/")[0]
+                    my_slice = select_slice[slice_index]
+                else:
+                    my_slice = select_slice
+                try:
+                    data[item] = (
+                        tf.convert_to_tensor(database[item][my_slice], dtype=tf.float64)
+                        * scaling[i]
+                    )
+                except TypeError:
+                    data[item] = (
                         tf.convert_to_tensor(
-                            database[item][select_slice], dtype=tf.float64
+                            database[item][my_slice[0]][:, my_slice[1], :],
+                            dtype=tf.float64,
                         )
                         * scaling[i]
                     )
+            data[str.encode("data_size")] = d_size
 
-            if dictionary:
-                data = {}
-                for item in path_list:
-                    if type(select_slice) is dict:
-                        my_slice = select_slice[item]
-                    else:
-                        my_slice = select_slice
-                    data[item] = tf.convert_to_tensor(
-                        database[item][my_slice], dtype=tf.float64
-                    )
-                data[str.encode("data_size")] = d_size
-
-        if len(data) == 1:
-            if dictionary:
-                return data
-            else:
-                return data[0]
-        if dictionary:
-            return data
-        else:
-            return data
+        return data
 
     def get_load_time(self, database_path: str = None):
         """
@@ -614,7 +617,7 @@ class Database:
         """
         if database_path is None:
             start = time.time()
-            database_path = hf.File(self.name, "r")
+            database_path = hf.File(self.path, "r")
             database_path.close()
             stop = time.time()
         else:
@@ -625,9 +628,7 @@ class Database:
 
         return stop - start
 
-    def get_data_size(
-        self, data_path: str, database_path: str = None, system: bool = False
-    ) -> tuple:
+    def get_data_size(self, data_path: str) -> tuple:
         """
         Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
 
@@ -635,11 +636,6 @@ class Database:
         ----------
         data_path : str
                 path to the tensor_values in the hdf5 database_path.
-        database_path: (optional) str
-                path to a specific database_path, if None, the class instance
-                database_path will be used
-        system : bool
-                If true, the row number is the relevant property
 
         Returns
         -------
@@ -647,115 +643,23 @@ class Database:
                 Tuple of tensor_values about the dataset, e.g.
                 (n_rows, n_columns, n_bytes)
         """
-        if database_path is None:
-            database_path = self.name
 
-        if system:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[0],
-                    db[data_path].nbytes,
-                )
-        else:
-            with hf.File(database_path, "r") as db:
-                data_tuple = (
-                    db[data_path].shape[0],
-                    db[data_path].shape[1],
-                    db[data_path].nbytes,
-                )
+        with hf.File(self.path, "r") as db:
+            data_tuple = (
+                db[data_path].shape[0],
+                db[data_path].shape[1],
+                db[data_path].nbytes,
+            )
 
         return data_tuple
 
-    def export_csv(self, group: str, key: str = None, sub_key: str = None):
-        """
-        Export a csv of database data.
-
-        This method is not designed for simulation databases, only for analysis
-        databases.
-
-        Parameters
-        ----------
-        group : str
-                Group in the database from which data should be loaded
-        key  : str
-                Additional identifier.
-        sub_key : str
-                Additional identifier.
-
-        Returns
-        -------
-        saves a csv to the working directory.
-        """
-        if self.architecture == "simulation":
-            print("Method cannot be called in simulation databases.")
-            return
-
-        identifier = None
-        with hf.File(self.name, "r") as database:
-            first_layer = list(database.keys())
-            for item in first_layer:
-                if group in item:
-                    identifier = item
-            if identifier is None:
-                print("This group does not seem to exist.")
-                return
-            second_layer = list(database[identifier].keys())
-            if type(database[identifier][second_layer[0]]) is hf.Dataset:
-                for item in second_layer:
-                    data = np.array(database[identifier][item])
-                    data = data.reshape((len(data[0]), 2))
-                    df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                    df.to_csv(f"{identifier}_{item}.csv")
-            else:
-                if key is None:
-                    for item in second_layer:
-                        third_layer = list(database[identifier][item].keys())
-                        for sub_item in third_layer:
-                            data = np.array(database[identifier][item][sub_item])
-                            data = data.reshape((len(data[0]), 2))
-                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                            df.to_csv(f"{identifier}_{item}.csv")
-                else:
-                    for item in second_layer:
-                        if key in item:
-                            sub_item = item
-                    if sub_key is None:
-                        for dataset in database[identifier][sub_item]:
-                            data = np.array(database[identifier][sub_item][dataset])
-                            data = data.reshape((len(data[0]), 2))
-                            df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                            df.to_csv(f"{identifier}_{item}_{dataset}.csv")
-                    else:
-                        last_layer = list(database[identifier][sub_item])
-                        for sub_sub_item in last_layer:
-                            if sub_key in sub_sub_item:
-                                final_identifier = sub_sub_item
-                        data = np.array(
-                            database[identifier][sub_item][final_identifier]
-                        )
-                        data = data.reshape((len(data[0]), 2))
-                        df = pd.DataFrame(data=data, columns=["column1", "column2"])
-                        df.to_csv(f"{identifier}_{item}_{final_identifier}.csv")
-
     def get_database_summary(self):
         """
-        Print a summary of the database properties.
+        Get a summary of the database properties.
         Returns
         -------
         summary : list
                 A list of properties that are in the database
         """
-        dump_list = []
-        database = hf.File(self.name, "r")
-        initial_list = list(database.keys())
-        for item in var_names:
-            if item in initial_list:
-                dump_list.append(item)
-        for item in initial_list:
-            sub_items = list(database[item].keys())
-            for var in var_names:
-                if var in sub_items:
-                    dump_list.append(var)
-        database.close()
-        return np.unique(dump_list)
+        with hf.File(self.path, "r") as db:
+            return list(db.keys())

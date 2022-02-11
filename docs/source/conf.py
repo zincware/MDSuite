@@ -24,12 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
 import sys
+
 import sphinx_rtd_theme
 
-sys.path.insert(0, os.path.abspath("."))
-sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, "..")
+
+# for x in os.walk('../..'):
+#  sys.path.insert(0, os.path.abspath(x[0]))
+
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # -- Experiment information -----------------------------------------------------
@@ -58,10 +61,9 @@ extensions = [
     "sphinx.ext.viewcode",
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
-    "matplotlib.sphinxext.plot_directive",
-    "numpydoc",
     "sphinx_copybutton",
     "nbsphinx",
+    "nbsphinx_link",
     "IPython.sphinxext.ipython_console_highlighting",
     "IPython.sphinxext.ipython_directive",
     "sphinx.ext.autosectionlabel",

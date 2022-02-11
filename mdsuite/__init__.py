@@ -26,22 +26,30 @@ Summary
 """
 import logging
 import sys
-from .project import Project
-from .experiment import Experiment
-from .graph_modules import adjacency_matrix
-from .utils.report_computer_characteristics import Report
-from .utils import config
 
-__all__ = ["Project", "Experiment", "adjacency_matrix", "Report", "config"]
+from mdsuite.experiment import Experiment
+from mdsuite.project import Project
+from mdsuite.utils import config
+from mdsuite.utils.molecule import Molecule
+from mdsuite.utils.report_computer_characteristics import Report
 
-logger = logging.getLogger("mdsuite")
-logger.setLevel(logging.INFO)
+__all__ = [
+    Project.__name__,
+    Experiment.__name__,
+    Report.__name__,
+    "config",
+    Molecule.__name__,
+]
+__version__ = "0.1.0"
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 # Formatter for advanced logging
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
 
 channel = logging.StreamHandler(sys.stdout)
-channel.setLevel(logging.DEBUG)
+channel.setLevel(logging.INFO)
 channel.setFormatter(formatter)
 
 logger.addHandler(channel)

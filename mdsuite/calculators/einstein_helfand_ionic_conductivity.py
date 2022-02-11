@@ -23,34 +23,37 @@ If you use this module please cite us with:
 
 Summary
 -------
+MDSuite module for the computation of ionic conductivity using the Einstein method.
 """
-import warnings
+from abc import ABC
+from dataclasses import dataclass
+
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-from mdsuite.calculators.calculator import Calculator, call
-from mdsuite.utils.units import elementary_charge, boltzmann_constant
 
-tqdm.monitor_interval = 0
-warnings.filterwarnings("ignore")
+from mdsuite.calculators.calculator import call
+from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
-class EinsteinHelfandIonicConductivity(Calculator):
+@dataclass
+class Args:
+    """
+    Data class for the saved properties.
+    """
+
+    data_range: int
+    correlation_time: int
+    tau_values: np.s_
+    atom_selection: np.s_
+
+
+class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
     """
     Class for the Einstein-Helfand Ionic Conductivity
-
-    Attributes
-    ----------
-    experiment :  object
-            Experiment class to call from
-    x_label : str
-            X label of the tensor_values when plotted
-    y_label : str
-            Y label of the tensor_values when plotted
-    analysis_name : str
-            Name of the analysis
-    loaded_property : str
-            Property loaded from the database_path for the analysis
 
     See Also
     --------
@@ -77,30 +80,26 @@ class EinsteinHelfandIonicConductivity(Calculator):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
 
-        self.loaded_property = (  # Property to be loaded for the analysis
-            "Translational_Dipole_Moment"
-        )
-        self.dependency = "Unwrapped_Positions"
+        self.loaded_property = mdsuite_properties.translational_dipole_moment
+        self.dependency = mdsuite_properties.unwrapped_positions
         self.system_property = True
 
-        self.database_group = "Ionic_Conductivity"
         self.x_label = r"$$\text{Time} / s$$"
         self.y_label = r"$$\text{MSD} / m^2/s$$"
         self.analysis_name = "Einstein Helfand Ionic Conductivity"
-        self.prefactor: float
 
         self.result_keys = ["ionic_conductivity", "uncertainty"]
         self.result_series_keys = ["time", "msd"]
+
+        self._dtype = tf.float64
 
     @call
     def __call__(
         self,
         plot=True,
-        data_range=500,
-        save=True,
+        data_range=100,
         correlation_time=1,
-        export: bool = False,
-        gpu: bool = False,
+        tau_values: np.s_ = np.s_[:],
     ):
         """
         Python constructor
@@ -111,53 +110,35 @@ class EinsteinHelfandIonicConductivity(Calculator):
                 if true, plot the tensor_values
         data_range :
                 Number of configurations to use in each ensemble
-        save :
-                If true, tensor_values will be saved after the analysis
         correlation_time : int
                 Correlation time to use in the analysis.
-        export : bool
-                If true, export the results to a csv.
-        gpu : bool
-                If true, reduce memory usage to the maximum GPU capability.
-
         """
-        # parse to the experiment class
-        self.update_user_args(
-            plot=plot,
+
+        # set args that will affect the computation result
+        self.args = Args(
             data_range=data_range,
-            save=save,
             correlation_time=correlation_time,
-            export=export,
-            gpu=gpu,
-        )
-        self.msd_array = np.zeros(self.data_range)
-
-        return self.update_db_entry_with_kwargs(
-            data_range=data_range, correlation_time=correlation_time
+            tau_values=tau_values,
+            atom_selection=np.s_[:],
         )
 
-    def _update_output_signatures(self):
+        self.plot = plot
+        self.time = self._handle_tau_values()
+        self.msd_array = np.zeros(self.data_resolution)
+
+    def check_input(self):
         """
-        Update the output signature for the IC.
+        Check the user input to ensure no conflicts are present.
 
         Returns
         -------
 
         """
-        self.batch_output_signature = tf.TensorSpec(
-            shape=(self.batch_size, 3), dtype=tf.float64
-        )
-        self.ensemble_output_signature = tf.TensorSpec(
-            shape=(self.data_range, 3), dtype=tf.float64
-        )
+        self._run_dependency_check()
 
-    def _calculate_prefactor(self, species: str = None):
+    def _calculate_prefactor(self):
         """
         Compute the ionic conductivity prefactor.
-
-        Parameters
-        ----------
-        species
 
         Returns
         -------
@@ -183,7 +164,7 @@ class EinsteinHelfandIonicConductivity(Calculator):
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def _apply_operation(self, ensemble, index):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
@@ -195,18 +176,20 @@ class EinsteinHelfandIonicConductivity(Calculator):
         -------
         MSD of the tensor_values.
         """
-        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
-        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        msd = tf.math.squared_difference(
+            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
+        )
+        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
+        self.msd_array += np.array(msd)[0, :]
 
-    def _post_operation_processes(self, species: str = None):
+    def _post_operation_processes(self):
         """
         call the post-op processes
         Returns
         -------
 
         """
-        result = self._fit_einstein_curve([self.time, self.msd_array])
+        result = fit_einstein_curve([self.time, self.msd_array])
 
         data = {
             self.result_keys[0]: result[0].tolist(),
@@ -216,3 +199,37 @@ class EinsteinHelfandIonicConductivity(Calculator):
         }
 
         self.queue_data(data=data, subjects=["System"])
+
+    def run_calculator(self):
+        """
+
+        Run analysis.
+
+        Returns
+        -------
+
+        """
+        self.check_input()
+        # Compute the pre-factor early.
+        self._calculate_prefactor()
+
+        dict_ref = str.encode(
+            "/".join([self.loaded_property.name, self.loaded_property.name])
+        )
+
+        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+
+        for batch in tqdm(
+            batch_ds,
+            ncols=70,
+            total=self.n_batches,
+            disable=self.memory_manager.minibatch,
+        ):
+            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+
+            for ensemble in ensemble_ds:
+                self.ensemble_operation(ensemble[dict_ref])
+
+        # Scale, save, and plot the data.
+        self._apply_averaging_factor()
+        self._post_operation_processes()

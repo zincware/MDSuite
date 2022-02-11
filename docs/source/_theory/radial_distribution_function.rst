@@ -2,7 +2,7 @@ Radial Distribution Function
 ============================
 The radial distribution function (RDF) is one of the most commonly used properties in molecular dynamics (MD)
 simulations to assess the structure of the system being studied.
-A partial radial distribution function is a describes the probability of finding a particle of species :math:`beta`
+A partial radial distribution function is a describes the probability of finding a particle of species :math:`\beta`
 a distance of r from species :math:`\alpha`.
 Mathematically one can write this as
 

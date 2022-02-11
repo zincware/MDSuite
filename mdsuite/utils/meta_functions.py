@@ -25,9 +25,11 @@ Summary
 -------
 """
 
+import json
 import logging
-
 import os
+import pathlib
+import typing
 from functools import wraps
 from time import time
 from typing import Callable
@@ -35,13 +37,18 @@ from typing import Callable
 import GPUtil
 import numpy as np
 import psutil
+import tensorflow as tf
 from scipy.signal import savgol_filter
 
 from mdsuite.utils.exceptions import NoGPUInSystem
 from mdsuite.utils.units import golden_ratio
-import json
 
 log = logging.getLogger(__name__)
+
+
+def gpu_available() -> bool:
+    """Check if TensorFlow has access to any GPU device"""
+    return len(tf.config.list_physical_devices("GPU")) > 1
 
 
 # https://stackoverflow.com/questions/42033142/is-there-an-easy-way-to-check-if-an-object-is-json-serializable-in-python
@@ -164,11 +171,11 @@ def line_counter(filename: str) -> int:
 
 
 def optimize_batch_size(
-        filepath: str,
-        number_of_configurations: int,
-        _file_size: int = None,
-        _memory: int = None,
-        test: bool = False,
+    filepath: typing.Union[str, pathlib.Path],
+    number_of_configurations: int,
+    _file_size: int = None,
+    _memory: int = None,
+    test: bool = False,
 ) -> int:
     """
     Optimize the size of batches during initial processing
@@ -301,7 +308,7 @@ def timeit(f: Callable) -> Callable:
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.
-        print(f"func:{f.__name__} took: {(te - ts)} sec")  # print the outcome.
+        log.info(f"function '{f.__name__}' took {(te - ts)} s")
 
         return result
 
@@ -423,7 +430,7 @@ def golden_section_search(
         )
 
 
-def round_down(a: int, b: int) -> int:
+def get_nearest_divisor(a: int, b: int) -> int:
     """
     Function to get the nearest lower divisor.
 
@@ -517,3 +524,35 @@ class DotDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
     __dir__ = dict.keys
+
+
+def sort_array_by_column(array: np.ndarray, column_idx: int):
+    # https://stackoverflow.com/questions/2828059/
+    #   sorting-arrays-in-numpy-by-column/35624868
+    # make sure that the column to sort by is number type
+    # culprit: if we read in a lammps file, one line will be str, so the whole
+    # array is str. sorting by id will invoke str sorting rules (i.e. '10' < '2'),
+    # even though the id column could have number type.
+    to_sort_by_column = np.asarray(array[:, column_idx], dtype=float)
+    return array[to_sort_by_column.argsort()]
+
+
+def check_a_in_b(a, b):
+    """
+    Check if any value of a is in b
+
+    Parameters
+    ----------
+    a: tf.Tensor
+    b: tf.Tensor
+
+    Returns
+    -------
+    bool
+
+    """
+    x = tf.unstack(a)
+    for x1 in x:
+        if tf.reduce_any(b == x1):
+            return True
+    return False

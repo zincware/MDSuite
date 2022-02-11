@@ -10,7 +10,7 @@ With pip:
 .. code-block:: console
 
     $ cd MDSuite
-    $ pip3 install . --user
+    $ pip3 install .
 
 Usage
 -----
@@ -21,8 +21,9 @@ python program you are writing. This is done in the usual way,
 .. code-block:: python
         
         import mdsuite
+        # or
         import mdsuite as mds
-        from mdsuite import ...
+        from mdsuite import <module>
 
 which will load whichever modules are desired. Once you have import the module, you will need 
 to begin your first analysis.
