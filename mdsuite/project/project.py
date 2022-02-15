@@ -26,6 +26,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Union
 
+from dot4dict import dotdict
+
 import mdsuite.database.scheme as db
 import mdsuite.file_io.file_read
 from mdsuite.database.project_database import ProjectDatabase
@@ -33,7 +35,6 @@ from mdsuite.experiment import Experiment
 from mdsuite.experiment.run import RunComputation
 from mdsuite.utils import Units
 from mdsuite.utils.helpers import NoneType
-from mdsuite.utils.meta_functions import DotDict
 
 log = logging.getLogger(__name__)
 
@@ -322,7 +323,7 @@ class Project(ProjectDatabase):
                     project=self, experiment_name=exp.name
                 )
 
-        return DotDict(self._experiments)
+        return dotdict(self._experiments)
 
     @property
     def active_experiments(self) -> Dict[str, Experiment]:
@@ -332,4 +333,4 @@ class Project(ProjectDatabase):
             key: val for key, val in self.experiments.items() if val.active
         }
 
-        return DotDict(active_experiment)
+        return dotdict(active_experiment)
