@@ -197,7 +197,6 @@ class Experiment(ExperimentDatabase):
         self.sample_rate = (
             None  # Rate at which configurations are dumped in the trajectory.
         )
-        self.volume = None
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
 
@@ -618,7 +617,6 @@ class Experiment(ExperimentDatabase):
             )
         else:
             self.dimensions = None
-        self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
         species_list = copy.deepcopy(metadata.species_list)

@@ -83,7 +83,6 @@ class ExperimentDatabase:
     number_of_configurations = LazyProperty()
     number_of_atoms = LazyProperty()
     sample_rate = LazyProperty()
-    volume = LazyProperty()
     property_groups = LazyProperty()
 
     def __init__(self, project: Project, experiment_name):
@@ -393,3 +392,9 @@ class ExperimentDatabase:
         if value is None:
             return
         self.set_db(name="version", value=value)
+
+    # On the fly properties
+    @property
+    def volume(self):
+        """Compute the Volume"""
+        return np.prod(self.box_array)
