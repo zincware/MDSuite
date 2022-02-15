@@ -156,6 +156,23 @@ def test_add_file_from_str(traj_files, tmp_path):
     assert list(project.experiments) == ["NaCl"]
 
 
+def test_add_file_from_str_extxyz(ase_md_extxyz, tmp_path):
+    """Check that adding extxyz files from an ASE md simulation works"""
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl",
+        simulation_data=ase_md_extxyz,
+        timestep=0.1,
+        temperature=300,
+    )
+
+    assert list(project.experiments) == ["NaCl"]
+    assert project.experiments["NaCl"].box_array == [10.83, 10.83, 10.83]
+    assert project.experiments["NaCl"].temperature == 300
+    assert list(project.experiments["NaCl"].species) == ["Cu"]
+
+
 def test_multiple_experiments(tmp_path):
     """Test the paths within the experiment classes
 
