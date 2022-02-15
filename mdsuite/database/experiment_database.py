@@ -31,10 +31,10 @@ from dataclasses import asdict
 from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
+from dot4dict import dotdict
 
 import mdsuite.database.scheme as db
 from mdsuite.utils.database import get_or_create
-from mdsuite.utils.meta_functions import DotDict
 from mdsuite.utils.units import Units
 
 if TYPE_CHECKING:
@@ -190,7 +190,7 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self) -> Dict[str, DotDict]:
+    def species(self) -> Dict[str, dotdict]:
         """Get species
 
         Returns
@@ -210,7 +210,7 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._species = {
-                    key: DotDict(val) for key, val in experiment.get_species().items()
+                    key: dotdict(val) for key, val in experiment.get_species().items()
                 }
 
         return self._species
