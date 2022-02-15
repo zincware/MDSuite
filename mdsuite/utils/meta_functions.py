@@ -525,21 +525,6 @@ def find_item(obj, key):
                 return item
 
 
-class DotDict(dict):
-    """dot.notation access to dictionary attributes
-
-    References
-    ----------
-    https://stackoverflow.com/questions/2352181/
-    how-to-use-a-dot-to-access-members-of-dictionary
-    """
-
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-    __dir__ = dict.keys
-
-
 def sort_array_by_column(array: np.ndarray, column_idx: int):
     # https://stackoverflow.com/questions/2828059/
     #   sorting-arrays-in-numpy-by-column/35624868
