@@ -25,15 +25,61 @@ Summary
 -------
 """
 import os
+import pathlib
 
 import MDAnalysis
 import numpy as np
 import pytest
+from ase import units
+from ase.calculators.emt import EMT
+from ase.io import write
+from ase.lattice.cubic import FaceCenteredCubic
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.md.verlet import VelocityVerlet
 from zinchub import DataHub
 
 import mdsuite as mds
 import mdsuite.file_io.chemfiles_read
 import mdsuite.file_io.lammps_flux_files
+
+
+@pytest.fixture(scope="session")
+def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
+    """
+    References
+    -----------
+    https://wiki.fysik.dtu.dk/ase/tutorials/md/md.html
+
+    Returns
+    -------
+    pathlib.Path
+        path to an ASE MD simulation
+
+    """
+    size = 3
+    atoms = FaceCenteredCubic(
+        directions=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        symbol="Cu",
+        size=(size, size, size),
+        pbc=True,
+    )
+    atoms.calc = EMT()
+    MaxwellBoltzmannDistribution(atoms, temperature_K=300)
+    dyn = VelocityVerlet(atoms, 5 * units.fs)
+
+    temporary_path = tmp_path_factory.getbasetemp()
+    filename = temporary_path / "traj.extxyz"
+
+    for i in range(20):
+        dyn.run(1)
+        write(
+            filename,
+            atoms,
+            format="extxyz",
+            append=True,
+        )
+
+    return filename
 
 
 @pytest.fixture(scope="session")
