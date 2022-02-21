@@ -16,3 +16,4 @@ coveralls
 mdanalysis
 black
 znvis
+ase
