@@ -139,6 +139,10 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
             if time_0 is not None and time_1 is not None:
                 sample_rate = int(round(time_1 - time_0))
             else:
+                log.warning(
+                    "Could not read sample rate from file. Please adjust the sample rate"
+                    " manually if required."
+                )
                 sample_rate = None
 
         species_list = get_species_list_from_tabular_text_reader_data(
