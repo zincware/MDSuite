@@ -264,7 +264,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                 for item in self.args.atom_selection:
                     number_of_atoms += len(self.args.atom_selection[item])
             else:
-                number_of_atoms += reference[item]["n_particles"]  # .n_particles
+                number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
 

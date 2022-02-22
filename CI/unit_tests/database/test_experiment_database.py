@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
 import os
 
 import numpy as np
@@ -32,6 +33,7 @@ from zinchub import DataHub
 
 import mdsuite as mds
 import mdsuite.file_io.lammps_trajectory_files
+from mdsuite.database.simulation_database import SpeciesInfo
 
 
 @pytest.fixture(scope="session")
@@ -107,13 +109,23 @@ def test_species(tmp_path):
     """Test that the species are stored correctly in the database"""
     os.chdir(tmp_path)
     species = {
-        "H": {"indices": [1, 2, 3], "mass": 1},
-        "Cl": {"indices": [4, 5, 6], "mass": 35.45},
+        "H": SpeciesInfo(name="H", n_particles=3, mass=1, properties=[]),
+        "Cl": SpeciesInfo(name="Cl", n_particles=3, mass=35.45, properties=[]),
     }
 
     project_1 = mds.Project()
     project_1.add_experiment(name="Exp01")
     project_1.experiments["Exp01"].species = species
+
+    project_2 = mds.Project()
+    project_2.load_experiments("Exp01")
+    assert project_2.experiments["Exp01"].species == species
+
+    species_dict = {k: dataclasses.asdict(v) for k, v in species.items()}
+
+    project_1 = mds.Project()
+    project_1.add_experiment(name="Exp01")
+    project_1.experiments["Exp01"].species = species_dict
 
     project_2 = mds.Project()
     project_2.load_experiments("Exp01")

@@ -218,26 +218,35 @@ class ExperimentDatabase:
 
     @species.setter
     def species(self, value: dict):
-        """
+        """Save the SpeciesInfo to the SQL database
 
         Parameters
         ----------
-        value
-
-        Notes
-        -----
-
-        species = {C: {mass: [12.0], charge: [0]}}
-
+        value: dict
+            A dictionary of {element: SpeciesInfo}
         """
         if value is None:
             return
-        if isinstance(value, SpeciesInfo):
-            value = dataclasses.asdict(value)
+
+        if not isinstance(value, dict):
+            raise ValueError(
+                "species must be a dict[str, SpeciesInfo] or dict[str, dict]"
+            )
 
         # Do not allow the key "indices" in the SQL database!
-        for single_species in value.values():
-            single_species.pop("indices", None)
+        processed_value = {}
+        for species_name, species_obj in value.items():
+            if isinstance(species_obj, SpeciesInfo):
+                processed_value[species_name] = dataclasses.asdict(species_obj)
+                # we do not use the name here, because it is already used as the key
+
+            else:
+                processed_value[species_name] = species_obj
+            # can't have name or indices in the dict
+            processed_value[species_name].pop("name", None)
+            processed_value[species_name].pop("indices", None)
+
+        value = processed_value
 
         self._species = None
         with self.project.session as ses:
