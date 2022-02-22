@@ -99,7 +99,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         super().__init__(**kwargs)
 
-        self.scale_function = {"linear": {"scale_factor": 10}}
+        self.scale_function = {"quadratic": {"inner_scale_factor": 10}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
 
         self.database_group = "Diffusion_Coefficients"
