@@ -199,7 +199,7 @@ class StructureFactor(Calculator):
 
     def _compute_angstsrom_volume(self):
         """
-        Compute the volume of the box in Ansgtrom.
+        Compute the volume of the box in Angstrom.
 
         The data for scattering features is in Angstrom. Furthermore, the radial
         component of the calculator is integrated over.
@@ -258,7 +258,7 @@ class StructureFactor(Calculator):
             radial_multiplier = tf.einsum("i, j -> ij", self.q_values, radii)
             pre_factor = radii ** 2 * np.sin(radial_multiplier) / radial_multiplier
             integral = 1 + 4 * np.pi * np.trapz(y=pre_factor * (rdf - 1), x=radii, axis=1)
-            partial_structure_factors[pair] = integral
+            partial_structure_factors[pair] = integral * 0.5
 
         return partial_structure_factors
 
@@ -323,6 +323,7 @@ class StructureFactor(Calculator):
         Compute the total structure factor.
         """
         partial_sf = self._compute_partial_structure_factors()
+        print(partial_sf)
         weight_factors = self._compute_weight_factors()
         total_structure_factor = self._compute_total_structure_factor(
             partial_sf, weight_factors

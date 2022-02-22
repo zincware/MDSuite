@@ -93,7 +93,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
 
-        self.scale_function = {"linear": {"scale_factor": 5}}
+        self.scale_function = {"quadratic": {"inner_scale_factor": 5}}
         self.loaded_property = mdsuite_properties.velocities
 
         self.database_group = "Diffusion_Coefficients"
