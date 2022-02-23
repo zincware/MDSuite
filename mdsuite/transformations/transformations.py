@@ -289,7 +289,7 @@ class Transformations:
             try:
                 output_length = self.experiment.species[species].n_particles
             except KeyError:
-                output_length = self.experiment.molecules[species]["n_particles"]
+                output_length = self.experiment.molecules[species].n_particles
             path = join_path(species, self.output_property.name)
         n_dims = self.output_property.n_dims
 

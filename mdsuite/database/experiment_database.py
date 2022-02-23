@@ -196,11 +196,8 @@ class ExperimentDatabase:
         Returns
         -------
 
-        # TODO replace DotDict with dataclass
-
-        DotDict:
-            A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
-            charge: [0]}}
+        dict[str, SpeciesInfo]:
+            A dictionary of species such as {Li: SpeciesInfo}
         """
         if self._species is None:
             with self.project.session as ses:
@@ -261,10 +258,9 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def molecules(self):
+    def molecules(self) -> Dict[str, SpeciesInfo]:
         """Get the molecules dict"""
 
-        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
@@ -273,6 +269,13 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._molecules = experiment.get_molecules()
+                # hot fix to convert to SpeciesInfo
+                for molecule_name, molecule_obj in self._molecules.items():
+                    molecule_info = SpeciesInfo(
+                        name=molecule_name, properties=[], **molecule_obj
+                    )
+                    self._molecules[molecule_name] = molecule_info
+
         return self._molecules
 
     @molecules.setter

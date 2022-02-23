@@ -74,6 +74,10 @@ class SpeciesInfo:
     properties: list of PropertyInfo
         List of the properties that were recorded for the species
         mass and charge are optional
+    groups: dict
+        A molecule specific dictionary for mapping the molecule to the
+        particles. TODO SamTov can you explain a bit more because I haven't found
+        a good docstring to copy/paste from map_molecules.py
     """
 
     name: str
@@ -81,6 +85,7 @@ class SpeciesInfo:
     properties: List[PropertyInfo]
     mass: float = None
     charge: float = 0
+    groups: dict = None
 
     def __eq__(self, other):
         same = (
