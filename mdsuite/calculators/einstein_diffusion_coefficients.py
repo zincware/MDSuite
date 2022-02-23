@@ -183,7 +183,9 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.msd_array *= self.experiment.units["length"] ** 2
         self.time *= self.experiment.units["time"]
 
-        fit_slope, fit_slope_std = fit_einstein_curve([self.time, self.msd_array])
+        fit_slope, fit_slope_std = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array
+        )
 
         data = {
             self.result_keys[0]: 1 / 6.0 * fit_slope,

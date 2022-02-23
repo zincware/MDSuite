@@ -34,20 +34,21 @@ from scipy.optimize import curve_fit
 log = logging.getLogger(__name__)
 
 
-def fit_einstein_curve(data: list) -> list:
+def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> list:
     """
     Fit operation for Einstein calculations
 
     Parameters
     ----------
-    data : list
-            x and y tensor_values for the fitting [np.array, np.array] of
-            (2, data_range)
+    x_data : np.ndarray
+            x data to use in the fitting.
+    y_data : np.ndarray
+            y_data to use in the fitting.
 
     Returns
     -------
     fit results : list
-            A tuple list with the fit value along with the error of the fit
+            A list with the fit value along with the error of the fit
     """
 
     fits = []  # define an empty fit array so errors may be extracted
@@ -68,13 +69,13 @@ def fit_einstein_curve(data: list) -> list:
 
         Returns
         -------
-
+        m * x + a
         """
         return m * x + a
 
     # get the logarithmic dataset
-    log_y = np.log10(data[1][1:])
-    log_x = np.log10(data[0][1:])
+    log_y = np.log10(y_data[1:])
+    log_x = np.log10(x_data[1:])
 
     min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
     min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
@@ -88,7 +89,7 @@ def fit_einstein_curve(data: list) -> list:
         )
         fits.append(10 ** popt[1])
 
-    return [np.mean(fits), np.std(fits)]
+    return np.mean(fits), np.std(fits)
 
 
 # def _optimize_einstein_data_range(self, data: np.array):
