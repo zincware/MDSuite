@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Dict, List
 import numpy as np
 
 import mdsuite.database.scheme as db
-from mdsuite.database.simulation_database import SpeciesInfo
+from mdsuite.database.simulation_database import MoleculeInfo, SpeciesInfo
 from mdsuite.utils.database import get_or_create
 from mdsuite.utils.units import Units
 
@@ -258,7 +258,7 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def molecules(self) -> Dict[str, SpeciesInfo]:
+    def molecules(self) -> Dict[str, MoleculeInfo]:
         """Get the molecules dict"""
 
         if self._molecules is None:
@@ -271,7 +271,7 @@ class ExperimentDatabase:
                 self._molecules = experiment.get_molecules()
                 # hot fix to convert to SpeciesInfo
                 for molecule_name, molecule_obj in self._molecules.items():
-                    molecule_info = SpeciesInfo(
+                    molecule_info = MoleculeInfo(
                         name=molecule_name, properties=[], **molecule_obj
                     )
                     self._molecules[molecule_name] = molecule_info
