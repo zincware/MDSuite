@@ -120,7 +120,7 @@ def test_water_analysis(mdsuite_project):
         plot=False, molecules=True, data_range=500
     )
 
-    water_group = water.molecules["water"]["groups"]["0"]
+    water_group = water.molecules["water"].groups["0"]
     atom_group_adf = mdsuite_project.run.AngularDistributionFunction(
         atom_selection=water_group, number_of_configurations=100, plot=False
     )
@@ -129,31 +129,29 @@ def test_water_analysis(mdsuite_project):
     )
 
     # Test ADF output
-    assert atomistic_adf["water_sim"].data_dict["O_H_H"]["max_peak"] == pytest.approx(
+    assert atomistic_adf["water_sim"]["O_H_H"]["max_peak"] == pytest.approx(
         109.5, rel=0.1
     )
-    assert molecule_adf["water_sim"].data_dict["water_water_water"][
-        "max_peak"
-    ] == pytest.approx(104.8, rel=0.1)
+    assert molecule_adf["water_sim"]["water_water_water"]["max_peak"] == pytest.approx(
+        104.8, rel=0.1
+    )
 
     # Test diffusion data
-    assert atomistic_diffusion["water_sim"].data_dict["O"][
+    assert atomistic_diffusion["water_sim"]["O"][
         "diffusion_coefficient"
     ] == pytest.approx(4.1e-3, rel=0.01)
-    assert atomistic_diffusion["water_sim"].data_dict["H"][
+    assert atomistic_diffusion["water_sim"]["H"][
         "diffusion_coefficient"
     ] == pytest.approx(5.05e-3, rel=0.01)
-    assert molecular_diffusion["water_sim"].data_dict["water"][
+    assert molecular_diffusion["water_sim"]["water"][
         "diffusion_coefficient"
     ] == pytest.approx(4.3e-3, rel=0.01)
 
     # Test group selected data
-    assert atom_group_adf["water_sim"].data_dict["O_H_H"]["max_peak"] == pytest.approx(
-        109.5, 0.1
-    )
-    assert atom_group_diffusion["water_sim"].data_dict["O"][
+    assert atom_group_adf["water_sim"]["O_H_H"]["max_peak"] == pytest.approx(109.5, 0.1)
+    assert atom_group_diffusion["water_sim"]["O"][
         "diffusion_coefficient"
     ] == pytest.approx(2.9e-4, rel=0.1)
-    assert atom_group_diffusion["water_sim"].data_dict["H"][
+    assert atom_group_diffusion["water_sim"]["H"][
         "diffusion_coefficient"
     ] == pytest.approx(3.0e-4, rel=0.1)

@@ -98,6 +98,34 @@ class SpeciesInfo:
 
 
 @dataclasses.dataclass
+class MoleculeInfo(SpeciesInfo):
+    """Information about a Molecule
+
+    All the information of a species + groups
+
+    Attributes
+    ----------
+    groups: dict
+        A molecule specific dictionary for mapping the molecule to the
+        particles. The keys of this dict are index references to a specific molecule,
+        i.e. molecule 1 and the values are a dict of atom species and their indices
+        belonging to that specific molecule.
+        e.g
+            water = {"groups": {"0": {"H": [0, 1], "O": [0]}}
+        This tells us that the 0th water molecule consists of the 0th and 1st hydrogen
+        atoms in the database as well as the 0th oxygen atom.
+    """
+
+    groups: dict = None
+
+    def __eq__(self, other):
+        """Add a check to see if the groups are identical"""
+        if self.groups != other.groups:
+            return False
+        return super(MoleculeInfo, self).__eq__(other)
+
+
+@dataclasses.dataclass
 class TrajectoryMetadata:
     """
     This metadata must be extracted from trajectory files to build the database into
