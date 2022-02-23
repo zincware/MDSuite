@@ -52,6 +52,7 @@ class Args:
     tau_values: np.s_
     molecules: bool
     species: list
+    fit_range: int
 
 
 tqdm.monitor_interval = 0
@@ -123,6 +124,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
+        fit_range: int = -1,
     ):
         """
         Parameters
@@ -155,6 +157,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         self.plot = plot
 
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
@@ -163,6 +168,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             tau_values=tau_values,
             molecules=molecules,
             species=species,
+            fit_range=fit_range,
         )
         self.time = self._handle_tau_values()
 
@@ -262,8 +268,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         """
         try:
-            fit_values, covariance = fit_einstein_curve(
-                x_data=self.time, y_data=self.msd_array
+            fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+                x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
             )
             error = np.sqrt(np.diag(covariance))
 
@@ -274,8 +280,10 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 "msd": self.msd_array.tolist(),
             }
         except ValueError:
-            fit_values, covariance = fit_einstein_curve(
-                x_data=self.time, y_data=self.msd_array
+            fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+                x_data=self.time,
+                y_data=abs(self.msd_array),
+                fit_range=self.args.fit_range,
             )
             error = np.sqrt(np.diag(covariance))[0]
 

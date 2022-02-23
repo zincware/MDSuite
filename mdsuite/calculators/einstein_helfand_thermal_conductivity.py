@@ -48,6 +48,7 @@ class Args:
     correlation_time: int
     tau_values: np.s_
     atom_selection: np.s_
+    fit_range: int
 
 
 class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
@@ -110,6 +111,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
     ):
         """
         Python constructor
@@ -123,12 +125,16 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         correlation_time : int
                 Correlation time to use in the window sampling.
         """
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
             atom_selection=np.s_[:],
+            fit_range=fit_range,
         )
         self.plot = plot
         self.time = self._handle_tau_values()
@@ -201,8 +207,8 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        fit_values, covariance = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array
+        fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
         )
         error = np.sqrt(np.diag(covariance))[0]
 
