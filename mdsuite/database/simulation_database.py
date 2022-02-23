@@ -107,8 +107,13 @@ class MoleculeInfo(SpeciesInfo):
     ----------
     groups: dict
         A molecule specific dictionary for mapping the molecule to the
-        particles. TODO SamTov can you explain a bit more because I haven't found
-        a good docstring to copy/paste from map_molecules.py
+        particles. The keys of this dict are index references to a specific molecule,
+        i.e. molecule 1 and the values are a dict of atom species and their indices
+        belonging to that specific molecule.
+        e.g
+            water = {"groups": {"0": {"H": [0, 1], "O": [0]}}
+        This tells us that the 0th water molecule consists of the 0th and 1st hydrogen
+        atoms in the database as well as the 0th oxygen atom.
     """
 
     groups: dict = None
