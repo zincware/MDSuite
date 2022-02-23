@@ -28,6 +28,7 @@ Static methods used in calculators are kept here rather than polluting the paren
 import logging
 
 import numpy as np
+from scipy.interpolate import UnivariateSpline
 from scipy.optimize import curve_fit
 
 log = logging.getLogger(__name__)
@@ -72,16 +73,14 @@ def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> tuple:
         """
         return m * x + a
 
-    # get the logarithmic dataset
-    # log_y = np.log10(y_data[1:])
-    # log_x = np.log10(x_data[1:])
+    spline_data = UnivariateSpline(x_data, y_data, s=0, k=4)
 
-    start_idx = int(0.3 * len(y_data))
-    stop_idx = int(len(y_data) - 1)
+    derivatives = spline_data.derivative(n=2)(x_data)
 
-    popt, pcov = curve_fit(
-        func, xdata=x_data[start_idx, stop_idx], y_data=y_data[start_idx:stop_idx]
-    )
+    derivatives[abs(derivatives) < 1e-5] = 0
+    start_index = np.argmin(abs(derivatives))
+
+    popt, pcov = curve_fit(func, xdata=x_data[start_index:], ydata=y_data[start_index:])
 
     return popt, pcov
 

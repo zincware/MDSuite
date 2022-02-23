@@ -53,10 +53,10 @@ class TestCalculatorHelperMethods:
         y_data = 5 * x_data + 3
 
         gradient, error = fit_einstein_curve(x_data=x_data, y_data=y_data)
-        assert gradient == pytest.approx(5.0, 0.01)
+        assert gradient[0] == pytest.approx(5.0, 0.01)
 
         # exp(0.05x)x^2 + 5x + 3
         y_data = np.exp(-0.05 * x_data) * x_data ** 2 + 5 * x_data + 3
 
         gradient, error = fit_einstein_curve(x_data=x_data, y_data=y_data)
-        assert gradient == pytest.approx(5.0, 0.01)
+        assert gradient[0] == pytest.approx(5.0, 0.01)
