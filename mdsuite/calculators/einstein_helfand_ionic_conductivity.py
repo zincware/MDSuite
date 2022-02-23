@@ -192,7 +192,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         fit_values, covariance = fit_einstein_curve(
             x_data=self.time, y_data=self.msd_array
         )
-        error = np.sqrt(np.diag(covariance))
+        error = np.sqrt(np.diag(covariance))[0]
 
         data = {
             self.result_keys[0]: fit_values[0],
