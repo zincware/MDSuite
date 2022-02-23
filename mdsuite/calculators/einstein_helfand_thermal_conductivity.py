@@ -201,10 +201,13 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        coefficient, error = fit_einstein_curve(x_data=self.time, y_data=self.msd_array)
+        fit_values, covariance = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array
+        )
+        error = np.sqrt(np.diag(covariance))
 
         data = {
-            "thermal_conductivity": coefficient,
+            "thermal_conductivity": fit_values[0],
             "uncertainty": error,
             "time": self.time.tolist(),
             "msd": self.msd_array.tolist(),
@@ -216,7 +219,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
             self.run_visualization(
                 x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.msd_array * self.experiment.units["time"],
-                title=f"{coefficient} += {error}",
+                title=f"{fit_values[0]} += {error}",
             )
 
     def run_calculator(self):

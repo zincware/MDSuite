@@ -26,15 +26,19 @@ Summary
 Static methods used in calculators are kept here rather than polluting the parent class.
 """
 import logging
+from typing import Any, Iterable, Tuple, Union
 
 import numpy as np
+from numpy import ndarray
 from scipy.interpolate import UnivariateSpline
 from scipy.optimize import curve_fit
 
 log = logging.getLogger(__name__)
 
 
-def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> tuple:
+def fit_einstein_curve(
+    x_data: np.ndarray, y_data: np.ndarray
+) -> Tuple[Union[ndarray, Iterable, int, float], Any]:
     """
     Fit operation for Einstein calculations
 
