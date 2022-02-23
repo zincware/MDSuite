@@ -272,7 +272,7 @@ class ExperimentDatabase:
                 # hotfix to convert to SpeciesInfo
                 for molecule_name, molecule_obj in self._molecules.items():
                     # set properties = None if it does not exist
-                    molecule_obj["properties"] = molecule_obj.get("properties")
+                    molecule_obj["properties"] = molecule_obj.get("properties", [])
                     molecule_info = MoleculeInfo(name=molecule_name, **molecule_obj)
                     self._molecules[molecule_name] = molecule_info
 

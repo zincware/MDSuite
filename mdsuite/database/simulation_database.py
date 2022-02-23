@@ -113,6 +113,12 @@ class MoleculeInfo(SpeciesInfo):
 
     groups: dict = None
 
+    def __eq__(self, other):
+        """Add a check to see if the groups are identical"""
+        if self.groups != other.groups:
+            return False
+        return super(MoleculeInfo, self).__eq__(other)
+
 
 @dataclasses.dataclass
 class TrajectoryMetadata:
