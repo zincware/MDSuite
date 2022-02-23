@@ -269,11 +269,11 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._molecules = experiment.get_molecules()
-                # hot fix to convert to SpeciesInfo
+                # hotfix to convert to SpeciesInfo
                 for molecule_name, molecule_obj in self._molecules.items():
-                    molecule_info = MoleculeInfo(
-                        name=molecule_name, properties=[], **molecule_obj
-                    )
+                    # set properties = None if it does not exist
+                    molecule_obj["properties"] = molecule_obj.get("properties")
+                    molecule_info = MoleculeInfo(name=molecule_name, **molecule_obj)
                     self._molecules[molecule_name] = molecule_info
 
         return self._molecules
@@ -283,6 +283,20 @@ class ExperimentDatabase:
         """Save the molecules dict to the database"""
         if value is None:
             return
+
+        processed_value = {}
+        for molecule_name, molecule_obj in value.items():
+            if isinstance(molecule_obj, MoleculeInfo):
+                processed_value[molecule_name] = dataclasses.asdict(molecule_obj)
+                # we do not use the name here, because it is already used as the key
+            else:
+                processed_value[molecule_name] = molecule_obj
+            # can't have name or indices in the dict
+            processed_value[molecule_name].pop("name", None)
+            processed_value[molecule_name].pop("indices", None)
+
+        value = processed_value
+
         self._molecules = None
         with self.project.session as ses:
             experiment = (
