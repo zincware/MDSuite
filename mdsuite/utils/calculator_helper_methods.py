@@ -26,7 +26,6 @@ Summary
 Static methods used in calculators are kept here rather than polluting the parent class.
 """
 import logging
-import random
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -34,7 +33,7 @@ from scipy.optimize import curve_fit
 log = logging.getLogger(__name__)
 
 
-def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> list:
+def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> tuple:
     """
     Fit operation for Einstein calculations
 
@@ -47,11 +46,11 @@ def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> list:
 
     Returns
     -------
-    fit results : list
-            A list with the fit value along with the error of the fit
+    popt : list
+            List of fit values
+    pcov : list
+            Covariance matrix of the fit values.
     """
-
-    fits = []  # define an empty fit array so errors may be extracted
 
     def func(x, m, a):
         """
@@ -74,22 +73,17 @@ def fit_einstein_curve(x_data: np.ndarray, y_data: np.ndarray) -> list:
         return m * x + a
 
     # get the logarithmic dataset
-    log_y = np.log10(y_data[1:])
-    log_x = np.log10(x_data[1:])
+    # log_y = np.log10(y_data[1:])
+    # log_x = np.log10(x_data[1:])
 
-    min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
-    min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
+    start_idx = int(0.3 * len(y_data))
+    stop_idx = int(len(y_data) - 1)
 
-    for _ in range(100):
-        end_index = random.randint(min_end_index, max_end_index)
-        start_index = random.randint(min_start_index, max_start_index)
+    popt, pcov = curve_fit(
+        func, xdata=x_data[start_idx, stop_idx], y_data=y_data[start_idx:stop_idx]
+    )
 
-        popt, pcov = curve_fit(
-            func, log_x[start_index:end_index], log_y[start_index:end_index]
-        )
-        fits.append(10 ** popt[1])
-
-    return np.mean(fits), np.std(fits)
+    return popt, pcov
 
 
 # def _optimize_einstein_data_range(self, data: np.array):
