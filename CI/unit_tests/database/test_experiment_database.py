@@ -33,7 +33,7 @@ from zinchub import DataHub
 
 import mdsuite as mds
 import mdsuite.file_io.lammps_trajectory_files
-from mdsuite.database.simulation_database import SpeciesInfo
+from mdsuite.database.simulation_database import MoleculeInfo, SpeciesInfo
 
 
 @pytest.fixture(scope="session")
@@ -135,9 +135,10 @@ def test_species(tmp_path):
 def test_molecules(tmp_path):
     """Test that the molecules are stored correctly in the database"""
     os.chdir(tmp_path)
+
     molecule = {
-        "Proton": {"indices": [1, 2, 3], "mass": 1},
-        "Chloride": {"indices": [4, 5, 6], "mass": 35.45},
+        "H": MoleculeInfo(name="H", properties=[], mass=1, groups={}, n_particles=3),
+        "Cl": MoleculeInfo(name="Cl", properties=[], mass=1, groups={}, n_particles=3),
     }
 
     project_1 = mds.Project()
