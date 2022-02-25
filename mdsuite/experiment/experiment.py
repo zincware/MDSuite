@@ -436,7 +436,7 @@ class Experiment(ExperimentDatabase):
         """
 
         species = self.species
-        species[element]["charge"] = [charge]  # update entry
+        species[element].charge = [charge]
         self.species = species
 
     def set_mass(self, element: str, mass: float):
@@ -451,7 +451,7 @@ class Experiment(ExperimentDatabase):
                 New mass/es of the element
         """
         species = self.species
-        species[element]["mass"] = mass
+        species[element].mass = mass
         self.species = species
 
     def add_data(
