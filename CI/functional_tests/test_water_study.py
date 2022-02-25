@@ -91,6 +91,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     return project
 
 
+# class TestWaterStudy:
 def test_water_analysis(mdsuite_project):
     """
     Run a functional test by performing a study on an MD simulation of water
@@ -127,7 +128,7 @@ def test_water_analysis(mdsuite_project):
     )
     # test that group diffusion works
     mdsuite_project.run.EinsteinDiffusionCoefficients(
-        atom_selection=water_group, data_range=2500, plot=False
+        atom_selection=water_group, data_range=500, plot=False
     )
 
     # Test ADF output
@@ -139,15 +140,15 @@ def test_water_analysis(mdsuite_project):
     ] == pytest.approx(104.8, rel=0.1)
 
     # Test diffusion data
-    assert atomistic_diffusion["water_sim"].data_dict["O"][
+    assert atomistic_diffusion["water_sim"]["O"][
         "diffusion_coefficient"
-    ] == pytest.approx(6.477e-10, rel=0.01)
-    assert atomistic_diffusion["water_sim"].data_dict["H"][
+    ] == pytest.approx(8.403e-10, rel=1e-13)
+    assert atomistic_diffusion["water_sim"]["H"][
         "diffusion_coefficient"
-    ] == pytest.approx(9.072e-10, rel=0.01)
-    assert molecular_diffusion["water_sim"].data_dict["water"][
+    ] == pytest.approx(1.003e-9, rel=1e-13)
+    assert molecular_diffusion["water_sim"]["water"][
         "diffusion_coefficient"
-    ] == pytest.approx(6.232e-10, rel=0.01)
+    ] == pytest.approx(8.887e-10, rel=1e-13)
 
     # Test group selected data
     assert atom_group_adf["water_sim"].data_dict["O_H_H"]["max_peak"] == pytest.approx(
