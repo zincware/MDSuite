@@ -271,7 +271,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
                 x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
             )
-            error = np.sqrt(np.diag(covariance))
+            error = np.sqrt(np.diag(covariance))[0]
 
             data = {
                 "diffusion_coefficient": fit_values[0],
