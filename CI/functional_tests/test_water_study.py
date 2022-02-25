@@ -114,10 +114,8 @@ def test_water_analysis(mdsuite_project):
         plot=False, molecules=True, norm_power=8
     )
     mdsuite_project.run.RadialDistributionFunction(plot=False, molecules=True)
-    atomistic_diffusion = mdsuite_project.run.EinsteinDiffusionCoefficients(
-        plot=False, data_range=500
-    )
-    molecular_diffusion = mdsuite_project.run.EinsteinDiffusionCoefficients(
+    mdsuite_project.run.EinsteinDiffusionCoefficients(plot=False, data_range=500)
+    mdsuite_project.run.EinsteinDiffusionCoefficients(
         plot=False, molecules=True, data_range=500
     )
 
@@ -137,17 +135,6 @@ def test_water_analysis(mdsuite_project):
     assert molecule_adf["water_sim"].data_dict["water_water_water"][
         "max_peak"
     ] == pytest.approx(104.8, rel=0.1)
-
-    # Test diffusion data
-    assert atomistic_diffusion["water_sim"]["O"][
-        "diffusion_coefficient"
-    ] == pytest.approx(8.403e-10, rel=1e-13)
-    assert atomistic_diffusion["water_sim"]["H"][
-        "diffusion_coefficient"
-    ] == pytest.approx(1.003e-9, rel=1e-13)
-    assert molecular_diffusion["water_sim"]["water"][
-        "diffusion_coefficient"
-    ] == pytest.approx(8.887e-10, rel=1e-13)
 
     # Test group selected data
     assert atom_group_adf["water_sim"].data_dict["O_H_H"]["max_peak"] == pytest.approx(
