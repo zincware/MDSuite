@@ -38,7 +38,7 @@ log = logging.getLogger(__name__)
 
 def fit_einstein_curve(
     x_data: np.ndarray, y_data: np.ndarray, fit_range: int
-) -> Tuple[Union[ndarray, Iterable, int, float], Any]:
+) -> Tuple[Union[ndarray, Iterable, int, float], Any, list, list]:
     """
     Fit operation for Einstein calculations
 
@@ -58,6 +58,9 @@ def fit_einstein_curve(
     pcov : list
             Covariance matrix of the fit values.
     """
+    # Defined here for completeness.
+    popt = []
+    pcov = []
 
     def func(x, m, a):
         """
@@ -98,8 +101,6 @@ def fit_einstein_curve(
         if i == fit_range:
             popt = popt_temp
             pcov = pcov_temp
-
-    # popt, pcov = curve_fit(func, xdata=x_data[start_index:], ydata=y_data[start_index:])
 
     return popt, pcov, gradients, gradient_errors
 

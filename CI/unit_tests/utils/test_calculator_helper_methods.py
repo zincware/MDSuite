@@ -52,11 +52,15 @@ class TestCalculatorHelperMethods:
         # y = 5x + c
         y_data = 5 * x_data + 3
 
-        popt, pcov = fit_einstein_curve(x_data=x_data, y_data=y_data)
+        popt, pcov, gradients, gradient_errors = fit_einstein_curve(
+            x_data=x_data, y_data=y_data, fit_range=999
+        )
         assert popt[0] == pytest.approx(5.0, 0.01)
 
         # exp(0.05x)x^2 + 5x + 3
         y_data = np.exp(-0.05 * x_data) * x_data ** 2 + 5 * x_data + 3
 
-        gradient, error = fit_einstein_curve(x_data=x_data, y_data=y_data)
+        popt, pcov, gradients, gradient_errors = fit_einstein_curve(
+            x_data=x_data, y_data=y_data, fit_range=999
+        )
         assert popt[0] == pytest.approx(5.0, 0.01)
