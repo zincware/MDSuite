@@ -91,7 +91,6 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
     return project
 
 
-# class TestWaterStudy:
 def test_water_analysis(mdsuite_project):
     """
     Run a functional test by performing a study on an MD simulation of water
