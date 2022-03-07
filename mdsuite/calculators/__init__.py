@@ -50,7 +50,7 @@ from .potential_of_mean_force import PotentialOfMeanForce
 from .radial_distribution_function import RadialDistributionFunction
 
 # from .spatial_distribution_function import SpatialDistributionFunction
-from .structure_factor import StructureFactor
+# from .structure_factor import StructureFactor
 
 __all__ = [
     "Calculator",
@@ -71,6 +71,6 @@ __all__ = [
     "NernstEinsteinIonicConductivity",
     "PotentialOfMeanForce",
     "RadialDistributionFunction",
-    "StructureFactor",
+    # "StructureFactor",
     # "SpatialDistributionFunction",
 ]
