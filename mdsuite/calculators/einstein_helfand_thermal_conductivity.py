@@ -161,8 +161,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         # Calculate the prefactor
         numerator = 1
         denominator = (
-            6
-            * self.experiment.volume
+            self.experiment.volume
             * self.experiment.temperature
             * self.experiment.units["boltzmann"]
         )
@@ -213,8 +212,8 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         error = np.sqrt(np.diag(covariance))[0]
 
         data = {
-            "thermal_conductivity": fit_values[0],
-            "uncertainty": error,
+            "thermal_conductivity": 1 / 6 * fit_values[0],
+            "uncertainty": 1 / 6 * error,
             "time": self.time.tolist(),
             "msd": self.msd_array.tolist(),
         }

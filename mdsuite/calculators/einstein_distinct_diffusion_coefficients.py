@@ -248,7 +248,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             )
 
         numerator = self.experiment.units["length"] ** 2
-        denominator = 6 * self.experiment.units["time"] * atom_scale
+        denominator = self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -288,8 +288,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             error = np.sqrt(np.diag(covariance))[0]
 
             data = {
-                self.result_keys[0]: -1 * fit_values[0],
-                self.result_keys[1]: error,
+                self.result_keys[0]: -1 / 6 * fit_values[0],
+                self.result_keys[1]: 1 / 6 * error,
                 self.result_series_keys[0]: self.time.tolist(),
                 self.result_series_keys[1]: self.msd_array.tolist(),
             }
