@@ -62,7 +62,7 @@ def test_structure_factor_project(traj_files, true_values, tmp_path):
     )
 
     project.run.RadialDistributionFunction(number_of_configurations=-1, plot=False)
-    project.run.StructureFactor(plot=False)
+    # project.run.StructureFactor(plot=False)
 
     data_dict = project.load.StructureFactor()[0].data_dict
 
