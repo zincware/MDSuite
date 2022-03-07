@@ -197,7 +197,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_coefficient = item.data_dict[0].x
             diffusion_uncertainty = item.data_dict[0].uncertainty
             species = item.subjects[0].subject
-            charge_term = self.experiment.species[species]["charge"][0] ** 2
+            charge_term = self.experiment.species[species].charge[0] ** 2
             mass_fraction_term = (
                 self.experiment.species[species].n_particles
                 / self.experiment.number_of_atoms
@@ -241,7 +241,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_coefficient = item["data"]
             diffusion_uncertainty = item["uncertainty"]
             species = item["Subject"]
-            charge_term = self.experiment.species[species]["charge"][0] ** 2
+            charge_term = self.experiment.species[species].charge[0] ** 2
             mass_fraction_term = (
                 self.experiment.species[species].n_particles
                 / self.experiment.number_of_atoms
@@ -254,8 +254,8 @@ class NernstEinsteinIonicConductivity(Calculator):
             diffusion_uncertainty = item["uncertainty"]
             constituents = item["Subject"].split("_")
             charge_term = (
-                self.experiment.species[constituents[0]]["charge"][0]
-                * self.experiment.species[constituents[1]]["charge"][0]
+                self.experiment.species[constituents[0]].charge[0]
+                * self.experiment.species[constituents[1]].charge[0]
             )
             mass_fraction_term = (
                 self.experiment.species[constituents[0]].n_particles

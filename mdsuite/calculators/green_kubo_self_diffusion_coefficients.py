@@ -83,9 +83,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(data_range=500,
-                                                                  plot=True,
-                                                                  correlation_time=10)
+    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(
+                data_range=500,
+                plot=True,
+                correlation_time=10
+            )
     """
 
     def __init__(self, **kwargs):

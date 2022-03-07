@@ -34,6 +34,9 @@ from typing import Any, List, Union
 
 import numpy as np
 import tensorflow as tf
+from bokeh.models import HoverTool, LinearAxis, Span
+from bokeh.models.ranges import Range1d
+from bokeh.plotting import figure
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
@@ -56,6 +59,7 @@ class Args:
     tau_values: np.s_
     molecules: bool
     species: list
+    fit_range: int
 
 
 class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
@@ -91,10 +95,15 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
-        self.x_label = r"$\text{Time}$ / $s$"
-        self.y_label = r"$\text{MSD}$ / $m^{2}$"
-        self.result_keys = ["diffusion_coefficient", "uncertainty"]
-        self.result_series_keys = ["time", "msd"]
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{MSD} / $m^{2}$$"
+        self.result_keys = [
+            "diffusion_coefficient",
+            "uncertainty",
+            "gradient",
+            "intercept",
+        ]
+        self.result_series_keys = ["time", "msd", "gradients", "gradient_errors"]
         self.analysis_name = "Einstein Self-Diffusion Coefficients"
         self._dtype = tf.float64
 
@@ -112,6 +121,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         atom_selection: np.s_ = np.s_[:],
         molecules: bool = False,
         tau_values: Union[int, List, Any] = np.s_[:],
+        fit_range: int = -1,
     ):
         """
 
@@ -141,6 +151,9 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 species = list(self.experiment.molecules)
             else:
                 species = list(self.experiment.species)
+
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
@@ -149,73 +162,10 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             tau_values=tau_values,
             molecules=molecules,
             species=species,
+            fit_range=fit_range,
         )
         self.plot = plot
         self.system_property = False
-        self.time = self._handle_tau_values()
-        self.msd_array = np.zeros(self.data_resolution)  # define empty msd array
-
-    def check_input(self):
-        """
-        Check the user input to ensure no conflicts are present.
-
-        Returns
-        -------
-
-        """
-        self._run_dependency_check()
-
-    def calculate_prefactor(self, species: str = None):
-        """
-        Compute the prefactor
-
-        Parameters
-        ----------
-        species : str
-                Species being studied.
-
-        Returns
-        -------
-        Updates the class state.
-        """
-        if self.args.molecules:
-            # Calculate the prefactor
-            numerator = self.experiment.units["length"] ** 2
-            denominator = (
-                self.experiment.units["time"]
-                * self.experiment.molecules[species]["n_particles"]
-            ) * 6
-        else:
-            # Calculate the prefactor
-            numerator = self.experiment.units["length"] ** 2
-            denominator = (
-                self.experiment.units["time"]
-                * self.experiment.species[species].n_particles
-            ) * 6
-
-        self.prefactor = numerator / denominator
-
-    def msd_operation(self, ensemble: tf.Tensor, square: bool = True):
-        """
-        Perform a simple msd operation.
-
-        Parameters
-        ----------
-        ensemble : tf.Tensor
-            Trajectory over which to compute the msd.
-        square : bool
-            If true, square the result, else just return the difference.
-        Returns
-        -------
-        msd : tf.Tensor shape = (n_atoms, data_range, 3)
-                Mean square displacement.
-        """
-        if square:
-            return tf.math.squared_difference(
-                tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
-            )
-        else:
-            return tf.math.subtract(ensemble, ensemble[:, None, 0])
 
     def ensemble_operation(self, ensemble):
         """
@@ -230,58 +180,55 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        msd = self.msd_operation(ensemble)
+        msd = tf.math.squared_difference(
+            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+        )
+        # average over particles, sum over dimensions
+        msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
+        # sum up ensembles to average in post processing
+        self.msd_array += np.array(msd)
 
-        # Sum over trajectory and then coordinates and apply averaging and pre-factors
-        msd = self.prefactor * tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
-
-    def postprocessing(self, species: str):
+    def fit_diff_coeff(self):
         """
-        Run post-processing on the data.
-
-        This will include an averaging factor, saving the results, and plotting
-        the msd against time.
-
-        Parameters
-        ----------
-        species : str
-                Name of the species being studied.
-
-        Returns
-        -------
-        This method will scale the data by the number of ensembles, compute the
-        diffusion coefficient, and store all of the results in the SQL database.
+        Apply unit conversion, fit line to the data, prepare for database storage
         """
+
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
+        self.msd_array *= self.experiment.units["length"] ** 2
+        self.time *= self.experiment.units["time"]
 
-        result = fit_einstein_curve([self.time, self.msd_array])
-        log.debug(f"Saving {species}")
+        fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+        )
+        error = np.sqrt(np.diag(covariance))[0]
 
         data = {
-            self.result_keys[0]: result[0],
-            self.result_keys[1]: result[1],
+            self.result_keys[0]: 1 / 6.0 * fit_values[0],
+            self.result_keys[1]: 1 / 6.0 * error,
+            self.result_keys[2]: fit_values[0],
+            self.result_keys[3]: fit_values[1],
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.msd_array.tolist(),
+            self.result_series_keys[2]: (np.array(gradients) / 6).tolist(),
+            self.result_series_keys[3]: (np.array(gradient_errors) / 6).tolist(),
         }
-
-        self.queue_data(data=data, subjects=[species])
+        return data
 
     def run_calculator(self):
         """
         Run analysis.
-
-        Returns
-        -------
-
         """
-        self.check_input()
-        # Loop over species
+        self._run_dependency_check()
         for species in self.args.species:
+            # Here for now to avoid issues. Should be moved out when calculators become
+            # species-wise
+            self.time = None
+            self.time = self._handle_tau_values()
+            self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
-            self.calculate_prefactor(species)
-
             batch_ds = self.get_batch_dataset([species])
+
+            # loop over batches to get MSD
             for batch in tqdm(
                 batch_ds,
                 ncols=70,
@@ -294,5 +241,74 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 for ensemble in ensemble_ds:
                     self.ensemble_operation(ensemble[dict_ref])
 
-            # Scale, save, and plot the data.
-            self.postprocessing(species)
+            fit_results = self.fit_diff_coeff()
+            self.queue_data(data=fit_results, subjects=[species])
+
+    def plot_data(self, data):
+        """
+        Plot the Einstein fits.
+
+        Parameters
+        ----------
+        data
+
+        Returns
+        -------
+
+        """
+        for selected_species, val in data.items():
+            fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+
+            gradients = np.array(val[self.result_series_keys[2]])
+            gradient_errors = np.array(val[self.result_series_keys[3]])
+
+            time = np.array(val[self.result_series_keys[0]])
+            msd = np.array(val[self.result_series_keys[1]])
+
+            fig.y_range = Range1d(-0.0, 1.1 * max(msd))
+
+            # Compute the span
+            span = Span(
+                location=time[self.args.fit_range],
+                dimension="height",
+                line_dash="dashed",
+            )
+            # Compute msd and fit lines
+            fig.line(
+                time,
+                msd,
+                color="#F46036",
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                    f" {val[self.result_keys[1]]: 0.3E}"
+                ),
+            )
+            fit_data = val[self.result_keys[2]] * time + val[self.result_keys[3]]
+            fig.line(time, fit_data, color="#2E294E", legend_label="Curve fit.")
+            fig.extra_y_ranges = {
+                "Diff_range": Range1d(
+                    start=0.999 * min(gradients), end=1.001 * max(gradients)
+                )
+            }
+
+            fig.add_layout(
+                LinearAxis(
+                    y_range_name="Diff_range",
+                    axis_label=r"$$\text{Diffusion Coefficient} / m^{2}/s$$",
+                ),
+                "right",
+            )
+            grad_time = time[-len(gradients) :]
+            fig.line(grad_time, gradients, y_range_name="Diff_range", color="#bc5090")
+            fig.varea(
+                grad_time,
+                gradients - gradient_errors,
+                gradients + gradient_errors,
+                alpha=0.3,
+                color="#ffa600",
+                y_range_name="Diff_range",
+            )
+
+            fig.add_tools(HoverTool())
+            fig.add_layout(span)
+            self.plot_array.append(fig)

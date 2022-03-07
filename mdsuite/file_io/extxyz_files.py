@@ -133,7 +133,17 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
                 self.tabular_text_reader_data.n_particles + self.n_header_lines + 1,
             )
             header_1 = file.readline()
-            sample_rate = int(round(_get_time(header_1) - _get_time(header)))
+
+            time_0 = _get_time(header)
+            time_1 = _get_time(header_1)
+            if time_0 is not None and time_1 is not None:
+                sample_rate = int(round(time_1 - time_0))
+            else:
+                log.warning(
+                    "Could not read sample rate from file. Please adjust the sample rate"
+                    " manually if required."
+                )
+                sample_rate = None
 
         species_list = get_species_list_from_tabular_text_reader_data(
             self.tabular_text_reader_data

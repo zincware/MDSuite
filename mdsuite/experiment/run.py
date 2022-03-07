@@ -13,8 +13,10 @@ from __future__ import annotations
 import functools
 from typing import TYPE_CHECKING, Any, List, Type, Union
 
-from mdsuite.calculators import (  # SpatialDistributionFunction,
-    AngularDistributionFunction,
+from mdsuite.calculators import (
+    AngularDistributionFunction,  # SpatialDistributionFunction,
+)
+from mdsuite.calculators import (
     CoordinationNumbers,
     EinsteinDiffusionCoefficients,
     EinsteinDistinctDiffusionCoefficients,

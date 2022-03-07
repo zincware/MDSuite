@@ -33,8 +33,8 @@ from zinchub import DataHub
 import mdsuite
 import mdsuite.file_io.chemfiles_read
 import mdsuite.transformations
+from mdsuite.database.simulation_database import MoleculeInfo
 from mdsuite.utils import Units
-from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -134,10 +134,12 @@ class TestMoleculeMapping:
         constructed trajectory is also correct.
         """
         reference_molecules = {
-            "water": {
-                "n_particles": 14,
-                "mass": 18.015,
-                "groups": {
+            "water": MoleculeInfo(
+                name="water",
+                properties=[],
+                n_particles=14,
+                mass=18.015,
+                groups={
                     "0": {"H": [0, 1], "O": [0]},
                     "1": {"H": [2, 3], "O": [1]},
                     "2": {"H": [4, 5], "O": [2]},
@@ -153,7 +155,7 @@ class TestMoleculeMapping:
                     "12": {"H": [24, 25], "O": [12]},
                     "13": {"H": [26, 27], "O": [13]},
                 },
-            }
+            )
         }
         water_molecule = mdsuite.Molecule(
             name="water", smiles="[H]O[H]", amount=14, cutoff=1.7, mol_pbc=True
@@ -163,7 +165,6 @@ class TestMoleculeMapping:
         )
         molecules = mdsuite_project.experiments["simple_water"].molecules
         assert molecules == reference_molecules
-
         assert "water" not in mdsuite_project.experiments["simple_water"].species
 
     def test_water_molecule_reference_dict(self, mdsuite_project):
@@ -185,10 +186,12 @@ class TestMoleculeMapping:
         mdsuite_project.experiments["ligand_water"].species["HW1"].mass = [1.00784]
         mdsuite_project.experiments["ligand_water"].species["HW2"].mass = [1.00784]
         reference_molecules = {
-            "water": {
-                "n_particles": 14,
-                "mass": 18.01468,
-                "groups": {
+            "water": MoleculeInfo(
+                name="water",
+                properties=[],
+                n_particles=14,
+                mass=18.01468,
+                groups={
                     "0": {"HW1": [0], "OW": [0], "HW2": [0]},
                     "1": {"HW1": [1], "OW": [1], "HW2": [1]},
                     "2": {"HW1": [2], "OW": [2], "HW2": [2]},
@@ -204,7 +207,7 @@ class TestMoleculeMapping:
                     "12": {"HW1": [12], "OW": [12], "HW2": [12]},
                     "13": {"HW1": [13], "OW": [13], "HW2": [13]},
                 },
-            }
+            )
         }
         water_molecule = mdsuite.Molecule(
             name="water",
@@ -217,8 +220,7 @@ class TestMoleculeMapping:
             molecules=[water_molecule]
         )
         molecules = mdsuite_project.experiments["ligand_water"].molecules
-        assertDeepAlmostEqual(molecules, reference_molecules)
-
+        assert molecules == reference_molecules
         assert "water" not in mdsuite_project.experiments["ligand_water"].species
 
     def test_ionic_liquid(self, mdsuite_project):

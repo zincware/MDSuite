@@ -131,7 +131,7 @@ class MolecularMap(Transformations):
         mass_array : list
                 A list of masses.
         """
-        return [self.experiment.species[item]["mass"] for item in species]
+        return [self.experiment.species[item].mass for item in species]
 
     def _get_type_spec(self, path_list: list) -> dict:
         """
@@ -180,7 +180,7 @@ class MolecularMap(Transformations):
         reduced_mass_dict = {}
         for item in species:
             reduced_mass_dict[item] = (
-                self.experiment.species[item]["mass"][0] / molecular_mass
+                self.experiment.species[item].mass[0] / molecular_mass
             )
 
         return reduced_mass_dict

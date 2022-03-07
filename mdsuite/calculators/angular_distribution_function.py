@@ -264,7 +264,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                 for item in self.args.atom_selection:
                     number_of_atoms += len(self.args.atom_selection[item])
             else:
-                number_of_atoms += reference[item]["n_particles"]  # .n_particles
+                number_of_atoms += reference[item].n_particles
 
         self.number_of_atoms = number_of_atoms
 
@@ -295,8 +295,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                 else:
                     stop_index += self.experiment.species[species].n_particles
             except KeyError:
-                # TODO return to dotdict form when molecules is a dotdict
-                stop_index += self.experiment.molecules[species]["n_particles"]
+                stop_index += self.experiment.molecules[species].n_particles
             species_indices.append((species, start_index, stop_index))
             start_index = stop_index
 

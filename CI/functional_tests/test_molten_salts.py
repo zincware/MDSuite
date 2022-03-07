@@ -35,18 +35,22 @@ import mdsuite as mds
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> Tuple[str, str]:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """
+    Download trajectory file into a temporary directory and keep it for all tests
+    """
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_rnd_md")
-    NaCl_file.get_file(temporary_path)
-    NaCl_out = (temporary_path / NaCl_file.file_raw).as_posix()
 
     KCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/KCl_rnd_md")
-    KCl_file.get_file(temporary_path)
-    KCl_out = (temporary_path / KCl_file.get_file(temporary_path)).as_posix()
 
-    return NaCl_out, KCl_out
+    KCl_data = KCl_file.get_file(temporary_path)[0]
+    NaCl_data = NaCl_file.get_file(temporary_path)[0]
+
+    NaCl_path = (temporary_path / NaCl_data).as_posix()
+    KCl_path = (temporary_path / KCl_data).as_posix()
+
+    return NaCl_path, KCl_path
 
 
 @pytest.fixture()
@@ -71,6 +75,7 @@ def mdsuite_project(traj_files, tmp_path) -> mds.Project:
     project = mds.Project(storage_path=tmp_path.as_posix())
 
     na_cl_file, k_cl_file = traj_files
+    print(na_cl_file)
 
     project.add_experiment(
         name="NaCl",
@@ -90,7 +95,7 @@ def mdsuite_project(traj_files, tmp_path) -> mds.Project:
     return project
 
 
-def test_analysis():
+def test_analysis(mdsuite_project):
     """
     Perform analysis on these MD simulations and ensure the outcomes are as expected.
 
@@ -98,10 +103,48 @@ def test_analysis():
     -------
     Test the following:
 
-    * Two experiments added to a project successfully
+        * Two experiments added to a project successfully
+        * Correct coordination numbers computed
+        * Correct POMF values computed
+        * Dynamics run successfully.
 
     Notes
     -----
-    TODO: Add correct tests when all post-RDF calculators are fixed.
+    See the link below for similar data for CNs for molten salts.
+    https://link.springer.com/article/10.1007/s10800-018-1197-z
     """
-    pass
+    NaCl_experiment = mdsuite_project.experiments.NaCl
+    KCl_experiment = mdsuite_project.experiments.KCl
+
+    RDF_Data = mdsuite_project.run.RadialDistributionFunction(
+        number_of_configurations=500, cutoff=15.0
+    )
+    NaCl_CN_data = NaCl_experiment.run.CoordinationNumbers(
+        rdf_data=RDF_Data["NaCl"],
+        savgol_window_length=110,
+        savgol_order=9,
+        number_of_shells=3,
+    )
+    KCl_CN_data = KCl_experiment.run.CoordinationNumbers(
+        rdf_data=RDF_Data["KCl"],
+        savgol_window_length=110,
+        savgol_order=7,
+        number_of_shells=2,
+    )
+    KCl_POMF_data = KCl_experiment.run.PotentialOfMeanForce(
+        rdf_data=RDF_Data["KCl"],
+        savgol_window_length=110,
+        savgol_order=7,
+        number_of_shells=2,
+    )
+    # Run assertions on selected observables
+    NaCl_CN_data["Na_Cl"]["CN_1"] == pytest.approx(5.213, 0.0001)
+    NaCl_CN_data["Na_Cl"]["CN_2"] == pytest.approx(35.090, 0.0001)
+    NaCl_CN_data["Na_Na"]["CN_1"] == pytest.approx(14.775, 0.0001)
+
+    KCl_CN_data["Cl_K"]["CN_1"] == pytest.approx(5.507, 0.0001)
+
+    KCl_POMF_data["Cl_K"]["POMF_1"] == pytest.approx(-1.372e-11, 1e-14)
+
+    mdsuite_project.run.GreenKuboDiffusionCoefficients()
+    mdsuite_project.run.EinsteinDiffusionCoefficients()
