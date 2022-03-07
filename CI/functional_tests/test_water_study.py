@@ -119,7 +119,7 @@ def test_water_analysis(mdsuite_project):
         plot=False, molecules=True, data_range=500
     )
 
-    water_group = water.molecules["water"]["groups"]["0"]
+    water_group = water.molecules["water"].groups["0"]
     atom_group_adf = mdsuite_project.run.AngularDistributionFunction(
         atom_selection=water_group, number_of_configurations=100, plot=False
     )
