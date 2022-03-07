@@ -138,8 +138,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$\text{Angle} / \theta$"
-        self.y_label = r"$\text{ADF} / a.u.$"
+        self.x_label = r"$$\text{Angle} / \theta$$"
+        self.y_label = r"$$\text{ADF} / a.u.$$"
 
     @call
     def __call__(
