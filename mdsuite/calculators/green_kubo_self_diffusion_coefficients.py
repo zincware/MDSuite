@@ -32,7 +32,6 @@ from typing import Any, List, Union
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from bokeh.io import export_svg
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
@@ -298,7 +297,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             fig.add_tools(HoverTool())
             fig.add_layout(span)
-            export_svg(fig, filename="diffusion.svg")
             self.plot_array.append(fig)
 
     def postprocessing(self, species: str):
