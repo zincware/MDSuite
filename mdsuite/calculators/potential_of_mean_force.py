@@ -132,7 +132,7 @@ class PotentialOfMeanForce(Calculator):
     @call
     def __call__(
         self,
-        rdf_data: Computation,
+        rdf_data: Computation = None,
         plot=True,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
