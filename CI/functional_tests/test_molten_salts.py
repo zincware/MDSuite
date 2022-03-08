@@ -121,7 +121,7 @@ def test_analysis(mdsuite_project):
     )
     NaCl_CN_data = NaCl_experiment.run.CoordinationNumbers(
         rdf_data=RDF_Data["NaCl"],
-        savgol_window_length=110,
+        savgol_window_length=111,
         savgol_order=9,
         number_of_shells=3,
         plot=False,
