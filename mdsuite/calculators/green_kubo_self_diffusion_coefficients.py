@@ -104,7 +104,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.scale_function = {"linear": {"scale_factor": 150}}
 
         self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
+        self.y_label = r"$$\text{VACF} / m^{2}s^{-1}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "acf", "integral", "integral_uncertainty"]

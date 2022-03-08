@@ -117,25 +117,28 @@ def test_analysis(mdsuite_project):
     KCl_experiment = mdsuite_project.experiments.KCl
 
     RDF_Data = mdsuite_project.run.RadialDistributionFunction(
-        number_of_configurations=500, cutoff=15.0
+        number_of_configurations=500, cutoff=15.0, plot=False
     )
     NaCl_CN_data = NaCl_experiment.run.CoordinationNumbers(
         rdf_data=RDF_Data["NaCl"],
         savgol_window_length=110,
         savgol_order=9,
         number_of_shells=3,
+        plot=False,
     )
     KCl_CN_data = KCl_experiment.run.CoordinationNumbers(
         rdf_data=RDF_Data["KCl"],
-        savgol_window_length=110,
+        savgol_window_length=111,
         savgol_order=7,
         number_of_shells=2,
+        plot=False,
     )
     KCl_POMF_data = KCl_experiment.run.PotentialOfMeanForce(
         rdf_data=RDF_Data["KCl"],
-        savgol_window_length=110,
+        savgol_window_length=111,
         savgol_order=7,
         number_of_shells=2,
+        plot=False,
     )
     # Run assertions on selected observables
     NaCl_CN_data["Na_Cl"]["CN_1"] == pytest.approx(5.213, 0.0001)
