@@ -120,7 +120,7 @@ class PotentialOfMeanForce(Calculator):
         self.pomf = None
         self.indices = None
         self.x_label = r"$$r /  nm$$"
-        self.y_label = r"$$w^{(2)}(r)$$"
+        self.y_label = r"$$w^{2}(r)$$"
         self.data_range = 1
 
         self.result_keys = []
