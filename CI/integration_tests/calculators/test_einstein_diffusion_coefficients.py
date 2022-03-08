@@ -87,8 +87,8 @@ def test_calculator(tmp_path):
     diff_coeff_should_be = diff_coeff * units.length ** 2 / units.time
     msd_shouldbe = 6 * diff_coeff_should_be * time_should_be
 
-    np.testing.assert_allclose(res["time"], time_should_be, atol=1e-6)
-    np.testing.assert_allclose(res["msd"], msd_shouldbe, rtol=1e-2)
+    np.testing.assert_allclose(res["time"], time_should_be, atol=5e-6)
+    np.testing.assert_allclose(res["msd"], msd_shouldbe, rtol=5e-2)
     np.testing.assert_allclose(
-        res["diffusion_coefficient"], diff_coeff_should_be, rtol=1e-2
+        res["diffusion_coefficient"], diff_coeff_should_be, rtol=5e-2
     )
