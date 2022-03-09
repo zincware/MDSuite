@@ -214,7 +214,7 @@ class PotentialOfMeanForce(Calculator):
         cutoff : float
                 The cutoff (in nm) used in the RDF calculation
         """
-        raw_data = self.rdf_data.data_dict
+        raw_data = self.rdf_data
         keys = list(raw_data)
         number_of_bins = len(raw_data[keys[0]]["x"])
         cutoff = raw_data[keys[0]]["x"][-1]
@@ -333,7 +333,7 @@ class PotentialOfMeanForce(Calculator):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        for selected_species, vals in self.rdf_data.data_dict.items():
+        for selected_species, vals in self.rdf_data.items():
             selected_species = selected_species.split("_")
             radii = np.array(vals["x"]).astype(float)[1:]
             rdf = np.array(vals["y"]).astype(float)[1:]
