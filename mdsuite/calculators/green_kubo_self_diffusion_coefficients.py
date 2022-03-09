@@ -331,3 +331,4 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             # Scale, save, and plot the data.
             self.postprocessing(species)
             self.sigmas = []
+            self.vacfs = []
