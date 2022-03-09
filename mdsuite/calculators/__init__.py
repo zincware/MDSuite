@@ -26,51 +26,47 @@ Summary
 """
 from __future__ import annotations
 
-from .angular_distribution_function import AngularDistributionFunction
-from .calculator import Calculator
-from .coordination_number_calculation import CoordinationNumbers
-from .einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
-from .einstein_distinct_diffusion_coefficients import (
+from mdsuite.calculators.angular_distribution_function import AngularDistributionFunction
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.coordination_number_calculation import CoordinationNumbers
+from mdsuite.calculators.einstein_diffusion_coefficients import EinsteinDiffusionCoefficients
+from mdsuite.calculators.einstein_distinct_diffusion_coefficients import (
     EinsteinDistinctDiffusionCoefficients,
 )
-from .einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
-from .einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
-from .einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
-from .green_kubo_distinct_diffusion_coefficients import (
+from mdsuite.calculators.einstein_helfand_ionic_conductivity import EinsteinHelfandIonicConductivity
+from mdsuite.calculators.einstein_helfand_thermal_conductivity import EinsteinHelfandThermalConductivity
+from mdsuite.calculators.einstein_helfand_thermal_kinaci import EinsteinHelfandThermalKinaci
+from mdsuite.calculators.green_kubo_distinct_diffusion_coefficients import (
     GreenKuboDistinctDiffusionCoefficients,
 )
-from .green_kubo_ionic_conductivity import GreenKuboIonicConductivity
-from .green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
-from .green_kubo_thermal_conductivity import GreenKuboThermalConductivity
-from .green_kubo_viscosity import GreenKuboViscosity
-from .green_kubo_viscosity_flux import GreenKuboViscosityFlux
-from .kirkwood_buff_integrals import KirkwoodBuffIntegral
-from .nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
-from .potential_of_mean_force import PotentialOfMeanForce
-from .radial_distribution_function import RadialDistributionFunction
+from mdsuite.calculators.green_kubo_ionic_conductivity import GreenKuboIonicConductivity
+from mdsuite.calculators.green_kubo_self_diffusion_coefficients import GreenKuboDiffusionCoefficients
+from mdsuite.calculators.green_kubo_thermal_conductivity import GreenKuboThermalConductivity
+from mdsuite.calculators.green_kubo_viscosity import GreenKuboViscosity
+from mdsuite.calculators.green_kubo_viscosity_flux import GreenKuboViscosityFlux
+from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
+from mdsuite.calculators.nernst_einstein_ionic_conductivity import NernstEinsteinIonicConductivity
+from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
+from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 
-# from .spatial_distribution_function import SpatialDistributionFunction
-# from .structure_factor import StructureFactor
 
 __all__ = [
-    "Calculator",
-    "AngularDistributionFunction",
-    "CoordinationNumbers",
-    "EinsteinDiffusionCoefficients",
-    "EinsteinDistinctDiffusionCoefficients",
-    "EinsteinHelfandIonicConductivity",
-    "EinsteinHelfandThermalConductivity",
-    "EinsteinHelfandThermalKinaci",
-    "GreenKuboViscosityFlux",
-    "GreenKuboDistinctDiffusionCoefficients",
-    "GreenKuboIonicConductivity",
-    "GreenKuboDiffusionCoefficients",
-    "GreenKuboThermalConductivity",
-    "GreenKuboViscosity",
-    "KirkwoodBuffIntegral",
-    "NernstEinsteinIonicConductivity",
-    "PotentialOfMeanForce",
-    "RadialDistributionFunction",
-    # "StructureFactor",
-    # "SpatialDistributionFunction",
+    Calculator.__name__,
+    AngularDistributionFunction.__name__,
+    CoordinationNumbers.__name__,
+    EinsteinDiffusionCoefficients.__name__,
+    EinsteinDistinctDiffusionCoefficients.__name__,
+    EinsteinHelfandIonicConductivity.__name__,
+    EinsteinHelfandThermalConductivity.__name__,
+    EinsteinHelfandThermalKinaci.__name__,
+    GreenKuboViscosityFlux.__name__,
+    GreenKuboDistinctDiffusionCoefficients.__name__,
+    GreenKuboIonicConductivity.__name__,
+    GreenKuboDiffusionCoefficients.__name__,
+    GreenKuboThermalConductivity.__name__,
+    GreenKuboViscosity.__name__,
+    KirkwoodBuffIntegral.__name__,
+    NernstEinsteinIonicConductivity.__name__,
+    PotentialOfMeanForce.__name__,
+    RadialDistributionFunction.__name__,
 ]
