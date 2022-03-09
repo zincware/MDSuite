@@ -195,18 +195,16 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * (self.args.integration_range - 1)
+                self.experiment.units["time"]
+                * (self.args.data_range)
                 * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * self.args.integration_range
+                self.experiment.units["time"]
+                * self.args.data_range
                 * self.experiment.species[species].n_particles
             )
             self.prefactor = numerator / denominator
@@ -227,7 +225,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             ensemble, normalize=False, axis=1, center=False
         )
 
-        vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
+        vacf = self.prefactor * tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
         self.vacf += vacf
         self.sigma.append(
             cumtrapz(
@@ -247,6 +245,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+            fig.output_backend = "svg"
 
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
@@ -312,7 +311,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.sigma = self.prefactor * np.array(self.sigma)
+        self.sigma = np.array(self.sigma)
         sigma = np.mean(self.sigma, axis=0)
         sigma_uncertainty = np.std(self.sigma, axis=0) / np.sqrt(len(self.sigma))
 
@@ -320,8 +319,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         diffusion_uncertainty = sigma_uncertainty[self.args.integration_range - 2]
 
         data = {
-            self.result_keys[0]: diffusion_val.tolist(),
-            self.result_keys[1]: diffusion_uncertainty.tolist(),
+            self.result_keys[0]: 1 / 3 * diffusion_val.tolist(),
+            self.result_keys[1]: 1 / 3 * diffusion_uncertainty.tolist(),
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.vacf.numpy().tolist(),
             self.result_series_keys[2]: sigma.tolist(),
