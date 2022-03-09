@@ -63,6 +63,6 @@ def test_project(traj_file, true_values, tmp_path):
         savgol_order=3, savgol_window_length=111, plot=False
     )
 
-    data_dict = computation["NaCl"].data_dict["Na_Cl"]
+    data_dict = computation["NaCl"]["Na_Cl"]
 
     assertDeepAlmostEqual(data_dict, true_values, decimal=1)
