@@ -104,7 +104,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.scale_function = {"linear": {"scale_factor": 150}}
 
         self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"$$\text{VACF} / m^{2}s^{-1}$$"
+        self.y_label = r"$$\text{VACF} / m^{2}s^{-2}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "acf", "integral", "integral_uncertainty"]
@@ -195,7 +195,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                self.experiment.units["time"]
+                self.experiment.units["time"] ** 2
                 * (self.args.data_range)
                 * len(self.experiment.molecules[species]["indices"])
             )
@@ -203,7 +203,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                self.experiment.units["time"]
+                self.experiment.units["time"] ** 2
                 * self.args.data_range
                 * self.experiment.species[species].n_particles
             )
@@ -230,7 +230,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.sigma.append(
             cumtrapz(
                 vacf,
-                x=self.time,
+                x=self.time * self.experiment.units["time"],
             )
         )
 
@@ -245,7 +245,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
-            fig.output_backend = "svg"
 
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
@@ -296,6 +295,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             fig.add_tools(HoverTool())
             fig.add_layout(span)
+            fig.output_backend = "svg"
             self.plot_array.append(fig)
 
     def postprocessing(self, species: str):
