@@ -26,7 +26,6 @@ hear from our users.
    theory_introduction
    user_guide
    _architecture/data_structures
-   tools
 
 .. toctree::
    :maxdepth: 1
