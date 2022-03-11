@@ -270,7 +270,7 @@ def extract_properties_from_header(
     trajectory_properties : dict
         A dict of the form
         {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
-        Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,7]}
+        Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,8]}
     """
 
     column_dict_properties = {
