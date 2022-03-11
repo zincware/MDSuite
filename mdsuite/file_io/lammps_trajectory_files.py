@@ -229,7 +229,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
 
         return species_dict
 
-    def _get_sample_rate(self, file, n_particles: int) -> int:
+    def _get_sample_rate(self, file, n_particles: int) -> typing.Union[int, None]:
         first_header = mdsuite.file_io.tabular_text_files.read_n_lines(
             file, self.n_header_lines, start_at=0
         )
@@ -237,8 +237,11 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         second_header = mdsuite.file_io.tabular_text_files.read_n_lines(
             file, self.n_header_lines, start_at=self.n_header_lines + n_particles
         )
-        time__step_1 = int(second_header[1])  # Time in second configuration
+        # catch single snapshot trajectory (second_header == [])
+        if not second_header:
+            return None
 
+        time__step_1 = int(second_header[1])  # Time in second configuration
         return time__step_1 - time_step_0
 
 
