@@ -24,12 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import os
+
 import pytest
 from zinchub import DataHub
 
-# import os
-# import mdsuite as mds
-# from mdsuite.utils.testing import assertDeepAlmostEqual
+import mdsuite as mds
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -54,14 +55,14 @@ def true_values() -> dict:
     return NaCl.get_analysis(analysis="KirkwoodBuffIntegral.json")
 
 
-# def test_project(traj_file, true_values, tmp_path):
-#     """Test the kbi called from the project class"""
-#     os.chdir(tmp_path)
-#     project = mds.Project()
-#     project.add_experiment(
-#         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-#     )
-#
-#     computation = project.run.KirkwoodBuffIntegral(plot=False)
-#
-#     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
+def test_project(traj_file, true_values, tmp_path):
+    """Test the kbi called from the project class"""
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.run.KirkwoodBuffIntegral(plot=False)
+
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
