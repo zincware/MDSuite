@@ -40,7 +40,9 @@ def traj_files(tmp_path_factory) -> List[str]:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    water = DataHub(url="https://github.com/zincware/DataHub/tree/main/Water_14_Gromacs")
+    water = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/Water_14_Gromacs", tag="v0.1.0"
+    )
     water.get_file(temporary_path)
     file_paths = [(temporary_path / f).as_posix() for f in water.file_raw]
     return file_paths

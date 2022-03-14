@@ -24,12 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import os
+
 import pytest
 from zinchub import DataHub
 
-# import os
-# import mdsuite as mds
-# from mdsuite.utils.testing import assertDeepAlmostEqual
+import mdsuite as mds
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -37,7 +38,9 @@ def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     NaCl.get_file(path=temporary_path)
 
     return (temporary_path / NaCl.file_raw).as_posix()
@@ -46,18 +49,20 @@ def traj_file(tmp_path_factory) -> str:
 @pytest.fixture(scope="session")
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     return NaCl.get_analysis(analysis="KirkwoodBuffIntegral.json")
 
 
-# def test_project(traj_file, true_values, tmp_path):
-#     """Test the kbi called from the project class"""
-#     os.chdir(tmp_path)
-#     project = mds.Project()
-#     project.add_experiment(
-#         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-#     )
-#
-#     computation = project.run.KirkwoodBuffIntegral(plot=False)
-#
-#     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
+def test_project(traj_file, true_values, tmp_path):
+    """Test the kbi called from the project class"""
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.run.KirkwoodBuffIntegral(plot=False)
+
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
