@@ -59,9 +59,11 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.PotentialOfMeanForce(plot=False)
+    computation = project.run.PotentialOfMeanForce(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-0)
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=0)
 
 
 def test_experiment(traj_file, true_values, tmp_path):
@@ -72,6 +74,8 @@ def test_experiment(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)
+    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=0)

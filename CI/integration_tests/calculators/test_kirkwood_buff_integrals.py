@@ -59,6 +59,8 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.KirkwoodBuffIntegral(plot=False)
+    computation = project.run.KirkwoodBuffIntegral(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
