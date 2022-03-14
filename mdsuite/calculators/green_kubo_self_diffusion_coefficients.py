@@ -82,11 +82,9 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(
-                data_range=500,
-                plot=True,
-                correlation_time=10
-            )
+    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(data_range=500,
+                                                                  plot=True,
+                                                                  correlation_time=10)
     """
 
     def __init__(self, **kwargs):
@@ -164,9 +162,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         )
 
         self.plot = plot
-        self.time = self._handle_tau_values()
-        self.vacf = np.zeros(self.data_resolution)
-        self.sigma = []
+
+        # Note: The following attributes are in SI units
+        self.time = self._handle_tau_values() * self.experiment.units["time"]
+        self.vacfs = []
+        self.sigmas = []
 
     def check_input(self):
         """
@@ -177,37 +177,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         """
         self._run_dependency_check()
-
-    def _calculate_prefactor(self, species: str = None):
-        """
-        Compute the prefactor
-
-        Parameters
-        ----------
-        species : str
-                Species being studied.
-
-        Returns
-        -------
-        Updates the class state.
-        """
-        # Calculate the prefactor
-        if self.args.molecules:
-            numerator = self.experiment.units["length"] ** 2
-            denominator = (
-                self.experiment.units["time"] ** 2
-                * (self.args.data_range)
-                * len(self.experiment.molecules[species]["indices"])
-            )
-            self.prefactor = numerator / denominator
-        else:
-            numerator = self.experiment.units["length"] ** 2
-            denominator = (
-                self.experiment.units["time"] ** 2
-                * self.args.data_range
-                * self.experiment.species[species].n_particles
-            )
-            self.prefactor = numerator / denominator
 
     def ensemble_operation(self, ensemble):
         """
@@ -221,18 +190,21 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        vacf = self.args.data_range * tfp.stats.auto_correlation(
-            ensemble, normalize=False, axis=1, center=False
+        vacf = (
+            self.experiment.units["length"] ** 2
+            / self.experiment.units["time"] ** 2
+            * tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         )
 
-        vacf = self.prefactor * tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
-        self.vacf += vacf
-        self.sigma.append(
+        # average particles, sum dimensions
+        vacf = tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1)
+        self.sigmas.append(
             cumtrapz(
                 vacf,
-                x=self.time * self.experiment.units["time"],
+                x=self.time,
             )
         )
+        self.vacfs.append(vacf)
 
     def plot_data(self, data: dict):
         """
@@ -245,19 +217,17 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+            fig.output_backend = "svg"
 
             integral = np.array(val[self.result_series_keys[2]])
             integral_err = np.array(val[self.result_series_keys[3]])
-            time = (
-                np.array(val[self.result_series_keys[0]]) * self.experiment.units["time"]
-            )
+            time = np.array(val[self.result_series_keys[0]])
             vacf = np.array(val[self.result_series_keys[1]])
             # Compute the span
             span = Span(
-                location=(
-                    np.array(val[self.result_series_keys[0]])
-                    * self.experiment.units["time"]
-                )[self.args.integration_range - 1],
+                location=np.array(val[self.result_series_keys[0]])[
+                    self.args.integration_range - 1
+                ],
                 dimension="height",
                 line_dash="dashed",
             )
@@ -267,35 +237,34 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 vacf,
                 color="#003f5c",
                 legend_label=(
-                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    f" {val[self.result_keys[1]]: 0.3E}"
+                    f"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +-"
+                    f" {val[self.result_keys[1]][0]: 0.3E}"
                 ),
             )
 
             fig.extra_y_ranges = {
-                "Diffusion": Range1d(start=0.9 * min(integral), end=1.1 * max(integral))
+                "Cond_range": Range1d(start=0.6 * min(integral), end=1.3 * max(integral))
             }
-            fig.line(time[1:], integral, y_range_name="Diffusion", color="#bc5090")
+            fig.add_layout(
+                LinearAxis(
+                    y_range_name="Cond_range",
+                    axis_label=r"$$\text{Diffusion Coefficient} / \text{Siemens}/cm$$",
+                ),
+                "right",
+            )
+
+            fig.line(time[1:], integral, y_range_name="Cond_range", color="#bc5090")
             fig.varea(
                 time[1:],
                 integral - integral_err,
                 integral + integral_err,
                 alpha=0.3,
                 color="#ffa600",
-                y_range_name="Diffusion",
-            )
-
-            fig.add_layout(
-                LinearAxis(
-                    y_range_name="Diffusion",
-                    axis_label=r"$$\text{Diffusion Coefficient} / m^{2}s^{-1}$$",
-                ),
-                "right",
+                y_range_name="Cond_range",
             )
 
             fig.add_tools(HoverTool())
             fig.add_layout(span)
-            fig.output_backend = "svg"
             self.plot_array.append(fig)
 
     def postprocessing(self, species: str):
@@ -311,20 +280,23 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.sigma = np.array(self.sigma)
-        sigma = np.mean(self.sigma, axis=0)
-        sigma_uncertainty = np.std(self.sigma, axis=0) / np.sqrt(len(self.sigma))
+        self.sigmas = np.array(self.sigmas)
+        sigma = np.mean(self.sigmas, axis=0)
+        sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
 
-        diffusion_val = sigma[self.args.integration_range - 2]
-        diffusion_uncertainty = sigma_uncertainty[self.args.integration_range - 2]
+        self.vacfs = np.array(self.vacfs)
+        vacf = np.mean(self.vacfs, axis=0)
+
+        diff_coeff = 1 / 3 * sigma[-1]
+        diff_coeff_SEM = 1 / 3 * sigma_SEM[-1]
 
         data = {
-            self.result_keys[0]: 1 / 3 * diffusion_val.tolist(),
-            self.result_keys[1]: 1 / 3 * diffusion_uncertainty.tolist(),
+            self.result_keys[0]: [diff_coeff],
+            self.result_keys[1]: [diff_coeff_SEM],
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: self.vacf.numpy().tolist(),
+            self.result_series_keys[1]: vacf.tolist(),
             self.result_series_keys[2]: sigma.tolist(),
-            self.result_series_keys[3]: sigma_uncertainty.tolist(),
+            self.result_series_keys[3]: sigma_SEM.tolist(),
         }
 
         self.queue_data(data=data, subjects=[species])
@@ -341,7 +313,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         # Loop over species
         for species in self.args.species:
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
-            self._calculate_prefactor(species)
 
             batch_ds = self.get_batch_dataset([species])
 
@@ -359,4 +330,5 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             # Scale, save, and plot the data.
             self.postprocessing(species)
-            self.sigma = []
+            self.sigmas = []
+            self.vacfs = []
