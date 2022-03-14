@@ -220,8 +220,13 @@ class StructureFactor(Calculator):
         Returns
         -------
         Updates the data class for each species.
+
+        Notes
+        -----
+        aff -> atomic form factor
         """
         for name, species_data in self.species_dict.items():
+            # aff -> atomic form factor
             aff_data = self.form_factor_data.loc[self.form_factor_data["Element"] == name]
             c = aff_data["c"]
             form_factor = np.zeros(self.args.resolution)

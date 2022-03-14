@@ -32,7 +32,6 @@ from typing import Any, List, Union
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from bokeh.io import export_svg
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
@@ -83,9 +82,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     Examples
     --------
-    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(data_range=500,
-                                                                  plot=True,
-                                                                  correlation_time=10)
+    experiment.run_computation.GreenKuboSelfDiffusionCoefficients(
+                data_range=500,
+                plot=True,
+                correlation_time=10
+            )
     """
 
     def __init__(self, **kwargs):
@@ -103,7 +104,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.scale_function = {"linear": {"scale_factor": 150}}
 
         self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
+        self.y_label = r"$$\text{VACF} / m^{2}s^{-2}$$"
         self.analysis_name = "Green Kubo Self-Diffusion Coefficients"
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
         self.result_series_keys = ["time", "acf", "integral", "integral_uncertainty"]
@@ -194,18 +195,16 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         if self.args.molecules:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * (self.args.integration_range - 1)
+                self.experiment.units["time"] ** 2
+                * (self.args.data_range)
                 * len(self.experiment.molecules[species]["indices"])
             )
             self.prefactor = numerator / denominator
         else:
             numerator = self.experiment.units["length"] ** 2
             denominator = (
-                3
-                * self.experiment.units["time"]
-                * self.args.integration_range
+                self.experiment.units["time"] ** 2
+                * self.args.data_range
                 * self.experiment.species[species].n_particles
             )
             self.prefactor = numerator / denominator
@@ -226,12 +225,12 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             ensemble, normalize=False, axis=1, center=False
         )
 
-        vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
+        vacf = self.prefactor * tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
         self.vacf += vacf
         self.sigma.append(
             cumtrapz(
                 vacf,
-                x=self.time,
+                x=self.time * self.experiment.units["time"],
             )
         )
 
@@ -296,7 +295,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             fig.add_tools(HoverTool())
             fig.add_layout(span)
-            export_svg(fig, filename="diffusion.svg")
+            fig.output_backend = "svg"
             self.plot_array.append(fig)
 
     def postprocessing(self, species: str):
@@ -312,7 +311,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.sigma = self.prefactor * np.array(self.sigma)
+        self.sigma = np.array(self.sigma)
         sigma = np.mean(self.sigma, axis=0)
         sigma_uncertainty = np.std(self.sigma, axis=0) / np.sqrt(len(self.sigma))
 
@@ -320,8 +319,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         diffusion_uncertainty = sigma_uncertainty[self.args.integration_range - 2]
 
         data = {
-            self.result_keys[0]: diffusion_val.tolist(),
-            self.result_keys[1]: diffusion_uncertainty.tolist(),
+            self.result_keys[0]: 1 / 3 * diffusion_val.tolist(),
+            self.result_keys[1]: 1 / 3 * diffusion_uncertainty.tolist(),
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.vacf.numpy().tolist(),
             self.result_series_keys[2]: sigma.tolist(),

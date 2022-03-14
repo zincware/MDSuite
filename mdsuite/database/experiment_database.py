@@ -26,14 +26,14 @@ Summary
 """
 from __future__ import annotations
 
+import dataclasses
 import logging
-from dataclasses import asdict
 from typing import TYPE_CHECKING, Dict, List
 
 import numpy as np
-from dot4dict import dotdict
 
 import mdsuite.database.scheme as db
+from mdsuite.database.simulation_database import MoleculeInfo, SpeciesInfo
 from mdsuite.utils.database import get_or_create
 from mdsuite.utils.units import Units
 
@@ -83,7 +83,6 @@ class ExperimentDatabase:
     number_of_configurations = LazyProperty()
     number_of_atoms = LazyProperty()
     sample_rate = LazyProperty()
-    volume = LazyProperty()
     property_groups = LazyProperty()
 
     def __init__(self, project: Project, experiment_name):
@@ -191,17 +190,14 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def species(self) -> Dict[str, dotdict]:
+    def species(self) -> Dict[str, SpeciesInfo]:
         """Get species
 
         Returns
         -------
 
-        # TODO replace DotDict with dataclass
-
-        DotDict:
-            A dictionary of species such as {Li: {indices: [1, 2, 3], mass: [12.0],
-            charge: [0]}}
+        dict[str, SpeciesInfo]:
+            A dictionary of species such as {Li: SpeciesInfo}
         """
         if self._species is None:
             with self.project.session as ses:
@@ -211,31 +207,43 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._species = {
-                    key: dotdict(val) for key, val in experiment.get_species().items()
+                    key: SpeciesInfo(name=key, **val)
+                    for key, val in experiment.get_species().items()
                 }
 
         return self._species
 
     @species.setter
     def species(self, value: dict):
-        """
+        """Save the SpeciesInfo to the SQL database
 
         Parameters
         ----------
-        value
-
-        Notes
-        -----
-
-        species = {C: {mass: [12.0], charge: [0]}}
-
+        value: dict
+            A dictionary of {element: SpeciesInfo}
         """
         if value is None:
             return
 
+        if not isinstance(value, dict):
+            raise ValueError(
+                "species must be a dict[str, SpeciesInfo] or dict[str, dict]"
+            )
+
         # Do not allow the key "indices" in the SQL database!
-        for single_species in value.values():
-            single_species.pop("indices", None)
+        processed_value = {}
+        for species_name, species_obj in value.items():
+            if isinstance(species_obj, SpeciesInfo):
+                processed_value[species_name] = dataclasses.asdict(species_obj)
+                # we do not use the name here, because it is already used as the key
+
+            else:
+                processed_value[species_name] = species_obj
+            # can't have name or indices in the dict
+            processed_value[species_name].pop("name", None)
+            processed_value[species_name].pop("indices", None)
+
+        value = processed_value
 
         self._species = None
         with self.project.session as ses:
@@ -250,10 +258,9 @@ class ExperimentDatabase:
             ses.commit()
 
     @property
-    def molecules(self):
+    def molecules(self) -> Dict[str, MoleculeInfo]:
         """Get the molecules dict"""
 
-        # TODO do the same thing with molecules, use a dataclass!
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
@@ -262,6 +269,13 @@ class ExperimentDatabase:
                     .first()
                 )
                 self._molecules = experiment.get_molecules()
+                # hotfix to convert to SpeciesInfo
+                for molecule_name, molecule_obj in self._molecules.items():
+                    # set properties = None if it does not exist
+                    molecule_obj["properties"] = molecule_obj.get("properties", [])
+                    molecule_info = MoleculeInfo(name=molecule_name, **molecule_obj)
+                    self._molecules[molecule_name] = molecule_info
+
         return self._molecules
 
     @molecules.setter
@@ -269,6 +283,20 @@ class ExperimentDatabase:
         """Save the molecules dict to the database"""
         if value is None:
             return
+
+        processed_value = {}
+        for molecule_name, molecule_obj in value.items():
+            if isinstance(molecule_obj, MoleculeInfo):
+                processed_value[molecule_name] = dataclasses.asdict(molecule_obj)
+                # we do not use the name here, because it is already used as the key
+            else:
+                processed_value[molecule_name] = molecule_obj
+            # can't have name or indices in the dict
+            processed_value[molecule_name].pop("name", None)
+            processed_value[molecule_name].pop("indices", None)
+
+        value = processed_value
+
         self._molecules = None
         with self.project.session as ses:
             experiment = (
@@ -311,7 +339,7 @@ class ExperimentDatabase:
         """Set the units of the experiment"""
         if value is None:
             return
-        self.set_db(name="units", value=asdict(value))
+        self.set_db(name="units", value=dataclasses.asdict(value))
 
     @property
     def read_files(self):
@@ -393,3 +421,9 @@ class ExperimentDatabase:
         if value is None:
             return
         self.set_db(name="version", value=value)
+
+    # On the fly properties
+    @property
+    def volume(self):
+        """Compute the Volume"""
+        return np.prod(self.box_array)

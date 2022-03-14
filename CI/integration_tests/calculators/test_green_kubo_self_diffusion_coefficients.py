@@ -61,4 +61,8 @@ def test_project(traj_file, true_values, tmp_path):
 
     computation = project.run.GreenKuboDiffusionCoefficients(plot=False)
 
+    for key, val in computation["NaCl"].items():
+        val.pop("integral")
+        val.pop("integral_uncertainty")
+
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)

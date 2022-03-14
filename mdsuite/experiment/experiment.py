@@ -37,6 +37,7 @@ import numpy as np
 import pubchempy as pcp
 
 import mdsuite.file_io.extxyz_files
+import mdsuite.file_io.file_read
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
 from mdsuite.database.experiment_database import ExperimentDatabase
@@ -46,7 +47,6 @@ from mdsuite.database.simulation_database import (
     TrajectoryMetadata,
 )
 from mdsuite.experiment.run import RunComputation
-from mdsuite.file_io.file_read import FileProcessor
 from mdsuite.time_series import time_series_dict
 from mdsuite.transformations import Transformations
 from mdsuite.utils import config
@@ -149,9 +149,6 @@ class Experiment(ExperimentDatabase):
         ----------
         experiment_name : str
                 The name of the analysis being performed e.g. NaCl_1400K
-        storage_path : str
-                Path to where the tensor_values should be stored (best to have  drive
-                capable of storing large files)
         temperature : float
                 The temperature of the simulation that should be used in some analysis.
         time_step : float
@@ -197,7 +194,6 @@ class Experiment(ExperimentDatabase):
         self.sample_rate = (
             None  # Rate at which configurations are dumped in the trajectory.
         )
-        self.volume = None
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
 
@@ -440,7 +436,7 @@ class Experiment(ExperimentDatabase):
         """
 
         species = self.species
-        species[element]["charge"] = charge  # update entry
+        species[element].charge = [charge]
         self.species = species
 
     def set_mass(self, element: str, mass: float):
@@ -455,7 +451,7 @@ class Experiment(ExperimentDatabase):
                 New mass/es of the element
         """
         species = self.species
-        species[element]["mass"] = mass
+        species[element].mass = mass
         self.species = species
 
     def add_data(
@@ -523,7 +519,7 @@ class Experiment(ExperimentDatabase):
                 Whether or not to look for the masses of the species in pubchempy
         """
 
-        already_read = str(FileProcessor) in self.read_files
+        already_read = str(file_processor) in self.read_files
         if already_read and not force:
             log.info(
                 "This file has already been read, skipping this now."
@@ -553,7 +549,7 @@ class Experiment(ExperimentDatabase):
         self.memory_requirements = database.get_memory_information()
 
         # set at the end, because if something fails, the file was not properly read.
-        self.read_files = self.read_files + [str(FileProcessor)]
+        self.read_files = self.read_files + [str(file_processor)]
 
     def load_matrix(
         self,
@@ -618,7 +614,6 @@ class Experiment(ExperimentDatabase):
             )
         else:
             self.dimensions = None
-        self.volume = np.prod(self.box_array)
         # todo look into replacing these properties
         self.sample_rate = metadata.sample_rate
         species_list = copy.deepcopy(metadata.species_list)
