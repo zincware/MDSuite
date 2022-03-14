@@ -77,4 +77,5 @@ jobs:
           pip3 install .
       - name: Install package
         run: |
-          ./docs/make html
+          cd ./docs
+          make html
