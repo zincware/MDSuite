@@ -45,7 +45,7 @@ from mdsuite.utils.linalg import (
     spherical_to_cartesian_coordinates,
 )
 from mdsuite.utils.meta_functions import join_path
-from mdsuite.utils.tensorflow.layers import NLLayer
+from mdsuite.utils.tensor_flow.layers import NLLayer
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 
 if TYPE_CHECKING:
