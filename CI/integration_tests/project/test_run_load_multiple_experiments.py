@@ -50,7 +50,7 @@ def traj_files(tmp_path_factory) -> list:
     for fname in files_to_load:
         folder = fname.split(".")[0]
         url = f"{base_url}/{folder}"
-        dhub_file = DataHub(url=url)
+        dhub_file = DataHub(url=url, tag="v0.1.0")
         dhub_file.get_file(temporary_path)
         file_paths.append((temporary_path / dhub_file.file_raw).as_posix())
 
