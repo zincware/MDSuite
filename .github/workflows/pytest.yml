@@ -75,7 +75,7 @@ jobs:
         run: |
           pip3 install -r dev-requirements.txt
           pip3 install .
-      - name: Install package
+      - name: run make html
         run: |
           cd ./docs
           make html
