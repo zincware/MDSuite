@@ -37,8 +37,8 @@ log = logging.getLogger(__name__)
 
 
 def fit_einstein_curve(
-    x_data: np.ndarray, y_data: np.ndarray, fit_range: int
-) -> Tuple[Union[ndarray, Iterable, int, float], Any]:
+    x_data: np.ndarray, y_data: np.ndarray, fit_max_index: int
+) -> Tuple[Union[ndarray, Iterable, int, float], Any, list, list]:
     """
     Fit operation for Einstein calculations
 
@@ -48,7 +48,7 @@ def fit_einstein_curve(
             x data to use in the fitting.
     y_data : np.ndarray
             y_data to use in the fitting.
-    fit_range : int
+    fit_max_index : int
             Range at which to store values.
 
     Returns
@@ -58,6 +58,9 @@ def fit_einstein_curve(
     pcov : list
             Covariance matrix of the fit values.
     """
+    # Defined here for completeness.
+    popt = []
+    pcov = []
 
     def func(x, m, a):
         """
@@ -95,11 +98,9 @@ def fit_einstein_curve(
         gradients.append(popt_temp[0])
         gradient_errors.append(np.sqrt(np.diag(pcov_temp))[0])
 
-        if i == fit_range:
+        if i == fit_max_index:
             popt = popt_temp
             pcov = pcov_temp
-
-    # popt, pcov = curve_fit(func, xdata=x_data[start_index:], ydata=y_data[start_index:])
 
     return popt, pcov, gradients, gradient_errors
 

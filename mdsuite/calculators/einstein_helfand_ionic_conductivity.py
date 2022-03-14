@@ -152,8 +152,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         # Calculate the prefactor
         numerator = (self.experiment.units["length"] ** 2) * (elementary_charge ** 2)
         denominator = (
-            6
-            * self.experiment.units["time"]
+            self.experiment.units["time"]
             * (self.experiment.volume * self.experiment.units["length"] ** 3)
             * self.experiment.temperature
             * boltzmann_constant
@@ -195,13 +194,13 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
+            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
         )
         error = np.sqrt(np.diag(covariance))[0]
 
         data = {
-            self.result_keys[0]: fit_values[0],
-            self.result_keys[1]: error,
+            self.result_keys[0]: 1 / 6 * fit_values[0],
+            self.result_keys[1]: 1 / 6 * error,
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.msd_array.tolist(),
         }

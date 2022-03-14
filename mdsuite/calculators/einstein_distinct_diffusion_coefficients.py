@@ -248,7 +248,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             )
 
         numerator = self.experiment.units["length"] ** 2
-        denominator = 6 * self.experiment.units["time"] * atom_scale
+        denominator = self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -269,9 +269,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         try:
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-                x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
+                x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
             )
-            error = np.sqrt(np.diag(covariance))
+            error = np.sqrt(np.diag(covariance))[0]
 
             data = {
                 "diffusion_coefficient": fit_values[0],
@@ -283,13 +283,13 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
                 x_data=self.time,
                 y_data=abs(self.msd_array),
-                fit_range=self.args.fit_range,
+                fit_max_index=self.args.fit_range,
             )
             error = np.sqrt(np.diag(covariance))[0]
 
             data = {
-                self.result_keys[0]: -1 * fit_values[0],
-                self.result_keys[1]: error,
+                self.result_keys[0]: -1 / 6 * fit_values[0],
+                self.result_keys[1]: 1 / 6 * error,
                 self.result_series_keys[0]: self.time.tolist(),
                 self.result_series_keys[1]: self.msd_array.tolist(),
             }

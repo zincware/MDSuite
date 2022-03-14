@@ -188,7 +188,7 @@ def test_data_from_species_and_experiment(tmp_path):
 
     species, _ = load_pos_into_exp(exp)
     exp.box_array = box_l
-    exp.species[species.name]["charge"] = 1.23435
+    exp.species[species.name].charge = 1.23435
 
     def check_trafo(trafo_class, prop_name):
         trafo = trafo_class(

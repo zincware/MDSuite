@@ -287,9 +287,9 @@ class Transformations:
             path = join_path(self.output_property.name, self.output_property.name)
         else:
             try:
-                output_length = self.experiment.species[species]["n_particles"]
+                output_length = self.experiment.species[species].n_particles
             except KeyError:
-                output_length = self.experiment.molecules[species]["n_particles"]
+                output_length = self.experiment.molecules[species].n_particles
             path = join_path(species, self.output_property.name)
         n_dims = self.output_property.n_dims
 
@@ -332,10 +332,10 @@ class Transformations:
         # TODO: properties in species_dict are all lowercase,
         # whereas the properties in the database are upper case
         try:
-            species_dict = self.experiment.species[sp_name]
+            species_info = self.experiment.species[sp_name]
         except KeyError:
-            species_dict = self.experiment.molecules[sp_name]
-        per_sp_value = species_dict.get(prop.name.lower())
+            species_info = self.experiment.molecules[sp_name]
+        per_sp_value = getattr(species_info, prop.name.lower(), None)
         if per_sp_value is not None:
             return per_sp_value
         # if not species specific, try to find it system-wide

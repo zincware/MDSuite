@@ -96,7 +96,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
         self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"$$\text{MSD} / $m^{2}$$"
+        self.y_label = r"$$\text{MSD} / m^{2}$$"
         self.result_keys = [
             "diffusion_coefficient",
             "uncertainty",
@@ -198,7 +198,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.time *= self.experiment.units["time"]
 
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array, fit_range=self.args.fit_range
+            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
         )
         error = np.sqrt(np.diag(covariance))[0]
 
