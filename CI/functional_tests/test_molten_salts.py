@@ -38,11 +38,15 @@ def traj_files(tmp_path_factory) -> Tuple[str, str]:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_rnd_md")
+    NaCl_file = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_rnd_md", tag="v0.1.0"
+    )
     NaCl_file.get_file(temporary_path)
     NaCl_out = (temporary_path / NaCl_file.file_raw).as_posix()
 
-    KCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/KCl_rnd_md")
+    KCl_file = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/KCl_rnd_md", tag="v0.1.0"
+    )
     KCl_file.get_file(temporary_path)
     KCl_out = (temporary_path / KCl_file.get_file(temporary_path)).as_posix()
 
