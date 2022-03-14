@@ -69,3 +69,18 @@ jobs:
       - name: Pytest
         run: |
           pytest --nbmake ./examples --nbmake-timeout=600
+
+  docstest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install package
+        run: |
+          pip3 install -r dev-requirements.txt
+          pip3 install .
+      - name: Install package
+        run: |
+          ./docs/make html
