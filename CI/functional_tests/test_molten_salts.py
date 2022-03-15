@@ -40,9 +40,13 @@ def traj_files(tmp_path_factory) -> Tuple[str, str]:
     """
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_rnd_md")
+    NaCl_file = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_rnd_md", tag="v0.1.0"
+    )
 
-    KCl_file = DataHub(url="https://github.com/zincware/DataHub/tree/main/KCl_rnd_md")
+    KCl_file = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/KCl_rnd_md", tag="v0.1.0"
+    )
 
     KCl_data = KCl_file.get_file(temporary_path)[0]
     NaCl_data = NaCl_file.get_file(temporary_path)[0]
