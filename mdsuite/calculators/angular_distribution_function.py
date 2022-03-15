@@ -528,7 +528,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
-        self.remainder = 0
         if self.batch_size > self.args.number_of_configurations:
             self.batch_size = self.args.number_of_configurations
             self.n_batches = 1
@@ -545,6 +544,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
             self.minibatch = False
+
+        self.remainder = 0
+        self.minibatch = False
 
     def prepare_computation(self):
         """

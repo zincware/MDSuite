@@ -119,7 +119,9 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
 
-        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
+        self.scale_function = {
+            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
+        }
         self.loaded_property = mdsuite_properties.positions
         self.x_label = r"$$r / nm$$"
         self.y_label = r"$$g(r)$$"
@@ -404,7 +406,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
-        self.remainder = 0
         if self.batch_size > self.args.number_of_configurations:
             self.batch_size = self.args.number_of_configurations
             self.n_batches = 1
@@ -421,6 +422,9 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
             self.minibatch = False
+
+        self.remainder = 0
+        self.minibatch = False
 
     def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """

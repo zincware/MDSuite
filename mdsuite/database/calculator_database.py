@@ -268,7 +268,7 @@ class CalculatorDatabase:
         """Fill the data_files list with filenames of the rdf tensor_values"""
         # TODO replace with exp.load.RDF()
         raise DeprecationWarning(
-            "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
+            "Replaced by experiment.run.RadialDistributionFunction(**kwargs)"
         )
         # with self.experiment.project.session as ses:
         #     computations = (
