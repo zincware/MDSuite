@@ -52,6 +52,7 @@ class Args:
     tau_values: np.s_
     molecules: bool
     species: list
+    fit_range: int
 
 
 tqdm.monitor_interval = 0
@@ -99,7 +100,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         super().__init__(**kwargs)
 
-        self.scale_function = {"linear": {"scale_factor": 10}}
+        self.scale_function = {"quadratic": {"inner_scale_factor": 10}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
 
         self.database_group = "Diffusion_Coefficients"
@@ -123,6 +124,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         molecules: bool = False,
         export: bool = False,
         atom_selection: dict = np.s_[:],
+        fit_range: int = -1,
     ):
         """
         Parameters
@@ -155,6 +157,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         self.plot = plot
 
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
@@ -163,6 +168,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             tau_values=tau_values,
             molecules=molecules,
             species=species,
+            fit_range=fit_range,
         )
         self.time = self._handle_tau_values()
 
@@ -242,7 +248,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             )
 
         numerator = self.experiment.units["length"] ** 2
-        denominator = 6 * self.experiment.units["time"] * atom_scale
+        denominator = self.experiment.units["time"] * atom_scale
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -262,19 +268,28 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         """
         try:
-            result = fit_einstein_curve([self.time, self.msd_array])
+            fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+                x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+            )
+            error = np.sqrt(np.diag(covariance))[0]
+
             data = {
-                "diffusion_coefficient": np.mean(result).tolist(),
-                "uncertainty": (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                "diffusion_coefficient": fit_values[0],
+                "uncertainty": error,
                 "time": self.time.tolist(),
                 "msd": self.msd_array.tolist(),
             }
         except ValueError:
-            result = fit_einstein_curve([self.time, abs(self.msd_array)])
+            fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+                x_data=self.time,
+                y_data=abs(self.msd_array),
+                fit_max_index=self.args.fit_range,
+            )
+            error = np.sqrt(np.diag(covariance))[0]
 
             data = {
-                self.result_keys[0]: (-1 * np.mean(result)).tolist(),
-                self.result_keys[1]: (np.std(result) / (np.sqrt(len(result)))).tolist(),
+                self.result_keys[0]: -1 / 6 * fit_values[0],
+                self.result_keys[1]: 1 / 6 * error,
                 self.result_series_keys[0]: self.time.tolist(),
                 self.result_series_keys[1]: self.msd_array.tolist(),
             }

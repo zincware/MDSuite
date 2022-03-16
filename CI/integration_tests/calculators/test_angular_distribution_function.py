@@ -68,4 +68,4 @@ def test_project(traj_file, true_values, tmp_path):
     for item in computation["NaCl"].data_dict:
         computation["NaCl"].data_dict[item].pop("max_peak")
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)

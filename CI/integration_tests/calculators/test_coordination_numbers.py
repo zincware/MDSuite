@@ -26,11 +26,11 @@ Summary
 """
 import os
 
-import numpy as np
 import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +39,7 @@ def traj_file(tmp_path_factory) -> str:
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
     )
     NaCl.get_file(path=temporary_path)
 
@@ -50,26 +50,23 @@ def traj_file(tmp_path_factory) -> str:
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
     NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
     )
     return NaCl.get_analysis(analysis="CoordinationNumbers.json")
 
 
-def test_project(traj_files, true_values, tmp_path):
+def test_project(traj_file, true_values, tmp_path):
     """Test the CN called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
-        "NaCl", simulation_data=traj_files[0], timestep=0.002, temperature=1400
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.CoordinationNumbers()
+    computation = project.run.CoordinationNumbers(
+        savgol_order=3, savgol_window_length=111, plot=False
+    )
 
-    keys = project.run.CoordinationNumbers.result_keys
+    data_dict = computation["NaCl"]["Na_Cl"]
 
-    data_dict = computation["NaCl"].data_dict["Na_Na"]
-    # TODO issue that  the CN outputs will only contain a single cn, not both
-    #  fix later
-    np.testing.assert_array_almost_equal(data_dict[keys[0]], true_values["x"])
-    np.testing.assert_array_almost_equal(data_dict[keys[1]], true_values["y"])
-    np.testing.assert_array_almost_equal(data_dict[keys[2]], true_values["uncertainty"])
+    assertDeepAlmostEqual(data_dict, true_values, decimal=1)

@@ -49,6 +49,7 @@ class Args:
     correlation_time: int
     tau_values: np.s_
     atom_selection: np.s_
+    fit_range: int
 
 
 class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
@@ -100,6 +101,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         data_range=100,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
     ):
         """
         Python constructor
@@ -113,6 +115,8 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         correlation_time : int
                 Correlation time to use in the analysis.
         """
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
 
         # set args that will affect the computation result
         self.args = Args(
@@ -120,6 +124,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
             correlation_time=correlation_time,
             tau_values=tau_values,
             atom_selection=np.s_[:],
+            fit_range=fit_range,
         )
 
         self.plot = plot
@@ -147,8 +152,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         # Calculate the prefactor
         numerator = (self.experiment.units["length"] ** 2) * (elementary_charge ** 2)
         denominator = (
-            6
-            * self.experiment.units["time"]
+            self.experiment.units["time"]
             * (self.experiment.volume * self.experiment.units["length"] ** 3)
             * self.experiment.temperature
             * boltzmann_constant
@@ -189,11 +193,14 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        result = fit_einstein_curve([self.time, self.msd_array])
+        fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+        )
+        error = np.sqrt(np.diag(covariance))[0]
 
         data = {
-            self.result_keys[0]: result[0].tolist(),
-            self.result_keys[1]: result[1].tolist(),
+            self.result_keys[0]: 1 / 6 * fit_values[0],
+            self.result_keys[1]: 1 / 6 * error,
             self.result_series_keys[0]: self.time.tolist(),
             self.result_series_keys[1]: self.msd_array.tolist(),
         }

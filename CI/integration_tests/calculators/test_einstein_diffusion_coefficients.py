@@ -26,43 +26,69 @@ Summary
 """
 import os
 
-import pytest
-from zinchub import DataHub
+import numpy as np
+import tensorflow as tf
 
 import mdsuite as mds
-from mdsuite.utils.testing import assertDeepAlmostEqual
+import mdsuite.utils.units
+from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.database.simulation_database import (
+    SpeciesInfo,
+    TrajectoryChunkData,
+    TrajectoryMetadata,
+)
+from mdsuite.file_io.script_input import ScriptInput
 
 
-@pytest.fixture(scope="session")
-def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
-    temporary_path = tmp_path_factory.getbasetemp()
+def test_calculator(tmp_path):
+    """
+    Check correctness of the msd and diffusion coefficient by generating data
+    where these quantities are known.
+    """
+    diff_coeff = 1.2345
+    time_step = 0.1
 
-    NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    n_part = 500
+    n_step = 5000
+    msd_range = 50
+
+    vel = np.sqrt(2 * diff_coeff / time_step) * tf.random.normal(
+        shape=(n_step, n_part, 3), mean=0, stddev=1
     )
-    NaCl.get_file(path=temporary_path)
+    pos = time_step * tf.math.cumsum(vel, axis=0)
 
-    return (temporary_path / NaCl.file_raw).as_posix()
-
-
-@pytest.fixture(scope="session")
-def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
-    NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
-    )
-    return NaCl.get_analysis(analysis="EinsteinDiffusionCoefficients.json")
-
-
-def test_project(traj_file, true_values, tmp_path):
-    """Test the EinsteinDiffusionCoefficients called from the project class"""
     os.chdir(tmp_path)
     project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    # introduce nontrivial units to make sure all conversions are correct
+    units = mdsuite.utils.units.si
+    units.length = 0.5
+    units.time = 1.3
+    exp = project.add_experiment(
+        "test_diff_coeff", timestep=time_step, temperature=4.321, units=units
     )
 
-    computation = project.run.EinsteinDiffusionCoefficients(plot=False)
+    pos_prop = mdsuite_properties.unwrapped_positions
+    species = SpeciesInfo(name="test_species", n_particles=n_part, properties=[pos_prop])
+    metadata = TrajectoryMetadata(
+        species_list=[species],
+        n_configurations=n_step,
+        sample_rate=1,
+    )
+    data = TrajectoryChunkData(species_list=[species], chunk_size=n_step)
+    data.add_data(pos, 0, species.name, pos_prop.name)
+    proc = ScriptInput(data=data, metadata=metadata, name="test_name")
+    exp.add_data(proc)
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values)
+    res = exp.run.EinsteinDiffusionCoefficients(
+        plot=False, correlation_time=1, data_range=msd_range
+    )[species.name]
+
+    time_should_be = time_step * np.arange(0, msd_range) * units.time
+    diff_coeff_should_be = diff_coeff * units.length ** 2 / units.time
+    msd_shouldbe = 6 * diff_coeff_should_be * time_should_be
+
+    np.testing.assert_allclose(res["time"], time_should_be, atol=1e-5)
+    np.testing.assert_allclose(res["msd"], msd_shouldbe, rtol=9e-1)
+    np.testing.assert_allclose(
+        res["diffusion_coefficient"], diff_coeff_should_be, rtol=2e-1
+    )

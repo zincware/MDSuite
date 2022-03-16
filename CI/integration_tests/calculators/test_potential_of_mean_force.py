@@ -39,7 +39,7 @@ def traj_file(tmp_path_factory) -> str:
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
     )
     NaCl.get_file(path=temporary_path)
 
@@ -50,7 +50,7 @@ def traj_file(tmp_path_factory) -> str:
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
     NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
     )
     return NaCl.get_analysis(analysis="PotentialOfMeanForce.json")
 
@@ -63,9 +63,11 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.PotentialOfMeanForce(plot=False)
+    computation = project.run.PotentialOfMeanForce(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-0)
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=0)
 
 
 def test_experiment(traj_file, true_values, tmp_path):
@@ -76,6 +78,8 @@ def test_experiment(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(plot=False)
+    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=0)

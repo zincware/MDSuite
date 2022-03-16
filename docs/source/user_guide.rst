@@ -13,3 +13,5 @@ directory or in the tests.**
    :caption: Notebooks:
 
    _notebooks/NaCl_walkthrough
+   _notebooks/Mapping_Molecules
+   _notebooks/Molten_salt_Comparison

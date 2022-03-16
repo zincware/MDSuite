@@ -29,8 +29,11 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.integrate import cumtrapz
 
 from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.database.scheme import Computation
+from mdsuite.utils.meta_functions import apply_savgol_filter
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +46,9 @@ class Args:
 
     savgol_order: int
     savgol_window_length: int
+    number_of_bins: int
+    number_of_configurations: int
+    cutoff: float
 
 
 class KirkwoodBuffIntegral(Calculator):
@@ -81,7 +87,7 @@ class KirkwoodBuffIntegral(Calculator):
 
     Examples
     --------
-    experiment.run_computation.KirkwoodBuffIntegral()
+    experiment.run.KirkwoodBuffIntegral()
     """
 
     def __init__(self, **kwargs):
@@ -110,59 +116,90 @@ class KirkwoodBuffIntegral(Calculator):
         self.post_generation = True
 
     @call
-    def __call__(self, plot=True, data_range=1):
+    def __call__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+    ):
         """
-        Doc string for this one.
+        Call method for the KB integrals.
+
         Parameters
         ----------
+        rdf_data : Computation
+                MDSuite Computation data schema from which to load the RDF data and
+                store relevant SQL meta-data information. If not give, an RDF will be
+                computed using the default RDF arguments.
         plot : bool
-                If true, the output will be displayed in a figure. This figure will also
-                be saved.
-        data_range : int
-                Default to 1 for this analysis
+                If true, the output will be displayed in a figure.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
         """
+        if isinstance(rdf_data, Computation):
+            self.rdf_data = rdf_data
+        else:
+            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.plot = plot
 
-    def _calculate_kb_integral(self):
+        # set args that will affect the computation result
+        self.args = Args(
+            savgol_order=savgol_order,
+            savgol_window_length=savgol_window_length,
+            number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
+            cutoff=self.rdf_data.computation_parameter["cutoff"],
+            number_of_configurations=self.rdf_data.computation_parameter[
+                "number_of_configurations"
+            ],
+        )
+
+    def _calculate_kb_integral(self, radii_data: np.ndarray, rdf_data: np.ndarray):
         """
         calculate the Kirkwood-Buff integral
+
+        Parameters
+        ----------
+        radii_data : np.ndarray
+                Radii data to use in the computation.
+        rdf_data : np.ndarray
+                RDF data to use in the computation.
+
+        Returns
+        -------
+        kb_integral : np.ndarray
+                KB integral to be saved.
         """
+        filtered_data = apply_savgol_filter(
+            rdf_data,
+            order=self.args.savgol_order,
+            window_length=self.args.savgol_window_length,
+        )
+        integral_data = cumtrapz(
+            y=(filtered_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
+        )
 
-        self.kb_integral = []  # empty the integration tensor_values
-
-        for i in range(1, len(self.radii)):
-            self.kb_integral.append(
-                4
-                * np.pi
-                * (
-                    np.trapz(
-                        (self.rdf[1:i] - 1) * (self.radii[1:i]) ** 2, x=self.radii[1:i]
-                    )
-                )
-            )
+        return 4 * np.pi * integral_data
 
     def run_calculator(self):
         """
         Calculate the potential of mean-force and perform error analysis
         """
-        calculations = self.experiment.run.RadialDistributionFunction(plot=False)
-        self.data_range = calculations.data_range
-        for (
-            selected_species,
-            vals,
-        ) in calculations.data_dict.items():  # Loop over all existing RDFs
-            self.selected_species = selected_species.split("_")
+        for selected_species, vals in self.rdf_data.data_dict.items():
+            selected_species = selected_species.split("_")
 
-            self.radii = np.array(vals["x"]).astype(float)[1:]
-            self.rdf = np.array(vals["y"]).astype(float)[1:]
-            self._calculate_kb_integral()  # Integrate the rdf
+            radii = np.array(vals["x"]).astype(float)[1:]
+            rdf = np.array(vals["y"]).astype(float)[1:]
+            kb_integral = self._calculate_kb_integral(radii_data=radii, rdf_data=rdf)
 
             data = {
-                self.result_series_keys[0]: self.radii[1:].tolist(),
-                self.result_series_keys[1]: self.kb_integral,
+                self.result_series_keys[0]: radii[1:].tolist(),
+                self.result_series_keys[1]: kb_integral.tolist(),
             }
 
-            self.queue_data(data=data, subjects=self.selected_species)
+            self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
         """Plot the data"""

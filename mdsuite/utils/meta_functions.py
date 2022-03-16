@@ -330,7 +330,7 @@ def timeit(f: Callable) -> Callable:
 
 
 def apply_savgol_filter(
-    data: list, order: int = 2, window_length: int = 17
+    data: np.ndarray, order: int = 2, window_length: int = 17
 ) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing

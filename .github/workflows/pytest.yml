@@ -5,13 +5,7 @@ name: pytest
 
 on:
   push:
-    branches:
-      - main
-      - development
   pull_request:
-    branches:
-      - main
-      - development
 
 jobs:
   build:
@@ -68,4 +62,4 @@ jobs:
           pip3 install .
       - name: Pytest
         run: |
-          pytest --nbmake ./examples --nbmake-timeout=600
+          pytest --nbmake ./examples --nbmake-timeout=7200

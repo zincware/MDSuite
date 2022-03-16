@@ -9,7 +9,7 @@ sphinx-copybutton
 IPython
 pandoc
 nbsphinx-link
-git+git://github.com/zincware/ZincHub.git#egg=zinchub
+git+https://github.com/zincware/ZincHub.git
 isort
 coverage
 coveralls
