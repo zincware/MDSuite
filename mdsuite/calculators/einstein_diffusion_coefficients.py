@@ -294,7 +294,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             fig.add_layout(
                 LinearAxis(
                     y_range_name="Diff_range",
-                    axis_label=r"$$\text{Diffusion Coefficient} / m^{2}/s$$",
+                    axis_label=r"$$\text{Diffusion Coefficient} / m^{2}s^{-1}$$",
                 ),
                 "right",
             )

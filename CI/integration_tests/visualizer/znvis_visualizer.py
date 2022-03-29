@@ -78,7 +78,9 @@ class TestZnvisVisualizer(unittest.TestCase):
         """
         temp_dir = tempfile.TemporaryDirectory()
         os.chdir(temp_dir.name)
-        argon = DataHub(url="https://github.com/zincware/DataHub/tree/main/Ar/Ar_dft")
+        argon = DataHub(
+            url="https://github.com/zincware/DataHub/tree/main/Ar/Ar_dft", tag="v0.1.0"
+        )
         argon.get_file(path=".")
         project = mds.Project("Ar_test")
         project.add_experiment(
