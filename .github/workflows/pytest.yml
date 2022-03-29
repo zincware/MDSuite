@@ -9,7 +9,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -60,7 +59,7 @@ jobs:
       - name: Install package
         run: |
           pip3 install .
-      - name: Pytest
+      - name: Notebook test
         run: |
           pytest --nbmake ./examples --nbmake-timeout=7200
 
@@ -75,7 +74,7 @@ jobs:
         run: |
           pip3 install -r dev-requirements.txt
           pip3 install .
-      - name: run make html
+      - name: Build documentation
         run: |
           cd ./docs
           make html
