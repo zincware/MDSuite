@@ -210,7 +210,7 @@ class StructureFactor(Calculator):
         """
         volume_si = self.experiment.volume * (self.experiment.units["length"] ** 3)
 
-        self.volume = volume_si / 1e-10 ** 3
+        self.volume = volume_si / 1e-10**3
 
     def _compute_form_factors(self):
         """
@@ -261,7 +261,7 @@ class StructureFactor(Calculator):
             radii = np.array(pair_data["x"])[1:] * 10  # convert to Angstrom.
             rdf = np.array(pair_data["y"][1:])
             radial_multiplier = tf.einsum("i, j -> ij", self.q_values, radii)
-            pre_factor = radii ** 2 * np.sin(radial_multiplier) / radial_multiplier
+            pre_factor = radii**2 * np.sin(radial_multiplier) / radial_multiplier
             integral = 1 + 4 * np.pi * np.trapz(y=pre_factor * (rdf - 1), x=radii, axis=1)
             partial_structure_factors[pair] = integral * 0.5
 

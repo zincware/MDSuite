@@ -179,7 +179,7 @@ class TestMetaFunction:
             -------
             x**2
             """
-            return x ** 2
+            return x**2
 
         x_dat = np.linspace(-10, 10, 1000)
         data = [x_dat, func(x_dat)]
