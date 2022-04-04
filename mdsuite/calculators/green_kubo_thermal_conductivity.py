@@ -165,7 +165,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         denominator = (
             3
             * (self.args.data_range - 1)
-            * self.experiment.temperature ** 2
+            * self.experiment.temperature**2
             * self.experiment.units["boltzman"]
             * self.experiment.volume
         )

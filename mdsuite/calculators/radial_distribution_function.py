@@ -459,7 +459,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         )
         exec_time = timer() - start_time
         atom_pairs_per_second = (
-            tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10 ** 6
+            tf.cast(tf.shape(indices)[1], dtype=self.dtype) / exec_time / 10**6
         )
         atom_pairs_per_second *= tf.cast(batch_size, dtype=self.dtype)
         log.debug(
@@ -752,7 +752,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             function_values : np.array
                     result of the operation
             """
-            return 4 * np.pi * (data ** 2)
+            return 4 * np.pi * (data**2)
 
         def _correction_1(data: np.array) -> np.array:
             """
@@ -781,13 +781,13 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                     result of the operation
 
             """
-            arctan_1 = np.arctan(np.sqrt(4 * (data ** 2) - 2))
+            arctan_1 = np.arctan(np.sqrt(4 * (data**2) - 2))
             arctan_2 = (
                 8
                 * data
                 * np.arctan(
-                    (2 * data * (4 * (data ** 2) - 3))
-                    / (np.sqrt(4 * (data ** 2) - 2) * (4 * (data ** 2) + 1))
+                    (2 * data * (4 * (data**2) - 3))
+                    / (np.sqrt(4 * (data**2) - 2) * (4 * (data**2) + 1))
                 )
             )
 

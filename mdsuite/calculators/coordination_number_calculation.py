@@ -217,7 +217,7 @@ class CoordinationNumbers(Calculator):
         """
         volume_si = self.experiment.volume * (self.experiment.units["length"] ** 3)
 
-        self.volume = volume_si / 1e-9 ** 3
+        self.volume = volume_si / 1e-9**3
 
     def _get_density(self, species: str) -> float:
         """

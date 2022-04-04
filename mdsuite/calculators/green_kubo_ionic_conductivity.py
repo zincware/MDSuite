@@ -170,7 +170,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         # Calculate the prefactor
-        numerator = (elementary_charge ** 2) * (self.experiment.units["length"] ** 2)
+        numerator = (elementary_charge**2) * (self.experiment.units["length"] ** 2)
         denominator = (
             3
             * boltzmann_constant
@@ -203,15 +203,18 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(
-                tf.gather(ensemble, self.args.tau_values, axis=1),
-                normalize=False,
-                axis=1,
-                center=False,
-            ),
-            axis=-1,
-        )[0, :]
+        jacf = (
+            self.args.data_range
+            * tf.reduce_sum(
+                tfp.stats.auto_correlation(
+                    tf.gather(ensemble, self.args.tau_values, axis=1),
+                    normalize=False,
+                    axis=1,
+                    center=False,
+                ),
+                axis=-1,
+            )[0, :]
+        )
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
