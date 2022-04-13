@@ -27,6 +27,8 @@ Summary
 import logging
 import sys
 
+import open3d
+
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
 from mdsuite.utils import config
@@ -53,3 +55,5 @@ channel.setLevel(logging.INFO)
 channel.setFormatter(formatter)
 
 logger.addHandler(channel)
+
+logging.getLogger(open3d.__name__).propagate = False

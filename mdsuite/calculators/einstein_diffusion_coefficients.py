@@ -82,7 +82,18 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                                                          correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 100,
+        correlation_time: int = 1,
+        atom_selection: np.s_ = np.s_[:],
+        molecules: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        fit_range: int = -1,
+        **kwargs,
+    ):
         """
         Parameters
         ----------
@@ -111,17 +122,30 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         log.info("starting Einstein Diffusion Computation")
 
+        if species is None:
+            if molecules:
+                species = list(self.experiment.molecules)
+            else:
+                species = list(self.experiment.species)
+
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
+        # set args that will affect the computation result
+        self.args = Args(
+            data_range=data_range,
+            correlation_time=correlation_time,
+            atom_selection=atom_selection,
+            tau_values=tau_values,
+            molecules=molecules,
+            species=species,
+            fit_range=fit_range,
+        )
+        self.plot = plot
+        self.system_property = False
+
     @call
     def __call__(
         self,
-        plot: bool = True,
-        species: list = None,
-        data_range: int = 100,
-        correlation_time: int = 1,
-        atom_selection: np.s_ = np.s_[:],
-        molecules: bool = False,
-        tau_values: Union[int, List, Any] = np.s_[:],
-        fit_range: int = -1,
     ):
         """
 
@@ -146,26 +170,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         None
         """
-        if species is None:
-            if molecules:
-                species = list(self.experiment.molecules)
-            else:
-                species = list(self.experiment.species)
-
-        if fit_range == -1:
-            fit_range = int(data_range - 1)
-        # set args that will affect the computation result
-        self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            tau_values=tau_values,
-            molecules=molecules,
-            species=species,
-            fit_range=fit_range,
-        )
-        self.plot = plot
-        self.system_property = False
+        self.run_calculator()
 
     def ensemble_operation(self, ensemble):
         """

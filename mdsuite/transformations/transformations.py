@@ -525,7 +525,7 @@ class SingleSpeciesTrafo(Transformations):
         ----------
         batch : dict
             The batch to be transformed. structure is
-            {'Property1': tansordata, ...}
+            {'Property1': tensordata, ...}
         carryover : any
             if the transformation batching is only possible with carryover,
             this argument will provide it

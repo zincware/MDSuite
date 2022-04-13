@@ -110,35 +110,35 @@ def call(func):
         return_dict = self.experiment is None
 
         out = {}
-        for experiment in self.experiments:
-            CLS = self.__class__
-            # NOTE: if the calculator accepts more than just experiment/experiments
-            #  as init, this has to be changed!
-            cls = CLS(experiment=experiment)
-            # pass the user args to the calculator
+        # for experiment in self.experiments:
+        CLS = self.__class__
+        # NOTE: if the calculator accepts more than just experiment/experiments
+        #  as init, this has to be changed!
+        cls = CLS(experiment=self.experiment)
+        # pass the user args to the calculator
+        func(cls, *args, **kwargs)
+        data = cls.get_computation_data()
+        if data is None:
+            # new calculation will be performed
+            cls.prepare_db_entry()
+            cls.save_computation_args()
+            cls.run_analysis()
+            cls.save_db_data()
+            # Need to reset the user args, if they got change
+            # or set to defaults, e.g. n_configurations = - 1 so
+            # that they match the query
             func(cls, *args, **kwargs)
             data = cls.get_computation_data()
-            if data is None:
-                # new calculation will be performed
-                cls.prepare_db_entry()
-                cls.save_computation_args()
-                cls.run_analysis()
-                cls.save_db_data()
-                # Need to reset the user args, if they got change
-                # or set to defaults, e.g. n_configurations = - 1 so
-                # that they match the query
-                func(cls, *args, **kwargs)
-                data = cls.get_computation_data()
 
-            if cls.plot:
-                """Plot the data"""
-                cls.plotter = DataVisualizer2D(
-                    title=cls.analysis_name, path=experiment.figures_path
-                )
-                cls.plot_data(data.data_dict)
-                cls.plotter.grid_show(cls.plot_array)
+        if cls.plot:
+            """Plot the data"""
+            cls.plotter = DataVisualizer2D(
+                title=cls.analysis_name, path=self.experiment.figures_path
+            )
+            cls.plot_data(data.data_dict)
+            cls.plotter.grid_show(cls.plot_array)
 
-            out[cls.experiment.name] = data
+        out[cls.experiment.name] = data
 
         if return_dict:
             return out

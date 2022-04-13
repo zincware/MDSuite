@@ -382,6 +382,20 @@ class Experiment(ExperimentDatabase):
             )
             visualizer.run_visualization()
 
+    def execute_operation(self, operation: callable):
+        """
+        Perform some operation
+        Parameters
+        ----------
+        operation
+
+        Returns
+        -------
+
+        """
+        operation.experiment = self
+        operation()
+
     # def map_elements(self, mapping: dict = None):
     #     """
     #     Map numerical keys to element names in the Experiment class and database_path.
