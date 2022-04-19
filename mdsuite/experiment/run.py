@@ -33,7 +33,8 @@ from mdsuite.calculators import (  # StructureFactor,
     NernstEinsteinIonicConductivity,
     PotentialOfMeanForce,
     RadialDistributionFunction,
-    FindNeighbors
+    FindNeighbors,
+    FindRings
 )
 from mdsuite.transformations import (
     CoordinateUnwrapper,
@@ -240,6 +241,10 @@ class RunComputation:
     @property
     def FindNeighbors(self) -> FindNeighbors:
         return self.exp_wrapper(FindNeighbors)(**self.kwargs)
+
+    @property
+    def FindRings(self) -> FindRings:
+        return self.exp_wrapper(FindRings)(**self.kwargs)
 
     # @property
     # def SpatialDistributionFunction(self) -> SpatialDistributionFunction:

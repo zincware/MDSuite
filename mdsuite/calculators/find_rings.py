@@ -23,14 +23,17 @@ If you use this module please cite us with:
 
 Summary
 -------
-MDSuite module for the computation of the number of atoms bonded to each atom.
-This can be useful to compute coordination fractions for carbon for example.
+MDSuite module for the computation of shortest path rings (SP-rings).
+This can be useful to study atomic structures.
 """
 from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections import Counter
+from copy import deepcopy
 from dataclasses import dataclass
+from itertools import combinations, permutations
 from typing import Union
 
 import numpy as np
@@ -38,14 +41,13 @@ import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.palettes import Category10  # select a palette
 from bokeh.plotting import figure
-from scipy.spatial import KDTree
-from tqdm import tqdm
-
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 # Import user packages
 from mdsuite.utils.meta_functions import join_path
+from scipy.spatial import KDTree
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -65,9 +67,75 @@ class Args:
     species: list
     correlation_time: int
     atom_selection: np.s_
+    shortcut_check: True
+    max_ring_size: int
 
 
-class FindNeighbors(TrajectoryCalculator, ABC):
+class FindRings(TrajectoryCalculator, ABC):
+    @call
+    def __call__(
+            self,
+            plot: bool = False,
+            max_bond_length: float = None,
+            save: bool = True,
+            start: int = 0,
+            stop: int = None,
+            number_of_configurations: int = 1,
+            # TODO: this is unclear to me. related to Funtion corerct_batch_properties
+            atom_selection: Union[np.s_, dict] = np.s_[:],
+            species: list = None,
+            molecules: bool = False,
+            shortcut_check: bool = True,
+            max_ring_size: int = 10.0,
+            **kwargs,
+    ):
+        """
+        Compute the RDF with the given user parameters
+
+        Parameters
+        ----------
+        plot: bool
+            Plot the RDF after the computation
+        save: bool
+            save the data
+        start: int
+            Starting position in the database. All values before start will be
+            ignored.
+        stop: int
+            Stopping position in the database. All values after stop will be
+            ignored.
+        number_of_configurations: int
+            The number of uniformly sampled configuration between start and
+            stop to be used for the RDF.
+        kwargs:
+            overide_n_batches: int
+                    override the automatic batch size calculation
+            use_tf_function : bool
+                    If true, tf.function is used in the calculation.
+        """
+        # set args that will affect the computation result
+        self.args = Args(
+            start=start,
+            stop=stop,
+            data_range=1,
+            correlation_time=1,
+            max_bond_length=max_bond_length,
+            number_of_configurations=number_of_configurations,
+            molecules=molecules,
+            species=species,
+            atom_selection=atom_selection,
+            shortcut_check=shortcut_check,
+            max_ring_size=max_ring_size
+        )
+        # args parsing that will not affect the computation result
+        # usually performance or plotting
+        self.plot = plot
+
+        # kwargs parsing
+        self.use_tf_function = kwargs.pop("use_tf_function", False)
+        self.override_n_batches = kwargs.get("batches")
+        self.tqdm_limit = kwargs.pop("tqdm", 10)
+
     """
     Class for the calculation of the radial distribution function
 
@@ -115,9 +183,9 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         }
         self.loaded_property = mdsuite_properties.positions
         self.x_label = r"$$Timestep$$"
-        self.y_label = r"$$Atoms$$"
-        self.analysis_name = "Find_Neighbors"
-        self.result_series_keys = ["num. neighbors", "counts"]
+        self.y_label = r"$$Count$$"
+        self.analysis_name = "Ring_statistics"
+        self.result_series_keys = ["ring size", "counts"]
 
         self._dtype = tf.float32
         self.use_tf_function = None
@@ -126,66 +194,6 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         self.sample_configurations = None
         self.key_list = None
         self.rdf = None
-
-    @call
-    def __call__(
-            self,
-            plot: bool = False,
-            max_bond_length: float = None,
-            save: bool = True,
-            start: int = 0,
-            stop: int = None,
-            number_of_configurations: int = 1,
-            # TODO: this is unclear to me. related to Funtion corerct_batch_properties
-            atom_selection: Union[np.s_, dict] = np.s_[:],
-            species: list = None,
-            molecules: bool = False,
-            **kwargs,
-    ):
-        """
-        Compute the RDF with the given user parameters
-
-        Parameters
-        ----------
-        plot: bool
-            Plot the RDF after the computation
-        save: bool
-            save the data
-        start: int
-            Starting position in the database. All values before start will be
-            ignored.
-        stop: int
-            Stopping position in the database. All values after stop will be
-            ignored.
-        number_of_configurations: int
-            The number of uniformly sampled configuration between start and
-            stop to be used for the RDF.
-        kwargs:
-            overide_n_batches: int
-                    override the automatic batch size calculation
-            use_tf_function : bool
-                    If true, tf.function is used in the calculation.
-        """
-        # set args that will affect the computation result
-        self.args = Args(
-            start=start,
-            stop=stop,
-            data_range=1,
-            correlation_time=1,
-            max_bond_length=max_bond_length,
-            number_of_configurations=number_of_configurations,
-            molecules=molecules,
-            species=species,
-            atom_selection=atom_selection,
-        )
-        # args parsing that will not affect the computation result
-        # usually performance or plotting
-        self.plot = plot
-
-        # kwargs parsing
-        self.use_tf_function = kwargs.pop("use_tf_function", False)
-        self.override_n_batches = kwargs.get("batches")
-        self.tqdm_limit = kwargs.pop("tqdm", 10)
 
     def check_input(self):
         """
@@ -263,7 +271,7 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         -------
 
         """
-        dict_neighbors_result = {k: [] for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
+        dict_neighbors_result = {k: [] for k in range(0, self.args.max_ring_size)}  # store the results here.
 
         for dict_neighbors in lst_dict_neighbors:
             for n_neighbors, count in dict_neighbors.items():
@@ -359,7 +367,8 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         dict: dictionary with the counts of each number of neighbors
 
         """
-        dict_neighbors = {k: 0 for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
+        dict_neighbors = {k: 0 for k in
+                          range(0, self.args.max_ring_size)}  # we cannot have more than 8 bonds for an atom...
 
         for _, value in adj_dict.items():
             len_list = len(value)
@@ -404,6 +413,261 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         logging.info("Adjacency matrix created.")
         return adj_dict
 
+    def bfs(self, graph, S, D):
+        # taken from https://www.codespeedy.com/python-program-to-find-shortest-path-in-an-unweighted-graph/
+        """
+            Method to search a graph
+            Parameters
+            ----------
+            graph: Dict
+                    Adjacency dictionary
+            S: Int
+                    Start node
+            D: Int
+                    End node
+            Returns:
+            -------
+            *Nothing* iterated by method shortest
+        """
+        queue = [(S, [S])]
+        while queue:
+            (vertex, path) = queue.pop(0)
+            # get the current path length and see if it is larger than the ring size.
+            # this improves computational cost if large rings are not expected.
+            current_path_length = len(path)
+            if current_path_length + 1 >= self.args.max_ring_size:
+                logging.debug("This is longer than the maximum ring size, I skip it.")
+                break
+            # this is a set subtraction! so subtracts the elements in the path from the vertex
+            for next_node in graph[vertex] - set(path):
+                if next_node == D:
+                    yield path + [next_node]
+                else:
+                    queue.append((next_node, path + [next_node]))
+
+    def find_cycle_BFS(self, graph):
+        """
+            Method to find all rings in a graph using a bfs algorithm
+            Parameters
+            ----------
+            graph: Dict
+                    Adjacency Dictionary
+            Returns: Lst
+            -------
+            List of rings
+        """
+
+        rings = []
+        seen = set()
+        for node, edge in graph.items():  # Apply search to every node in graph
+            new_graph = self._delete_node(graph,
+                                          node)  # Delete central 'search' node to stop trivial solution of ring of length 3
+            combs = self._combination(edge)  # Account for all combinations of edges connected to central node
+            for link in combs:  # Consider neighbours of central node
+                link = list(link)
+                ring = self.shortest(new_graph, link[0],
+                                     link[1])  # Initiate search for a ring from 2 neighbours of central node
+                if ring is not None:
+                    ring.append(node)
+                    rings.append(ring)
+        new_rings = [x for x in rings if frozenset(x) not in seen and not seen.add(frozenset(x))]
+        return new_rings
+
+    def shortest(self, graph, S, D):
+        """
+        Method to return the shortest path between two nodes on a graph
+        Parameters
+        ----------
+        graph: Dict
+                Adjacency dictionary
+        S: Int
+                Start node
+        D: Int
+                End node
+        Returns: Lst
+        -------
+        List of nodes in path
+        """
+        try:
+            return next(self.bfs(graph, S, D))
+        except StopIteration:
+            return None
+
+    def _combination(self, lst):
+        """
+        Method to calculate combinations of an edge, requires *from itertools import combinations*
+        Parameters
+        ----------
+        lst: Lst
+                List of nodes
+        Returns: Lst
+        -------
+        List of edges
+        """
+        comb = combinations(lst, 2)  # 2 nodes per edge
+        temp = []
+        for i in list(comb):
+            temp.append(i)
+        for comb in temp:
+            temp[temp.index(comb)] = list(comb)
+        return temp
+
+    def _delete_node(self, graph, node):
+        """
+        Method to delete a node from a graph
+        Parameters
+        ----------
+        graph: Dict
+                Adjacency dictionary
+        node:
+                Node number of the node to delete
+        Returns: Dict
+        -------
+        Adjacency dictionary with node removed
+        """
+        tempGraph = deepcopy(graph)  # Copy graph
+        for edge in tempGraph.values():
+            if node in edge:
+                edge.remove(node)  # Remove node
+        return tempGraph
+
+    def iterate_BFS_ring_check(self, graph, rings):
+        """
+            Method to iterate check_BFS_SPring over whole graph
+            Parameters
+            ----------
+            graph: Dict
+                    Adjacency dictionary
+            rings: Lst
+                    List of rings
+            Returns
+            -------
+            List of SP-rings
+        """
+        logging.debug("Let's remove the rings that are not shortest path (SP)")
+        for ring in rings:  # Check each ring found in graph
+            self.check_BFS_SP_ring(graph, ring, rings)
+        return rings
+
+    def check_BFS_SP_ring(self, graph, ring, rings):
+        """
+            Method to check if a ring has a shortcut of length 1 across it, if it does, the ring is not the shortest-path
+            Parameters
+            ----------
+            graph: Dict
+                    Adjacency dictionary
+            ring: List
+                    List of nodes
+            rings: List
+                    List of rings
+            Returns
+            -------
+            *Nothing* to be iterated by iterateBFSringcheck method
+        """
+        ring_edges = self.permute_edges(self.cycle_edges(ring))  # Permute edges in the ring being checked.
+        new_graph = self.permute_edges(self.extract_edges_from_dict_graph(graph))  # Permute edges in the graph.
+        reduced_graph = [x for x in new_graph if
+                         x not in ring_edges]  # Take ring edge permutations from graph edge permutations
+        for edge in self.permute_cycle(ring):
+            if edge in reduced_graph:  # Check if an edge exists between nodes of the ring being checked
+                # If an edge is present, a shortcut of length 1 exists across ring, the ring cannot be an SP-ring.
+                logging.debug("Ring removed.")
+                rings.remove(ring)
+                return
+
+    def cycle_edges(self, cycle):
+        """
+            Method to extract the edges of a cycle
+            Parameters
+            ----------
+            cycle: Lst
+                    List of nodes
+            Returns: Lst
+            -------
+            A list of edges
+        """
+        tempcycle = deepcopy(cycle)
+        tempcycle.append(cycle[0])
+        tempedge = []
+        for i in range(len(tempcycle) - 1):
+            newedge = [tempcycle[i], tempcycle[i + 1]]
+            tempedge.append(newedge)
+        return tempedge
+
+    def extract_edges_from_dict_graph(self, graph):
+        """
+            Method to convert an adjacency dictionary to an adjacency list
+            Parameters
+            ----------
+            graph: Dict
+                    Adjacency dictionary
+            Returns: Lst
+            -------
+            A graph represented as a list of edges
+        """
+        edges = []
+        for node, edge in graph.items():
+            for vert in edge:
+                edges.append([node, vert])
+        return edges
+
+    def permute_cycle(self, cycle):
+        """
+            Method to permute cycle nodes, Requires *from itertools import permutations*
+            Parameters
+            ----------
+            cycle: Lst
+                    Input a cycle as a list of nodes
+            Returns: Lst
+            -------
+            List of cycle permutations
+        """
+        perm = permutations(cycle, 2)
+        temp = []
+        for i in list(perm):
+            temp.append(i)
+        for perm in temp:
+            temp[temp.index(perm)] = list(perm)
+        return temp
+
+    def permute_edges(self, edges):
+        """
+        Method to permute edges, Requires *from itertools import permutations*
+        Parameters
+        ----------
+        edges: Lst
+                Input a list of edges
+        Returns: Lst
+        -------
+        List of permutations
+        """
+        perm = []
+        temp = []
+        for edge in edges:
+            perm.append(list(permutations(edge)))
+        for i in perm:
+            for j in i:
+                temp.append(list(j))
+        return temp
+
+    def ring_numbers(self, cycles):
+        """
+            Method to count the number of rings of size n in a graph, and return a dictionary of ring sizes
+            and frequency in the graph
+            Parameters
+            ----------
+            cycles
+                    List of cycles, where a cycle is represented as a list of nodes
+            Returns
+            -------
+            Dictionary of ring sizes and frequency
+        """
+        lengths = [len(cy) for cy in cycles]
+        d = dict(Counter(lengths))
+        sorted_tuples = sorted(d.items(), key=lambda item: item[1])
+        d = {k: v for k, v in sorted_tuples}
+        return d
+
     def run_calculator(self):
         """
         Run the analysis.
@@ -422,7 +686,7 @@ class FindNeighbors(TrajectoryCalculator, ABC):
             subject_list=self.args.species, loop_array=split_arr, correct=True
         )
 
-        lst_dict_neighbors = []
+        lst_dict_rings = []
         # Loop over the batches.
         for idx, batch in tqdm(enumerate(batch_ds), ncols=70, total=self.n_batches):
             positions_tensor = self._format_data(batch=batch, keys=dict_keys)
@@ -430,7 +694,14 @@ class FindNeighbors(TrajectoryCalculator, ABC):
             n_configs = shape[1]
             for config in range(n_configs):
                 adj_dict = self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
-                dict_neighbors = self._compute_neighbors(adj_dict)
-                lst_dict_neighbors.append(dict_neighbors)
+                newrings = self.find_cycle_BFS(adj_dict)  # Find all rings in the graph
+                logging.info('Finished computing the rings')
+                logging.info(f'The number of rings is {len(newrings)}')
+                if self.args.shortcut_check:
+                    logging.info(f'Checking for shortcuts')
+                    newrings = self.iterate_BFS_ring_check(adj_dict, newrings)  # Find all SP-rings from rings.
+                ring_counting = self.ring_numbers(newrings)
+                logging.info(f'The ring size occurrences are {ring_counting}')
+                lst_dict_rings.append(ring_counting)
 
-        self._post_operation_processes(lst_dict_neighbors)
+        self._post_operation_processes(lst_dict_rings)
