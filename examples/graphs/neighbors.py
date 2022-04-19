@@ -24,15 +24,13 @@ If you use this module please cite us with:
 Summary
 -------
 """
-import os
-import shutil
+import logging
 from pathlib import Path
 
 import mdsuite as mds
 
-import logging
-
 logging.basicConfig(level=logging.DEBUG)
+
 
 def main_project(traj_file):
     """Test the neighbors called from the project class"""

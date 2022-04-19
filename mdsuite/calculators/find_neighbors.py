@@ -30,12 +30,14 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import Union
 
 import numpy as np
 import tensorflow as tf
+from bokeh.models import HoverTool
+from bokeh.palettes import Category10  # select a palette
+from bokeh.plotting import figure
 from scipy.spatial import KDTree
 from tqdm import tqdm
 
@@ -215,7 +217,6 @@ class FindNeighbors(TrajectoryCalculator, ABC):
             dtype=np.int,
         )  # choose sampled configurations
 
-
     def _correct_batch_properties(self):
         """
         We must fix the batch size parameters set by the parent class.
@@ -234,18 +235,26 @@ class FindNeighbors(TrajectoryCalculator, ABC):
             self.n_batches = self.override_n_batches
 
     def plot_data(self, data):
-        print(data)
         """Plot the atoms vs neighbors"""
+        # TODO: it creates the plot in a "sub-plot", is this created in the calculator class?
+
+        colors = Category10[10]  # create a color iterator with 10 colors, we do not need more.
         data_neighbors = data['System']
+        fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
         for neighbors, time_evolution in data_neighbors.items():
-            timesteps = np.arange(len(time_evolution))
-            self.run_visualization(
-                x_data=timesteps,
-                y_data=np.array(time_evolution),
-                title=(
-                    f'Neighbors'
+            time_steps = np.arange(len(time_evolution))
+            # Add result and hover tool
+            fig.line(
+                time_steps,
+                np.array(time_evolution),
+                color=colors[int(neighbors)],  # we use the neighbor number to set the color.
+                # legend labels are the number of neighbors.
+                legend_label=(
+                    f"{neighbors}"
                 ),
             )
+            fig.add_tools(HoverTool())
+            self.plot_array.append(fig)
 
     def _post_operation_processes(self, lst_dict_neighbors):
         """
@@ -254,8 +263,7 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         -------
 
         """
-
-        dict_neighbors_result = {k: [] for k in range(0, 9)} # we cannot have more than 8 bonds for an atom...
+        dict_neighbors_result = {k: [] for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
 
         for dict_neighbors in lst_dict_neighbors:
             for n_neighbors, count in dict_neighbors.items():
@@ -267,6 +275,8 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         # I believe so far it is simpler to just add everything
         logging.debug(dict_neighbors_result)
 
+        # TODO: revise if this should be system, or instead we create another section in the DB.
+        #  But I do not know how to do it.
         self.queue_data(data=dict_neighbors_result, subjects=["System"])
 
     def prepare_computation(self):
@@ -308,9 +318,9 @@ class FindNeighbors(TrajectoryCalculator, ABC):
 
     def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:
         """
-        Format the loaded data for use in the rdf calculator.
+        Format the loaded data for use this calculators.
 
-        The RDF requires a reshaped dataset. The generator will load a default
+        It requires a matrix with the positions. The generator will load a default
         dict oriented type. This method restructures the data to be used in the
         calculator.
 
@@ -336,24 +346,52 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         else:
             return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
 
-
-    def create_adj_dict(self, positions: tf.Tensor, r: float, leaf_size: int = 10, box_size=None) -> dict:
+    def _compute_neighbors(self, adj_dict: dict) -> dict:
         """
-            Method to create adjacency dictionary from xyz atomic positions input in csv format,
-            requires import numpy as np and from sklearn.neighbors import KDTree
-            Parameters
-            ----------
-            data: nparray
-                    array containing the atomic positions
-            r
-                    Minimum distance to consider an atom as a neigbour
-            Returns: Dict
-            -------
-            Dictionary of atomic adjacencies
+        This method computes the number of neighbors from the adjacency matrix.
+
+        Parameters
+        ----------
+        adj_dict: adjacency dictionary computed from self.create_adj_dict
+
+        Returns
+        -------
+        dict: dictionary with the counts of each number of neighbors
+
+        """
+        dict_neighbors = {k: 0 for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
+
+        for _, value in adj_dict.items():
+            len_list = len(value)
+            dict_neighbors[len_list] += 1
+
+        logging.debug(dict(dict_neighbors))
+
+        return dict(dict_neighbors)  # recast the defaultdict back into a normal dict.
+
+    def create_adj_dict(self, positions: tf.Tensor, r: float, leaf_size: int = 10,
+                        box_size: float | list = None) -> dict:
+        """
+        Method to create adjacency dictionary from xyz atomic positions,
+        It uses the KDTree algorithm
+        Parameters
+        ----------
+        positions: tf.Tensor
+                timestep of positions
+        box_size: float or list
+                Size of the box
+        leaf_size: int
+                Number of leafs in the KDTree
+        r: float
+                Minimum distance to consider an atom as a neighbour
+        Returns
+        -------
+        Dict: Dictionary of atomic adjacencies
         """
         tree = KDTree(positions, leafsize=leaf_size,
                       boxsize=box_size)  # Create KDTree, avoid searching all the space and splits the domain.
-        all_nn_indices = tree.query_ball_point(positions, r, workers=5)  # Calculates neighbours within radius r of a point.
+        all_nn_indices = tree.query_ball_point(positions, r,
+                                               workers=5)  # Calculates neighbours within radius r of a point.
         adj_dict = {}
         for count, item in enumerate(all_nn_indices):
             adj_dict[count] = item  # Populate adjacency dictionary
@@ -365,18 +403,6 @@ class FindNeighbors(TrajectoryCalculator, ABC):
 
         logging.info("Adjacency matrix created.")
         return adj_dict
-
-    def _compute_neighbors(self, adj_dict: dict) -> dict:
-        dict_neighbors = {k: 0 for k in range(0, 9)} # we cannot have more than 8 bonds for an atom...
-
-        for _, value in adj_dict.items():
-            len_list = len(value)
-            dict_neighbors[len_list] += 1
-
-        logging.debug(dict(dict_neighbors))
-
-        return dict(dict_neighbors) # recast the defaultdict back into a normal dict.
-
 
     def run_calculator(self):
         """
