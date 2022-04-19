@@ -33,6 +33,7 @@ from mdsuite.calculators import (  # StructureFactor,
     NernstEinsteinIonicConductivity,
     PotentialOfMeanForce,
     RadialDistributionFunction,
+    FindNeighbors
 )
 from mdsuite.transformations import (
     CoordinateUnwrapper,
@@ -235,6 +236,10 @@ class RunComputation:
     @property
     def EinsteinHelfandThermalConductivity(self) -> EinsteinHelfandThermalConductivity:
         return self.exp_wrapper(EinsteinHelfandThermalConductivity)(**self.kwargs)
+
+    @property
+    def FindNeighbors(self) -> FindNeighbors:
+        return self.exp_wrapper(FindNeighbors)(**self.kwargs)
 
     # @property
     # def SpatialDistributionFunction(self) -> SpatialDistributionFunction:

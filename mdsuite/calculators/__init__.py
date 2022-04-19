@@ -65,6 +65,8 @@ from mdsuite.calculators.nernst_einstein_ionic_conductivity import (
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 
+from mdsuite.calculators.find_neighbors import FindNeighbors
+
 __all__ = [
     Calculator.__name__,
     AngularDistributionFunction.__name__,
@@ -84,4 +86,5 @@ __all__ = [
     NernstEinsteinIonicConductivity.__name__,
     PotentialOfMeanForce.__name__,
     RadialDistributionFunction.__name__,
+    FindNeighbors.__name__
 ]
