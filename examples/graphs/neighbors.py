@@ -26,7 +26,8 @@ Summary
 """
 import logging
 from pathlib import Path
-
+import shutil
+import time
 import mdsuite as mds
 
 logging.basicConfig(level=logging.DEBUG)
@@ -36,16 +37,22 @@ def main_project(traj_file):
     """Test the neighbors called from the project class"""
     project = mds.Project()
     project.add_experiment(
-        "C59", simulation_data=traj_file, timestep=0.002, temperature=1400, units="metal"
+        "C60", simulation_data=traj_file, timestep=0.002, temperature=1400, units="metal"
     )
 
     computation = project.run.FindNeighbors(
         max_bond_length=1.5, number_of_configurations=2, plot=True
     )
 
+    print(computation['C60'].data_dict['System'])
+
 
 if __name__ == "__main__":
-    # shutil.rmtree("MDSuite_Project")
-    test_file = "c59.lammpstraj"
+    try:
+        shutil.rmtree("MDSuite_Project")
+        time.sleep(0.5)
+    except FileNotFoundError:
+        pass
+    test_file = "c60.lammpstraj"
     filepath = (Path("") / test_file).as_posix()
     main_project(filepath)

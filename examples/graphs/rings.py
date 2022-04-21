@@ -49,10 +49,14 @@ def main_project(traj_file):
         shortcut_check=True,
     )
 
+    print(computation['C59'].data_dict['System'])
 
 if __name__ == "__main__":
-    shutil.rmtree("MDSuite_Project")
-    time.sleep(0.5)
+    try:
+        shutil.rmtree("MDSuite_Project")
+        time.sleep(0.5)
+    except FileNotFoundError:
+        pass
     test_file = "c60.lammpstraj"
     filepath = (Path("") / test_file).as_posix()
     main_project(filepath)
