@@ -33,7 +33,7 @@ from abc import ABC
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass
-from itertools import combinations, permutations
+from itertools import combinations
 from typing import Union
 
 import numpy as np
@@ -41,14 +41,13 @@ import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.palettes import Category10  # select a palette
 from bokeh.plotting import figure
-from scipy.spatial import KDTree
-from tqdm import tqdm
-
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 # Import user packages
 from mdsuite.utils.meta_functions import join_path
+from scipy.spatial import KDTree
+from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -179,6 +178,7 @@ class FindRings(TrajectoryCalculator, ABC):
         """
         super().__init__(**kwargs)
 
+        self.adj_dict: dict = {}
         self.scale_function = {
             "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
         }
@@ -409,26 +409,24 @@ class FindRings(TrajectoryCalculator, ABC):
         for node, nodes in adj_dict.items():
             if node in nodes:
                 nodes.remove(node)  # Remove duplicates
-        adj_dict = {k: set(v) for k, v in adj_dict.items()}
-
+        self.adj_dict = {k: set(v) for k, v in adj_dict.items()}
         logging.info("Adjacency matrix created.")
-        return adj_dict
 
     def bfs(self, graph, S, D):
         # taken from https://www.codespeedy.com/python-program-to-find-shortest-path-in-an-unweighted-graph/
         """
-            Method to search a graph
-            Parameters
-            ----------
-            graph: Dict
-                    Adjacency dictionary
-            S: Int
-                    Start node
-            D: Int
-                    End node
-            Returns:
-            -------
-            *Nothing* iterated by method shortest
+        Method to search a graph
+        Parameters
+        ----------
+        graph: Dict
+                Adjacency dictionary
+        S: Int
+                Start node
+        D: Int
+                End node
+        Returns
+        -------
+        *Nothing* iterated by method shortest
         """
         queue = [(S, [S])]
         while queue:
@@ -446,22 +444,21 @@ class FindRings(TrajectoryCalculator, ABC):
                 else:
                     queue.append((next_node, path + [next_node]))
 
-    def find_cycle_BFS(self, graph):
+    def find_cycle_BFS(self):
         """
-            Method to find all rings in a graph using a bfs algorithm
-            Parameters
-            ----------
-            graph: Dict
-                    Adjacency Dictionary
-            Returns: Lst
-            -------
-            List of rings
+        Method to find all rings in a graph using a bfs algorithm
+        Parameters
+        ----------
+
+        Returns
+        -------
+        List of rings
         """
 
         rings = []
         seen = set()
-        for node, edge in graph.items():  # Apply search to every node in graph
-            new_graph = self._delete_node(graph,
+        for node, edge in self.adj_dict.items():  # Apply search to every node in graph
+            new_graph = self._delete_node(self.adj_dict,
                                           node)  # Delete central 'search' node to stop trivial solution of ring of length 3
             combs = self._combination(edge)  # Account for all combinations of edges connected to central node
             for link in combs:  # Consider neighbours of central node
@@ -526,13 +523,25 @@ class FindRings(TrajectoryCalculator, ABC):
         -------
         Adjacency dictionary with node removed
         """
-        tempGraph = deepcopy(graph)  # Copy graph
-        for edge in tempGraph.values():
+        temp_graph = deepcopy(graph)  # Copy graph
+        for edge in temp_graph.values():
             if node in edge:
                 edge.remove(node)  # Remove node
-        return tempGraph
+        return temp_graph
 
-    def remove_not_SP(self, graph: dict, rings: list) -> list:
+    def remove_not_SP(self, rings: list) -> list:
+        """
+        Method to remove rings in which there is a shortcut of size 1.
+
+        Parameters
+        ----------
+        rings: current list of rings.
+
+        Returns
+        -------
+        Updated list of rings
+
+        """
         positions_to_remove = []
         for ring in rings:
             ring_np = np.array(ring)
@@ -542,7 +551,7 @@ class FindRings(TrajectoryCalculator, ABC):
 
             # check if the ring contains a neighbor of the central node, if so, it means there is a shortcut.
             # 1. Get the neighbors of the central node.
-            neighbors_central = np.array(list(graph[central_node]))
+            neighbors_central = np.array(list(self.adj_dict[central_node]))
             # 2. check if the remaining components of the ring contain any of the neighbors.
             # we convert them to numpy arrays to make this check fast.
             check = np.in1d(ring_np_reduced, neighbors_central)
@@ -558,15 +567,15 @@ class FindRings(TrajectoryCalculator, ABC):
 
     def ring_numbers(self, cycles):
         """
-            Method to count the number of rings of size n in a graph, and return a dictionary of ring sizes
-            and frequency in the graph
-            Parameters
-            ----------
-            cycles
-                    List of cycles, where a cycle is represented as a list of nodes
-            Returns
-            -------
-            Dictionary of ring sizes and frequency
+        Method to count the number of rings of size n in a graph, and return a dictionary of ring sizes
+        and frequency in the graph
+        Parameters
+        ----------
+        cycles
+                List of cycles, where a cycle is represented as a list of nodes
+        Returns
+        -------
+        Dictionary of ring sizes and frequency
         """
         lengths = [len(cy) for cy in cycles]
         d = dict(Counter(lengths))
@@ -599,13 +608,13 @@ class FindRings(TrajectoryCalculator, ABC):
             shape = tf.shape(positions_tensor)
             n_configs = shape[1]
             for config in range(n_configs):
-                adj_dict = self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
-                rings = self.find_cycle_BFS(adj_dict)  # Find all rings in the graph
+                self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
+                rings = self.find_cycle_BFS()  # Find all rings in the graph
                 logging.info('Finished computing the rings')
                 logging.info(f'The number of rings is {len(rings)}')
                 if self.args.shortcut_check:
                     logging.info(f'Checking for shortcuts')
-                    rings = self.remove_not_SP(adj_dict, rings)
+                    rings = self.remove_not_SP(rings)
                 ring_counting = self.ring_numbers(rings)
                 logging.info(f'The ring size occurrences are {ring_counting}')
                 lst_dict_rings.append(ring_counting)
