@@ -41,11 +41,16 @@ def main_project(traj_file):
         "C59", simulation_data=traj_file, timestep=0.002, temperature=1400, units="metal"
     )
 
-    computation = project.run.FindRings(max_bond_length=1.48, number_of_configurations=2, plot=True, max_ring_size=15,
-                                        shortcut_check=True)
+    computation = project.run.FindRings(
+        max_bond_length=1.48,
+        number_of_configurations=2,
+        plot=True,
+        max_ring_size=15,
+        shortcut_check=True,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     shutil.rmtree("MDSuite_Project")
     time.sleep(0.5)
     test_file = "c60.lammpstraj"

@@ -44,6 +44,7 @@ from bokeh.plotting import figure
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+
 # Import user packages
 from mdsuite.utils.meta_functions import join_path
 from scipy.spatial import KDTree
@@ -74,20 +75,20 @@ class Args:
 class FindRings(TrajectoryCalculator, ABC):
     @call
     def __call__(
-            self,
-            plot: bool = False,
-            max_bond_length: float = None,
-            save: bool = True,
-            start: int = 0,
-            stop: int = None,
-            number_of_configurations: int = 1,
-            # TODO: this is unclear to me. related to Funtion corerct_batch_properties
-            atom_selection: Union[np.s_, dict] = np.s_[:],
-            species: list = None,
-            molecules: bool = False,
-            shortcut_check: bool = True,
-            max_ring_size: int = 10.0,
-            **kwargs,
+        self,
+        plot: bool = False,
+        max_bond_length: float = None,
+        save: bool = True,
+        start: int = 0,
+        stop: int = None,
+        number_of_configurations: int = 1,
+        # TODO: this is unclear to me. related to Funtion corerct_batch_properties
+        atom_selection: Union[np.s_, dict] = np.s_[:],
+        species: list = None,
+        molecules: bool = False,
+        shortcut_check: bool = True,
+        max_ring_size: int = 10.0,
+        **kwargs,
     ):
         """
         Compute the RDF with the given user parameters
@@ -125,7 +126,7 @@ class FindRings(TrajectoryCalculator, ABC):
             species=species,
             atom_selection=atom_selection,
             shortcut_check=shortcut_check,
-            max_ring_size=max_ring_size
+            max_ring_size=max_ring_size,
         )
         # args parsing that will not affect the computation result
         # usually performance or plotting
@@ -209,7 +210,7 @@ class FindRings(TrajectoryCalculator, ABC):
 
         if self.args.number_of_configurations == -1:
             self.args.number_of_configurations = (
-                    self.experiment.number_of_configurations - 1
+                self.experiment.number_of_configurations - 1
             )
 
         # Get the correct species out.
@@ -247,8 +248,10 @@ class FindRings(TrajectoryCalculator, ABC):
         """Plot the atoms vs neighbors"""
         # TODO: it creates the plot in a "sub-plot", is this created in the calculator class?
 
-        colors = Category10[10]  # create a color iterator with 10 colors, we do not need more.
-        data_neighbors = data['System']
+        colors = Category10[
+            10
+        ]  # create a color iterator with 10 colors, we do not need more.
+        data_neighbors = data["System"]
         fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
         for idx, (neighbors, time_evolution) in enumerate(data_neighbors.items()):
             time_steps = np.arange(len(time_evolution))
@@ -258,9 +261,7 @@ class FindRings(TrajectoryCalculator, ABC):
                 np.array(time_evolution),
                 color=colors[int(idx)],  # we use the neighbor number to set the color.
                 # legend labels are the number of neighbors.
-                legend_label=(
-                    f"{neighbors}"
-                ),
+                legend_label=f"{neighbors}",
             )
             fig.add_tools(HoverTool())
             self.plot_array.append(fig)
@@ -272,14 +273,18 @@ class FindRings(TrajectoryCalculator, ABC):
         -------
 
         """
-        dict_neighbors_result = {k: [] for k in range(0, self.args.max_ring_size)}  # store the results here.
+        dict_neighbors_result = {
+            k: [] for k in range(0, self.args.max_ring_size)
+        }  # store the results here.
 
         for dict_neighbors in lst_dict_neighbors:
             for n_neighbors, count in dict_neighbors.items():
                 dict_neighbors_result[n_neighbors].append(count)
 
         # Clean-up dictionary removing entries with only zeros.
-        dict_neighbors_result = {k: v for k, v in dict_neighbors_result.items() if sum(v) != 0}
+        dict_neighbors_result = {
+            k: v for k, v in dict_neighbors_result.items() if sum(v) != 0
+        }
 
         # I believe so far it is simpler to just add everything
         logging.debug(dict_neighbors_result)
@@ -368,8 +373,9 @@ class FindRings(TrajectoryCalculator, ABC):
         dict: dictionary with the counts of each number of neighbors
 
         """
-        dict_neighbors = {k: 0 for k in
-                          range(0, self.args.max_ring_size)}  # we cannot have more than 8 bonds for an atom...
+        dict_neighbors = {
+            k: 0 for k in range(0, self.args.max_ring_size)
+        }  # we cannot have more than 8 bonds for an atom...
 
         for _, value in adj_dict.items():
             len_list = len(value)
@@ -379,8 +385,13 @@ class FindRings(TrajectoryCalculator, ABC):
 
         return dict(dict_neighbors)  # recast the defaultdict back into a normal dict.
 
-    def create_adj_dict(self, positions: tf.Tensor, r: float, leaf_size: int = 10,
-                        box_size: float | list = None) -> dict:
+    def create_adj_dict(
+        self,
+        positions: tf.Tensor,
+        r: float,
+        leaf_size: int = 10,
+        box_size: float | list = None,
+    ) -> dict:
         """
         Method to create adjacency dictionary from xyz atomic positions,
         It uses the KDTree algorithm
@@ -398,10 +409,12 @@ class FindRings(TrajectoryCalculator, ABC):
         -------
         Dict: Dictionary of atomic adjacencies
         """
-        tree = KDTree(positions, leafsize=leaf_size,
-                      boxsize=box_size)  # Create KDTree, avoid searching all the space and splits the domain.
-        all_nn_indices = tree.query_ball_point(positions, r,
-                                               workers=5)  # Calculates neighbours within radius r of a point.
+        tree = KDTree(
+            positions, leafsize=leaf_size, boxsize=box_size
+        )  # Create KDTree, avoid searching all the space and splits the domain.
+        all_nn_indices = tree.query_ball_point(
+            positions, r, workers=5
+        )  # Calculates neighbours within radius r of a point.
         adj_dict = {}
         for count, item in enumerate(all_nn_indices):
             adj_dict[count] = item  # Populate adjacency dictionary
@@ -458,17 +471,23 @@ class FindRings(TrajectoryCalculator, ABC):
         rings = []
         seen = set()
         for node, edge in self.adj_dict.items():  # Apply search to every node in graph
-            new_graph = self._delete_node(self.adj_dict,
-                                          node)  # Delete central 'search' node to stop trivial solution of ring of length 3
-            combs = self._combination(edge)  # Account for all combinations of edges connected to central node
+            new_graph = self._delete_node(
+                self.adj_dict, node
+            )  # Delete central 'search' node to stop trivial solution of ring of length 3
+            combs = self._combination(
+                edge
+            )  # Account for all combinations of edges connected to central node
             for link in combs:  # Consider neighbours of central node
                 link = list(link)
-                ring = self.shortest(new_graph, link[0],
-                                     link[1])  # Initiate search for a ring from 2 neighbours of central node
+                ring = self.shortest(
+                    new_graph, link[0], link[1]
+                )  # Initiate search for a ring from 2 neighbours of central node
                 if ring is not None:
                     ring.append(node)
                     rings.append(ring)
-        new_rings = [x for x in rings if frozenset(x) not in seen and not seen.add(frozenset(x))]
+        new_rings = [
+            x for x in rings if frozenset(x) not in seen and not seen.add(frozenset(x))
+        ]
         return new_rings
 
     def shortest(self, graph, S, D):
@@ -608,15 +627,17 @@ class FindRings(TrajectoryCalculator, ABC):
             shape = tf.shape(positions_tensor)
             n_configs = shape[1]
             for config in range(n_configs):
-                self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
+                self.create_adj_dict(
+                    positions_tensor[:, config, :], self.args.max_bond_length
+                )
                 rings = self.find_cycle_BFS()  # Find all rings in the graph
-                logging.info('Finished computing the rings')
-                logging.info(f'The number of rings is {len(rings)}')
+                logging.info("Finished computing the rings")
+                logging.info(f"The number of rings is {len(rings)}")
                 if self.args.shortcut_check:
-                    logging.info(f'Checking for shortcuts')
+                    logging.info(f"Checking for shortcuts")
                     rings = self.remove_not_SP(rings)
                 ring_counting = self.ring_numbers(rings)
-                logging.info(f'The ring size occurrences are {ring_counting}')
+                logging.info(f"The ring size occurrences are {ring_counting}")
                 lst_dict_rings.append(ring_counting)
 
         self._post_operation_processes(lst_dict_rings)

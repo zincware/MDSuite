@@ -34,7 +34,7 @@ from mdsuite.calculators import (  # StructureFactor,
     PotentialOfMeanForce,
     RadialDistributionFunction,
     FindNeighbors,
-    FindRings
+    FindRings,
 )
 from mdsuite.transformations import (
     CoordinateUnwrapper,

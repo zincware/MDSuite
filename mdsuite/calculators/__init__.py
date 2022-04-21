@@ -88,5 +88,5 @@ __all__ = [
     PotentialOfMeanForce.__name__,
     RadialDistributionFunction.__name__,
     FindNeighbors.__name__,
-    FindRings.__name__
+    FindRings.__name__,
 ]

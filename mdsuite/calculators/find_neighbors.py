@@ -44,6 +44,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+
 # Import user packages
 from mdsuite.utils.meta_functions import join_path
 
@@ -129,18 +130,18 @@ class FindNeighbors(TrajectoryCalculator, ABC):
 
     @call
     def __call__(
-            self,
-            plot: bool = False,
-            max_bond_length: float = None,
-            save: bool = True,
-            start: int = 0,
-            stop: int = None,
-            number_of_configurations: int = 1,
-            # TODO: this is unclear to me. related to Funtion corerct_batch_properties
-            atom_selection: Union[np.s_, dict] = np.s_[:],
-            species: list = None,
-            molecules: bool = False,
-            **kwargs,
+        self,
+        plot: bool = False,
+        max_bond_length: float = None,
+        save: bool = True,
+        start: int = 0,
+        stop: int = None,
+        number_of_configurations: int = 1,
+        # TODO: this is unclear to me. related to Funtion corerct_batch_properties
+        atom_selection: Union[np.s_, dict] = np.s_[:],
+        species: list = None,
+        molecules: bool = False,
+        **kwargs,
     ):
         """
         Compute the RDF with the given user parameters
@@ -200,7 +201,7 @@ class FindNeighbors(TrajectoryCalculator, ABC):
 
         if self.args.number_of_configurations == -1:
             self.args.number_of_configurations = (
-                    self.experiment.number_of_configurations - 1
+                self.experiment.number_of_configurations - 1
             )
 
         # Get the correct species out.
@@ -238,8 +239,10 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         """Plot the atoms vs neighbors"""
         # TODO: it creates the plot in a "sub-plot", is this created in the calculator class?
 
-        colors = Category10[10]  # create a color iterator with 10 colors, we do not need more.
-        data_neighbors = data['System']
+        colors = Category10[
+            10
+        ]  # create a color iterator with 10 colors, we do not need more.
+        data_neighbors = data["System"]
         fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
         for idx, (neighbors, time_evolution) in enumerate(data_neighbors.items()):
             time_steps = np.arange(len(time_evolution))
@@ -249,9 +252,7 @@ class FindNeighbors(TrajectoryCalculator, ABC):
                 np.array(time_evolution),
                 color=colors[int(idx)],  # we use the neighbor number to set the color.
                 # legend labels are the number of neighbors.
-                legend_label=(
-                    f"{neighbors}"
-                ),
+                legend_label=f"{neighbors}",
             )
             fig.add_tools(HoverTool())
             self.plot_array.append(fig)
@@ -263,14 +264,18 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         -------
 
         """
-        dict_neighbors_result = {k: [] for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
+        dict_neighbors_result = {
+            k: [] for k in range(0, 9)
+        }  # we cannot have more than 8 bonds for an atom...
 
         for dict_neighbors in lst_dict_neighbors:
             for n_neighbors, count in dict_neighbors.items():
                 dict_neighbors_result[n_neighbors].append(count)
 
         # Clean-up dictionary removing entries with only zeros.
-        dict_neighbors_result = {k: v for k, v in dict_neighbors_result.items() if sum(v) != 0}
+        dict_neighbors_result = {
+            k: v for k, v in dict_neighbors_result.items() if sum(v) != 0
+        }
 
         # I believe so far it is simpler to just add everything
         logging.debug(dict_neighbors_result)
@@ -359,7 +364,9 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         dict: dictionary with the counts of each number of neighbors
 
         """
-        dict_neighbors = {k: 0 for k in range(0, 9)}  # we cannot have more than 8 bonds for an atom...
+        dict_neighbors = {
+            k: 0 for k in range(0, 9)
+        }  # we cannot have more than 8 bonds for an atom...
 
         for _, value in adj_dict.items():
             len_list = len(value)
@@ -369,8 +376,13 @@ class FindNeighbors(TrajectoryCalculator, ABC):
 
         return dict(dict_neighbors)  # recast the defaultdict back into a normal dict.
 
-    def create_adj_dict(self, positions: tf.Tensor, r: float, leaf_size: int = 10,
-                        box_size: float | list = None) -> dict:
+    def create_adj_dict(
+        self,
+        positions: tf.Tensor,
+        r: float,
+        leaf_size: int = 10,
+        box_size: float | list = None,
+    ) -> dict:
         """
         Method to create adjacency dictionary from xyz atomic positions,
         It uses the KDTree algorithm
@@ -388,10 +400,12 @@ class FindNeighbors(TrajectoryCalculator, ABC):
         -------
         Dict: Dictionary of atomic adjacencies
         """
-        tree = KDTree(positions, leafsize=leaf_size,
-                      boxsize=box_size)  # Create KDTree, avoid searching all the space and splits the domain.
-        all_nn_indices = tree.query_ball_point(positions, r,
-                                               workers=5)  # Calculates neighbours within radius r of a point.
+        tree = KDTree(
+            positions, leafsize=leaf_size, boxsize=box_size
+        )  # Create KDTree, avoid searching all the space and splits the domain.
+        all_nn_indices = tree.query_ball_point(
+            positions, r, workers=5
+        )  # Calculates neighbours within radius r of a point.
         adj_dict = {}
         for count, item in enumerate(all_nn_indices):
             adj_dict[count] = item  # Populate adjacency dictionary
@@ -429,7 +443,9 @@ class FindNeighbors(TrajectoryCalculator, ABC):
             shape = tf.shape(positions_tensor)
             n_configs = shape[1]
             for config in range(n_configs):
-                adj_dict = self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
+                adj_dict = self.create_adj_dict(
+                    positions_tensor[:, config, :], self.args.max_bond_length
+                )
                 dict_neighbors = self._compute_neighbors(adj_dict)
                 lst_dict_neighbors.append(dict_neighbors)
 

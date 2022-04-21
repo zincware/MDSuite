@@ -39,10 +39,12 @@ def main_project(traj_file):
         "C59", simulation_data=traj_file, timestep=0.002, temperature=1400, units="metal"
     )
 
-    computation = project.run.FindNeighbors(max_bond_length=1.5, number_of_configurations=2, plot=True)
+    computation = project.run.FindNeighbors(
+        max_bond_length=1.5, number_of_configurations=2, plot=True
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # shutil.rmtree("MDSuite_Project")
     test_file = "c59.lammpstraj"
     filepath = (Path("") / test_file).as_posix()
