@@ -41,13 +41,14 @@ import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.palettes import Category10  # select a palette
 from bokeh.plotting import figure
+from scipy.spatial import KDTree
+from tqdm import tqdm
+
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 # Import user packages
 from mdsuite.utils.meta_functions import join_path
-from scipy.spatial import KDTree
-from tqdm import tqdm
 
 log = logging.getLogger(__name__)
 
@@ -531,124 +532,29 @@ class FindRings(TrajectoryCalculator, ABC):
                 edge.remove(node)  # Remove node
         return tempGraph
 
-    def iterate_BFS_ring_check(self, graph, rings):
-        """
-            Method to iterate check_BFS_SPring over whole graph
-            Parameters
-            ----------
-            graph: Dict
-                    Adjacency dictionary
-            rings: Lst
-                    List of rings
-            Returns
-            -------
-            List of SP-rings
-        """
-        logging.debug("Let's remove the rings that are not shortest path (SP)")
-        for ring in rings:  # Check each ring found in graph
-            self.check_BFS_SP_ring(graph, ring, rings)
+    def remove_not_SP(self, graph: dict, rings: list) -> list:
+        positions_to_remove = []
+        for ring in rings:
+            ring_np = np.array(ring)
+            # remove the central node and the two pivot nodes.
+            central_node = ring_np[-1]
+            ring_np_reduced = ring_np[1:-2]
+
+            # check if the ring contains a neighbor of the central node, if so, it means there is a shortcut.
+            # 1. Get the neighbors of the central node.
+            neighbors_central = np.array(list(graph[central_node]))
+            # 2. check if the remaining components of the ring contain any of the neighbors.
+            # we convert them to numpy arrays to make this check fast.
+            check = np.in1d(ring_np_reduced, neighbors_central)
+            any_check = np.any(check)
+            positions_to_remove.append(any_check)
+
+        logging.debug(f"{positions_to_remove}")
+        # apply the mask to the list
+        rings = np.array(rings)
+        rings = list(rings[np.logical_not(positions_to_remove)])
+
         return rings
-
-    def check_BFS_SP_ring(self, graph, ring, rings):
-        """
-            Method to check if a ring has a shortcut of length 1 across it, if it does, the ring is not the shortest-path
-            Parameters
-            ----------
-            graph: Dict
-                    Adjacency dictionary
-            ring: List
-                    List of nodes
-            rings: List
-                    List of rings
-            Returns
-            -------
-            *Nothing* to be iterated by iterateBFSringcheck method
-        """
-        ring_edges = self.permute_edges(self.cycle_edges(ring))  # Permute edges in the ring being checked.
-        new_graph = self.permute_edges(self.extract_edges_from_dict_graph(graph))  # Permute edges in the graph.
-        reduced_graph = [x for x in new_graph if
-                         x not in ring_edges]  # Take ring edge permutations from graph edge permutations
-        for edge in self.permute_cycle(ring):
-            if edge in reduced_graph:  # Check if an edge exists between nodes of the ring being checked
-                # If an edge is present, a shortcut of length 1 exists across ring, the ring cannot be an SP-ring.
-                logging.debug("Ring removed.")
-                rings.remove(ring)
-                return
-
-    def cycle_edges(self, cycle):
-        """
-            Method to extract the edges of a cycle
-            Parameters
-            ----------
-            cycle: Lst
-                    List of nodes
-            Returns: Lst
-            -------
-            A list of edges
-        """
-        tempcycle = deepcopy(cycle)
-        tempcycle.append(cycle[0])
-        tempedge = []
-        for i in range(len(tempcycle) - 1):
-            newedge = [tempcycle[i], tempcycle[i + 1]]
-            tempedge.append(newedge)
-        return tempedge
-
-    def extract_edges_from_dict_graph(self, graph):
-        """
-            Method to convert an adjacency dictionary to an adjacency list
-            Parameters
-            ----------
-            graph: Dict
-                    Adjacency dictionary
-            Returns: Lst
-            -------
-            A graph represented as a list of edges
-        """
-        edges = []
-        for node, edge in graph.items():
-            for vert in edge:
-                edges.append([node, vert])
-        return edges
-
-    def permute_cycle(self, cycle):
-        """
-            Method to permute cycle nodes, Requires *from itertools import permutations*
-            Parameters
-            ----------
-            cycle: Lst
-                    Input a cycle as a list of nodes
-            Returns: Lst
-            -------
-            List of cycle permutations
-        """
-        perm = permutations(cycle, 2)
-        temp = []
-        for i in list(perm):
-            temp.append(i)
-        for perm in temp:
-            temp[temp.index(perm)] = list(perm)
-        return temp
-
-    def permute_edges(self, edges):
-        """
-        Method to permute edges, Requires *from itertools import permutations*
-        Parameters
-        ----------
-        edges: Lst
-                Input a list of edges
-        Returns: Lst
-        -------
-        List of permutations
-        """
-        perm = []
-        temp = []
-        for edge in edges:
-            perm.append(list(permutations(edge)))
-        for i in perm:
-            for j in i:
-                temp.append(list(j))
-        return temp
 
     def ring_numbers(self, cycles):
         """
@@ -694,13 +600,13 @@ class FindRings(TrajectoryCalculator, ABC):
             n_configs = shape[1]
             for config in range(n_configs):
                 adj_dict = self.create_adj_dict(positions_tensor[:, config, :], self.args.max_bond_length)
-                newrings = self.find_cycle_BFS(adj_dict)  # Find all rings in the graph
+                rings = self.find_cycle_BFS(adj_dict)  # Find all rings in the graph
                 logging.info('Finished computing the rings')
-                logging.info(f'The number of rings is {len(newrings)}')
+                logging.info(f'The number of rings is {len(rings)}')
                 if self.args.shortcut_check:
                     logging.info(f'Checking for shortcuts')
-                    newrings = self.iterate_BFS_ring_check(adj_dict, newrings)  # Find all SP-rings from rings.
-                ring_counting = self.ring_numbers(newrings)
+                    rings = self.remove_not_SP(adj_dict, rings)
+                ring_counting = self.ring_numbers(rings)
                 logging.info(f'The ring size occurrences are {ring_counting}')
                 lst_dict_rings.append(ring_counting)
 

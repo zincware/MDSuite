@@ -25,6 +25,8 @@ Summary
 -------
 """
 import logging
+import shutil
+import time
 from pathlib import Path
 
 import mdsuite as mds
@@ -39,12 +41,13 @@ def main_project(traj_file):
         "C59", simulation_data=traj_file, timestep=0.002, temperature=1400, units="metal"
     )
 
-    computation = project.run.FindRings(max_bond_length=1.5, number_of_configurations=2, plot=True, max_ring_size=15,
+    computation = project.run.FindRings(max_bond_length=1.48, number_of_configurations=2, plot=True, max_ring_size=15,
                                         shortcut_check=True)
 
 
 if __name__ == '__main__':
-    # shutil.rmtree("MDSuite_Project")
-    test_file = "c59.lammpstraj"
+    shutil.rmtree("MDSuite_Project")
+    time.sleep(0.5)
+    test_file = "c60.lammpstraj"
     filepath = (Path("") / test_file).as_posix()
     main_project(filepath)
