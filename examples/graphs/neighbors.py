@@ -44,7 +44,7 @@ def main_project(traj_file):
         max_bond_length=1.5, number_of_configurations=2, plot=True
     )
 
-    print(computation['C60'].data_dict['System'])
+    print(computation["C60"].data_dict["System"])
 
 
 if __name__ == "__main__":

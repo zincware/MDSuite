@@ -49,7 +49,8 @@ def main_project(traj_file):
         shortcut_check=True,
     )
 
-    print(computation['C59'].data_dict['System'])
+    print(computation["C59"].data_dict["System"])
+
 
 if __name__ == "__main__":
     try:

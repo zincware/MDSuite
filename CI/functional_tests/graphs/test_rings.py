@@ -53,7 +53,7 @@ def mdsuite_project():
     """
     try:
         shutil.rmtree("MDSuite_Project")
-        time.sleep(0.5) # this is added for windows
+        time.sleep(0.5)  # this is added for windows
     except FileNotFoundError:
         pass
     traj_file = "c60.lammpstraj"
@@ -87,5 +87,6 @@ def test_analysis(mdsuite_project):
         shortcut_check=True,
     )
 
-    assert computation['C60'].data_dict['System'] == MutableDict({'5': [12, 12], '6': [20, 20]})
-
+    assert computation["C60"].data_dict["System"] == MutableDict(
+        {"5": [12, 12], "6": [20, 20]}
+    )
