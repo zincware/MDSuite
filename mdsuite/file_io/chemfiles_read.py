@@ -103,7 +103,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
                 mdsuite.database.simulation_database.SpeciesInfo(
                     name=key,
                     n_particles=len(val),
-                    properties=list(self.properties_to_chemfile_attr_dict.keys()),
+                    properties=list(self.properties_in_file.keys()),
                 )
             )
 

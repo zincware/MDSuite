@@ -49,6 +49,7 @@ class Args:
     correlation_time: int
     tau_values: np.s_
     atom_selection: np.s_
+    fit_range: int
 
 
 class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
@@ -113,6 +114,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         data_range=500,
         correlation_time=1,
         tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
     ):
         """
         Python constructor
@@ -127,12 +129,16 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         correlation_time : int
                 Correlation time to use in the window sampling.
         """
+        if fit_range == -1:
+            fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
             atom_selection=np.s_[:],
+            fit_range=fit_range,
         )
 
         self.plot = plot
@@ -160,8 +166,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         # Calculate the prefactor
         numerator = 1
         denominator = (
-            6
-            * self.experiment.volume
+            self.experiment.volume
             * self.experiment.temperature
             * self.experiment.units["boltzmann"]
         )
@@ -206,11 +211,14 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         -------
 
         """
-        result = fit_einstein_curve([self.time, self.msd_array])
+        fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
+            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+        )
+        error = np.sqrt(np.diag(covariance))[0]
 
         data = {
-            "thermal_conductivity": result[0],
-            "uncertainty": result[1],
+            "thermal_conductivity": 1 / 6 * fit_values[0],
+            "uncertainty": 1 / 6 * error,
             "time": self.time.tolist(),
             "msd": self.msd_array.tolist(),
         }
@@ -222,7 +230,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
             self.run_visualization(
                 x_data=np.array(self.time) * self.experiment.units["time"],
                 y_data=self.msd_array * self.experiment.units["time"],
-                title=f"{result[0]} +- {result[1]}",
+                title=f"{fit_values[0]} +- {error}",
             )
 
     def run_calculator(self):

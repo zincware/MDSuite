@@ -26,31 +26,41 @@ Summary
 Static methods used in calculators are kept here rather than polluting the parent class.
 """
 import logging
-import random
+from typing import Any, Iterable, Tuple, Union
 
 import numpy as np
+from numpy import ndarray
+from scipy.interpolate import UnivariateSpline
 from scipy.optimize import curve_fit
 
 log = logging.getLogger(__name__)
 
 
-def fit_einstein_curve(data: list) -> list:
+def fit_einstein_curve(
+    x_data: np.ndarray, y_data: np.ndarray, fit_max_index: int
+) -> Tuple[Union[ndarray, Iterable, int, float], Any, list, list]:
     """
     Fit operation for Einstein calculations
 
     Parameters
     ----------
-    data : list
-            x and y tensor_values for the fitting [np.array, np.array] of
-            (2, data_range)
+    x_data : np.ndarray
+            x data to use in the fitting.
+    y_data : np.ndarray
+            y_data to use in the fitting.
+    fit_max_index : int
+            Range at which to store values.
 
     Returns
     -------
-    fit results : list
-            A tuple list with the fit value along with the error of the fit
+    popt : list
+            List of fit values
+    pcov : list
+            Covariance matrix of the fit values.
     """
-
-    fits = []  # define an empty fit array so errors may be extracted
+    # Defined here for completeness.
+    popt = []
+    pcov = []
 
     def func(x, m, a):
         """
@@ -68,27 +78,31 @@ def fit_einstein_curve(data: list) -> list:
 
         Returns
         -------
-
+        m * x + a
         """
         return m * x + a
 
-    # get the logarithmic dataset
-    log_y = np.log10(data[1][1:])
-    log_x = np.log10(data[0][1:])
+    spline_data = UnivariateSpline(x_data, y_data, s=0, k=4)
 
-    min_end_index, max_end_index = int(0.8 * len(log_y)), int(len(log_y) - 1)
-    min_start_index, max_start_index = int(0.3 * len(log_y)), int(0.5 * len(log_y))
+    derivatives = spline_data.derivative(n=2)(x_data)
 
-    for _ in range(100):
-        end_index = random.randint(min_end_index, max_end_index)
-        start_index = random.randint(min_start_index, max_start_index)
+    derivatives[abs(derivatives) < 1e-5] = 0
+    start_index = np.argmin(abs(derivatives))
+    gradients = []
+    gradient_errors = []
 
-        popt, pcov = curve_fit(
-            func, log_x[start_index:end_index], log_y[start_index:end_index]
+    for i in range(start_index + 2, len(y_data)):
+        popt_temp, pcov_temp = curve_fit(
+            func, xdata=x_data[start_index:i], ydata=y_data[start_index:i]
         )
-        fits.append(10 ** popt[1])
+        gradients.append(popt_temp[0])
+        gradient_errors.append(np.sqrt(np.diag(pcov_temp))[0])
 
-    return [np.mean(fits), np.std(fits)]
+        if i == fit_max_index:
+            popt = popt_temp
+            pcov = pcov_temp
+
+    return popt, pcov, gradients, gradient_errors
 
 
 # def _optimize_einstein_data_range(self, data: np.array):

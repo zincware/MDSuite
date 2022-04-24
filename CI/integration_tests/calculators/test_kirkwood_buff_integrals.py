@@ -38,7 +38,9 @@ def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
+    )
     NaCl.get_file(path=temporary_path)
 
     return (temporary_path / NaCl.file_raw).as_posix()
@@ -47,7 +49,9 @@ def traj_file(tmp_path_factory) -> str:
 @pytest.fixture(scope="session")
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.1"
+    )
     return NaCl.get_analysis(analysis="KirkwoodBuffIntegral.json")
 
 
@@ -59,6 +63,8 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.KirkwoodBuffIntegral(plot=False)
+    computation = project.run.KirkwoodBuffIntegral(
+        plot=False, savgol_window_length=111, savgol_order=3
+    )
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
