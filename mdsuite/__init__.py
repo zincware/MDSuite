@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import importlib.metadata
 import logging
 import sys
 
@@ -40,7 +41,7 @@ __all__ = [
     "config",
     Molecule.__name__,
 ]
-__version__ = "0.1.0"
+__version__ = importlib.metadata.version("mdsuite")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
