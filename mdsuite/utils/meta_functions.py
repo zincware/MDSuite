@@ -330,7 +330,7 @@ def timeit(f: Callable) -> Callable:
 
 
 def apply_savgol_filter(
-    data: list, order: int = 2, window_length: int = 17
+    data: np.ndarray, order: int = 2, window_length: int = 17
 ) -> np.ndarray:
     """
     Apply a savgol filter for function smoothing
@@ -418,7 +418,7 @@ def golden_section_search(
 
     # Define the golden ratio identities
     phi_a = 1 / golden_ratio
-    phi_b = 1 / (golden_ratio ** 2)
+    phi_b = 1 / (golden_ratio**2)
 
     (a, b) = (min(a, b), max(a, b))  # check for a simple error
 

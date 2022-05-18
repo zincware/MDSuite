@@ -234,15 +234,16 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             file, self.n_header_lines, start_at=0
         )
         time_step_0 = int(first_header[1])  # Time in first configuration
-        second_header = mdsuite.file_io.tabular_text_files.read_n_lines(
-            file, self.n_header_lines, start_at=self.n_header_lines + n_particles
-        )
         # catch single snapshot trajectory (second_header == [])
-        if not second_header:
+        try:
+            second_header = mdsuite.file_io.tabular_text_files.read_n_lines(
+                file, self.n_header_lines, start_at=self.n_header_lines + n_particles
+            )
+        except StopIteration:
             return None
 
-        time__step_1 = int(second_header[1])  # Time in second configuration
-        return time__step_1 - time_step_0
+        time_step_1 = int(second_header[1])  # Time in second configuration
+        return time_step_1 - time_step_0
 
 
 def extract_properties_from_header(

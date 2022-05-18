@@ -38,7 +38,9 @@ def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     NaCl.get_file(path=temporary_path)
 
     return (temporary_path / NaCl.file_raw).as_posix()
@@ -47,7 +49,9 @@ def traj_file(tmp_path_factory) -> str:
 @pytest.fixture(scope="session")
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     return NaCl.get_analysis(analysis="RadialDistributionFunction.json")
 
 
@@ -75,3 +79,24 @@ def test_experiment(traj_file, true_values, tmp_path):
     computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
+
+
+def test_computation_parameter(traj_file, true_values, tmp_path):
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.experiments.NaCl.run.RadialDistributionFunction(
+        plot=False,
+        number_of_bins=50,
+        cutoff=5,
+        number_of_configurations=150,
+        species=["Na"],
+    )
+
+    assert computation.computation_parameter["number_of_bins"] == 50
+    assert computation.computation_parameter["cutoff"] == 5
+    assert computation.computation_parameter["number_of_configurations"] == 150
+    assert computation.computation_parameter["species"] == ["Na"]

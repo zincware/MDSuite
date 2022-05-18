@@ -102,8 +102,7 @@ def traj_files(tmp_path_factory) -> dict:
     for fname in files_to_load:
         folder = fname.split(".")[0]
         url = f"{base_url}/{folder}"
-        print(url)
-        dhub_file = DataHub(url=url)
+        dhub_file = DataHub(url=url, tag="v0.1.0")
         dhub_file.get_file(temporary_path)
         if isinstance(dhub_file.file_raw, list):
             file_paths[fname] = [

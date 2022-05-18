@@ -138,8 +138,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.adf_minibatch = None  # memory management for triples generation per batch.
 
         self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$\text{Angle} / \theta$"
-        self.y_label = r"$\text{ADF} / a.u.$"
+        self.x_label = r"$$\text{Angle} / \theta$$"
+        self.y_label = r"$$\text{ADF} / a.u.$$"
 
     @call
     def __call__(
@@ -420,7 +420,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
             # Get the indices required.
             angle_vals, pre_factor = get_angles(r_ij_mat, tmp)
-            pre_factor = 1 / pre_factor ** self.norm_power
+            pre_factor = 1 / pre_factor**self.norm_power
             histogram, _ = np.histogram(
                 angle_vals,
                 bins=self.args.number_of_bins,
@@ -528,7 +528,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
-        self.remainder = 0
         if self.batch_size > self.args.number_of_configurations:
             self.batch_size = self.args.number_of_configurations
             self.n_batches = 1
@@ -545,6 +544,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
             self.minibatch = False
+
+        self.remainder = 0
+        self.minibatch = False
 
     def prepare_computation(self):
         """

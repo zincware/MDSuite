@@ -38,7 +38,9 @@ def traj_file(tmp_path_factory) -> str:
     """Download trajectory file into a temporary directory and keep it for all tests"""
     temporary_path = tmp_path_factory.getbasetemp()
 
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     NaCl.get_file(path=temporary_path)
 
     return (temporary_path / NaCl.file_raw).as_posix()
@@ -47,7 +49,9 @@ def traj_file(tmp_path_factory) -> str:
 @pytest.fixture(scope="session")
 def true_values() -> dict:
     """Example fixture for downloading analysis results from github"""
-    NaCl = DataHub(url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q")
+    NaCl = DataHub(
+        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
+    )
     return NaCl.get_analysis(analysis="AngularDistributionFunction.json")
 
 
@@ -64,4 +68,4 @@ def test_project(traj_file, true_values, tmp_path):
     for item in computation["NaCl"].data_dict:
         computation["NaCl"].data_dict[item].pop("max_peak")
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
