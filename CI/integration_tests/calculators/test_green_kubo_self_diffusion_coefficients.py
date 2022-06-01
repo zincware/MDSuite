@@ -99,8 +99,8 @@ def test_calculator(tmp_path):
     time_should_be = time_step * np.arange(0, vacf_range) * units.time
     thermal_vel_SI = np.sqrt(3 * kT / mass) * units.length / units.time
     relaxation_time_SI = relaxation_time * units.time
-    vacf_should_be = thermal_vel_SI ** 2 * np.exp(-time_should_be / relaxation_time_SI)
-    diff_coeff_should_be = diff_coeff * units.length ** 2 / units.time
+    vacf_should_be = thermal_vel_SI**2 * np.exp(-time_should_be / relaxation_time_SI)
+    diff_coeff_should_be = diff_coeff * units.length**2 / units.time
 
     np.testing.assert_allclose(res["time"], time_should_be, atol=1e-6)
     np.testing.assert_allclose(res["acf"], vacf_should_be, atol=0.03 * vacf_should_be[0])
