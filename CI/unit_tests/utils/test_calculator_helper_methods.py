@@ -58,7 +58,7 @@ class TestCalculatorHelperMethods:
         assert popt[0] == pytest.approx(5.0, 0.01)
 
         # exp(0.05x)x^2 + 5x + 3
-        y_data = np.exp(-0.05 * x_data) * x_data ** 2 + 5 * x_data + 3
+        y_data = np.exp(-0.05 * x_data) * x_data**2 + 5 * x_data + 3
 
         popt, pcov, gradients, gradient_errors = fit_einstein_curve(
             x_data=x_data, y_data=y_data, fit_max_index=999
