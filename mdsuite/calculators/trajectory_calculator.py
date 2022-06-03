@@ -197,6 +197,7 @@ class TrajectoryCalculator(Calculator, ABC):
         """
         Handle the parsing of custom tau values.
 
+
         Returns
         -------
         times : np.array
