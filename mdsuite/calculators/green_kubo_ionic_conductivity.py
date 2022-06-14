@@ -209,7 +209,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
         jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
-        jacf = tf.reduce_sum(jacf, axis=-1)
+        jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
         self.acfs.append(jacf)
         self.sigmas.append(cumtrapz(jacf, x=self.time))
 
@@ -240,14 +240,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             self.result_series_keys[2]: sigma.tolist(),
             self.result_series_keys[3]: sigma_SEM.tolist(),
         }
-
-        #
-        # data = {
-        #     self.result_keys[0]: np.mean(result).tolist(),
-        #     self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
-        #     self.result_series_keys[0]: self.time.tolist(),
-        #     self.result_series_keys[1]: self.jacf.numpy().tolist(),
-        # }
 
         self.queue_data(data=data, subjects=["System"])
 
