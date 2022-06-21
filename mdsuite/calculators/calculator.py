@@ -49,104 +49,8 @@ warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
 
 
-def call(func):
-    """
-    Decorator for the calculator call method
-
-    This decorator provides a unified approach for handling run_computation and
-    load_data for a single or multiple experiments.
-    It handles the `run.<calc>()` method, iterates over experiments and
-    loads data if requested! Therefore, the __call__ method does not and can
-    not return any values anymore!
-
-
-    Notes
-    -----
-    When calling the calculator it will check if a computation with the given
-    user arguments was already performed:
-    >>> Calculator.get_computation_data() is not None
-
-    if no computations are available it will
-    1. prepare a database entry
-    >>> Calculator.prepare_db_entry()
-    2. save the user arguments
-    >>> Calculator.save_computation_args()
-    3. Run the analysis
-    >>> Calculator.run_analysis()
-    4. Save all the data to the database
-    >>> Calculator.save_db_data()
-    5. Finally query the the data from the database and pass them to the user / plotting
-    >>> data = Calculator.get_computation_data()
-
-
-
-
-    Parameters
-    ----------
-    func: Calculator.__call__ method
-
-    Returns
-    -------
-    decorated __call__ method
-
-    """
-
-    @functools.wraps(func)
-    def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
-        """Manage the call method
-
-        Parameters
-        ----------
-        self: Calculator
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {name: data} when called from the project class
-            A list of [data] when called directly from the experiment class
-        """
-        # This is only true, when called via project.experiments.<exp>.run,
-        #  otherwise the experiment will be None
-        return_dict = self.experiment is None
-
-        out = {}
-        # for experiment in self.experiments:
-        CLS = self.__class__
-        # NOTE: if the calculator accepts more than just experiment/experiments
-        #  as init, this has to be changed!
-        cls = CLS(experiment=self.experiment)
-        # pass the user args to the calculator
-        func(cls, *args, **kwargs)
-        data = cls.get_computation_data()
-        if data is None:
-            # new calculation will be performed
-            cls.prepare_db_entry()
-            cls.save_computation_args()
-            cls.run_analysis()
-            cls.save_db_data()
-            # Need to reset the user args, if they got change
-            # or set to defaults, e.g. n_configurations = - 1 so
-            # that they match the query
-            func(cls, *args, **kwargs)
-            data = cls.get_computation_data()
-
-        if cls.plot:
-            """Plot the data"""
-            cls.plotter = DataVisualizer2D(
-                title=cls.analysis_name, path=self.experiment.figures_path
-            )
-            cls.plot_data(data.data_dict)
-            cls.plotter.grid_show(cls.plot_array)
-
-        out[cls.experiment.name] = data
-
-        if return_dict:
-            return out
-        else:
-            return out[self.experiment.name]
-
-    return inner
-
+def call(*args, **kwargs):
+    pass
 
 class Calculator(CalculatorDatabase):
     """
@@ -238,6 +142,29 @@ class Calculator(CalculatorDatabase):
         self.x_label = None
         self.y_label = None
         self.plot_array = []
+
+    def __call__(
+        self,
+    ):
+        """
+        Call the calculator.
+        """
+        data = self.get_computation_data()
+
+        if data is None:
+            log.info("Data not in database, performing computation.")
+            self.prepare_db_entry()
+            self.save_computation_args()
+            self.run_calculator()
+            self.save_db_data()
+            # Need to reset the user args, if they got change
+            # or set to defaults, e.g. n_configurations = - 1 so
+            # that they match the query
+            data = self.get_computation_data()
+        else:
+            log.info("Data in database, loading now.")
+
+        return data
 
     @property
     def dtype(self):

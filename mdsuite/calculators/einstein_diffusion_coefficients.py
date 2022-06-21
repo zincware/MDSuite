@@ -148,33 +148,12 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self,
     ):
         """
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        molecules : bool
-                If true, molecules are used instead of atoms.
-        tau_values : Union[int, list, np.s_]
-                Selection of tau values to use in the window sliding.
-
-        Returns
-        -------
-        None
+        Call the calculator.
         """
         data = self.get_computation_data()
 
-        print(data)
         if data is None:
-            print("Running Computation")
+            log.info("Data not in database, performing computation.")
             self.prepare_db_entry()
             self.save_computation_args()
             self.run_calculator()
@@ -183,6 +162,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             # or set to defaults, e.g. n_configurations = - 1 so
             # that they match the query
             data = self.get_computation_data()
+        else:
+            log.info("Data in database, loading now.")
 
         return data
 
