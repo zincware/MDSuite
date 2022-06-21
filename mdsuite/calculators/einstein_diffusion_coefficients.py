@@ -143,7 +143,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.plot = plot
         self.system_property = False
 
-    @call
+    # @call
     def __call__(
         self,
     ):
@@ -170,7 +170,21 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         None
         """
-        self.run_calculator()
+        data = self.get_computation_data()
+
+        print(data)
+        if data is None:
+            print("Running Computation")
+            self.prepare_db_entry()
+            self.save_computation_args()
+            self.run_calculator()
+            self.save_db_data()
+            # Need to reset the user args, if they got change
+            # or set to defaults, e.g. n_configurations = - 1 so
+            # that they match the query
+            data = self.get_computation_data()
+
+        return data
 
     def ensemble_operation(self, ensemble):
         """
