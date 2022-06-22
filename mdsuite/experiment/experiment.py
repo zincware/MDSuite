@@ -394,7 +394,8 @@ class Experiment(ExperimentDatabase):
 
         """
         operation.experiment = self
-        operation()
+
+        return operation()
 
     # def map_elements(self, mapping: dict = None):
     #     """
