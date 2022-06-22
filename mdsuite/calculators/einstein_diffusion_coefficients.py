@@ -129,6 +129,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         if fit_range == -1:
             fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
         self.stored_parameters = StoredParameters(
             data_range=data_range,
