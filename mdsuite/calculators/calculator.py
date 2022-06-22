@@ -27,18 +27,14 @@ Parent class for the calculators.
 """
 from __future__ import annotations
 
-import functools
 import logging
 import warnings
-from typing import TYPE_CHECKING, Dict, List, Union
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
-import mdsuite.database.scheme as db
-from mdsuite.database.calculator_database import CalculatorDatabase
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
@@ -52,7 +48,20 @@ log = logging.getLogger(__name__)
 def call(*args, **kwargs):
     pass
 
-class Calculator(CalculatorDatabase):
+
+@dataclass
+class ComputationResults:
+    """
+    A wrapper class for the results of a computation.
+
+    This class is returned when data is loaded from the SQL database.
+    """
+
+    data: dict = field(default_factory=dict)
+    subjects: dict = field(default_factory=list)
+
+
+class Calculator:
     """
     Parent class for analysis modules
 
@@ -111,11 +120,12 @@ class Calculator(CalculatorDatabase):
                 List of experiments on which to run the calculator.
         """
         # Set upon instantiation of parent class
-        super().__init__(experiment)
+        # super().__init__(experiment)
         # NOTE: if the calculator accepts more than just experiment/experiments
         #  in the init the @call decorator has to be changed!
         self.experiment: Experiment = experiment
         self.experiments: List[Experiment] = experiments
+        self._queued_data = []
         # Setting the experiment value supersedes setting experiments
         if self.experiment is not None:
             self.experiments = [self.experiment]
@@ -127,6 +137,7 @@ class Calculator(CalculatorDatabase):
         self.result_series_keys = None
         self.analysis_name = None
         self.selected_species = None
+        self.stored_parameters = None
 
         # Calculator attributes
         self.system_property = False
@@ -143,28 +154,43 @@ class Calculator(CalculatorDatabase):
         self.y_label = None
         self.plot_array = []
 
+    def adopt_experiment_attributes(self, simulation_attributes):
+        """
+        Collect some important attributes from the experiment for
+        internal use.
+
+        Parameters
+        ----------
+        simulation_attributes : object
+                Collection of simulation attributes that are required in the
+                calculators.
+
+        Returns
+        -------
+
+        """
+        self.experiment_timestep = simulation_attributes.time_step
+        self.experiment_sample_rate = simulation_attributes.sample_rate
+
     def __call__(
         self,
     ):
         """
         Call the calculator.
         """
-        data = self.get_computation_data()
+        self.run_calculator()  # perform the computation.
 
-        if data is None:
-            log.info("Data not in database, performing computation.")
-            self.prepare_db_entry()
-            self.save_computation_args()
-            self.run_calculator()
-            self.save_db_data()
-            # Need to reset the user args, if they got change
-            # or set to defaults, e.g. n_configurations = - 1 so
-            # that they match the query
-            data = self.get_computation_data()
-        else:
-            log.info("Data in database, loading now.")
+        return self._queued_data
 
-        return data
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        pass
 
     @property
     def dtype(self):
@@ -244,3 +270,16 @@ class Calculator(CalculatorDatabase):
                 "documentation before using the results."
             )
         self.run_calculator()
+
+    def queue_data(self, data, subjects):
+        """Queue data to be stored in the database
+
+        Parameters:
+            data: dict
+                A  dictionary containing all the data that was computed by the
+                computation
+            subjects: list
+                A list of strings / subject names that are associated with the data,
+                e.g. the pairs of the RDF
+        """
+        self._queued_data.append(ComputationResults(data=data, subjects=subjects))

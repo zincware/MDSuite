@@ -202,26 +202,32 @@ class TrajectoryCalculator(Calculator, ABC):
         times : np.array
             The time values corresponding to the selected tau values
         """
-        if isinstance(self.args.tau_values, int):
-            self.data_resolution = self.args.tau_values
-            self.args.tau_values = np.linspace(
-                0, self.args.data_range - 1, self.args.tau_values, dtype=int
+        if isinstance(self.stored_parameters.tau_values, int):
+            self.data_resolution = self.stored_parameters.tau_values
+            self.stored_parameters.tau_values = np.linspace(
+                0,
+                self.stored_parameters.data_range - 1,
+                self.stored_parameters.tau_values,
+                dtype=int,
             )
-        if isinstance(self.args.tau_values, list) or isinstance(
-            self.args.tau_values, np.ndarray
+        if isinstance(self.stored_parameters.tau_values, list) or isinstance(
+            self.stored_parameters.tau_values, np.ndarray
         ):
-            self.data_resolution = len(self.args.tau_values)
-            self.args.data_range = self.args.tau_values[-1] + 1
-        if isinstance(self.args.tau_values, slice):
-            self.args.tau_values = np.linspace(
-                0, self.args.data_range - 1, self.args.data_range, dtype=int
-            )[self.args.tau_values]
-            self.data_resolution = len(self.args.tau_values)
+            self.data_resolution = len(self.stored_parameters.tau_values)
+            self.stored_parameters.data_range = self.stored_parameters.tau_values[-1] + 1
+        if isinstance(self.stored_parameters.tau_values, slice):
+            self.stored_parameters.tau_values = np.linspace(
+                0,
+                self.stored_parameters.data_range - 1,
+                self.stored_parameters.data_range,
+                dtype=int,
+            )[self.stored_parameters.tau_values]
+            self.data_resolution = len(self.stored_parameters.tau_values)
 
         times = (
-            np.asarray(self.args.tau_values)
-            * self.experiment.time_step
-            * self.experiment.sample_rate
+            np.asarray(self.stored_parameters.tau_values)
+            * self.experiment_timestep
+            * self.experiment_sample_rate
         )
 
         return times
@@ -237,7 +243,7 @@ class TrajectoryCalculator(Calculator, ABC):
         -------
         Updates the remainder attribute if required.
         """
-        return self.remainder - (self.remainder % self.args.data_range)
+        return self.remainder - (self.remainder % self.stored_parameters.data_range)
 
     def _prepare_managers(self, data_path: list, correct: bool = False):
         """
@@ -268,7 +274,7 @@ class TrajectoryCalculator(Calculator, ABC):
         ) = self.memory_manager.get_batch_size(system=self.system_property)
 
         self.ensemble_loop, self.minibatch = self.memory_manager.get_ensemble_loop(
-            self.args.data_range, self.args.correlation_time
+            self.stored_parameters.data_range, self.stored_parameters.correlation_time
         )
 
         if self.minibatch:
@@ -284,13 +290,13 @@ class TrajectoryCalculator(Calculator, ABC):
         self.data_manager = DataManager(
             data_path=data_path,
             database=self.database,
-            data_range=self.args.data_range,
+            data_range=self.stored_parameters.data_range,
             batch_size=self.batch_size,
             n_batches=self.n_batches,
             ensemble_loop=self.ensemble_loop,
-            correlation_time=self.args.correlation_time,
+            correlation_time=self.stored_parameters.correlation_time,
             remainder=self.remainder,
-            atom_selection=self.args.atom_selection,
+            atom_selection=self.stored_parameters.atom_selection,
             minibatch=self.minibatch,
             atom_batch_size=self.memory_manager.atom_batch_size,
             n_atom_batches=self.memory_manager.n_atom_batches,
