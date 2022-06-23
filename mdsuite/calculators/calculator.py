@@ -27,18 +27,14 @@ Parent class for the calculators.
 """
 from __future__ import annotations
 
-import functools
 import logging
 import warnings
-from typing import TYPE_CHECKING, Dict, List, Union
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, List
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
-
-import mdsuite.database.scheme as db
-from mdsuite.database.calculator_database import CalculatorDatabase
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 if TYPE_CHECKING:
     from mdsuite import Experiment
@@ -49,106 +45,23 @@ warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
 
 
-def call(func):
+def call(*args, **kwargs):
+    pass
+
+
+@dataclass
+class ComputationResults:
     """
-    Decorator for the calculator call method
+    A wrapper class for the results of a computation.
 
-    This decorator provides a unified approach for handling run_computation and
-    load_data for a single or multiple experiments.
-    It handles the `run.<calc>()` method, iterates over experiments and
-    loads data if requested! Therefore, the __call__ method does not and can
-    not return any values anymore!
-
-
-    Notes
-    -----
-    When calling the calculator it will check if a computation with the given
-    user arguments was already performed:
-    >>> Calculator.get_computation_data() is not None
-
-    if no computations are available it will
-    1. prepare a database entry
-    >>> Calculator.prepare_db_entry()
-    2. save the user arguments
-    >>> Calculator.save_computation_args()
-    3. Run the analysis
-    >>> Calculator.run_analysis()
-    4. Save all the data to the database
-    >>> Calculator.save_db_data()
-    5. Finally query the the data from the database and pass them to the user / plotting
-    >>> data = Calculator.get_computation_data()
-
-
-
-
-    Parameters
-    ----------
-    func: Calculator.__call__ method
-
-    Returns
-    -------
-    decorated __call__ method
-
+    This class is returned when data is loaded from the SQL database.
     """
 
-    @functools.wraps(func)
-    def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
-        """Manage the call method
-
-        Parameters
-        ----------
-        self: Calculator
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {name: data} when called from the project class
-            A list of [data] when called directly from the experiment class
-        """
-        # This is only true, when called via project.experiments.<exp>.run,
-        #  otherwise the experiment will be None
-        return_dict = self.experiment is None
-
-        out = {}
-        # for experiment in self.experiments:
-        CLS = self.__class__
-        # NOTE: if the calculator accepts more than just experiment/experiments
-        #  as init, this has to be changed!
-        cls = CLS(experiment=self.experiment)
-        # pass the user args to the calculator
-        func(cls, *args, **kwargs)
-        data = cls.get_computation_data()
-        if data is None:
-            # new calculation will be performed
-            cls.prepare_db_entry()
-            cls.save_computation_args()
-            cls.run_analysis()
-            cls.save_db_data()
-            # Need to reset the user args, if they got change
-            # or set to defaults, e.g. n_configurations = - 1 so
-            # that they match the query
-            func(cls, *args, **kwargs)
-            data = cls.get_computation_data()
-
-        if cls.plot:
-            """Plot the data"""
-            cls.plotter = DataVisualizer2D(
-                title=cls.analysis_name, path=self.experiment.figures_path
-            )
-            cls.plot_data(data.data_dict)
-            cls.plotter.grid_show(cls.plot_array)
-
-        out[cls.experiment.name] = data
-
-        if return_dict:
-            return out
-        else:
-            return out[self.experiment.name]
-
-    return inner
+    data: dict = field(default_factory=dict)
+    subjects: dict = field(default_factory=list)
 
 
-class Calculator(CalculatorDatabase):
+class Calculator:
     """
     Parent class for analysis modules
 
@@ -207,11 +120,12 @@ class Calculator(CalculatorDatabase):
                 List of experiments on which to run the calculator.
         """
         # Set upon instantiation of parent class
-        super().__init__(experiment)
+        # super().__init__(experiment)
         # NOTE: if the calculator accepts more than just experiment/experiments
         #  in the init the @call decorator has to be changed!
         self.experiment: Experiment = experiment
         self.experiments: List[Experiment] = experiments
+        self._queued_data = []
         # Setting the experiment value supersedes setting experiments
         if self.experiment is not None:
             self.experiments = [self.experiment]
@@ -223,6 +137,7 @@ class Calculator(CalculatorDatabase):
         self.result_series_keys = None
         self.analysis_name = None
         self.selected_species = None
+        self.stored_parameters = None
 
         # Calculator attributes
         self.system_property = False
@@ -238,6 +153,44 @@ class Calculator(CalculatorDatabase):
         self.x_label = None
         self.y_label = None
         self.plot_array = []
+
+    def adopt_experiment_attributes(self, simulation_attributes):
+        """
+        Collect some important attributes from the experiment for
+        internal use.
+
+        Parameters
+        ----------
+        simulation_attributes : object
+                Collection of simulation attributes that are required in the
+                calculators.
+
+        Returns
+        -------
+
+        """
+        self.experiment_timestep = simulation_attributes.time_step
+        self.experiment_sample_rate = simulation_attributes.sample_rate
+
+    def __call__(
+        self,
+    ):
+        """
+        Call the calculator.
+        """
+        self.run_calculator()  # perform the computation.
+
+        return self._queued_data
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        pass
 
     @property
     def dtype(self):
@@ -317,3 +270,16 @@ class Calculator(CalculatorDatabase):
                 "documentation before using the results."
             )
         self.run_calculator()
+
+    def queue_data(self, data, subjects):
+        """Queue data to be stored in the database
+
+        Parameters:
+            data: dict
+                A  dictionary containing all the data that was computed by the
+                computation
+            subjects: list
+                A list of strings / subject names that are associated with the data,
+                e.g. the pairs of the RDF
+        """
+        self._queued_data.append(ComputationResults(data=data, subjects=subjects))

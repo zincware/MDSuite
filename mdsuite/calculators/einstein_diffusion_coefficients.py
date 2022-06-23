@@ -39,7 +39,6 @@ from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
@@ -48,7 +47,7 @@ log = logging.getLogger(__name__)
 
 
 @dataclass
-class Args:
+class StoredParameters:
     """
     Data class for the saved properties.
     """
@@ -69,7 +68,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
     Attributes
     ----------
     msd_array : np.ndarray
-            MSd data updated during each ensemble computation.
+            MSD data updated during each ensemble computation.
 
     See Also
     --------
@@ -130,8 +129,9 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         if fit_range == -1:
             fit_range = int(data_range - 1)
+
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = StoredParameters(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
@@ -140,37 +140,19 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             species=species,
             fit_range=fit_range,
         )
+
         self.plot = plot
         self.system_property = False
 
-    @call
-    def __call__(
-        self,
-    ):
+    def prepare_calculation(self):
         """
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        molecules : bool
-                If true, molecules are used instead of atoms.
-        tau_values : Union[int, list, np.s_]
-                Selection of tau values to use in the window sliding.
-
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
         Returns
         -------
-        None
+
         """
-        self.run_calculator()
+        self._handle_tau_values()
 
     def ensemble_operation(self, ensemble):
         """
@@ -186,14 +168,15 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+            tf.gather(ensemble, self.stored_parameters.tau_values, axis=1),
+            ensemble[:, None, 0],
         )
         # average over particles, sum over dimensions
         msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
         # sum up ensembles to average in post processing
         self.msd_array += np.array(msd)
 
-    def fit_diff_coeff(self):
+    def fit_diffusion_coefficients(self):
         """
         Apply unit conversion, fit line to the data, prepare for database storage
         """
@@ -203,7 +186,9 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.time *= self.experiment.units["time"]
 
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+            x_data=self.time,
+            y_data=self.msd_array,
+            fit_max_index=self.stored_parameters.fit_range,
         )
         error = np.sqrt(np.diag(covariance))[0]
 
@@ -224,7 +209,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         Run analysis.
         """
         self._run_dependency_check()
-        for species in self.args.species:
+        for species in self.stored_parameters.species:
             # Here for now to avoid issues. Should be moved out when calculators become
             # species-wise
             self.time = None
@@ -246,7 +231,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 for ensemble in ensemble_ds:
                     self.ensemble_operation(ensemble[dict_ref])
 
-            fit_results = self.fit_diff_coeff()
+            fit_results = self.fit_diffusion_coefficients()
             self.queue_data(data=fit_results, subjects=[species])
 
     def plot_data(self, data):
@@ -274,7 +259,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
             # Compute the span
             span = Span(
-                location=time[self.args.fit_range],
+                location=time[self.stored_parameters.fit_range],
                 dimension="height",
                 line_dash="dashed",
             )
