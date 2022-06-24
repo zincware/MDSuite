@@ -35,6 +35,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
 from bokeh.models import Span
+from scipy.integrate import cumtrapz
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
@@ -104,7 +105,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
         self.result_keys = ["ionic_conductivity", "uncertainty"]
-        self.result_series_keys = ["time", "acf"]
+        self.result_series_keys = ["time", "acf", "integral", "integral_uncertainty"]
 
         self.prefactor = None
         self._dtype = tf.float64
@@ -151,6 +152,9 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
 
+        self.acfs = []
+        self.sigmas = []
+
     def check_input(self):
         """
         Check the user input to ensure no conflicts are present.
@@ -177,7 +181,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             * self.experiment.temperature
             * self.experiment.volume
             * (self.experiment.units["length"] ** 3)
-            * self.args.data_range
             * self.experiment.units["time"]
         )
         self.prefactor = numerator / denominator
@@ -191,37 +194,24 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         pass
 
-    def ensemble_operation(self, ensemble):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
         Parameters
         ----------
-        ensemble
+        ensemble : tf.Tensor
+                Ensemble on which to operate.
 
         Returns
         -------
-        MSD of the tensor_values.
+        ACF of the tensor_values.
         """
-        jacf = (
-            self.args.data_range
-            * tf.reduce_sum(
-                tfp.stats.auto_correlation(
-                    tf.gather(ensemble, self.args.tau_values, axis=1),
-                    normalize=False,
-                    axis=1,
-                    center=False,
-                ),
-                axis=-1,
-            )[0, :]
-        )
-        self.jacf += jacf
-        self.sigma.append(
-            np.trapz(
-                jacf,
-                x=self.time[self.args.tau_values],
-            )
-        )
+        ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
+        jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
+        jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
+        self.acfs.append(jacf)
+        self.sigmas.append(cumtrapz(jacf, x=self.time))
 
     def _post_operation_processes(self):
         """
@@ -230,13 +220,25 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        result = self.prefactor * np.array(self.sigma)
+        self.sigmas = np.array(self.sigmas)
+        sigma = np.mean(self.sigmas, axis=0)
+        sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
+
+        self.acfs = np.array(self.acfs)
+        acf = np.mean(self.acfs, axis=0)
+
+        ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 2]
+        ionic_conductivity_SEM = (
+            self.prefactor * sigma_SEM[self.args.integration_range - 2]
+        )
 
         data = {
-            self.result_keys[0]: np.mean(result).tolist(),
-            self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
+            self.result_keys[0]: [ionic_conductivity],
+            self.result_keys[1]: [ionic_conductivity_SEM],
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: self.jacf.numpy().tolist(),
+            self.result_series_keys[1]: acf.tolist(),
+            self.result_series_keys[2]: sigma.tolist(),
+            self.result_series_keys[3]: sigma_SEM.tolist(),
         }
 
         self.queue_data(data=data, subjects=["System"])
