@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
-from dataclasses import dataclass
 from typing import Any, List, Union
 
 import numpy as np
@@ -44,21 +43,6 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class StoredParameters:
-    """
-    Data class for the saved properties.
-    """
-
-    data_range: int
-    correlation_time: int
-    atom_selection: np.s_
-    tau_values: np.s_
-    molecules: bool
-    species: list
-    fit_range: int
 
 
 class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
@@ -125,7 +109,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             fit_range = int(data_range - 1)
 
         # set args that will affect the computation result
-        self.stored_parameters = StoredParameters(
+        self.stored_parameters = self.create_stored_parameters(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
@@ -209,10 +193,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         self._run_dependency_check()
         for species in self.stored_parameters.species:
-            # Here for now to avoid issues. Should be moved out when calculators become
-            # species-wise
-            # self.time = None
-            # self.time = self._handle_tau_values()
             self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
             batch_ds = self.get_batch_dataset([species])

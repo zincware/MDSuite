@@ -36,6 +36,8 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
+from mdsuite.utils.helpers import generate_dataclass
+
 if TYPE_CHECKING:
     from mdsuite import Experiment
 
@@ -191,6 +193,22 @@ class Calculator:
 
         """
         pass
+
+    @staticmethod
+    def create_stored_parameters(**kwargs):
+        """
+        Create the stored parameters dataclass
+
+        Parameters
+        ----------
+        kwargs
+
+        Returns
+        -------
+        stored_parameters : object
+                Returns the stored parameters dataclass.
+        """
+        return generate_dataclass(**kwargs)
 
     @property
     def dtype(self):
