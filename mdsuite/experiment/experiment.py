@@ -408,6 +408,7 @@ class Experiment(ExperimentDatabase):
         -------
 
         """
+        calculator.experiment = self
         # Provide experiment data to calculator.
         calculator.adopt_experiment_attributes(self.simulation_attributes)
         # Prepare the calculator for running.
@@ -420,7 +421,6 @@ class Experiment(ExperimentDatabase):
         )
 
         data = calculator_database.get_computation_data()  # try to load the data.
-        calculator.experiment = self
 
         if data is None:
             log.info("Data not in database, performing computation.")
@@ -430,13 +430,26 @@ class Experiment(ExperimentDatabase):
             # store the necessary parameters.
             calculator_database.save_computation_args()
             # run the calculation and receive staged data.
+
             staged_data = calculator()
+            # calculator.prepare_calculation()
+
             # Store results in sql database.
             calculator_database.save_db_data(staged_data=staged_data)
+
             data = calculator_database.get_computation_data()  # load the data.
+            calculator.plot_data(data)
         else:
             log.info("Data in database, loading now.")
 
+        # calculator.experiment = self
+        # calculator.adopt_experiment_attributes(self.simulation_attributes)
+        # calculator_database = CalculatorDatabase(
+        #     experiment=self,
+        #     stored_parameters=calculator.stored_parameters,
+        #     analysis_name=calculator.analysis_name,
+        # )
+        # data = calculator_database.get_computation_data()  # try to load the data.
         return data
 
     # def map_elements(self, mapping: dict = None):

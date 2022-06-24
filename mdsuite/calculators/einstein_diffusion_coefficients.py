@@ -42,6 +42,7 @@ from tqdm import tqdm
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 log = logging.getLogger(__name__)
 
@@ -121,14 +122,10 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         log.info("starting Einstein Diffusion Computation")
 
-        if species is None:
-            if molecules:
-                species = list(self.experiment.molecules)
-            else:
-                species = list(self.experiment.species)
-
         if fit_range == -1:
             fit_range = int(data_range - 1)
+
+        self.plotter = DataVisualizer2D("test", ".")
 
         # set args that will affect the computation result
         self.stored_parameters = StoredParameters(
@@ -152,7 +149,12 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        self._handle_tau_values()
+        self.time = self._handle_tau_values()
+        if self.stored_parameters.species is None:
+            if self.stored_parameters.molecules:
+                self.stored_parameters.species = list(self.experiment.molecules)
+            else:
+                self.stored_parameters.species = list(self.experiment.species)
 
     def ensemble_operation(self, ensemble):
         """
@@ -212,8 +214,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         for species in self.stored_parameters.species:
             # Here for now to avoid issues. Should be moved out when calculators become
             # species-wise
-            self.time = None
-            self.time = self._handle_tau_values()
+            # self.time = None
+            # self.time = self._handle_tau_values()
             self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
             batch_ds = self.get_batch_dataset([species])
@@ -246,7 +248,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        for selected_species, val in data.items():
+        for selected_species, val in data.data_dict.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 
             gradients = np.array(val[self.result_series_keys[2]])

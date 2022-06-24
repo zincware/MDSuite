@@ -29,6 +29,7 @@ import sys
 
 import open3d
 
+from mdsuite import calculators
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
 from mdsuite.utils import config
@@ -41,6 +42,7 @@ __all__ = [
     Report.__name__,
     "config",
     Molecule.__name__,
+    calculators.__name__,
 ]
 __version__ = "0.1.0"
 
