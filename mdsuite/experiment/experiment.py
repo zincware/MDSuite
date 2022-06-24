@@ -442,14 +442,6 @@ class Experiment(ExperimentDatabase):
         else:
             log.info("Data in database, loading now.")
 
-        # calculator.experiment = self
-        # calculator.adopt_experiment_attributes(self.simulation_attributes)
-        # calculator_database = CalculatorDatabase(
-        #     experiment=self,
-        #     stored_parameters=calculator.stored_parameters,
-        #     analysis_name=calculator.analysis_name,
-        # )
-        # data = calculator_database.get_computation_data()  # try to load the data.
         return data
 
     # def map_elements(self, mapping: dict = None):

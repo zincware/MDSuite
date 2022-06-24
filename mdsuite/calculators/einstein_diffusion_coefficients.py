@@ -42,7 +42,6 @@ from tqdm import tqdm
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
-from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 log = logging.getLogger(__name__)
 
@@ -125,8 +124,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         if fit_range == -1:
             fit_range = int(data_range - 1)
 
-        self.plotter = DataVisualizer2D("test", ".")
-
         # set args that will affect the computation result
         self.stored_parameters = StoredParameters(
             data_range=data_range,
@@ -185,10 +182,10 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array *= self.experiment.units["length"] ** 2
-        self.time *= self.experiment.units["time"]
+        time = self.time * self.experiment.units["time"]
 
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time,
+            x_data=time,
             y_data=self.msd_array,
             fit_max_index=self.stored_parameters.fit_range,
         )
@@ -199,7 +196,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             self.result_keys[1]: 1 / 6.0 * error,
             self.result_keys[2]: fit_values[0],
             self.result_keys[3]: fit_values[1],
-            self.result_series_keys[0]: self.time.tolist(),
+            self.result_series_keys[0]: time.tolist(),
             self.result_series_keys[1]: self.msd_array.tolist(),
             self.result_series_keys[2]: (np.array(gradients) / 6).tolist(),
             self.result_series_keys[3]: (np.array(gradient_errors) / 6).tolist(),

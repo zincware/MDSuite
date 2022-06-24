@@ -82,7 +82,7 @@ def test_calculator(tmp_path):
     calculator = mds.calculators.EinsteinDiffusionCoefficients(
         plot=False, correlation_time=1, data_range=msd_range
     )
-    res = exp.execute_operation(calculator)
+    res = exp.execute_operation(calculator)[species.name]
 
     time_should_be = time_step * np.arange(0, msd_range) * units.time
     diff_coeff_should_be = diff_coeff * units.length**2 / units.time
