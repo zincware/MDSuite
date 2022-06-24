@@ -35,7 +35,8 @@ from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from scipy.signal import find_peaks
 
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.exceptions import CannotPerformThisAnalysis
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
@@ -128,42 +129,17 @@ class CoordinationNumbers(Calculator):
 
     rdf_data: Computation
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor
-
-        Parameters
-        ----------
-        experiment : class object
-                        Class object of the experiment.
-        """
-
-        super().__init__(**kwargs)
-        self.file_to_study = None
-
-        self.integral_data = None
-        self.species_tuple = None
-        self.indices = None
-
-        self.post_generation = True
-
-        self.database_group = "Coordination_Numbers"
-        self.x_label = r"$$\text{r} /  nm$$"
-        self.y_label = "CN"
-        self.analysis_name = "Coordination_Numbers"
-        self.result_keys = []
-        self.result_series_keys = ["r", "cn"]
-
-    @call
-    def __call__(
+    def __init__(
         self,
         rdf_data: Computation = None,
         plot: bool = True,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
         number_of_shells: int = 1,
+        **kwargs,
     ):
         """
+        Python constructor
 
         Parameters
         ----------
@@ -181,31 +157,61 @@ class CoordinationNumbers(Calculator):
                 Number of shells to look for.
         """
 
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
-        else:
-            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
+        super().__init__(**kwargs)
+        self.file_to_study = None
+
+        self.integral_data = None
+        self.species_tuple = None
+        self.indices = None
+
+        self.rdf_data = rdf_data
+
+        self.post_generation = True
+
+        self.database_group = "Coordination_Numbers"
+        self.x_label = r"$$\text{r} /  nm$$"
+        self.y_label = "CN"
+        self.analysis_name = "Coordination_Numbers"
+        self.result_keys = []
+        self.result_series_keys = ["r", "cn"]
+
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
+        self.number_of_shells = number_of_shells
+
+        self.plot = plot
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        if not isinstance(self.rdf_data, Computation):
+            self.rdf_data = self.experiment.execute_operation(
+                RadialDistributionFunction(plot=False)
+            )
 
         # set args that will affect the computation result
-        self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+        self.stored_parameters = self.create_stored_parameters(
+            savgol_order=self.savgol_order,
+            savgol_window_length=self.savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            number_of_shells=number_of_shells,
+            number_of_shells=self.number_of_shells,
         )
 
         # Auto-populate the result keys.
-        for i in range(self.args.number_of_shells):
+        for i in range(self.stored_parameters.number_of_shells):
             self.result_keys.append(f"CN_{i + 1}")
             self.result_keys.append(f"CN_{i + 1}_error")
 
         self._compute_nm_volume()
-
-        self.plot = plot
 
     def _compute_nm_volume(self):
         """
@@ -252,11 +258,11 @@ class CoordinationNumbers(Calculator):
 
         filtered_data = apply_savgol_filter(
             rdf,
-            order=self.args.savgol_order,
-            window_length=self.args.savgol_window_length,
+            order=self.stored_parameters.savgol_order,
+            window_length=self.stored_parameters.savgol_window_length,
         )
         peaks = find_peaks(filtered_data, height=1.0)[0]  # get the maximum values
-        required_peaks = self.args.number_of_shells + 1
+        required_peaks = self.stored_parameters.number_of_shells + 1
 
         # Check that the required number of peaks exist.
         if len(peaks) < required_peaks:
@@ -290,7 +296,7 @@ class CoordinationNumbers(Calculator):
 
         # Calculate the range in which the coordination numbers should exist.
         coordination_shells = {}
-        for i in range(self.args.number_of_shells):
+        for i in range(self.stored_parameters.number_of_shells):
             coordination_shells[i] = np.zeros(2, dtype=int)
             cn_radii_range = golden_section_search(
                 [radii, rdf], radii[peaks[i + 1]], radii[peaks[i]]
@@ -371,11 +377,12 @@ class CoordinationNumbers(Calculator):
     def plot_data(self, data):
         """Plot the CN"""
         # Plot the values if required
+        plot_array = []
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 
             # Add vertical lines to the plot
-            for i in range(self.args.number_of_shells):
+            for i in range(self.stored_parameters.number_of_shells):
                 coordination_number = val[f"CN_{i + 1}"]
                 index = np.argmin(
                     np.abs(
@@ -415,4 +422,5 @@ class CoordinationNumbers(Calculator):
 
             fig.line(rdf_radii, rdf_gr, y_range_name="g(r)", color="#bc5090")
 
-            self.plot_array.append(fig)
+            plot_array.append(fig)
+        return plot_array

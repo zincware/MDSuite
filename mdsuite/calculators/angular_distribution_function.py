@@ -56,9 +56,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
     ----------
     batch_size : int
         Number of batches, to split the configurations into.
-    n_minibatches: int
+    n_minibatches : int
         Number of minibatches for computing the angles to split each batch into
-    n_confs: int
+    n_confs : int
         Number of configurations to analyse
     r_cut: float
         cutoff radius for the ADF

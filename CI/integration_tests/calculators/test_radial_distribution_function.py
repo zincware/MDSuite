@@ -63,7 +63,9 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.RadialDistributionFunction(plot=False)
+    computation = project.execute_operation(
+        mds.calculators.RadialDistributionFunction(plot=False)
+    )
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
 
@@ -76,7 +78,9 @@ def test_experiment(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
+    computation = project.experiments.NaCl.execute_operation(
+        mds.calculators.RadialDistributionFunction(plot=False)
+    )
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
 
@@ -88,12 +92,14 @@ def test_computation_parameter(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.experiments.NaCl.run.RadialDistributionFunction(
-        plot=False,
-        number_of_bins=50,
-        cutoff=5,
-        number_of_configurations=150,
-        species=["Na"],
+    computation = project.experiments.NaCl.execute_operation(
+        mds.calculators.RadialDistributionFunction(
+            plot=False,
+            number_of_bins=50,
+            cutoff=5,
+            number_of_configurations=150,
+            species=["Na"],
+        )
     )
 
     assert computation.computation_parameter["number_of_bins"] == 50

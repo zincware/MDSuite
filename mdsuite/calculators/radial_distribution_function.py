@@ -32,7 +32,6 @@ from __future__ import annotations
 import itertools
 import logging
 from abc import ABC
-from dataclasses import dataclass
 from timeit import default_timer as timer
 from typing import Union
 
@@ -42,7 +41,6 @@ import tensorflow as tf
 # Import user packages
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
@@ -53,24 +51,6 @@ from mdsuite.utils.linalg import (
 from mdsuite.utils.meta_functions import join_path, split_array
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    number_of_bins: int
-    number_of_configurations: int
-    correlation_time: int
-    atom_selection: np.s_
-    data_range: int
-    cutoff: float
-    start: int
-    stop: int
-    species: list
-    molecules: bool
 
 
 class RadialDistributionFunction(TrajectoryCalculator, ABC):
@@ -109,37 +89,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     """
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the RDF calculator.
-
-        Attributes
-        ----------
-        kwargs: see RunComputation class for all the passed arguments
-        """
-        super().__init__(**kwargs)
-
-        self.scale_function = {
-            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
-        }
-        self.loaded_property = mdsuite_properties.positions
-        self.x_label = r"$$r / nm$$"
-        self.y_label = r"$$g(r)$$"
-        self.analysis_name = "Radial_Distribution_Function"
-        self.result_series_keys = ["x", "y"]
-
-        self._dtype = tf.float32
-
-        self.rdf_minibatch = None
-        self.use_tf_function = None
-        self.override_n_batches = None
-        self.index_list = None
-        self.sample_configurations = None
-        self.key_list = None
-        self.rdf = None
-
-    @call
-    def __call__(
+    def __init__(
         self,
         plot: bool = True,
         number_of_bins: int = None,
@@ -155,7 +105,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         **kwargs,
     ):
         """
-        Compute the RDF with the given user parameters
+        Constructor for the RDF calculator.
 
         Parameters
         ----------
@@ -192,8 +142,26 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
         """
+        super().__init__(**kwargs)
+
+        self.scale_function = {
+            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
+        }
+        self.loaded_property = mdsuite_properties.positions
+        self.x_label = r"$$r / nm$$"
+        self.y_label = r"$$g(r)$$"
+        self.analysis_name = "Radial_Distribution_Function"
+        self.result_series_keys = ["x", "y"]
+
+        self._dtype = tf.float32
+
+        self.index_list = None
+        self.sample_configurations = None
+        self.key_list = None
+        self.rdf = None
+
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             number_of_bins=number_of_bins,
             cutoff=cutoff,
             start=start,
@@ -215,7 +183,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         self.override_n_batches = kwargs.get("batches")
         self.tqdm_limit = kwargs.pop("tqdm", 10)
 
-    def check_input(self):
+    def prepare_calculation(self):
         """
         Check the input of the call method and store defaults if needed.
 
@@ -223,33 +191,33 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates class attributes if required.
         """
-        if self.args.stop is None:
-            self.args.stop = self.experiment.number_of_configurations - 1
+        if self.stored_parameters.stop is None:
+            self.stored_parameters.stop = self.experiment.number_of_configurations - 1
 
-        if self.args.cutoff is None:
-            self.args.cutoff = (
+        if self.stored_parameters.cutoff is None:
+            self.stored_parameters.cutoff = (
                 self.experiment.box_array[0] / 2 - 0.1
             )  # set cutoff to half box size if none set
 
-        if self.args.number_of_configurations == -1:
-            self.args.number_of_configurations = (
+        if self.stored_parameters.number_of_configurations == -1:
+            self.stored_parameters.number_of_configurations = (
                 self.experiment.number_of_configurations - 1
             )
 
         if self.rdf_minibatch == -1:
-            self.rdf_minibatch = self.args.number_of_configurations
+            self.rdf_minibatch = self.stored_parameters.number_of_configurations
 
-        if self.args.number_of_bins is None:
-            self.args.number_of_bins = int(
-                self.args.cutoff / 0.01
+        if self.stored_parameters.number_of_bins is None:
+            self.stored_parameters.number_of_bins = int(
+                self.stored_parameters.cutoff / 0.01
             )  # default is 1/100th of an angstrom
 
         # Get the correct species out.
-        if self.args.species is None:
-            if self.args.molecules:
-                self.args.species = list(self.experiment.molecules)
+        if self.stored_parameters.species is None:
+            if self.stored_parameters.molecules:
+                self.stored_parameters.species = list(self.experiment.molecules)
             else:
-                self.args.species = list(self.experiment.species)
+                self.stored_parameters.species = list(self.experiment.species)
 
         self._initialize_rdf_parameters()
 
@@ -261,15 +229,15 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates class attributes.
         """
-        self.bin_range = [0, self.args.cutoff]
+        self.bin_range = [0, self.stored_parameters.cutoff]
         self.index_list = [
-            i for i in range(len(self.args.species))
+            i for i in range(len(self.stored_parameters.species))
         ]  # Get the indices of the species
 
         self.sample_configurations = np.linspace(
-            self.args.start,
-            self.args.stop,
-            self.args.number_of_configurations,
+            self.stored_parameters.start,
+            self.stored_parameters.stop,
+            self.stored_parameters.number_of_configurations,
             dtype=np.int,
         )  # choose sampled configurations
 
@@ -280,7 +248,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         ]
 
         self.rdf = {
-            name: np.zeros(self.args.number_of_bins) for name in self.key_list
+            name: np.zeros(self.stored_parameters.number_of_bins)
+            for name in self.key_list
         }  # instantiate the rdf tuples
 
     def _get_species_names(self, species_tuple: tuple) -> str:
@@ -297,8 +266,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         names : str
                 Prefix for the saved file
         """
-        arg_1 = self.args.species[species_tuple[0]]
-        arg_2 = self.args.species[species_tuple[1]]
+        arg_1 = self.stored_parameters.species[species_tuple[0]]
+        arg_2 = self.stored_parameters.species[species_tuple[1]]
         return f"{arg_1}_{arg_2}"
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
@@ -316,7 +285,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         if species_split[0] == species_split[1]:
             species_scale_factor = 2
 
-        if self.args.molecules:
+        if self.stored_parameters.molecules:
             # Density of all atoms / total volume
             rho = (
                 self.experiment.molecules[species_split[1]].n_particles
@@ -324,15 +293,15 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             )
             numerator = species_scale_factor
             denominator = (
-                self.args.number_of_configurations
+                self.stored_parameters.number_of_configurations
                 * rho
                 * self.ideal_correction
                 * self.experiment.molecules[species_split[0]].n_particles
             )
         else:
-            if isinstance(self.args.atom_selection, dict):
-                n_species_0 = len(self.args.atom_selection[species_split[0]])
-                n_species_1 = len(self.args.atom_selection[species_split[1]])
+            if isinstance(self.stored_parameters.atom_selection, dict):
+                n_species_0 = len(self.stored_parameters.atom_selection[species_split[0]])
+                n_species_1 = len(self.stored_parameters.atom_selection[species_split[1]])
             else:
                 n_species_0 = self.experiment.species[species_split[0]].n_particles
                 n_species_1 = self.experiment.species[species_split[1]].n_particles
@@ -341,7 +310,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             rho = n_species_1 / self.experiment.volume
             numerator = species_scale_factor
             denominator = (
-                self.args.number_of_configurations
+                self.stored_parameters.number_of_configurations
                 * rho
                 * self.ideal_correction
                 * n_species_0
@@ -375,7 +344,11 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             log.debug("Writing RDF to database!")
 
             x_data = self._ang_to_nm(
-                np.linspace(0.0, self.args.cutoff, self.args.number_of_bins)
+                np.linspace(
+                    0.0,
+                    self.stored_parameters.cutoff,
+                    self.stored_parameters.number_of_bins,
+                )
             )
             y_data = self.rdf.get(names)
 
@@ -406,18 +379,20 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
-        if self.batch_size > self.args.number_of_configurations:
-            self.batch_size = self.args.number_of_configurations
+        if self.batch_size > self.stored_parameters.number_of_configurations:
+            self.batch_size = self.stored_parameters.number_of_configurations
             self.n_batches = 1
         else:
-            self.n_batches = int(self.args.number_of_configurations / self.batch_size)
+            self.n_batches = int(
+                self.stored_parameters.number_of_configurations / self.batch_size
+            )
 
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
         if self.minibatch:
             self.batch_size = 1
-            self.n_batches = self.args.number_of_configurations
+            self.n_batches = self.stored_parameters.number_of_configurations
             self.memory_manager.atom_batch_size = None
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
@@ -501,7 +476,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 {'H-O': tf.Tensor(...), 'H-H': ..., 'O-O': ...}
         """
         rdf = {
-            name: tf.zeros(self.args.number_of_bins, dtype=tf.int32)
+            name: tf.zeros(self.stored_parameters.number_of_bins, dtype=tf.int32)
             for name in self.key_list
         }
         indices = tf.transpose(indices)
@@ -526,8 +501,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 indices,
                 d_ij,
                 tf.cast(self.bin_range, dtype=self.dtype),
-                tf.cast(self.args.number_of_bins, dtype=tf.int32),
-                tf.cast(self.args.cutoff, dtype=self.dtype),
+                tf.cast(self.stored_parameters.number_of_bins, dtype=tf.int32),
+                tf.cast(self.stored_parameters.cutoff, dtype=self.dtype),
             )
         return rdf
 
@@ -565,7 +540,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         for item in keys:
             formatted_data.append(batch[item])
 
-        if len(self.args.species) == 1:
+        if len(self.stored_parameters.species) == 1:
             return tf.cast(formatted_data[0], dtype=self.dtype)
         else:
             return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
@@ -587,7 +562,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
 
         path_list = [
-            join_path(item, self.loaded_property.name) for item in self.args.species
+            join_path(item, self.loaded_property.name)
+            for item in self.stored_parameters.species
         ]
         self._prepare_managers(path_list)
 
@@ -596,7 +572,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
         # Get the correct dict keys.
         dict_keys = []
-        for item in self.args.species:
+        for item in self.stored_parameters.species:
             dict_keys.append(str.encode(join_path(item, self.loaded_property.name)))
 
         # Split the configurations into batches.
@@ -705,20 +681,21 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
 
         """
-        if self.args.molecules:
+        if self.stored_parameters.molecules:
             particles_list = [
                 self.experiment.molecules[item].n_particles
                 for item in self.experiment.molecules
             ]
         else:
-            if isinstance(self.args.atom_selection, dict):
+            if isinstance(self.stored_parameters.atom_selection, dict):
                 particles_list = [
-                    len(self.args.atom_selection[item]) for item in self.args.species
+                    len(self.stored_parameters.atom_selection[item])
+                    for item in self.stored_parameters.species
                 ]
             else:
                 particles_list = [
                     self.experiment.species[item].n_particles
-                    for item in self.args.species
+                    for item in self.stored_parameters.species
                 ]
 
         return particles_list
@@ -831,8 +808,10 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                         )
                     )
 
-        bin_width = self.args.cutoff / self.args.number_of_bins
-        bin_edges = np.linspace(0.0, self.args.cutoff, self.args.number_of_bins)
+        bin_width = self.stored_parameters.cutoff / self.stored_parameters.number_of_bins
+        bin_edges = np.linspace(
+            0.0, self.stored_parameters.cutoff, self.stored_parameters.number_of_bins
+        )
 
         return _piecewise(np.array(bin_edges)) * bin_width
 
@@ -844,13 +823,15 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.check_input()
+        # self.check_input()
 
         dict_keys, split_arr, batch_tqm = self.prepare_computation()
 
         # Get the batch dataset
         batch_ds = self.get_batch_dataset(
-            subject_list=self.args.species, loop_array=split_arr, correct=True
+            subject_list=self.stored_parameters.species,
+            loop_array=split_arr,
+            correct=True,
         )
 
         # Loop over the batches.
@@ -871,7 +852,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             minibatch_start = tf.constant(0)
             stop = tf.constant(0)
             rdf = {
-                name: tf.zeros(self.args.number_of_bins, dtype=tf.int32)
+                name: tf.zeros(self.stored_parameters.number_of_bins, dtype=tf.int32)
                 for name in self.key_list
             }
 

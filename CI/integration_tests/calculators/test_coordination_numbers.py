@@ -63,8 +63,10 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.CoordinationNumbers(
-        savgol_order=3, savgol_window_length=111, plot=False
+    computation = project.execute_operation(
+        mds.calculators.CoordinationNumbers(
+            savgol_order=3, savgol_window_length=111, plot=False
+        )
     )
 
     data_dict = computation["NaCl"]["Na_Cl"]
