@@ -56,6 +56,7 @@ from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 from .run_module import RunModule
 
@@ -438,9 +439,16 @@ class Experiment(ExperimentDatabase):
             calculator_database.save_db_data(staged_data=staged_data)
 
             data = calculator_database.get_computation_data()  # load the data.
-            calculator.plot_data(data)
         else:
             log.info("Data in database, loading now.")
+
+        if calculator.plot:
+            # Perform the visualization
+            visualizer = DataVisualizer2D(
+                title=calculator.analysis_name, path=self.figures_path
+            )
+            plot_array = calculator.plot_data(data)
+            visualizer.grid_show(plot_array)
 
         return data
 

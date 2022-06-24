@@ -245,6 +245,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
+        plot_array = []
         for selected_species, val in data.data_dict.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 
@@ -297,7 +298,9 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 color="#ffa600",
                 y_range_name="Diff_range",
             )
-
             fig.add_tools(HoverTool())
             fig.add_layout(span)
-            self.plot_array.append(fig)
+
+            plot_array.append(fig)
+
+        return plot_array
