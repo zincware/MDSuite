@@ -121,10 +121,6 @@ class Calculator:
         experiments : List[Experiment]
                 List of experiments on which to run the calculator.
         """
-        # Set upon instantiation of parent class
-        # super().__init__(experiment)
-        # NOTE: if the calculator accepts more than just experiment/experiments
-        #  in the init the @call decorator has to be changed!
         self.experiment: Experiment = experiment
         self.experiments: List[Experiment] = experiments
         self._queued_data = []
@@ -181,7 +177,6 @@ class Calculator:
         Call the calculator.
         """
         self.run_calculator()  # perform the computation.
-
         return self._queued_data
 
     def prepare_calculation(self):
@@ -238,15 +233,14 @@ class Calculator:
         -------
         Updates the plot array with a Bokeh plot object.
         """
-        self.plot_array.append(
-            self.plotter.construct_plot(
-                x_data=x_data,
-                y_data=y_data,
-                title=title,
-                x_label=self.x_label,
-                y_label=self.y_label,
-                layouts=layouts,
-            )
+
+        return self.plotter.construct_plot(
+            x_data=x_data,
+            y_data=y_data,
+            title=title,
+            x_label=self.x_label,
+            y_label=self.y_label,
+            layouts=layouts,
         )
 
     def run_calculator(self):
@@ -267,16 +261,26 @@ class Calculator:
         ----------
         data: db.Compution.data_dict
                 associated with the current project
+
+        Returns
+        -------
+        plot_array : list
+                A list of bokeh figures that may be plotted later.
         """
+        plot_array = []
         for selected_species, val in data.items():
-            self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]]),
-                y_data=np.array(val[self.result_series_keys[1]]),
-                title=(
-                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
-                    f" {val[self.result_keys[1]]: 0.3E}"
-                ),
+            plot_array.append(
+                self.run_visualization(
+                    x_data=np.array(val[self.result_series_keys[0]]),
+                    y_data=np.array(val[self.result_series_keys[1]]),
+                    title=(
+                        f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
+                        f" {val[self.result_keys[1]]: 0.3E}"
+                    ),
+                )
             )
+
+        return plot_array
 
     def run_analysis(self):
         """

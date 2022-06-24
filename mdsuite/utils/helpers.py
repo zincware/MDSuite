@@ -15,6 +15,9 @@ def generate_dataclass(**kwargs):
     """
     Generate a dataclass from the parsed kwargs.
 
+    This method allows a user to create a dataclass from a set of keyword arguments.
+    This is used mainly in the calculators to create dataclasses for the SQL database.
+
     Parameters
     ----------
     kwargs : Any

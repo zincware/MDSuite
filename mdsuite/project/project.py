@@ -346,5 +346,8 @@ class Project(ProjectDatabase):
         -------
 
         """
-        for item in self.active_experiments.values():
-            item.execute_operation(operation)
+        results = {}
+        for key, value in self.active_experiments.items():
+            results[key] = value.execute_operation(operation)
+
+        return results
