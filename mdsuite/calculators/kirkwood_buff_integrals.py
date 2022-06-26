@@ -31,7 +31,8 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.integrate import cumtrapz
 
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
@@ -90,14 +91,29 @@ class KirkwoodBuffIntegral(Calculator):
     experiment.run.KirkwoodBuffIntegral()
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+        **kwargs
+    ):
         """
         Python constructor for the class
 
         Parameters
         ----------
-        experiment : class object
-                        Class object of the experiment.
+        rdf_data : Computation
+                MDSuite Computation data schema from which to load the RDF data and
+                store relevant SQL meta-data information. If not give, an RDF will be
+                computed using the default RDF arguments.
+        plot : bool
+                If true, the output will be displayed in a figure.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
         """
 
         super().__init__(**kwargs)
@@ -113,42 +129,32 @@ class KirkwoodBuffIntegral(Calculator):
         self.result_series_keys = ["r", "kb_integral"]
         self.data_range = 1
 
+        self.rdf_data = rdf_data
+
         self.post_generation = True
 
-    @call
-    def __call__(
-        self,
-        rdf_data: Computation = None,
-        plot=True,
-        savgol_order: int = 2,
-        savgol_window_length: int = 17,
-    ):
-        """
-        Call method for the KB integrals.
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
 
-        Parameters
-        ----------
-        rdf_data : Computation
-                MDSuite Computation data schema from which to load the RDF data and
-                store relevant SQL meta-data information. If not give, an RDF will be
-                computed using the default RDF arguments.
-        plot : bool
-                If true, the output will be displayed in a figure.
-        savgol_order : int
-                Order of the savgol polynomial filter
-        savgol_window_length : int
-                Window length of the savgol filter.
-        """
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
-        else:
-            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.plot = plot
 
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        if not isinstance(self.rdf_data, Computation):
+            self.rdf_data = self.experiment.execute_operation(
+                RadialDistributionFunction(plot=False)
+            )
+
         # set args that will affect the computation result
-        self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+        self.stored_parameters = self.create_stored_parameters(
+            savgol_order=self.savgol_order,
+            savgol_window_length=self.savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
