@@ -148,7 +148,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             else:
                 species = list(self.experiment.species)
         if integration_range is None:
-            integration_range = data_range
+            integration_range = data_range - 1
 
         # set args that will affect the computation result
         self.args = Args(
