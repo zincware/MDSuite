@@ -180,8 +180,8 @@ class KirkwoodBuffIntegral(Calculator):
         """
         filtered_data = apply_savgol_filter(
             rdf_data,
-            order=self.args.savgol_order,
-            window_length=self.args.savgol_window_length,
+            order=self.stored_parameters.savgol_order,
+            window_length=self.stored_parameters.savgol_window_length,
         )
         integral_data = cumtrapz(
             y=(filtered_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
