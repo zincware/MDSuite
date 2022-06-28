@@ -175,6 +175,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
+        # TODO improve docstring
         # Calculate the prefactor
         numerator = (elementary_charge**2) * (self.experiment.units["length"] ** 2)
         denominator = (

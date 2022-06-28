@@ -315,7 +315,7 @@ class TrajectoryCalculator(Calculator, ABC):
         correct: bool = False,
     ) -> tf.data.Dataset:
         """
-        Collect the batch loop dataset
+        Collect the batch loop dataset.
 
         Parameters
         ----------
