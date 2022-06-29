@@ -223,16 +223,15 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.sigmas = tf.squeeze(np.array(self.sigmas))
+        self.sigmas = np.array(self.sigmas)
         sigma = np.mean(self.sigmas, axis=0)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
 
-        self.acfs = tf.squeeze(np.array(self.acfs))
+        self.acfs = np.array(self.acfs)
         acf = np.mean(self.acfs, axis=0)
-
-        ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 2]
+        ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 1]
         ionic_conductivity_SEM = (
-            self.prefactor * sigma_SEM[self.args.integration_range - 2]
+            self.prefactor * sigma_SEM[self.args.integration_range - 1]
         )
         data = {
             self.result_keys[0]: [ionic_conductivity],
