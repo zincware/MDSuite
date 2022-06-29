@@ -67,11 +67,11 @@ class TestScalingFunctions(unittest.TestCase):
         """
         # Assert simple multiplication
         data = linearithmic_scale_function(10, 1)
-        self.assertEqual(data, 23.02585092994046)
+        self.assertAlmostEqual(data, 23.02585092994046, 5)
 
         # Assert scaled multiplication
         data = linearithmic_scale_function(10, 3)
-        self.assertEqual(data, 69.07755278982138)
+        self.assertAlmostEqual(data, 69.07755278982138, 5)
 
         # Assert array values
         data = linearithmic_scale_function(np.array([5, 10, 20]), 2)
