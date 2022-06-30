@@ -281,8 +281,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.vacfs = np.array(self.vacfs)
         vacf = np.mean(self.vacfs, axis=0)
 
-        diff_coeff = 1 / 3 * sigma[self.args.integration_range - 2]
-        diff_coeff_SEM = 1 / 3 * sigma_SEM[self.args.integration_range - 2]
+        diff_coeff = 1 / 3 * sigma[self.args.integration_range - 1]
+        diff_coeff_SEM = 1 / 3 * sigma_SEM[self.args.integration_range - 1]
 
         data = {
             self.result_keys[0]: [diff_coeff],
