@@ -165,7 +165,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.plot = plot
 
         # Note: The following attributes are in SI units
-        self.time = self._handle_tau_values() * self.experiment.units["time"]
+        self.time = self._handle_tau_values() * self.experiment.units.time
         self.vacfs = []
         self.sigmas = []
 
@@ -192,8 +192,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         vacf = (
-            self.experiment.units["length"] ** 2
-            / self.experiment.units["time"] ** 2
+            self.experiment.units.length**2
+            / self.experiment.units.time**2
             * tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         )
 

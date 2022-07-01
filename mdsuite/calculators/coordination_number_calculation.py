@@ -216,7 +216,7 @@ class CoordinationNumbers(Calculator):
         -------
         Updates the volume attribute of the class.
         """
-        volume_si = self.experiment.volume * (self.experiment.units["length"] ** 3)
+        volume_si = self.experiment.volume * self.experiment.units.volume
 
         self.volume = volume_si / 1e-9**3
 

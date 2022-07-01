@@ -158,14 +158,14 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             3
             * (self.args.data_range - 1)
             * self.experiment.temperature
-            * self.experiment.units["boltzmann"]
+            * self.experiment.units.boltzmann
         )
 
         prefactor_units = (
-            self.experiment.units["pressure"] ** 2
-            * self.experiment.units["length"] ** 3
-            * self.experiment.units["time"]
-            / self.experiment.units["energy"]
+            self.experiment.units.pressure**2
+            * self.experiment.units.volume
+            * self.experiment.units.time
+            / self.experiment.units.energy
         )
 
         self.prefactor = (numerator / denominator) * prefactor_units
@@ -225,14 +225,14 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         # Update the plot if required
         if self.plot:
             span = Span(
-                location=(np.array(self.time) * self.experiment.units["time"])[
+                location=(np.array(self.time) * self.experiment.units.time)[
                     self.args.integration_range - 1
                 ],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
+                x_data=np.array(self.time) * self.experiment.units.time,
                 y_data=self.jacf.numpy(),
                 title=f"{result[0]} +- {result[1]}",
                 layouts=[span],

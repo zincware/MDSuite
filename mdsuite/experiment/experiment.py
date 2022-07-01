@@ -279,7 +279,7 @@ class Experiment(ExperimentDatabase):
         transformation.run_transformation(*args, **kwargs)
 
     @staticmethod
-    def units_to_si(units_system):
+    def units_to_si(units_system) -> Units:
         """
         Returns a dictionary with equivalences from the unit experiment given by a
         string to SI. Along with some constants in the unit experiment provided
@@ -294,7 +294,8 @@ class Experiment(ExperimentDatabase):
 
         Returns
         -------
-        conv_factor (float) -- conversion factor to pass to SI
+        units: Units
+            dataclass that contains the conversion factors to SI
         """
 
         if isinstance(units_system, Units):

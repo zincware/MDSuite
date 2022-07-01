@@ -170,15 +170,15 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         # Calculate the prefactor
-        numerator = (elementary_charge**2) * (self.experiment.units["length"] ** 2)
+        numerator = (elementary_charge**2) * (self.experiment.units.length**2)
         denominator = (
             3
             * boltzmann_constant
             * self.experiment.temperature
             * self.experiment.volume
-            * (self.experiment.units["length"] ** 3)
+            * self.experiment.units.volume
             * self.args.data_range
-            * self.experiment.units["time"]
+            * self.experiment.units.time
         )
         self.prefactor = numerator / denominator
 
@@ -246,15 +246,14 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         for selected_species, val in data.items():
             span = Span(
                 location=(
-                    np.array(val[self.result_series_keys[0]])
-                    * self.experiment.units["time"]
+                    np.array(val[self.result_series_keys[0]]) * self.experiment.units.time
                 )[self.args.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
+                * self.experiment.units.time,
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
                     f"{val[self.result_keys[0]]: 0.3E} +-"
