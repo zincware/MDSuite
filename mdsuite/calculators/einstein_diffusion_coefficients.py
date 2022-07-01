@@ -194,8 +194,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
 
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
-        self.msd_array *= self.experiment.units["length"] ** 2
-        self.time *= self.experiment.units["time"]
+        self.msd_array *= self.experiment.units.length**2
+        self.time *= self.experiment.units.time
 
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
             x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range

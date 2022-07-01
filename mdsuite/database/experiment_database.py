@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Union
 
 import numpy as np
 
@@ -330,9 +330,12 @@ class ExperimentDatabase:
         self.set_db(name="box_array", value=value)
 
     @property
-    def units(self) -> Dict[str, float]:
+    def units(self) -> Union[Units, None]:
         """Get the units of the experiment"""
-        return self.get_db(name="units")
+        dict_data = self.get_db(name="units")
+        if dict_data is None:
+            return None
+        return Units(**dict_data)
 
     @units.setter
     def units(self, value: Units):
