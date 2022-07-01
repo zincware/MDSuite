@@ -184,7 +184,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             * self.experiment.temperature
             * self.experiment.volume
             * self.experiment.units.volume
-            * self.args.data_range
             * self.experiment.units.time
         )
         self.prefactor = numerator / denominator
@@ -226,7 +225,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         sigma = np.mean(self.sigmas, axis=0)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
-
         acf = np.mean(self.acfs, axis=0)
         ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 1]
         ionic_conductivity_SEM = (
