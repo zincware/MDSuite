@@ -150,10 +150,11 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         # Calculate the prefactor
-        numerator = (self.experiment.units["length"] ** 2) * (elementary_charge**2)
+        numerator = (self.experiment.units.length**2) * (elementary_charge**2)
         denominator = (
-            self.experiment.units["time"]
-            * (self.experiment.volume * self.experiment.units["length"] ** 3)
+            self.experiment.units.time
+            * self.experiment.volume
+            * self.experiment.units.volume
             * self.experiment.temperature
             * boltzmann_constant
         )
