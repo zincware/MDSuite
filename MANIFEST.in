@@ -1,2 +1,0 @@
-include mdsuite/data/*.json
-include requirements.txt
