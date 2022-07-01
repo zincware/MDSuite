@@ -330,9 +330,9 @@ class ExperimentDatabase:
         self.set_db(name="box_array", value=value)
 
     @property
-    def units(self) -> Dict[str, float]:
+    def units(self) -> Units:
         """Get the units of the experiment"""
-        return self.get_db(name="units")
+        return Units(**self.get_db(name="units"))
 
     @units.setter
     def units(self, value: Units):
