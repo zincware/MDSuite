@@ -35,6 +35,7 @@ from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from scipy.signal import find_peaks
 
+from mdsuite import utils
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
@@ -221,7 +222,7 @@ class CoordinationNumbers(Calculator):
         -------
         Updates the volume attribute of the class.
         """
-        volume_si = self.experiment.volume * (self.experiment.units["length"] ** 3)
+        volume_si = self.experiment.volume * self.experiment.units.volume
 
         self.volume = volume_si / 1e-9**3
 
@@ -397,7 +398,7 @@ class CoordinationNumbers(Calculator):
             fig.line(
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 # legend labels are always the first shell and first shell error.
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
@@ -420,7 +421,7 @@ class CoordinationNumbers(Calculator):
                 "right",
             )
 
-            fig.line(rdf_radii, rdf_gr, y_range_name="g(r)", color="#bc5090")
+            fig.line(rdf_radii, rdf_gr, y_range_name="g(r)", color=utils.Colour.MULBERRY)
 
             plot_array.append(fig)
         return plot_array

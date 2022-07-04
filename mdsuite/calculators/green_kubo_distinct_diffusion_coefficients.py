@@ -243,10 +243,10 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 * self.experiment.species[species[1]].n_particles
             )
 
-        numerator = self.experiment.units["length"] ** 2
+        numerator = self.experiment.units.length**2
         denominator = (
             3
-            * self.experiment.units["time"]
+            * self.experiment.units.time
             * (self.stored_parameters.data_range - 1)
             * atom_scale
         )
@@ -286,15 +286,14 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         for selected_species, val in data.items():
             span = Span(
                 location=(
-                    np.array(val[self.result_series_keys[0]])
-                    * self.experiment.units["time"]
+                    np.array(val[self.result_series_keys[0]]) * self.experiment.units.time
                 )[self.stored_parameters.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
+                * self.experiment.units.time,
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
                     f"{val[self.result_keys[0]]: 0.3E} +-"

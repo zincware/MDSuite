@@ -33,7 +33,7 @@ import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.plotting import figure
 
-from mdsuite import data
+from mdsuite import data, utils
 from mdsuite.calculators.calculator import Calculator
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
@@ -211,7 +211,7 @@ class StructureFactor(Calculator):
         -------
         Updates the volume attribute of the class.
         """
-        volume_si = self.experiment.volume * (self.experiment.units["length"] ** 3)
+        volume_si = self.experiment.volume * self.experiment.units.volume
 
         self.volume = volume_si / 1e-10**3
 
@@ -374,7 +374,7 @@ class StructureFactor(Calculator):
             fig.line(
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 legend_label=f"{key}",
             )
             fig.add_tools(HoverTool())
