@@ -38,6 +38,7 @@ from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from tqdm import tqdm
 
+from mdsuite import utils
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
@@ -229,7 +230,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             fig.line(
                 time,
                 vacf,
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +-"
                     f" {val[self.result_keys[1]][0]: 0.3E}"
@@ -247,13 +248,15 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 "right",
             )
 
-            fig.line(time[1:], integral, y_range_name="Diff_range", color="#bc5090")
+            fig.line(
+                time[1:], integral, y_range_name="Diff_range", color=utils.Colour.MULBERRY
+            )
             fig.varea(
                 time[1:],
                 integral - integral_err,
                 integral + integral_err,
                 alpha=0.3,
-                color="#ffa600",
+                color=utils.Colour.ORANGE,
                 y_range_name="Diff_range",
             )
 

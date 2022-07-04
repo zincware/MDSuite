@@ -33,7 +33,7 @@ import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.plotting import figure
 
-from mdsuite import data
+from mdsuite import data, utils
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
 
@@ -371,7 +371,7 @@ class StructureFactor(Calculator):
             fig.line(
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 legend_label=f"{key}",
             )
             fig.add_tools(HoverTool())
