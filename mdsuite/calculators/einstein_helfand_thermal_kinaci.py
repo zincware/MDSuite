@@ -159,6 +159,8 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         """
         Compute the ionic conductivity prefactor.
 
+        Computes a prefactor for the GK calc.
+
         Returns
         -------
 
