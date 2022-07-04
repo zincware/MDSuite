@@ -149,7 +149,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             else:
                 species = list(self.experiment.species)
         if integration_range is None:
-            integration_range = data_range
+            integration_range = data_range - 1
 
         # set args that will affect the computation result
         self.args = Args(
@@ -199,12 +199,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         # average particles, sum dimensions
         vacf = tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1)
-        self.sigmas.append(
-            cumtrapz(
-                vacf,
-                x=self.time,
-            )
-        )
+        self.sigmas.append(cumtrapz(vacf, x=self.time))
         self.vacfs.append(vacf)
 
     def plot_data(self, data: dict):
@@ -289,8 +284,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.vacfs = np.array(self.vacfs)
         vacf = np.mean(self.vacfs, axis=0)
 
-        diff_coeff = 1 / 3 * sigma[-1]
-        diff_coeff_SEM = 1 / 3 * sigma_SEM[-1]
+        diff_coeff = 1 / 3 * sigma[self.args.integration_range - 1]
+        diff_coeff_SEM = 1 / 3 * sigma_SEM[self.args.integration_range - 1]
 
         data = {
             self.result_keys[0]: [diff_coeff],
