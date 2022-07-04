@@ -185,15 +185,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         )
         self.prefactor = numerator / denominator
 
-    def _apply_averaging_factor(self):
-        """
-        Apply the averaging factor to the msd array.
-        Returns
-        -------
-
-        """
-        pass
-
     def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
@@ -293,5 +284,4 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
                 self.ensemble_operation(ensemble[dict_ref])
 
         # Scale, save, and plot the data.
-        self._apply_averaging_factor()
         self._post_operation_processes()
