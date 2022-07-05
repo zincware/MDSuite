@@ -38,6 +38,7 @@ from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
 from tqdm import tqdm
 
+from mdsuite import utils
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
@@ -167,6 +168,8 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array *= self.experiment.units["length"] ** 2
         time = self.time * self.experiment.units["time"]
+        self.msd_array *= self.experiment.units.length**2
+        self.time *= self.experiment.units.time
 
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
             x_data=time,
@@ -247,14 +250,14 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             fig.line(
                 time,
                 msd,
-                color="#F46036",
+                color=utils.Colour.ORANGE,
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
                 ),
             )
             fit_data = val[self.result_keys[2]] * time + val[self.result_keys[3]]
-            fig.line(time, fit_data, color="#2E294E", legend_label="Curve fit.")
+            fig.line(time, fit_data, color=utils.Colour.PAUA, legend_label="Curve fit.")
             fig.extra_y_ranges = {
                 "Diff_range": Range1d(
                     start=0.999 * min(gradients), end=1.001 * max(gradients)
@@ -269,13 +272,18 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 "right",
             )
             grad_time = time[-len(gradients) :]
-            fig.line(grad_time, gradients, y_range_name="Diff_range", color="#bc5090")
+            fig.line(
+                grad_time,
+                gradients,
+                y_range_name="Diff_range",
+                color=utils.Colour.MULBERRY,
+            )
             fig.varea(
                 grad_time,
                 gradients - gradient_errors,
                 gradients + gradient_errors,
                 alpha=0.3,
-                color="#ffa600",
+                color=utils.Colour.ORANGE,
                 y_range_name="Diff_range",
             )
             fig.add_tools(HoverTool())

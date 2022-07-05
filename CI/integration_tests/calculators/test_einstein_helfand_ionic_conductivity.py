@@ -30,6 +30,9 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.calculators.einstein_helfand_ionic_conductivity import (
+    EinsteinHelfandIonicConductivity,
+)
 
 
 @pytest.fixture(scope="session")
@@ -67,6 +70,6 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    # computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
+    _ = project.execute_operation(EinsteinHelfandIonicConductivity(plot=False))
 
     # assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-6)

@@ -26,29 +26,14 @@ Summary
 MDSuite module for the computation of thermal conductivity using the Einstein method.
 """
 from abc import ABC
-from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    data_range: int
-    correlation_time: int
-    tau_values: np.s_
-    atom_selection: np.s_
-    fit_range: int
 
 
 class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
@@ -79,14 +64,26 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
                                                        correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        plot=True,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+        **kwargs,
+    ):
         """
         Python constructor
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
         """
 
         # parse to the experiment class
@@ -104,32 +101,11 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
 
         self.prefactor = None
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        """
         if fit_range == -1:
             fit_range = int(data_range - 1)
 
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
@@ -140,15 +116,18 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
-    def check_input(self):
+    def prepare_calculation(self):
         """
-        Check the user input to ensure no conflicts are present.
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
 
         Returns
         -------
 
         """
-        self._run_dependency_check()
+        self.time = self._handle_tau_values()
+        if self.stored_parameters.species is None:
+            self.stored_parameters.species = list(self.experiment.species)
 
     def _calculate_prefactor(self):
         """
@@ -207,7 +186,9 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
 
         """
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+            x_data=self.time,
+            y_data=self.msd_array,
+            fit_max_index=self.stored_parameters.fit_range,
         )
         error = np.sqrt(np.diag(covariance))[0]
 
@@ -235,7 +216,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.check_input()
+        self._run_dependency_check()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 

@@ -30,7 +30,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
-from mdsuite.calculators import KirkwoodBuffIntegral
+from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 

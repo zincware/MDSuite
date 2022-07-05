@@ -27,33 +27,15 @@ Module for computing distinct diffusion coefficients using the Einstein method.
 """
 import itertools
 import warnings
-from dataclasses import dataclass
 from typing import Any, List, Union
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    data_range: int
-    correlation_time: int
-    atom_selection: np.s_
-    tau_values: np.s_
-    molecules: bool
-    species: list
-    fit_range: int
-
 
 tqdm.monitor_interval = 0
 warnings.filterwarnings("ignore")
@@ -89,31 +71,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                                                                      correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the Green Kubo diffusion coefficients class.
-
-        Attributes
-        ----------
-        experiment :  object
-                Experiment class to call from
-        """
-        super().__init__(**kwargs)
-
-        self.scale_function = {"quadratic": {"inner_scale_factor": 10}}
-        self.loaded_property = mdsuite_properties.unwrapped_positions
-
-        self.database_group = "Diffusion_Coefficients"
-        self.x_label = r"$$\text{Time} / s $$"
-        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
-        self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
-        self.experimental = True
-        self.result_keys = ["diffusion_coefficient", "uncertainty"]
-        self.result_series_keys = ["time", "msd"]
-        self.combinations = []
-
-    @call
-    def __call__(
+    def __init__(
         self,
         plot: bool = True,
         species: list = None,
@@ -125,8 +83,11 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         export: bool = False,
         atom_selection: dict = np.s_[:],
         fit_range: int = -1,
+        **kwargs,
     ):
         """
+        Constructor for the Green Kubo diffusion coefficients class.
+
         Parameters
         ----------
         plot : bool
@@ -144,12 +105,20 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Selection of atoms to use within the HDF5 database.
         export : bool
                 If true, export the data directly into a csv file.
-
-        Returns
-        -------
-        None
-
         """
+        super().__init__(**kwargs)
+
+        self.scale_function = {"quadratic": {"inner_scale_factor": 10}}
+        self.loaded_property = mdsuite_properties.unwrapped_positions
+
+        self.database_group = "Diffusion_Coefficients"
+        self.x_label = r"$$\text{Time} / s $$"
+        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
+        self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
+        self.experimental = True
+        self.result_keys = ["diffusion_coefficient", "uncertainty"]
+        self.result_series_keys = ["time", "msd"]
+        self.combinations = []
 
         if species is None:
             species = list(self.experiment.species)
@@ -161,7 +130,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             fit_range = int(data_range - 1)
 
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
@@ -170,9 +139,25 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             species=species,
             fit_range=fit_range,
         )
-        self.time = self._handle_tau_values()
 
-        self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
+        self.msd_array = np.zeros(
+            self.stored_parameters.data_range
+        )  # define empty msd array
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        self.time = self._handle_tau_values()
+        if self.stored_parameters.species is None:
+            if self.stored_parameters.molecules:
+                self.stored_parameters.species = list(self.experiment.molecules)
+            else:
+                self.stored_parameters.species = list(self.experiment.species)
 
     def msd_operation(self, ensemble: tf.Tensor, square: bool = True):
         """
@@ -191,7 +176,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         if square:
             return tf.math.squared_difference(
-                tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+                tf.gather(ensemble, self.stored_parameters.tau_values, axis=1),
+                ensemble[:, None, 0],
             )
         else:
             return tf.math.subtract(ensemble, ensemble[:, None, 0])
@@ -269,7 +255,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         try:
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-                x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+                x_data=self.time,
+                y_data=self.msd_array,
+                fit_max_index=self.stored_parameters.fit_range,
             )
             error = np.sqrt(np.diag(covariance))[0]
 
@@ -283,7 +271,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
                 x_data=self.time,
                 y_data=abs(self.msd_array),
-                fit_max_index=self.args.fit_range,
+                fit_max_index=self.stored_parameters.fit_range,
             )
             error = np.sqrt(np.diag(covariance))[0]
 
