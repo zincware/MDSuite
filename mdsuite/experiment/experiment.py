@@ -203,10 +203,9 @@ class Experiment(ExperimentDatabase):
         self.property_groups = None  # Names of the properties measured in the simulation
 
         # Internal File paths
-        self.experiment_path: Path
+        self.path: Path
         self.database_path: Path
         self.figures_path: Path
-        self.logfile_path: Path
         self._create_internal_file_paths()  # fill the path attributes
 
         # Check if the experiment exists and load if it does.
@@ -234,17 +233,21 @@ class Experiment(ExperimentDatabase):
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
+        """Create or update internal file paths
+
+        Attributes
+        -----------
+        path: Path
+            The default path for the experiment files
+        database_path: Path
+            Path to the database, by default equal to self.path
+        figures_path: Path
+            Path to the figures directory
+
         """
-        Create or update internal file paths
-        """
-        self.experiment_path = Path(
-            self.storage_path, self.name
-        )  # path to the experiment files
-        self.database_path = Path(self.experiment_path)  # path to the databases
-        self.figures_path = Path(
-            self.experiment_path, "figures"
-        )  # path to the figures directory
-        self.logfile_path = Path(self.experiment_path, "logfiles")
+        self.path = Path(self.storage_path, self.name)  # path to the experiment files
+        self.database_path = self.path  # path to the databases
+        self.figures_path = self.path / "figures"  # path to the figures directory
 
     def _build_model(self):
         """
@@ -259,10 +262,9 @@ class Experiment(ExperimentDatabase):
 
         # Create new analysis directory and change into it
         try:
-            self.experiment_path.mkdir()
+            self.path.mkdir()
             self.figures_path.mkdir()
             self.database_path.mkdir()
-            self.logfile_path.mkdir()
         except FileExistsError:  # throw exception if the file exits
             return
 
@@ -327,12 +329,13 @@ class Experiment(ExperimentDatabase):
         """
 
         # Check if the experiment exists and load if it does.
-        if Path(self.experiment_path).exists():
-            log.debug("This experiment already exists! I'll load it up now.")
-            # self.load_class()
+        if Path(self.path).exists():
+            log.debug(
+                f"This experiment ({self.name}) already exists! I'll load it up now."
+            )
             return True
         else:
-            log.info("Creating a new experiment!")
+            log.info(f"Creating a new experiment ({self.name})!")
             self._build_model()
             return False
 
