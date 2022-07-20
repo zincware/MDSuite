@@ -136,7 +136,7 @@ class Experiment(ExperimentDatabase):
     def __init__(
         self,
         project,
-        experiment_name,
+        name,
         time_step=None,
         temperature=None,
         units: Union[str, Units] = None,
@@ -147,7 +147,7 @@ class Experiment(ExperimentDatabase):
 
         Attributes
         ----------
-        experiment_name : str
+        name : str
                 The name of the analysis being performed e.g. NaCl_1400K
         temperature : float
                 The temperature of the simulation that should be used in some analysis.
@@ -162,15 +162,14 @@ class Experiment(ExperimentDatabase):
                 computing cluster.
         """
 
-        if not experiment_name[0].isalpha():
+        if not name[0].isalpha():
             raise ValueError(
-                f"Experiment name must start with a letter! Found '{experiment_name[0]}'"
-                " instead."
+                f"Experiment name must start with a letter! Found '{name[0]}' instead."
             )
 
         # Taken upon instantiation
-        super().__init__(project=project, experiment_name=experiment_name)
-        self.name = experiment_name
+        super().__init__(project=project, name=name)
+        self.name = name
         self.storage_path = Path(project.storage_path, project.name).as_posix()
         self.cluster_mode = cluster_mode
 
