@@ -162,6 +162,12 @@ class Experiment(ExperimentDatabase):
                 computing cluster.
         """
 
+        if not experiment_name[0].isalpha():
+            raise ValueError(
+                f"Experiment name must start with a letter! Found '{experiment_name[0]}'"
+                " instead."
+            )
+
         # Taken upon instantiation
         super().__init__(project=project, experiment_name=experiment_name)
         self.name = experiment_name
