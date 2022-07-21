@@ -55,7 +55,7 @@ class Project(ProjectDatabase):
             name="NaCl",
             timestep=0.002,
             temperature=1400.0,
-            units="metal",
+            units="METAL",
             simulation_data="NaCl_gk_i_q.lammpstraj",
             active=False # calculations are only performed on active experiments
             )

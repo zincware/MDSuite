@@ -71,7 +71,7 @@ def test_calculator(tmp_path):
     os.chdir(tmp_path)
     project = mds.Project()
     # introduce nontrivial units to make sure all conversions are correct
-    units = mdsuite.utils.units.si
+    units = mdsuite.units.SI
     units.length = 0.000007654
     units.time = 0.0056789
     exp = project.add_experiment(
