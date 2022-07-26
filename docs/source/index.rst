@@ -75,8 +75,8 @@ What's New?
 
 We will keep updating this section to include new features of the code.
 
-* Molecule mapping on raw data!
-* MDSuite paper is complete.
+ * Molecule mapping on raw data!
+ * MDSuite paper is complete.
 
 What's Next?
 ------------
@@ -87,7 +87,7 @@ improving performance. If you want to help out with anything feel free to send u
 We have included a short list below of some broad topics that we are interested in developing more aggressively in the
 near future.
 
-* Smart memory optimization
-* Threaded memory adjustment
-* ab-initio calculators
-* binary file readers
+ * Smart memory optimization
+ * Threaded memory adjustment
+ * ab-initio calculators
+ * binary file readers
