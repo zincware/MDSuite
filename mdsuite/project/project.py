@@ -26,6 +26,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Union
 
+from dask.distributed import Client
+from dask_jobqueue import JobQueueCluster
 from dot4dict import dotdict
 
 import mdsuite.database.scheme as db
@@ -83,6 +85,7 @@ class Project(ProjectDatabase):
         name: str = None,
         storage_path: Union[str, Path] = "./",
         description: str = None,
+        cluster: JobQueueCluster = None,
     ):
         """Project class constructor
 
@@ -98,6 +101,9 @@ class Project(ProjectDatabase):
         storage_path : str
                 Where to store the tensor_values and databases. This should be
                 a place with sufficient storage space for the full analysis.
+        cluster : JobQueueCluster (default = None)
+                Cluster object that can be used by a client to parallelize MDSuite
+                operations.
         """
         super().__init__()
         if name is None:
@@ -125,6 +131,12 @@ class Project(ProjectDatabase):
 
         # Database Properties
         self.description = description
+
+        # TODO: Check how cluster scaling works after parsing to the client.
+        if cluster is None:
+            self.client = Client()
+        else:
+            self.client = Client(cluster)
 
     def attach_file_logger(self):
         """Attach a file logger for this project"""
