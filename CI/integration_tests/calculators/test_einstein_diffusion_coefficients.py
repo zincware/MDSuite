@@ -50,7 +50,7 @@ def test_calculator(tmp_path):
 
     n_part = 500
     n_step = 5000
-    msd_range = 50
+    msd_range = 100
 
     vel = np.sqrt(2 * diff_coeff / time_step) * tf.random.normal(
         shape=(n_step, n_part, 3), mean=0, stddev=1
