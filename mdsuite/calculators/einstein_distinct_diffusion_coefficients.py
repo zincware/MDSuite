@@ -247,8 +247,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 * self.experiment.species[species[1]].n_particles
             )
 
-        numerator = self.experiment.units["length"] ** 2
-        denominator = self.experiment.units["time"] * atom_scale
+        numerator = self.experiment.units.length**2
+        denominator = self.experiment.units.time * atom_scale
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):

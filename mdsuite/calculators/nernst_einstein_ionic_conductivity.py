@@ -186,7 +186,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         denominator = (
             boltzmann_constant
             * self.experiment.temperature
-            * (self.experiment.volume * (self.experiment.units["length"] ** 3))
+            * (self.experiment.volume * self.experiment.units.volume)
         )
         prefactor = numerator / denominator
 
@@ -231,7 +231,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         denominator = (
             boltzmann_constant
             * self.experiment.temperature
-            * (self.experiment.volume * (self.experiment.units["length"] ** 3))
+            * (self.experiment.volume * self.experiment.units.volume)
         )
         prefactor = numerator / denominator
 

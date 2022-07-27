@@ -38,6 +38,7 @@ from bokeh.plotting import figure
 from scipy.integrate import cumtrapz
 from tqdm import tqdm
 
+from mdsuite import utils
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
@@ -148,7 +149,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             else:
                 species = list(self.experiment.species)
         if integration_range is None:
-            integration_range = data_range
+            integration_range = data_range - 1
 
         # set args that will affect the computation result
         self.args = Args(
@@ -164,7 +165,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.plot = plot
 
         # Note: The following attributes are in SI units
-        self.time = self._handle_tau_values() * self.experiment.units["time"]
+        self.time = self._handle_tau_values() * self.experiment.units.time
         self.vacfs = []
         self.sigmas = []
 
@@ -191,19 +192,14 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         vacf = (
-            self.experiment.units["length"] ** 2
-            / self.experiment.units["time"] ** 2
+            self.experiment.units.length**2
+            / self.experiment.units.time**2
             * tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         )
 
         # average particles, sum dimensions
         vacf = tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1)
-        self.sigmas.append(
-            cumtrapz(
-                vacf,
-                x=self.time,
-            )
-        )
+        self.sigmas.append(cumtrapz(vacf, x=self.time))
         self.vacfs.append(vacf)
 
     def plot_data(self, data: dict):
@@ -234,7 +230,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             fig.line(
                 time,
                 vacf,
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +-"
                     f" {val[self.result_keys[1]][0]: 0.3E}"
@@ -252,13 +248,15 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 "right",
             )
 
-            fig.line(time[1:], integral, y_range_name="Diff_range", color="#bc5090")
+            fig.line(
+                time[1:], integral, y_range_name="Diff_range", color=utils.Colour.MULBERRY
+            )
             fig.varea(
                 time[1:],
                 integral - integral_err,
                 integral + integral_err,
                 alpha=0.3,
-                color="#ffa600",
+                color=utils.Colour.ORANGE,
                 y_range_name="Diff_range",
             )
 
@@ -286,8 +284,8 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.vacfs = np.array(self.vacfs)
         vacf = np.mean(self.vacfs, axis=0)
 
-        diff_coeff = 1 / 3 * sigma[-1]
-        diff_coeff_SEM = 1 / 3 * sigma_SEM[-1]
+        diff_coeff = 1 / 3 * sigma[self.args.integration_range - 1]
+        diff_coeff_SEM = 1 / 3 * sigma_SEM[self.args.integration_range - 1]
 
         data = {
             self.result_keys[0]: [diff_coeff],
