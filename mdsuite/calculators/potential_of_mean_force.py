@@ -34,6 +34,7 @@ from bokeh.models import HoverTool, Span
 from bokeh.plotting import figure
 from scipy.signal import find_peaks
 
+from mdsuite import utils
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
@@ -372,7 +373,7 @@ class PotentialOfMeanForce(Calculator):
             fig.line(
                 val[self.result_series_keys[0]],
                 val[self.result_series_keys[1]],
-                color="#003f5c",
+                color=utils.Colour.PRUSSIAN_BLUE,
                 # legend labels are always the first shell and first shell error.
                 legend_label=(
                     f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"

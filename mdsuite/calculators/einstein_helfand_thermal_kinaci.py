@@ -168,13 +168,13 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         denominator = (
             self.experiment.volume
             * self.experiment.temperature
-            * self.experiment.units["boltzmann"]
+            * self.experiment.units.boltzmann
         )
         units_change = (
-            self.experiment.units["energy"]
-            / self.experiment.units["length"]
-            / self.experiment.units["time"]
-            / self.experiment.units["temperature"]
+            self.experiment.units.energy
+            / self.experiment.units.length
+            / self.experiment.units.time
+            / self.experiment.units.temperature
         )
         self.prefactor = numerator / denominator * units_change
 
@@ -228,8 +228,8 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         # Update the plot if required
         if self.plot:
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
-                y_data=self.msd_array * self.experiment.units["time"],
+                x_data=np.array(self.time) * self.experiment.units.time,
+                y_data=self.msd_array * self.experiment.units.time,
                 title=f"{fit_values[0]} +- {error}",
             )
 
