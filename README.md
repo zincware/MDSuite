@@ -21,7 +21,7 @@ Installation
 
 There are several way to install MDSuite depending on what you would like from it.
 
-One can simply installing using
+One can simply install using
 
 ````shell
 pip install mdsuite
@@ -61,7 +61,7 @@ Documentation
 
 There is a live version of the documentation hosted
 [here](https://mdsuite.readthedocs.io/en/latest/).
-If you would prefer to have a local copy, it can be built using sphinx by following the
+If you prefer to have a local copy, that can be built using sphinx by following the
 instructions below.
 
 ````shell
@@ -74,7 +74,7 @@ instructions below.
 HINT
 ====
 
-Check out the MDSuite code through a jupyter notebook for a more user friendly
+Check out the MDSuite code through a jupyter notebook for a more user-friendly
 experience. You can take full advantage of the autocomplete features that are available
 for the calculators.
 
