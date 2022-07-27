@@ -166,13 +166,13 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
             3
             * (self.args.data_range - 1)
             * self.experiment.temperature**2
-            * self.experiment.units["boltzman"]
+            * self.experiment.units.boltzmann
             * self.experiment.volume
         )
         prefactor_units = (
-            self.experiment.units["energy"]
-            / self.experiment.units["length"]
-            / self.experiment.units["time"]
+            self.experiment.units.energy
+            / self.experiment.units.length
+            / self.experiment.units.time
         )
 
         self.prefactor = (numerator / denominator) * prefactor_units
@@ -233,14 +233,14 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         # Update the plot if required
         if self.plot:
             span = Span(
-                location=(np.array(self.time) * self.experiment.units["time"])[
+                location=(np.array(self.time) * self.experiment.units.time)[
                     self.args.integration_range - 1
                 ],
                 dimension="height",
                 line_dash="dashed",
             )
             self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units["time"],
+                x_data=np.array(self.time) * self.experiment.units.time,
                 y_data=self.jacf.numpy(),
                 title=f"{result[0]} +- {result[1]}",
                 layouts=[span],
