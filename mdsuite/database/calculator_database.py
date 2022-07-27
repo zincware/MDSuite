@@ -23,6 +23,7 @@ If you use this module please cite us with:
 
 Summary
 -------
+Code related to the calculator database.
 """
 from __future__ import annotations
 
@@ -43,19 +44,25 @@ log = logging.getLogger(__name__)
 
 
 @dataclass
-class ComputationResults:
-    data: dict = field(default_factory=dict)
-    subjects: dict = field(default_factory=list)
-
-
-@dataclass
-class Args:
+class StoredParameters:
     """Dummy Class for type hinting"""
 
     pass
 
 
-def conv_to_db(val):
+@dataclass
+class ComputationResults:
+    """
+    A wrapper class for the results of a computation.
+
+    This class is returned when data is loaded from the SQL database.
+    """
+
+    data: dict = field(default_factory=dict)
+    subjects: dict = field(default_factory=list)
+
+
+def convert_to_db(val):
     """Convert the given value to something that can be stored in the database"""
     if is_jsonable(val):
         if not isinstance(val, dict):
@@ -71,15 +78,29 @@ class CalculatorDatabase:
     This class handles the interaction of the calculator with the project database
     """
 
-    def __init__(self, experiment):
-        """Constructor for the calculator database"""
+    def __init__(
+        self, experiment, stored_parameters: StoredParameters, analysis_name: str
+    ):
+        """
+        Constructor for the calculator database
+
+        Parameters
+        ----------
+        experiment : Experiment
+                Experiment for which this calculation is being performed.
+        stored_parameters : StoredParameters
+                Parameters of the calculator to be looked for and stored in the
+                SQL database,
+        analysis_name : str
+                Name of the analysis being performed.
+        """
         self.experiment: Experiment = experiment
         self.db_computation: db.Computation = None
         self.database_group = None
-        self.analysis_name = None
+        self.analysis_name = analysis_name
         self.load_data = None
 
-        self.args = Args()
+        self.stored_parameters = stored_parameters
 
         self._queued_data = []
 
@@ -87,7 +108,13 @@ class CalculatorDatabase:
         self.db_computation_attributes = []
 
     def prepare_db_entry(self):
-        """Prepare a database entry based on the attributes defined in the init"""
+        """
+        Prepare a database entry based on the attributes defined in the init
+
+        Returns
+        -------
+        Adds computation information to the SQL database.
+        """
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
@@ -111,7 +138,10 @@ class CalculatorDatabase:
             Returns the computation object from the database if available,
             otherwise returns None
         """
-        log.debug(f"Getting data for {self.experiment.name} with args {self.args}")
+        log.debug(
+            f"Getting data for {self.experiment.name}, computation"
+            f" {self.analysis_name} with args {self.stored_parameters}"
+        )
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
@@ -126,14 +156,14 @@ class CalculatorDatabase:
             )
 
             # filter set args
-            for args_field in fields(self.args):
+            for args_field in fields(self.stored_parameters):
                 key = args_field.name
-                val = getattr(self.args, key)
+                val = getattr(self.stored_parameters, key)
                 computations = computations.filter(
                     db.Computation.computation_attributes.any(
                         and_(
                             db.ComputationAttribute.name == key,
-                            db.ComputationAttribute.data == conv_to_db(val),
+                            db.ComputationAttribute.data == convert_to_db(val),
                         )
                     )
                 )
@@ -145,7 +175,7 @@ class CalculatorDatabase:
                     and_(
                         db.ComputationAttribute.name == "version",
                         db.ComputationAttribute.data
-                        == conv_to_db(self.experiment.version),
+                        == convert_to_db(self.experiment.version),
                     )
                 )
             )
@@ -159,7 +189,6 @@ class CalculatorDatabase:
             for computation in computations:
                 _ = computation.data_dict
                 _ = computation.data_range
-
         if len(computations) > 0:
             if len(computations) > 1:
                 log.warning(
@@ -167,6 +196,7 @@ class CalculatorDatabase:
                     " given arguments!"
                 )
             return computations[0]  # it should only be one value
+
         return None
 
     def save_computation_args(self):
@@ -176,23 +206,23 @@ class CalculatorDatabase:
         into SQLAlchemy objects and adds them to a list which will be
         written to the database after the calculation was successful.
         """
-        for args_field in fields(self.args):
+        for args_field in fields(self.stored_parameters):
             key = args_field.name
-            val = getattr(self.args, key)
+            val = getattr(self.stored_parameters, key)
             computation_attribute = db.ComputationAttribute(
-                name=key, data=conv_to_db(val)
+                name=key, data=convert_to_db(val)
             )
 
             self.db_computation_attributes.append(computation_attribute)
 
         # save the current experiment version in the ComputationAttributes
         experiment_version = db.ComputationAttribute(
-            name="version", data=conv_to_db(self.experiment.version)
+            name="version", data=convert_to_db(self.experiment.version)
         )
         self.db_computation_attributes.append(experiment_version)
 
-    def save_db_data(self):
-        """Save all the collected computationattributes and computation data to the
+    def save_db_data(self, staged_data: List[ComputationResults]):
+        """Save all the collected computation attributes and computation data to the
         database
 
         This will be run after the computation was successful.
@@ -204,10 +234,10 @@ class CalculatorDatabase:
                 val.computation = self.db_computation
                 ses.add(val)
 
-            for data_obj in self._queued_data:
+            for data_obj in staged_data:
                 # TODO consider renaming species to e.g., subjects, because species here
                 #  can also be molecules
-                data_obj: ComputationResults
+                # data_obj: ComputationResults
                 computation_result = db.ComputationResult(
                     computation=self.db_computation, data=data_obj.data
                 )
@@ -230,72 +260,3 @@ class CalculatorDatabase:
                 ses.add(computation_result)
 
             ses.commit()
-
-    def queue_data(self, data, subjects):
-        """Queue data to be stored in the database
-
-        Parameters:
-            data: dict
-                A  dictionary containing all the data that was computed by the
-                computation
-            subjects: list
-                A list of strings / subject names that are associated with the data,
-                e.g. the pairs of the RDF
-        """
-        self._queued_data.append(ComputationResults(data=data, subjects=subjects))
-
-    def update_database(self, parameters, delete_duplicate: bool = True):
-        """
-        Add data to the database
-
-        Parameters
-        ----------
-        parameters : dict
-                Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
-                "data_range": 500, "data": 1.8e-9}
-        delete_duplicate : bool
-                If true, duplicate entries will be deleted.
-        Returns
-        -------
-        Updates the sql database
-        """
-        raise DeprecationWarning("This function has been replaced by `queue_data`")
-
-    # REMOVE
-    # TODO rename and potentially move to a RDF based parent class
-    def _get_rdf_data(self) -> List[db.Computation]:
-        """Fill the data_files list with filenames of the rdf tensor_values"""
-        # TODO replace with exp.load.RDF()
-        raise DeprecationWarning(
-            "Replaced by experiment.run.RadialDistributionFunction(**kwargs)"
-        )
-        # with self.experiment.project.session as ses:
-        #     computations = (
-        #         ses.query(db.Computation)
-        #             .filter(
-        #             db.Computation.computation_attributes.any(
-        #                 str_value="Radial_Distribution_Function", name="Property"
-        #             )
-        #         )
-        #             .all()
-        #     )
-        #
-        #     for computation in computations:
-        #         _ = computation.data_dict
-        #         _ = computation.data_range
-        #
-        # return computations
-
-    # TODO rename and potentially move to a RDF based parent class
-    def _load_rdf_from_file(self, computation: db.Computation):
-        """Load the raw rdf tensor_values from a directory"""
-        raise DeprecationWarning(
-            "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
-        )
-
-        # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
-        # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
-
-
-#####################

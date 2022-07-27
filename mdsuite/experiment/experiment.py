@@ -30,6 +30,7 @@ import json
 import logging
 import pathlib
 import typing
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Union
 
@@ -40,6 +41,8 @@ import mdsuite.file_io.extxyz_files
 import mdsuite.file_io.file_read
 import mdsuite.file_io.lammps_trajectory_files
 import mdsuite.utils.meta_functions
+from mdsuite.calculators import Calculator
+from mdsuite.database.calculator_database import CalculatorDatabase
 from mdsuite.database.experiment_database import ExperimentDatabase
 from mdsuite.database.simulation_database import (
     Database,
@@ -53,10 +56,21 @@ from mdsuite.utils import config
 from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
+from mdsuite.visualizer.d2_data_visualization import DataVisualizer2D
 
 from .run_module import RunModule
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class SimulationAttributes:
+    """
+    Dataclass storing some important simulation attributes.
+    """
+
+    time_step: float
+    sample_rate: int
 
 
 def _get_processor(simulation_data):
@@ -190,10 +204,9 @@ class Experiment(ExperimentDatabase):
 
         self.box_array = None  # Box vectors.
         self.dimensions = None  # Dimensionality of the experiment.
+        # Rate at which configurations are dumped in the trajectory.
+        self.sample_rate = None
 
-        self.sample_rate = (
-            None  # Rate at which configurations are dumped in the trajectory.
-        )
         self.properties = None  # Properties measured in the simulation.
         self.property_groups = None  # Names of the properties measured in the simulation
 
@@ -206,7 +219,10 @@ class Experiment(ExperimentDatabase):
 
         # Check if the experiment exists and load if it does.
         self._load_or_build()
-
+        # TODO: Fix this attribute position and maybe just load from SQL.
+        self.simulation_attributes = SimulationAttributes(
+            time_step=self.time_step, sample_rate=self.sample_rate
+        )
         self.analyse_time_series = RunModule(self, time_series_dict)
 
     @property
@@ -279,7 +295,7 @@ class Experiment(ExperimentDatabase):
         transformation.run_transformation(*args, **kwargs)
 
     @staticmethod
-    def units_to_si(units_system) -> Units:
+    def units_to_si(units_system):
         """
         Returns a dictionary with equivalences from the unit experiment given by a
         string to SI. Along with some constants in the unit experiment provided
@@ -294,8 +310,7 @@ class Experiment(ExperimentDatabase):
 
         Returns
         -------
-        units: Units
-            dataclass that contains the conversion factors to SI
+        conv_factor (float) -- conversion factor to pass to SI
         """
 
         if isinstance(units_system, Units):
@@ -382,6 +397,60 @@ class Experiment(ExperimentDatabase):
                 species=species, unwrapped=unwrapped, database_path=self.database_path
             )
             visualizer.run_visualization()
+
+    def execute_operation(self, calculator: Calculator):
+        """
+        Perform some operation
+        Parameters
+        ----------
+        calculator : Calculator
+
+        Returns
+        -------
+
+        """
+        calculator.experiment = self
+        # Provide experiment data to calculator.
+        calculator.adopt_experiment_attributes(self.simulation_attributes)
+        # Prepare the calculator for running.
+        calculator.prepare_calculation()
+
+        calculator_database = CalculatorDatabase(
+            experiment=self,
+            stored_parameters=calculator.stored_parameters,
+            analysis_name=calculator.analysis_name,
+        )
+
+        data = calculator_database.get_computation_data()  # try to load the data.
+
+        if data is None:
+            log.info("Data not in database, performing computation.")
+            # Add the calculation information to the database.
+            calculator_database.prepare_db_entry()
+
+            # store the necessary parameters.
+            calculator_database.save_computation_args()
+            # run the calculation and receive staged data.
+
+            staged_data = calculator()
+            # calculator.prepare_calculation()
+
+            # Store results in sql database.
+            calculator_database.save_db_data(staged_data=staged_data)
+
+            data = calculator_database.get_computation_data()  # load the data.
+        else:
+            log.info("Data in database, loading now.")
+
+        if calculator.plot:
+            # Perform the visualization
+            visualizer = DataVisualizer2D(
+                title=calculator.analysis_name, path=self.figures_path
+            )
+            plot_array = calculator.plot_data(data)
+            visualizer.grid_show(plot_array)
+
+        return data
 
     # def map_elements(self, mapping: dict = None):
     #     """
@@ -498,6 +567,11 @@ class Experiment(ExperimentDatabase):
             self._add_data_from_file_processor(
                 proc, force=force, update_with_pubchempy=update_with_pubchempy
             )
+
+        # TODO: Fix this attribute position and maybe just load from SQL.
+        self.simulation_attributes = SimulationAttributes(
+            time_step=self.time_step, sample_rate=self.sample_rate
+        )
 
     def _add_data_from_file_processor(
         self,

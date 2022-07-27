@@ -77,11 +77,12 @@ def test_calculator(tmp_path):
     data = TrajectoryChunkData(species_list=[species], chunk_size=n_step)
     data.add_data(pos, 0, species.name, pos_prop.name)
     proc = ScriptInput(data=data, metadata=metadata, name="test_name")
-    exp.add_data(proc)
+    exp.add_data(proc, update_with_pubchempy=False)
 
-    res = exp.run.EinsteinDiffusionCoefficients(
+    calculator = mds.calculators.EinsteinDiffusionCoefficients(
         plot=False, correlation_time=1, data_range=msd_range
-    )[species.name]
+    )
+    res = exp.execute_operation(calculator)[species.name]
 
     time_should_be = time_step * np.arange(0, msd_range) * units.time
     diff_coeff_should_be = diff_coeff * units.length**2 / units.time

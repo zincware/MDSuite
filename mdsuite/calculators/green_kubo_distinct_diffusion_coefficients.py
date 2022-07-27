@@ -27,7 +27,6 @@ Module for computing distinct diffusion coefficients using the Green-Kubo method
 """
 import itertools
 from abc import ABC
-from dataclasses import dataclass
 from typing import Any, List, Union
 
 import numpy as np
@@ -36,24 +35,8 @@ from bokeh.models import Span
 from scipy import signal
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    data_range: int
-    correlation_time: int
-    atom_selection: np.s_
-    tau_values: np.s_
-    molecules: bool
-    species: list
-    integration_range: int
 
 
 class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
@@ -82,14 +65,37 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     plot=True, correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        plot: bool = False,
+        species: list = None,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        molecules: bool = False,
+        atom_selection: dict = np.s_[:],
+        integration_range: int = None,
+        **kwargs,
+    ):
         """
         Constructor for the Green Kubo diffusion coefficients class.
 
-        Attributes
+        Parameters
         ----------
-        experiment :  object
-                Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        integration_range : int
+                Range over which to perform the integration.
         """
         super().__init__(**kwargs)
 
@@ -106,49 +112,11 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
         self.sigma = []
 
-    @call
-    def __call__(
-        self,
-        plot: bool = False,
-        species: list = None,
-        data_range: int = 500,
-        save: bool = True,
-        correlation_time: int = 1,
-        tau_values: Union[int, List, Any] = np.s_[:],
-        molecules: bool = False,
-        export: bool = False,
-        atom_selection: dict = np.s_[:],
-        integration_range: int = None,
-    ):
-        """
-        Constructor for the Green Kubo diffusion coefficients class.
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        save : bool
-                if true, save the output.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        molecules : bool
-                If true, molecules are used instead of atoms.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        export : bool
-                If true, export the data directly into a csv file.
-        integration_range : int
-                Range over which to perform the integration.
-        """
         if integration_range is None:
             integration_range = data_range
 
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             data_range=data_range,
             correlation_time=correlation_time,
             atom_selection=atom_selection,
@@ -159,14 +127,28 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         )
 
         self.plot = plot
-        self.time = self._handle_tau_values()
 
         self.species = species  # Which species to calculate for
 
-        self.vacf = np.zeros(self.args.data_range)
+        self.vacf = np.zeros(self.stored_parameters.data_range)
 
         if self.species is None:
             self.species = list(self.experiment.species)
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        self.time = self._handle_tau_values()
+        if self.stored_parameters.species is None:
+            if self.stored_parameters.molecules:
+                self.stored_parameters.species = list(self.experiment.molecules)
+            else:
+                self.stored_parameters.species = list(self.experiment.species)
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
@@ -187,8 +169,8 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         updates the class state
         """
-        self.vacf = np.zeros(self.args.data_range)
-        vacf = np.zeros(2 * self.args.data_range - 1)
+        self.vacf = np.zeros(self.stored_parameters.data_range)
+        vacf = np.zeros(2 * self.stored_parameters.data_range - 1)
         for i in range(len(data[dict_ref[0]])):
             for j in range(i + 1, len(data[dict_ref[1]])):
                 if same_species and i == j:
@@ -205,8 +187,10 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                             for idx in range(3)
                         ]
                     )
-        self.vacf += vacf[int(self.args.data_range - 1) :]
-        self.sigma.append(np.trapz(vacf[int(self.args.data_range - 1) :], x=self.time))
+        self.vacf += vacf[int(self.stored_parameters.data_range - 1) :]
+        self.sigma.append(
+            np.trapz(vacf[int(self.stored_parameters.data_range - 1) :], x=self.time)
+        )
 
     def run_calculator(self):
         """
@@ -261,7 +245,10 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         numerator = self.experiment.units.length**2
         denominator = (
-            3 * self.experiment.units.time * (self.args.data_range - 1) * atom_scale
+            3
+            * self.experiment.units.time
+            * (self.stored_parameters.data_range - 1)
+            * atom_scale
         )
 
         self.prefactor = numerator / denominator
@@ -300,7 +287,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             span = Span(
                 location=(
                     np.array(val[self.result_series_keys[0]]) * self.experiment.units.time
-                )[self.args.integration_range - 1],
+                )[self.stored_parameters.integration_range - 1],
                 dimension="height",
                 line_dash="dashed",
             )

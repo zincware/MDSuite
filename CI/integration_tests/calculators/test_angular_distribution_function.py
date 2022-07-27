@@ -62,8 +62,8 @@ def test_project(traj_file, true_values, tmp_path):
     project.add_experiment(
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
-
-    computation = project.run.AngularDistributionFunction(plot=False)
+    calculator = mds.calculators.AngularDistributionFunction(plot=False)
+    computation = project.execute_operation(calculator)
 
     for item in computation["NaCl"].data_dict:
         computation["NaCl"].data_dict[item].pop("max_peak")

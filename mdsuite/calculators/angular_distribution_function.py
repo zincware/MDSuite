@@ -30,14 +30,11 @@ and c. Note that a, b, and c may all be the same species, e.g. Na-Na-Na.
 import itertools
 import logging
 from abc import ABC
-from dataclasses import dataclass
-from typing import Union
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import get_angles
@@ -51,25 +48,6 @@ from mdsuite.utils.neighbour_list import (
 log = logging.getLogger(__name__)
 
 
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    number_of_bins: int
-    number_of_configurations: int
-    correlation_time: int
-    atom_selection: np.s_
-    data_range: int
-    cutoff: float
-    start: int
-    norm_power: Union[int, float]
-    stop: int
-    species: list
-    molecules: bool
-
-
 class AngularDistributionFunction(TrajectoryCalculator, ABC):
     """
     Compute the Angular Distribution Function for all species combinations
@@ -78,9 +56,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
     ----------
     batch_size : int
         Number of batches, to split the configurations into.
-    n_minibatches: int
+    n_minibatches : int
         Number of minibatches for computing the angles to split each batch into
-    n_confs: int
+    n_confs : int
         Number of configurations to analyse
     r_cut: float
         cutoff radius for the ADF
@@ -112,37 +90,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                                                            use_tf_function = False)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Compute the Angular Distribution Function for all species combinations
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment object from which to take attributes.
-        """
-        super().__init__(**kwargs)
-        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
-        self.loaded_property = mdsuite_properties.positions
-
-        self.use_tf_function = None
-        self.molecules = None
-        self.bin_range = None
-        self.number_of_atoms = None
-        self.norm_power = None
-        self.sample_configurations = None
-        self.result_keys = ["max_peak"]
-        self.result_series_keys = ["angle", "adf"]
-        self._dtype = tf.float32
-
-        self.adf_minibatch = None  # memory management for triples generation per batch.
-
-        self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$$\text{Angle} / \theta$$"
-        self.y_label = r"$$\text{ADF} / a.u.$$"
-
-    @call
-    def __call__(
+    def __init__(
         self,
         batch_size: int = 1,
         minibatch: int = -1,
@@ -160,6 +108,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         **kwargs,
     ):
         """
+        Compute the Angular Distribution Function for all species combinations
+
+        Parameters
+        ----------
         Parameters
         ----------
         batch_size : int
@@ -194,8 +146,12 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         plot : bool
                 If true, plot the result of the analysis.
         """
+        super().__init__(**kwargs)
+        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
+        self.loaded_property = mdsuite_properties.positions
+
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             number_of_bins=number_of_bins,
             cutoff=cutoff,
             start=start,
@@ -219,6 +175,39 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         self.norm_power = norm_power
         self.override_n_batches = kwargs.get("batches")
 
+        self.molecules = None
+        self.number_of_atoms = None
+        self.sample_configurations = None
+        self.result_keys = ["max_peak"]
+        self.result_series_keys = ["angle", "adf"]
+        self._dtype = tf.float32
+
+        self.analysis_name = "Angular_Distribution_Function"
+        self.x_label = r"$$\text{Angle} / \theta$$"
+        self.y_label = r"$$\text{ADF} / a.u.$$"
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        if self.stored_parameters.stop is None:
+            self.stored_parameters.stop = self.experiment.number_of_configurations - 1
+        # Get the correct species out.
+        if self.stored_parameters.species is None:
+            if self.stored_parameters.molecules:
+                self.stored_parameters.species = list(self.experiment.molecules)
+                self._compute_number_of_atoms(self.experiment.molecules)
+            else:
+                self.stored_parameters.species = list(self.experiment.species)
+                self._compute_number_of_atoms(self.experiment.species)
+
+        else:
+            self._compute_number_of_atoms(self.experiment.species)
+
     def check_input(self):
         """
         Check the inputs and set defaults if necessary.
@@ -228,20 +217,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         Updates the class attributes.
         """
         self._run_dependency_check()
-        if self.args.stop is None:
-            self.args.stop = self.experiment.number_of_configurations - 1
-
-        # Get the correct species out.
-        if self.args.species is None:
-            if self.args.molecules:
-                self.args.species = list(self.experiment.molecules)
-                self._compute_number_of_atoms(self.experiment.molecules)
-            else:
-                self.args.species = list(self.experiment.species)
-                self._compute_number_of_atoms(self.experiment.species)
-
-        else:
-            self._compute_number_of_atoms(self.experiment.species)
 
     def _compute_number_of_atoms(self, reference: dict):
         """
@@ -258,11 +233,11 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         # TODO return to dotdict form when molecules is a dotdict
         number_of_atoms = 0
-        for item in self.args.species:
-            if isinstance(self.args.atom_selection, dict):
+        for item in self.stored_parameters.species:
+            if isinstance(self.stored_parameters.atom_selection, dict):
                 number_of_atoms = 0
-                for item in self.args.atom_selection:
-                    number_of_atoms += len(self.args.atom_selection[item])
+                for item in self.stored_parameters.atom_selection:
+                    number_of_atoms += len(self.stored_parameters.atom_selection[item])
             else:
                 number_of_atoms += reference[item].n_particles
 
@@ -279,19 +254,19 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         """
         sample_configs = np.linspace(
-            self.args.start,
-            self.args.stop,
-            self.args.number_of_configurations,
+            self.stored_parameters.start,
+            self.stored_parameters.stop,
+            self.stored_parameters.number_of_configurations,
             dtype=np.int,
         )
 
         species_indices = []
         start_index = 0
         stop_index = 0
-        for species in self.args.species:
+        for species in self.stored_parameters.species:
             try:
-                if isinstance(self.args.atom_selection, dict):
-                    stop_index += len(self.args.atom_selection[species])
+                if isinstance(self.stored_parameters.atom_selection, dict):
+                    stop_index += len(self.stored_parameters.atom_selection[species])
                 else:
                     stop_index += self.experiment.species[species].n_particles
             except KeyError:
@@ -423,7 +398,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             pre_factor = 1 / pre_factor**self.norm_power
             histogram, _ = np.histogram(
                 angle_vals,
-                bins=self.args.number_of_bins,
+                bins=self.stored_parameters.number_of_bins,
                 range=self.bin_range,
                 weights=pre_factor,
                 density=True,
@@ -458,12 +433,12 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),
                 self.bin_range[1] * (180 / 3.14159),
-                self.args.number_of_bins,
+                self.stored_parameters.number_of_bins,
             )
 
             self.selected_species = [_species[0] for _species in species]
 
-            self.data_range = self.args.number_of_configurations
+            self.data_range = self.stored_parameters.number_of_configurations
             log.debug(f"species are {species}")
             max_angle = bin_range_to_angles[tf.math.argmax(hist.numpy())]
             data = {
@@ -476,6 +451,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
     def plot_data(self, data):
         """Plot data"""
+        plot_array = []
         for selected_species, val in data.items():
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),
@@ -486,11 +462,15 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                 tf.math.argmax(val[self.result_series_keys[1]])
             ]
 
-            self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]]),
-                y_data=np.array(val[self.result_series_keys[1]]),
-                title=f"{selected_species} - Max: {title_value:.3f} degrees ",
+            plot_array.append(
+                self.run_visualization(
+                    x_data=np.array(val[self.result_series_keys[0]]),
+                    y_data=np.array(val[self.result_series_keys[1]]),
+                    title=f"{selected_species} - Max: {title_value:.3f} degrees ",
+                )
             )
+
+        return plot_array
 
     def _format_data(self, batch: tf.Tensor, keys: list) -> tf.Tensor:
         """
@@ -515,7 +495,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         for item in keys:
             formatted_data.append(batch[item])
 
-        if len(self.args.species) == 1:
+        if len(self.stored_parameters.species) == 1:
             return tf.cast(formatted_data[0], dtype=self.dtype)
         else:
             return tf.cast(tf.concat(formatted_data, axis=0), dtype=self.dtype)
@@ -528,18 +508,20 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         -------
         Updates the parent class.
         """
-        if self.batch_size > self.args.number_of_configurations:
-            self.batch_size = self.args.number_of_configurations
+        if self.batch_size > self.stored_parameters.number_of_configurations:
+            self.batch_size = self.stored_parameters.number_of_configurations
             self.n_batches = 1
         else:
-            self.n_batches = int(self.args.number_of_configurations / self.batch_size)
+            self.n_batches = int(
+                self.stored_parameters.number_of_configurations / self.batch_size
+            )
 
         if self.override_n_batches is not None:
             self.n_batches = self.override_n_batches
 
         if self.minibatch:
             self.batch_size = 1
-            self.n_batches = self.args.number_of_configurations
+            self.n_batches = self.stored_parameters.number_of_configurations
             self.memory_manager.atom_batch_size = None
             self.memory_manager.n_atom_batches = None
             self.memory_manager.atom_remainder = None
@@ -558,7 +540,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         path_list = [
             join_path(species_name, self.loaded_property.name)
-            for species_name in self.args.species
+            for species_name in self.stored_parameters.species
         ]
         self._prepare_managers(path_list)
 
@@ -567,7 +549,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         # Get the correct dict keys.
         dict_keys = []
-        for species_name in self.args.species:
+        for species_name in self.stored_parameters.species:
             dict_keys.append(
                 str.encode(join_path(species_name, self.loaded_property.name))
             )
@@ -592,7 +574,9 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
         # Get the batch dataset
         batch_ds = self.get_batch_dataset(
-            subject_list=self.args.species, loop_array=split_arr, correct=True
+            subject_list=self.stored_parameters.species,
+            loop_array=split_arr,
+            correct=True,
         )
 
         angles = {}

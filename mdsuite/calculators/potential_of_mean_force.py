@@ -35,7 +35,8 @@ from bokeh.plotting import figure
 from scipy.signal import find_peaks
 
 from mdsuite import utils
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
 from mdsuite.utils.units import boltzmann_constant
@@ -101,43 +102,14 @@ class PotentialOfMeanForce(Calculator):
                                                     savgol_window_length = 17)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor for the class
-
-        Parameters
-        ----------
-        experiment : class object
-                        Class object of the experiment.
-        experiments : class object
-                        Class object of the experiment.
-        load_data : bool
-        """
-
-        super().__init__(**kwargs)
-        self.file_to_study = None
-        self.rdf = None
-        self.radii = None
-        self.pomf = None
-        self.indices = None
-        self.x_label = r"$$r /  nm$$"
-        self.y_label = r"$$w^{2}(r)$$"
-        self.data_range = 1
-
-        self.result_keys = []
-        self.result_series_keys = ["r", "pomf"]
-
-        self.analysis_name = "Potential_of_Mean_Force"
-        self.post_generation = True
-
-    @call
-    def __call__(
+    def __init__(
         self,
         rdf_data: Computation = None,
         plot=True,
         savgol_order: int = 2,
         savgol_window_length: int = 17,
         number_of_shells: int = 1,
+        **kwargs,
     ):
         """
         Python constructor for the class
@@ -156,28 +128,58 @@ class PotentialOfMeanForce(Calculator):
                 Number of shells to integrate through.
         """
 
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
-        else:
-            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
+        super().__init__(**kwargs)
+        self.file_to_study = None
+        self.rdf = None
+        self.radii = None
+        self.pomf = None
+        self.indices = None
+        self.x_label = r"$$r /  nm$$"
+        self.y_label = r"$$w^{2}(r)$$"
+        self.data_range = 1
+
+        self.result_keys = []
+        self.result_series_keys = ["r", "pomf"]
+
+        self.analysis_name = "Potential_of_Mean_Force"
+        self.post_generation = True
+
+        self.savgol_order = savgol_order
+        self.savgol_window_length = savgol_window_length
+        self.number_of_shells = number_of_shells
+
+        self.rdf_data = rdf_data
 
         self.plot = plot
         self.data_files = []
 
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        if not isinstance(self.rdf_data, Computation):
+            self.rdf_data = self.experiment.execute_operation(
+                RadialDistributionFunction(plot=False)
+            )
+
         # set args that will affect the computation result
-        self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+        self.stored_parameters = self.create_stored_parameters(
+            savgol_order=self.savgol_order,
+            savgol_window_length=self.savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            number_of_shells=number_of_shells,
+            number_of_shells=self.number_of_shells,
         )
 
         # Auto-populate the results.
-        for i in range(self.args.number_of_shells):
+        for i in range(self.stored_parameters.number_of_shells):
             self.result_keys.append(f"POMF_{i + 1}")
             self.result_keys.append(f"POMF_{i + 1}_error")
 
@@ -243,11 +245,11 @@ class PotentialOfMeanForce(Calculator):
         """
         filtered_data = apply_savgol_filter(
             pomf_data,
-            order=self.args.savgol_order,
-            window_length=self.args.savgol_window_length,
+            order=self.stored_parameters.savgol_order,
+            window_length=self.stored_parameters.savgol_window_length,
         )
 
-        required_peaks = self.args.number_of_shells + 1
+        required_peaks = self.stored_parameters.number_of_shells + 1
 
         # Find the maximums in the filtered dataset
         peaks = find_peaks(filtered_data)[0]
@@ -290,7 +292,7 @@ class PotentialOfMeanForce(Calculator):
         peaks = self.get_pomf_peaks(pomf_data)
 
         pomf_shells = {}
-        for i in range(self.args.number_of_shells):
+        for i in range(self.stored_parameters.number_of_shells):
             pomf_shells[i] = np.zeros(2, dtype=int)
             pomf_radii_range = golden_section_search(
                 [radii_data, pomf_data], radii_data[peaks[i + 1]], radii_data[peaks[i]]
@@ -360,7 +362,7 @@ class PotentialOfMeanForce(Calculator):
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 
             # Add vertical lines to the plot
-            for i in range(self.args.number_of_shells):
+            for i in range(self.stored_parameters.number_of_shells):
                 pomf_value = val[f"POMF_{i + 1}"]
                 index = np.argmin(
                     np.abs(np.array(val[self.result_series_keys[1]]) - pomf_value)

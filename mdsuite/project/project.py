@@ -334,3 +334,20 @@ class Project(ProjectDatabase):
         }
 
         return dotdict(active_experiment)
+
+    def execute_operation(self, operation):
+        """
+
+        Parameters
+        ----------
+        operation
+
+        Returns
+        -------
+
+        """
+        results = {}
+        for key, value in self.active_experiments.items():
+            results[key] = value.execute_operation(operation)
+
+        return results

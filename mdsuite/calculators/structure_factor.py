@@ -34,7 +34,8 @@ from bokeh.models import HoverTool
 from bokeh.plotting import figure
 
 from mdsuite import data, utils
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
+from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
 from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
@@ -115,39 +116,17 @@ class StructureFactor(Calculator):
     number_of_atoms: int
     total_density: float
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the class
-
-        Parameters
-        ----------
-        experiment : class object
-                Class object of the experiment.
-        """
-
-        super().__init__(**kwargs)
-
-        self.post_generation = True
-
-        self.x_label = r"$$\text{Q} / nm ^{-1}$$"
-        self.y_label = r"$$\text{S(Q)}$$"
-        self.analysis_name = "total_structure_factor"
-
-        self.result_series_keys = ["q", "S"]
-
-        # Read the data from the file.
-        stream = pkg_resources.resource_stream(data.__name__, "form_fac_coeffs.csv")
-        self.form_factor_data = pd.read_csv(stream)
-
-    @call
-    def __call__(
+    def __init__(
         self,
         rdf_data: Computation = None,
         plot=True,
         method: str = "Faber-Ziman",
         resolution: int = 700,
+        **kwargs,
     ):
         """
+        Constructor for the class
+
         Parameters
         ----------
         rdf_data : Computation (optional)
@@ -161,23 +140,47 @@ class StructureFactor(Calculator):
         resolution : int (default=700)
                 Resolution of the structure factor.
         """
-        self.plot = plot
 
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
-        else:
-            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
+        super().__init__(**kwargs)
+
+        self.post_generation = True
+
+        self.x_label = r"$$\text{Q} / nm ^{-1}$$"
+        self.y_label = r"$$\text{S(Q)}$$"
+        self.analysis_name = "total_structure_factor"
+
+        self.result_series_keys = ["q", "S"]
+
+        self.rdf_data = rdf_data
+        self.resolution = resolution
+
+        # Read the data from the file.
+        stream = pkg_resources.resource_stream(data.__name__, "form_fac_coeffs.csv")
+        self.form_factor_data = pd.read_csv(stream)
+
+    def prepare_calculation(self):
+        """
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
+        Returns
+        -------
+
+        """
+        if not isinstance(self.rdf_data, Computation):
+            self.rdf_data = self.experiment.execute_operation(
+                RadialDistributionFunction(plot=False)
+            )
 
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            resolution=resolution,
+            resolution=self.resolution,
         )
-        self.q_values = np.linspace(0.5, 12, resolution)
+        self.q_values = np.linspace(0.5, 12, self.resolution)
 
         self._compute_angstsrom_volume()  # correct the volume of the system.
         self.number_of_atoms = sum(

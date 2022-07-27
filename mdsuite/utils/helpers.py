@@ -8,6 +8,30 @@ Copyright Contributors to the Zincware Project.
 
 Description:
 """
+from dataclasses import make_dataclass
+
+
+def generate_dataclass(**kwargs):
+    """
+    Generate a dataclass from the parsed kwargs.
+
+    This method allows a user to create a dataclass from a set of keyword arguments.
+    This is used mainly in the calculators to create dataclasses for the SQL database.
+
+    Parameters
+    ----------
+    kwargs : Any
+            Attributes that you wish to have turned into a dataclass.
+
+    Returns
+    -------
+    dataclass : object
+            A dataclass with the attributes passed to the function.
+    """
+    attributes = [(item, type(value)) for item, value in kwargs.items()]
+    class_maker = make_dataclass("Stored_Parameters", attributes)
+
+    return class_maker(**kwargs)
 
 
 class NoneType:

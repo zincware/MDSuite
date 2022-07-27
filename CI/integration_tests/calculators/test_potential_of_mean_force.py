@@ -30,6 +30,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.calculators import PotentialOfMeanForce
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
@@ -63,8 +64,8 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.run.PotentialOfMeanForce(
-        plot=False, savgol_window_length=111, savgol_order=3
+    computation = project.execute_operation(
+        PotentialOfMeanForce(plot=False, savgol_window_length=111, savgol_order=3)
     )
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=0)
@@ -78,8 +79,8 @@ def test_experiment(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    computation = project.experiments["NaCl"].run.PotentialOfMeanForce(
-        plot=False, savgol_window_length=111, savgol_order=3
+    computation = project.experiments["NaCl"].execute_operation(
+        PotentialOfMeanForce(plot=False, savgol_window_length=111, savgol_order=3)
     )
 
     assertDeepAlmostEqual(computation.data_dict, true_values, decimal=0)

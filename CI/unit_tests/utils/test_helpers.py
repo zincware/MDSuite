@@ -23,9 +23,21 @@ If you use this module please cite us with:
 
 Summary
 -------
+Test the helper functions module.
 """
+from mdsuite.utils.helpers import generate_dataclass
 
-from mdsuite.utils.config import config
-from mdsuite.utils.units import Units
 
-__all__ = ["config", "Units"]
+class TestHelpers:
+    """
+    Test all functions in the helpers file.
+    """
+
+    def test_generate_dataclass(self):
+        """
+        Test the generate dataclass function.
+        """
+        class_1 = generate_dataclass(par_a=5, par_b="hello", par_c=None)
+        assert class_1.par_a == 5
+        assert class_1.par_b == "hello"
+        assert class_1.par_c is None

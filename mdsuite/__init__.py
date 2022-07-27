@@ -24,13 +24,12 @@ If you use this module please cite us with:
 Summary
 -------
 """
-try:
-    from importlib import metadata
-except ImportError:  # for Python<3.8
-    import importlib_metadata as metadata
 import logging
 import sys
 
+import open3d
+
+from mdsuite import calculators
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
 from mdsuite.utils import config
@@ -43,8 +42,9 @@ __all__ = [
     Report.__name__,
     "config",
     Molecule.__name__,
+    calculators.__name__,
 ]
-__version__ = metadata.version("mdsuite")
+__version__ = "0.1.0"
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -57,3 +57,5 @@ channel.setLevel(logging.INFO)
 channel.setFormatter(formatter)
 
 logger.addHandler(channel)
+
+logging.getLogger(open3d.__name__).propagate = False

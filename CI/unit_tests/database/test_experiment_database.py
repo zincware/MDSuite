@@ -225,5 +225,8 @@ def test_experiment_units(tmp_path):
 
     project_2 = mds.Project()
 
-    assert project_2.experiments["Exp01"].units == si
-    assert project_2.experiments["Exp02"].units == custom_units
+    for key, val in project_2.experiments["Exp01"].units.items():
+        assert val == getattr(si, key)
+
+    for key, val in project_2.experiments["Exp02"].units.items():
+        assert val == getattr(custom_units, key)

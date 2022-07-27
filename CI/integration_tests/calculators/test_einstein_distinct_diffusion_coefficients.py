@@ -36,6 +36,9 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.calculators.einstein_distinct_diffusion_coefficients import (
+    EinsteinDistinctDiffusionCoefficients,
+)
 
 
 @pytest.fixture(scope="session")
@@ -68,8 +71,10 @@ def test_eddc_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    project.run.EinsteinDistinctDiffusionCoefficients(
-        plot=False, data_range=300, correlation_time=100
+    project.execute_operation(
+        EinsteinDistinctDiffusionCoefficients(
+            plot=False, data_range=300, correlation_time=300
+        )
     )
 
     # data_dict = project.load.EinsteinDistinctDiffusionCoefficients()[0].data_dict
@@ -97,8 +102,10 @@ def test_eddc_experiment(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
-    project.experiments["NaCl"].run.EinsteinDiffusionCoefficients(
-        plot=False, data_range=300, correlation_time=100
+    project.experiments["NaCl"].execute_operation(
+        EinsteinDistinctDiffusionCoefficients(
+            plot=False, data_range=300, correlation_time=300
+        )
     )
 
     # data_dict = (

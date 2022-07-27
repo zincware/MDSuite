@@ -26,30 +26,15 @@ Summary
 MDSuite module for the computation of ionic conductivity using the Einstein method.
 """
 from abc import ABC
-from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    data_range: int
-    correlation_time: int
-    tau_values: np.s_
-    atom_selection: np.s_
-    fit_range: int
 
 
 class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
@@ -67,14 +52,26 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
                                                                  correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        plot=True,
+        data_range=100,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+        **kwargs
+    ):
         """
         Python constructor
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the tensor_values
+        data_range :
+                Number of configurations to use in each ensemble
+        correlation_time : int
+                Correlation time to use in the analysis.
         """
 
         # parse to the experiment class
@@ -94,32 +91,11 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=100,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        correlation_time : int
-                Correlation time to use in the analysis.
-        """
         if fit_range == -1:
             fit_range = int(data_range - 1)
 
         # set args that will affect the computation result
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             data_range=data_range,
             correlation_time=correlation_time,
             tau_values=tau_values,
@@ -131,15 +107,17 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
-    def check_input(self):
+    def prepare_calculation(self):
         """
-        Check the user input to ensure no conflicts are present.
-
+        Helper method for parameters that need to be computed after the experiment
+        attributes are exposed to the calculator.
         Returns
         -------
 
         """
-        self._run_dependency_check()
+        self.time = self._handle_tau_values()
+        if self.stored_parameters.species is None:
+            self.stored_parameters.species = list(self.experiment.species)
 
     def _calculate_prefactor(self):
         """
@@ -150,11 +128,10 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         # Calculate the prefactor
-        numerator = (self.experiment.units.length**2) * (elementary_charge**2)
+        numerator = (self.experiment.units["length"] ** 2) * (elementary_charge**2)
         denominator = (
-            self.experiment.units.time
-            * self.experiment.volume
-            * self.experiment.units.volume
+            self.experiment.units["time"]
+            * (self.experiment.volume * self.experiment.units["length"] ** 3)
             * self.experiment.temperature
             * boltzmann_constant
         )
@@ -182,7 +159,8 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
+            tf.gather(ensemble, self.stored_parameters.tau_values, axis=1),
+            ensemble[:, 0, :],
         )
         msd = self.prefactor * tf.reduce_sum(msd, axis=2)
         self.msd_array += np.array(msd)[0, :]
@@ -195,7 +173,9 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
-            x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
+            x_data=self.time,
+            y_data=self.msd_array,
+            fit_max_index=self.stored_parameters.fit_range,
         )
         error = np.sqrt(np.diag(covariance))[0]
 
@@ -217,7 +197,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        self.check_input()
+        self._run_dependency_check()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
