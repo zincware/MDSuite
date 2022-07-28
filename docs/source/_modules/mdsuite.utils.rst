@@ -16,6 +16,7 @@ Submodules
    :maxdepth: 4
 
    mdsuite.utils.calculator_helper_methods
+   mdsuite.utils.colours
    mdsuite.utils.config
    mdsuite.utils.constants
    mdsuite.utils.database

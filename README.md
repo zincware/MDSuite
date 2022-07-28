@@ -19,7 +19,7 @@ If you want to start learning about the code, you can check out the docs
 Installation
 ============
 
-There are several way to install MDSuite depending on what you would like from it.
+There are several ways to install MDSuite depending on what you would like from it.
 
 One can simply install using
 
