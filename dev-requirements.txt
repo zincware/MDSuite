@@ -2,7 +2,7 @@ sphinxcontrib.bibtex
 pybtex
 pytest
 nbsphinx
-Sphinx==5.1.0
+Sphinx==5.1.1
 sphinx_rtd_theme
 numpydoc
 sphinx-copybutton
