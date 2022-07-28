@@ -3,7 +3,6 @@ pybtex
 pytest
 nbsphinx
 Sphinx==5.1.1
-pypandoc
 sphinx_rtd_theme
 numpydoc
 sphinx-copybutton
