@@ -10,7 +10,7 @@ scientists.
 The figure below outlines the different elements of the software and how they interact
 with one another.
 
- .. figure:: images/project_structure.pdf
+ .. figure:: images/project_structure.png
       :alt: MDSuite project structure
       :class: with-shadow
       :width: 400px
