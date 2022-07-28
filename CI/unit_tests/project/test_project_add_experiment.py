@@ -190,14 +190,8 @@ def test_multiple_experiments(tmp_path):
 
     project_loaded = mds.Project()
 
-    assert (
-        project.experiments.Test01.experiment_path
-        == project_loaded.experiments.Test01.experiment_path
-    )
-    assert (
-        project.experiments.Test02.experiment_path
-        == project_loaded.experiments.Test02.experiment_path
-    )
+    assert project.experiments.Test01.path == project_loaded.experiments.Test01.path
+    assert project.experiments.Test02.path == project_loaded.experiments.Test02.path
 
 
 def test_lammps_read(traj_files, tmp_path):
