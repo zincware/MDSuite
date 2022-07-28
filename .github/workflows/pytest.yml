@@ -75,6 +75,7 @@ jobs:
           python-version: "3.9"
       - name: Install package
         run: |
+          sudo apt install pandoc
           pip3 install -r dev-requirements.txt
           pip3 install .
       - name: Build documentation
