@@ -62,32 +62,10 @@ With all the post-processing codes out there why should you use MDSuite? Aside
 from the easy to use interface and large range of analysis available, MDSuite has
 a number of great features beneath the surface that give us an edge.
 
-* Memory safety on all calculators up to atom-wise batching.
-* Built on top of TensorFlow allowing for full parallelization of processes as well as gpu use.
-* 19 calculators and 11 transformations for full characterization of a simulation.
-* Powerful data visualization capabilities.
+    * Memory safety on all calculators up to atom-wise batching.
+    * Built on top of TensorFlow allowing for full parallelization of processes as well as gpu use.
+    * 19 calculators and 11 transformations for full characterization of a simulation.
+    * Powerful data visualization capabilities.
 
 On top of this, we also have a group of friendly developers who are trying the better their own skills as programmers
 while sharing their knowledge of physics.
-
-What's New?
------------
-
-We will keep updating this section to include new features of the code.
-
- * Molecule mapping on raw data!
- * MDSuite paper is complete.
-
-What's Next?
-------------
-
-We have a lot going on in the direction of molecule studies as well as some more calculators specifically designed
-for ab-initio calculations. We are always looking to add file reading capabilities, and of course,
-improving performance. If you want to help out with anything feel free to send us an email or contact us through github.
-We have included a short list below of some broad topics that we are interested in developing more aggressively in the
-near future.
-
-* Smart memory optimization
-* Threaded memory adjustment
-* ab-initio calculators
-* binary file readers
