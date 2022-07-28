@@ -219,10 +219,10 @@ class Project(ProjectDatabase):
         # If the experiment does not exists, instantiate a new Experiment
         new_experiment = Experiment(
             project=self,
-            experiment_name=name,
+            name=name,
             time_step=timestep,
-            units=units,
             temperature=temperature,
+            units=units,
             cluster_mode=cluster_mode,
         )
 
@@ -319,9 +319,7 @@ class Project(ProjectDatabase):
         for exp in db_experiments:
             exp: db.Experiment
             if exp.name not in self._experiments:
-                self._experiments[exp.name] = Experiment(
-                    project=self, experiment_name=exp.name
-                )
+                self._experiments[exp.name] = Experiment(project=self, name=exp.name)
 
         return dotdict(self._experiments)
 
