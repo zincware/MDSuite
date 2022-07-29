@@ -24,11 +24,11 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
 import os
 
 import numpy as np
 import tensorflow as tf
-import dataclasses
 
 import mdsuite as mds
 import mdsuite.utils.units
