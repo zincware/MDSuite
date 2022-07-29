@@ -1,8 +1,17 @@
 Installation
 ------------
 
-Installation of MDSuite is currently only possible from the git repository.
-Once all of the documentation is up, we will move this over to PyPi and conda.
+MDSuite may be installed either directly from pip or from source.
+
+Pip Install
+===========
+MDSuite is hosted on the PyPi repository and there can be installed by the following:
+
+.. code-block:: bash
+
+   pip install mdsuite
+
+Alternatively, you may wish to install the main branch directly from source.
 
 From Source
 ===========
