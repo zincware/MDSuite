@@ -8,6 +8,7 @@ Pip Install
 MDSuite is hosted on the PyPi repository and there can be installed by the following:
 
 .. code-block:: bash
+
    pip install mdsuite
 
 Alternatively, you may wish to install the main branch directly from source.
