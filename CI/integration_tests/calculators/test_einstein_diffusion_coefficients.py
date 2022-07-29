@@ -24,6 +24,7 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
 import os
 
 import numpy as np
@@ -60,9 +61,7 @@ def test_calculator(tmp_path):
     os.chdir(tmp_path)
     project = mds.Project()
     # introduce nontrivial units to make sure all conversions are correct
-    units = mdsuite.units.SI
-    units.length = 0.5
-    units.time = 1.3
+    units = dataclasses.replace(mdsuite.units.SI, length=0.5, time=1.3)
     exp = project.add_experiment(
         "test_diff_coeff", timestep=time_step, temperature=4.321, units=units
     )
