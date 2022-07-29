@@ -24,13 +24,16 @@ If you use this module please cite us with:
 Summary
 -------
 """
+from pathlib import Path
+
 import setuptools
 
-with open("README.md", "r") as fh:
+readme_path = Path("README.md")
+with open(readme_path.absolute().as_posix(), "r") as fh:
     long_description = fh.read()
 
-
-with open("requirements.txt") as f:
+requirements_path = Path("requirements.txt")
+with open(requirements_path.absolute().as_posix(), "r") as f:
     required = f.read().splitlines()
 
 setuptools.setup(
