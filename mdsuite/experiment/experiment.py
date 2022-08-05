@@ -635,6 +635,8 @@ class Experiment(ExperimentDatabase):
         self.species = species_dict
         # assume the same property for each species
         self.property_groups = next(iter(species_dict.values()))["properties"]
+        # update n_atoms
+        self.number_of_atoms = sum(sp["n_particles"] for sp in species_dict.values())
 
 
 def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):

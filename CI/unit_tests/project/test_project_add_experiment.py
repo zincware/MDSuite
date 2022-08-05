@@ -212,8 +212,16 @@ def test_lammps_read(traj_files, tmp_path):
     vels = project.experiments["NaCl"].load_matrix(
         species=["Na"], property_name="Velocities"
     )
+
+    n_Na = project.experiments["NaCl"].species["Na"].n_particles
+    n_Cl = project.experiments["NaCl"].species["Cl"].n_particles
+    n_atoms = project.experiments["NaCl"].number_of_atoms
+    assert n_Na == 500
+    assert n_Cl == 500
+    assert n_atoms == n_Na + n_Cl
+
     # check one value from the file
-    # timestep 482, Na atom id 429 (line 486776 in th file)
+    # timestep 482, Na atom id 429 (line 486776 in the file)
     vel_shouldbe = [5.2118, 6.40816, 0.988324]
     vel_is = vels["Na/Velocities"][428, 482, :]
     np.testing.assert_array_almost_equal(vel_is, vel_shouldbe, decimal=5)
