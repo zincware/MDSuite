@@ -29,14 +29,11 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
@@ -48,59 +45,13 @@ from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.tensorflow.layers import NLLayer
 from mdsuite.visualizer.d3_data_visualizer import DataVisualizer3D
 
-if TYPE_CHECKING:
-    from mdsuite import Experiment
-
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class Args:
-    """
-    Data class for the saved properties.
-    """
-
-    number_of_configurations: int
-    data_range: int
-    correlation_time: int
-    atom_selection: np.s_
-    molecules: bool
-    species: list
-    r_min: float
-    r_max: float
-    n_bins: int
 
 
 class SpatialDistributionFunction(TrajectoryCalculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix"""
 
-    def __init__(self, experiment: Experiment, experiments=None):
-        """
-        Constructor of the SpatialDistributionFunction
-
-        Parameters
-        ----------
-        experiment: Experiment
-            managed by RunComputation
-        experiments:
-            list of Experiments, managed by RunComputation
-        load_data: bool
-            managed by RunComputation
-
-        """
-        super().__init__(experiment, experiments=experiments)
-
-        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
-        self.loaded_property = mdsuite_properties.positions
-        self.x_label = r"$$\text{r} /  nm$$"  # None
-        self.y_label = r"$$\text{g(r)}$$"  # None
-        self.analysis_name = "Spatial_Distribution_Function"
-        self.experimental = True
-
-        self._dtype = tf.float32
-
-    @call
-    def __call__(
+    def __init__(
         self,
         molecules: bool = False,
         start: int = 1,
@@ -113,7 +64,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         **kwargs,
     ):
         """
-        User Interface to the Spatial Distribution Function
+        Constructor of the SpatialDistributionFunction
 
         Parameters
         ----------
@@ -132,8 +83,19 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         species: list
             List of species to use, for computing the SDF,
             if None a single SDF of all available species will be computed
-        kwargs
+
         """
+        super().__init__(**kwargs)
+
+        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
+        self.loaded_property = mdsuite_properties.positions
+        self.x_label = r"$$\text{r} /  nm$$"  # None
+        self.y_label = r"$$\text{g(r)}$$"  # None
+        self.analysis_name = "Spatial_Distribution_Function"
+        self.experimental = True
+
+        self._dtype = tf.float32
+
         if species is None:
             if molecules:
                 species = list(self.experiment.molecules)
@@ -146,7 +108,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         )
         self.plot = False
 
-        self.args = Args(
+        self.stored_parameters = self.create_stored_parameters(
             molecules=molecules,
             species=species,
             number_of_configurations=number_of_configurations,
@@ -183,7 +145,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         data = []
         for item in path_list:
             data.append(data_dict[item])
-        if len(self.args.species) == 1:
+        if len(self.stored_parameters.species) == 1:
             return tf.cast(data, dtype=self.dtype)
         else:
             return tf.cast(tf.concat(data, axis=0), dtype=self.dtype)
@@ -191,7 +153,8 @@ class SpatialDistributionFunction(TrajectoryCalculator):
     def run_calculator(self):
         """Run the computation"""
         path_list = [
-            join_path(item, self.loaded_property.name) for item in self.args.species
+            join_path(item, self.loaded_property.name)
+            for item in self.stored_parameters.species
         ]
         self._prepare_managers(path_list)
         # Iterate over batches
@@ -205,7 +168,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         ):
             positions_tensor = []
             species_length = []
-            for species in self.args.species:
+            for species in self.stored_parameters.species:
                 positions_tensor.append(
                     self._load_positions(sample_configuration, species)
                 )
@@ -223,7 +186,9 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
             d_ij = tf.linalg.norm(r_ij, axis=-1)  # shape (b, i, j)
             # apply minimal and maximal distance and remove the diagonal elements of 0
-            mask = (d_ij > self.args.r_min) & (d_ij < self.args.r_max)  # & (d_ij != 0)
+            mask = (d_ij > self.stored_parameters.r_min) & (
+                d_ij < self.stored_parameters.r_max
+            )  # & (d_ij != 0)
 
             # Slicing the mask to the area where only the distances i!=j occur.
             # There are two such areas, so I am slicing them twice
@@ -249,7 +214,9 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             subjects=["System"],
         )
 
-        coordinates = tf.reshape(self._get_unit_sphere(), [self.args.n_bins**2, 3])
+        coordinates = tf.reshape(
+            self._get_unit_sphere(), [self.stored_parameters.n_bins**2, 3]
+        )
         colour_map = tf.reshape(sdf_values, [-1])
         self._run_visualization(coordinates, colour_map)
 
@@ -264,8 +231,10 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         """
         theta_range = [0, math.pi]
         phi_range = [-math.pi, math.pi]
-        theta_vals = np.linspace(theta_range[0], theta_range[1], self.args.n_bins)
-        phi_vals = np.linspace(phi_range[0], phi_range[1], self.args.n_bins)
+        theta_vals = np.linspace(
+            theta_range[0], theta_range[1], self.stored_parameters.n_bins
+        )
+        phi_vals = np.linspace(phi_range[0], phi_range[1], self.stored_parameters.n_bins)
 
         xx, yy = np.meshgrid(theta_vals, phi_vals)
         spherical_map = tf.stack([tf.ones_like(xx), xx, yy], axis=-1)
@@ -298,7 +267,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             theta_phi_pairs[:, 1],
             theta_phi_pairs[:, 2],
             value_range=[theta_range, phi_range],
-            nbins=self.args.n_bins,
+            nbins=self.stored_parameters.n_bins,
         )
 
         return bins
@@ -315,10 +284,12 @@ class SpatialDistributionFunction(TrajectoryCalculator):
                 A colour map to highlight density on the unit sphere
 
         """
-        if self.args.species[0] in list(self.experiment.species):
-            center = self.args.species[0]
+        if self.stored_parameters.species[0] in list(self.experiment.species):
+            center = self.stored_parameters.species[0]
         else:
-            center_dict = self.experiment.molecules[self.args.species[0]]["groups"]["0"]
+            center_dict = self.experiment.molecules[self.stored_parameters.species[0]][
+                "groups"
+            ]["0"]
             center = {}
             for item in center_dict:
                 for index in center_dict[item]:
