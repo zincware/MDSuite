@@ -105,7 +105,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         self.database_group = "Diffusion_Coefficients"
         self.x_label = r"$$\text{Time} / s $$"
-        self.y_label = r"$$\text{VACF} / m^{2}/s^{2}$$"
+        self.y_label = r"$$\text{MSD} / m^{2}$$"
         self.analysis_name = "Einstein_Distinct_Diffusion_Coefficients"
         self.experimental = True
         self.result_keys = ["diffusion_coefficient", "uncertainty"]
