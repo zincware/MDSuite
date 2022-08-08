@@ -30,8 +30,8 @@ import warnings
 from dataclasses import dataclass
 from typing import Any, List, Union
 
+import jax
 import numpy as np
-import tensorflow as tf
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
@@ -170,35 +170,110 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             species=species,
             fit_range=fit_range,
         )
-        self.time = self._handle_tau_values()
+        self.time = self._handle_tau_values() * self.experiment.units.time
 
         self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
 
-    def msd_operation(self, ensemble: tf.Tensor, square: bool = True):
+    def _msd_operation(self, ds_a, ds_b) -> np.ndarray:
         """
-        Perform a simple msd operation.
+        Perform an msd operation between two data sets mapping over spatial dimension.
 
         Parameters
         ----------
-        ensemble : tf.Tensor
-            Trajectory over which to compute the msd.
-        square : bool
-            If true, square the result, else just return the difference.
+        ds_a : np.ndarray (n_timesteps, dimension)
+        ds_b : np.ndarray (n_timesteps, dimension)
+
         Returns
         -------
-        msd : tf.Tensor shape=(n_atoms, data_range, 3)
-                Mean square displacement.
+
         """
-        if square:
-            return tf.math.squared_difference(
-                tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
-            )
-        else:
-            return tf.math.subtract(ensemble, ensemble[:, None, 0])
+
+        def _difference_op(a, b):
+            """
+            Difference operation to map over spatial dimension.
+
+            Parameters
+            ----------
+            a : (n_timesteps)
+            b : (n_timesteps)
+
+            Returns
+            -------
+
+            """
+            return (a - a[0]) * (b - b[0])
+
+        difference_vmap = jax.vmap(_difference_op, in_axes=-1)
+
+        return np.mean(difference_vmap(ds_a, ds_b), axis=0)
+
+    def _map_over_particles(self, ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
+        """
+        Function to map a correlation in a Gram matrix style over two data sets.
+
+        This function will perform the nxm calculations to compute the correlation
+        between all particles in ds_a with all particles in ds_b.
+
+        Parameters
+        ----------
+        ds_a : np.ndarray (n_particles, n_configurations, dimension)
+                Dataset to compute correlation with.
+        ds_b : np.ndarray (n_particles, n_configurations, dimension)
+                Other dataset to compute correlation with. Does not need to be the
+                same shape as ds_a along the zeroth (particle) axis.
+
+        Returns
+        -------
+
+        """
+
+        def ref_conf_map(ref_dataset, full_ds):
+            """
+            Maps over the atoms axis in dataset
+            Parameters
+            ----------
+            dataset
+            Returns
+            -------
+            """
+
+            def test_conf_map(test_dataset):
+                """
+                Map over atoms in test dataset.
+                Parameters
+                ----------
+                test_dataset
+                Returns
+                -------
+                """
+                return self._msd_operation(ref_dataset, test_dataset)
+
+            return np.mean(jax.vmap(test_conf_map, in_axes=0)(full_ds), axis=0)
+
+        acf_calc = jax.vmap(ref_conf_map, in_axes=(0, None))
+
+        return np.mean(acf_calc(ds_a, ds_b), axis=0)
+
+    def _compute_self_correlation(self, ds_a, ds_b):
+        """
+        Compute the self correlation coefficients.
+        Parameters
+        ----------
+        ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
+        ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
+        data_range : int (default = 500)
+                Range over which the acf will be computed.
+        correlation_time : int (default = 1)
+        Returns
+        -------
+        """
+        atomwise_vmap = jax.vmap(self._msd_operation, in_axes=0)
+
+        return np.mean(atomwise_vmap(ds_a, ds_b), axis=0)
 
     def _compute_msd(self, data: dict, data_path: list, combination: tuple):
         """
-        Compute the vacf on the given dictionary of data.
+        Compute the msd on the given dictionary of data.
 
         Parameters
         ----------
@@ -212,18 +287,17 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
         updates the class state
         """
-        # shape = (n_atoms, data_range, 3)
-        msd_a = self.msd_operation(data[data_path[0]], square=False)
-        msd_b = self.msd_operation(data[data_path[0]], square=False)
+        msd_array = self._map_over_particles(
+            data[data_path[0]].numpy(), data[data_path[1]].numpy()
+        )
 
-        for i in range(len(data[data_path[0]])):
-            for j in range(len(data[data_path[1]])):
-                if combination[0] == combination[1] and i == j:
-                    continue
-                else:
-                    self.msd_array += self.prefactor * np.array(
-                        tf.reduce_sum(msd_a[i] * msd_b[j], axis=1)
-                    )
+        if combination[0] == combination[1]:
+            self_correction = self._compute_self_correlation(
+                data[data_path[0]].numpy(), data[data_path[1]].numpy()
+            )
+            msd_array -= self_correction
+
+        self.msd_array += msd_array
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
@@ -237,18 +311,9 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
         Updates the prefactor attribute of the class.
         """
-        if species[0] == species[1]:
-            atom_scale = self.experiment.species[species[0]].n_particles * (
-                self.experiment.species[species[1]].n_particles - 1
-            )
-        else:
-            atom_scale = (
-                self.experiment.species[species[0]].n_particles
-                * self.experiment.species[species[1]].n_particles
-            )
 
         numerator = self.experiment.units.length**2
-        denominator = self.experiment.units.time * atom_scale
+        denominator = self.experiment.units.time
         self.prefactor = numerator / denominator
 
     def _apply_averaging_factor(self):
@@ -267,6 +332,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         -------
 
         """
+        self._apply_averaging_factor()  # update in place
+        self.msd_array *= self.experiment.units.length**2
         try:
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
                 x_data=self.time, y_data=self.msd_array, fit_max_index=self.args.fit_range
@@ -288,8 +355,8 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             error = np.sqrt(np.diag(covariance))[0]
 
             data = {
-                self.result_keys[0]: -1 / 6 * fit_values[0],
-                self.result_keys[1]: 1 / 6 * error,
+                self.result_keys[0]: -1 / 2 * fit_values[0],
+                self.result_keys[1]: 1 / 2 * error,
                 self.result_series_keys[0]: self.time.tolist(),
                 self.result_series_keys[1]: self.msd_array.tolist(),
             }
@@ -334,3 +401,4 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                     self._compute_msd(ensemble, dict_ref, combination)
 
             self._post_operation_processes(combination)
+            self.msd_array = np.zeros(self.args.data_range)  # define empty msd array

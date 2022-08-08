@@ -213,9 +213,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         return acf[int(len(acf) / 2) :]
 
-    def _compute_self_correlation(
-        self, ds_a, ds_b, data_range: int = 500, correlation_time: int = 1
-    ):
+    def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
         Parameters
