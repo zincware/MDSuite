@@ -25,7 +25,8 @@ Summary
 -------
 """
 
+from mdsuite.utils.colours import Colour
 from mdsuite.utils.config import config
 from mdsuite.utils.units import Units
 
-__all__ = ["config", "Units"]
+__all__ = ["config", "Units", "Colour"]

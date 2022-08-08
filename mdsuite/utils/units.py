@@ -58,6 +58,11 @@ class Units:
     avogadro: float = 6.02214076e23
     elementary_charge: float = 1.602176634e-19
 
+    @property
+    def volume(self) -> float:
+        """Get the volume factor"""
+        return self.length**3
+
 
 real = Units(
     time=1e-15,
