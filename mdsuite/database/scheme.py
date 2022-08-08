@@ -295,6 +295,10 @@ class Computation(Base):
                 f"Could not find {item} - available keys are {self.data_dict.keys()}"
             )
 
+    def keys(self) -> list:
+        """Map the data_dict keys"""
+        return list(self.data_dict.keys())
+
     @property
     def computation_parameter(self) -> dict:
         """Get a dict of all used computation parameters

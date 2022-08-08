@@ -24,6 +24,10 @@ If you use this module please cite us with:
 Summary
 -------
 """
+try:
+    from importlib import metadata
+except ImportError:  # for Python<3.8
+    import importlib_metadata as metadata
 import logging
 import sys
 
@@ -40,7 +44,7 @@ __all__ = [
     "config",
     Molecule.__name__,
 ]
-__version__ = "0.1.0"
+__version__ = metadata.version("mdsuite")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

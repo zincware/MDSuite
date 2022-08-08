@@ -34,7 +34,10 @@ from dataclasses import dataclass
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
-from bokeh.models import Span
+from bokeh.models import HoverTool, LinearAxis, Span
+from bokeh.models.ranges import Range1d
+from bokeh.plotting import figure
+from scipy.integrate import cumtrapz
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
@@ -104,7 +107,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.analysis_name = "Green_Kubo_Ionic_Conductivity"
 
         self.result_keys = ["ionic_conductivity", "uncertainty"]
-        self.result_series_keys = ["time", "acf"]
+        self.result_series_keys = ["time", "acf", "integral", "integral_uncertainty"]
 
         self.prefactor = None
         self._dtype = tf.float64
@@ -137,7 +140,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.sigma = []
 
         if integration_range is None:
-            integration_range = data_range
+            integration_range = data_range - 1
 
         # set args that will affect the computation result
         self.args = Args(
@@ -150,6 +153,9 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
 
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
+
+        self.acfs = []
+        self.sigmas = []
 
     def check_input(self):
         """
@@ -169,16 +175,16 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
+        # TODO improve docstring
         # Calculate the prefactor
-        numerator = (elementary_charge ** 2) * (self.experiment.units["length"] ** 2)
+        numerator = (elementary_charge**2) * (self.experiment.units.length**2)
         denominator = (
             3
             * boltzmann_constant
             * self.experiment.temperature
             * self.experiment.volume
-            * (self.experiment.units["length"] ** 3)
-            * self.args.data_range
-            * self.experiment.units["time"]
+            * self.experiment.units.volume
+            * self.experiment.units.time
         )
         self.prefactor = numerator / denominator
 
@@ -191,34 +197,24 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         pass
 
-    def ensemble_operation(self, ensemble):
+    def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
 
         Parameters
         ----------
-        ensemble
+        ensemble : tf.Tensor
+                Ensemble on which to operate.
 
         Returns
         -------
-        MSD of the tensor_values.
+        ACF of the tensor_values.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(
-                tf.gather(ensemble, self.args.tau_values, axis=1),
-                normalize=False,
-                axis=1,
-                center=False,
-            ),
-            axis=-1,
-        )[0, :]
-        self.jacf += jacf
-        self.sigma.append(
-            np.trapz(
-                jacf,
-                x=self.time[self.args.tau_values],
-            )
-        )
+        ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
+        jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
+        jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
+        self.acfs.append(jacf)
+        self.sigmas.append(cumtrapz(jacf, x=self.time))
 
     def _post_operation_processes(self):
         """
@@ -227,13 +223,20 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         -------
 
         """
-        result = self.prefactor * np.array(self.sigma)
-
+        sigma = np.mean(self.sigmas, axis=0)
+        sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
+        acf = np.mean(self.acfs, axis=0)
+        ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 1]
+        ionic_conductivity_SEM = (
+            self.prefactor * sigma_SEM[self.args.integration_range - 1]
+        )
         data = {
-            self.result_keys[0]: np.mean(result).tolist(),
-            self.result_keys[1]: (np.std(result) / np.sqrt(len(result))).tolist(),
+            self.result_keys[0]: [ionic_conductivity],
+            self.result_keys[1]: [ionic_conductivity_SEM],
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: self.jacf.numpy().tolist(),
+            self.result_series_keys[1]: acf.tolist(),
+            self.result_series_keys[2]: sigma.tolist(),
+            self.result_series_keys[3]: sigma_SEM.tolist(),
         }
 
         self.queue_data(data=data, subjects=["System"])
@@ -241,24 +244,55 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     def plot_data(self, data):
         """Plot the data"""
         for selected_species, val in data.items():
+            fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
+
+            integral = np.array(val[self.result_series_keys[2]])
+            integral_err = np.array(val[self.result_series_keys[3]])
+            time = np.array(val[self.result_series_keys[0]])
+            acf = np.array(val[self.result_series_keys[1]])
+            # Compute the span
             span = Span(
-                location=(
-                    np.array(val[self.result_series_keys[0]])
-                    * self.experiment.units["time"]
-                )[self.args.integration_range - 1],
+                location=np.array(val[self.result_series_keys[0]])[
+                    self.args.integration_range - 1
+                ],
                 dimension="height",
                 line_dash="dashed",
             )
-            self.run_visualization(
-                x_data=np.array(val[self.result_series_keys[0]])
-                * self.experiment.units["time"],
-                y_data=np.array(val[self.result_series_keys[1]]),
-                title=(
-                    f"{val[self.result_keys[0]]: 0.3E} +-"
-                    f" {val[self.result_keys[1]]: 0.3E}"
+            # Compute vacf line
+            fig.line(
+                time,
+                acf,
+                color="#003f5c",
+                legend_label=(
+                    f"{selected_species}: {val[self.result_keys[0]][0]: 0.3E} +-"
+                    f" {val[self.result_keys[1]][0]: 0.3E}"
                 ),
-                layouts=[span],
             )
+
+            fig.extra_y_ranges = {
+                "Cond_Range": Range1d(start=0.6 * min(integral), end=1.3 * max(integral))
+            }
+            fig.add_layout(
+                LinearAxis(
+                    y_range_name="Cond_Range",
+                    axis_label=r"$$\text{Ionic Conductivity} / Scm^{-1}$$",
+                ),
+                "right",
+            )
+
+            fig.line(time[1:], integral, y_range_name="Cond_Range", color="#bc5090")
+            fig.varea(
+                time[1:],
+                integral - integral_err,
+                integral + integral_err,
+                alpha=0.3,
+                color="#ffa600",
+                y_range_name="Cond_Range",
+            )
+
+            fig.add_tools(HoverTool())
+            fig.add_layout(span)
+            self.plot_array.append(fig)
 
     def run_calculator(self):
         """

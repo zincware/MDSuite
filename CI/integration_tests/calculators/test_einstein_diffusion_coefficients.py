@@ -50,7 +50,7 @@ def test_calculator(tmp_path):
 
     n_part = 500
     n_step = 5000
-    msd_range = 50
+    msd_range = 100
 
     vel = np.sqrt(2 * diff_coeff / time_step) * tf.random.normal(
         shape=(n_step, n_part, 3), mean=0, stddev=1
@@ -84,7 +84,7 @@ def test_calculator(tmp_path):
     )[species.name]
 
     time_should_be = time_step * np.arange(0, msd_range) * units.time
-    diff_coeff_should_be = diff_coeff * units.length ** 2 / units.time
+    diff_coeff_should_be = diff_coeff * units.length**2 / units.time
     msd_shouldbe = 6 * diff_coeff_should_be * time_should_be
 
     np.testing.assert_allclose(res["time"], time_should_be, atol=1e-5)
