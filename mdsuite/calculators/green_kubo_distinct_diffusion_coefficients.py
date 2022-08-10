@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from typing import Any, List, Union
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import tensorflow as tf
 from bokeh.models import Span
@@ -40,6 +39,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils.calculator_helper_methods import correlate
 
 
 @dataclass
@@ -171,48 +171,6 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
-    def _correlate(self, ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
-        """
-        Compute a simple correlation computation mapped over the spatial dimension of
-        the array.
-
-        Parameters
-        ----------
-        ds_a : np.ndarray (n_configurations, dimension)
-                Tensor of the first set of data for a single particle.
-        ds_b : np.ndarray (n_configurations, dimension)
-                Tensor of the second set of data for a single particle.
-
-        Returns
-        -------
-        Computes the correlation between the two data sets and averages over the spatial
-        dimension.
-        """
-
-        def _correlate_op(a: np.ndarray, b: np.ndarray):
-            """
-            Actual correlation op to be mapped over the spatial dimension.
-
-            Parameters
-            ----------
-            a : np.ndarray (n_configurations, dimension)
-                Tensor of the first set of data for a single particle.
-            b : np.ndarray (n_configurations, dimension)
-                Tensor of the second set of data for a single particle.
-
-            Returns
-            -------
-            correlation over a single dimension.
-            """
-            return jnp.correlate(a, b, mode="full")
-
-        # We want to vmap over the last axis
-        correlate_vmap = jax.vmap(_correlate_op, in_axes=-1)
-
-        acf = np.mean(correlate_vmap(ds_a, ds_b), axis=0)
-
-        return acf[int(len(acf) / 2) :]
-
     def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
@@ -226,7 +184,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         Returns
         -------
         """
-        atomwise_vmap = jax.vmap(self._correlate, in_axes=0)
+        atomwise_vmap = jax.vmap(correlate, in_axes=0)
 
         return np.mean(atomwise_vmap(ds_a, ds_b), axis=0)
 
@@ -269,7 +227,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Returns
                 -------
                 """
-                return self._correlate(ref_dataset, test_dataset)
+                return correlate(ref_dataset, test_dataset)
 
             return np.mean(jax.vmap(test_conf_map, in_axes=0)(full_ds), axis=0)
 

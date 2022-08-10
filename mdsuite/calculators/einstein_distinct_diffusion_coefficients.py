@@ -37,7 +37,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import fit_einstein_curve, msd_operation
 
 
 @dataclass
@@ -174,39 +174,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
 
-    def _msd_operation(self, ds_a, ds_b) -> np.ndarray:
-        """
-        Perform an msd operation between two data sets mapping over spatial dimension.
-
-        Parameters
-        ----------
-        ds_a : np.ndarray (n_timesteps, dimension)
-        ds_b : np.ndarray (n_timesteps, dimension)
-
-        Returns
-        -------
-
-        """
-
-        def _difference_op(a, b):
-            """
-            Difference operation to map over spatial dimension.
-
-            Parameters
-            ----------
-            a : (n_timesteps)
-            b : (n_timesteps)
-
-            Returns
-            -------
-
-            """
-            return (a - a[0]) * (b - b[0])
-
-        difference_vmap = jax.vmap(_difference_op, in_axes=-1)
-
-        return np.mean(difference_vmap(ds_a, ds_b), axis=0)
-
     def _map_over_particles(self, ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
         """
         Function to map a correlation in a Gram matrix style over two data sets.
@@ -232,7 +199,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             Maps over the atoms axis in dataset
             Parameters
             ----------
-            dataset
+
             Returns
             -------
             """
@@ -246,7 +213,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Returns
                 -------
                 """
-                return self._msd_operation(ref_dataset, test_dataset)
+                return msd_operation(ref_dataset, test_dataset)
 
             return np.mean(jax.vmap(test_conf_map, in_axes=0)(full_ds), axis=0)
 
@@ -261,13 +228,11 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
         ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
-        data_range : int (default = 500)
-                Range over which the acf will be computed.
-        correlation_time : int (default = 1)
+
         Returns
         -------
         """
-        atomwise_vmap = jax.vmap(self._msd_operation, in_axes=0)
+        atomwise_vmap = jax.vmap(msd_operation, in_axes=0)
 
         return np.mean(atomwise_vmap(ds_a, ds_b), axis=0)
 
@@ -299,23 +264,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
 
         self.msd_array += msd_array
 
-    def _calculate_prefactor(self, species: Union[str, tuple] = None):
-        """
-        calculate the calculator pre-factor.
-
-        Parameters
-        ----------
-        species : str
-                Species property if required.
-        Returns
-        -------
-        Updates the prefactor attribute of the class.
-        """
-
-        numerator = self.experiment.units.length**2
-        denominator = self.experiment.units.time
-        self.prefactor = numerator / denominator
-
     def _apply_averaging_factor(self):
         """
         Apply an averaging factor to the tensor_values.
@@ -341,11 +289,12 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             error = np.sqrt(np.diag(covariance))[0]
 
             data = {
-                "diffusion_coefficient": fit_values[0],
-                "uncertainty": error,
-                "time": self.time.tolist(),
-                "msd": self.msd_array.tolist(),
+                self.result_keys[0]: 1 / 2 * fit_values[0],
+                self.result_keys[1]: 1 / 2 * error,
+                self.result_series_keys[0]: self.time.tolist(),
+                self.result_series_keys[1]: self.msd_array.tolist(),
             }
+
         except ValueError:
             fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(
                 x_data=self.time,
@@ -387,7 +336,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 for species in species_values
             ]
             batch_ds = self.get_batch_dataset(species_values)
-            self._calculate_prefactor(combination)
 
             for batch in tqdm(
                 batch_ds,
