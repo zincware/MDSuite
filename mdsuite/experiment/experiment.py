@@ -469,7 +469,7 @@ class Experiment(ExperimentDatabase):
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ],
         force: bool = False,
-        update_with_pubchempy: bool = True,
+        update_with_pubchempy: bool = False,
     ):
         """
         Add data to experiment. This method takes a filename, file path or a file
@@ -511,7 +511,7 @@ class Experiment(ExperimentDatabase):
         self,
         file_processor: mdsuite.file_io.file_read.FileProcessor,
         force: bool = False,
-        update_with_pubchempy: bool = True,
+        update_with_pubchempy: bool = False,
     ):
         """
         Add tensor_values to the database_path
