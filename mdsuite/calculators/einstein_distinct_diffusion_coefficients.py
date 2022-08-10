@@ -302,7 +302,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 fit_max_index=self.args.fit_range,
             )
             error = np.sqrt(np.diag(covariance))[0]
-
+            # division by dimension is performed in the mapping, therefore, only 2 here.
             data = {
                 self.result_keys[0]: -1 / 2 * fit_values[0],
                 self.result_keys[1]: 1 / 2 * error,
