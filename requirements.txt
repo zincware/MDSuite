@@ -17,3 +17,5 @@ colorutils
 bokeh
 chemfiles
 dot4dict
+jaxlib
+jax

@@ -28,6 +28,8 @@ Static methods used in calculators are kept here rather than polluting the paren
 import logging
 from typing import Any, Iterable, Tuple, Union
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 from numpy import ndarray
 from scipy.interpolate import UnivariateSpline
@@ -105,79 +107,78 @@ def fit_einstein_curve(
     return popt, pcov, gradients, gradient_errors
 
 
-# def _optimize_einstein_data_range(self, data: np.array):
-#     """
-#     Optimize the tensor_values range of a experiment using the Einstein
-#     method of calculation.
-#
-#     Parameters
-#     ----------
-#     data : np.array (2, data_range)
-#             MSD to study
-#
-#     Returns
-#     -------
-#     Updates the data_range attribute of the class state
-#
-#     Notes
-#     -----
-#     TODO: Update this and add it to the code.
-#     """
-#
-#     def func(x, m, a):
-#         """
-#         Standard linear function for fitting.
-#
-#         Parameters
-#         ----------
-#         x : list/np.array
-#                 x axis tensor_values for the fit
-#         m : float
-#                 gradient of the line
-#         a : float
-#                 scalar offset, also the y-intercept for those who did not
-#                 get much maths in school.
-#
-#         Returns
-#         -------
-#
-#         """
-#
-#         return m * x + a
-#
-#     # get the logarithmic dataset
-#     log_y = np.log10(data[0])
-#     log_x = np.log10(data[1])
-#
-#     end_index = int(len(log_y) - 1)
-#     start_index = int(0.4 * len(log_y))
-#
-#     popt, pcov = curve_fit(
-#         func, log_x[start_index:end_index], log_y[start_index:end_index]
-#     )
-#
-#     if 0.85 < popt[0] < 1.15:
-#         self.loop_condition = True
-#
-#     else:
-#         try:
-#             self.args.data_range = int(1.1 * self.args.data_range)
-#             self.time = np.linspace(
-#                 0.0,
-#                 self.args.data_range
-#                 * self.experiment.time_step
-#                 * self.experiment.sample_rate,
-#                 self.args.data_range,
-#             )
-#
-#             # end the calculation if the tensor_values range exceeds the relevant
-#             # bounds
-#             if (
-#                 self.args.data_range
-#                 > self.experiment.number_of_configurations
-#                 - self.args.correlation_time
-#             ):
-#                 log.error("Trajectory not long enough to perform analysis.")
-#                 raise RangeExceeded
-#         except RangeExceeded:
-#             raise RangeExceeded
+def correlate(ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
+    """
+    Compute a simple correlation computation mapped over the spatial dimension of
+    the array.
+
+    Parameters
+    ----------
+    ds_a : np.ndarray (n_configurations, dimension)
+            Tensor of the first set of data for a single particle.
+    ds_b : np.ndarray (n_configurations, dimension)
+            Tensor of the second set of data for a single particle.
+
+    Returns
+    -------
+    Computes the correlation between the two data sets and averages over the spatial
+    dimension.
+    """
+
+    def _correlate_op(a: np.ndarray, b: np.ndarray):
+        """
+        Actual correlation op to be mapped over the spatial dimension.
+
+        Parameters
+        ----------
+        a : np.ndarray (n_configurations, dimension)
+            Tensor of the first set of data for a single particle.
+        b : np.ndarray (n_configurations, dimension)
+            Tensor of the second set of data for a single particle.
+
+        Returns
+        -------
+        correlation over a single dimension.
+        """
+        return jnp.correlate(a, b, mode="full")
+
+    # We want to vmap over the last axis
+    correlate_vmap = jax.vmap(_correlate_op, in_axes=-1)
+
+    acf = np.mean(correlate_vmap(ds_a, ds_b), axis=0)
+
+    return acf[int(len(acf) / 2) :]
+
+
+def msd_operation(ds_a, ds_b) -> np.ndarray:
+    """
+    Perform an msd operation between two data sets mapping over spatial dimension.
+
+    Parameters
+    ----------
+    ds_a : np.ndarray (n_timesteps, dimension)
+    ds_b : np.ndarray (n_timesteps, dimension)
+
+    Returns
+    -------
+
+    """
+
+    def _difference_op(a, b):
+        """
+        Difference operation to map over spatial dimension.
+
+        Parameters
+        ----------
+        a : (n_timesteps)
+        b : (n_timesteps)
+
+        Returns
+        -------
+
+        """
+        return (a - a[0]) * (b - b[0])
+
+    difference_vmap = jax.vmap(_difference_op, in_axes=-1)
+
+    return np.mean(difference_vmap(ds_a, ds_b), axis=0)

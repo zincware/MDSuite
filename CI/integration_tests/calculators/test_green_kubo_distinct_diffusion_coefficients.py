@@ -92,7 +92,7 @@ def test_experiment(traj_file, true_values, tmp_path):
     )
 
     project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-        plot=False, correlation_time=100
+        plot=False, correlation_time=500
     )
 
     # data_dict = (

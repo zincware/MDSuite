@@ -17,3 +17,4 @@ mdanalysis
 black
 znvis
 ase
+astroid
