@@ -458,7 +458,6 @@ class SingleSpeciesTrafo(Transformations):
             species = self.experiment.species.keys()
 
         for species_name in species:
-
             # this check should be done by the caller
             if self.database.check_existence(
                 os.path.join(species_name, self.output_property.name)
