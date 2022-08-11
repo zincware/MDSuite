@@ -213,7 +213,6 @@ def test_transformation_on_new_data_(tmp_path):
     project = mds.Project()
 
     def check_trafo(trafo_class, exp_name):
-
         project.add_experiment(name=exp_name, timestep=12345)
         exp = project.experiments[exp_name]
 
