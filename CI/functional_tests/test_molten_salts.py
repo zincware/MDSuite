@@ -85,7 +85,7 @@ def mdsuite_project(traj_files, tmp_path) -> mds.Project:
         name="NaCl",
         timestep=0.002,
         temperature=1200.0,
-        units="metal",
+        units=mds.units.METAL,
         simulation_data=na_cl_file,
     )
     project.add_experiment(
