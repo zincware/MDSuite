@@ -206,7 +206,7 @@ def test_experiment_simulation_data_nested(tmp_path):
 
 def test_experiment_units(tmp_path):
     """Test that the experiment simulation data is stored correctly in the database"""
-    from mdsuite.utils.units import Units, si
+    from mdsuite.utils.units import Units
 
     os.chdir(tmp_path)
     custom_units = Units(
@@ -220,10 +220,10 @@ def test_experiment_units(tmp_path):
     )
 
     project_1 = mds.Project()
-    project_1.add_experiment(name="Exp01", units="si")
+    project_1.add_experiment(name="Exp01", units=mds.units.SI)
     project_1.add_experiment(name="Exp02", units=custom_units)
 
     project_2 = mds.Project()
 
-    assert project_2.experiments["Exp01"].units == si
+    assert project_2.experiments["Exp01"].units == mds.units.SI
     assert project_2.experiments["Exp02"].units == custom_units

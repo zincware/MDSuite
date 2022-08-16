@@ -42,7 +42,7 @@ atmosphere = 101325  # Pa -- Standard atmospheric pressure
 golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 
 
-@dataclass()
+@dataclass(frozen=True)
 class Units:
     """
     Dataclass for the units.
@@ -64,7 +64,7 @@ class Units:
         return self.length**3
 
 
-real = Units(
+REAL = Units(
     time=1e-15,
     length=1e-10,
     energy=4184 / 6.02214076e23,
@@ -75,7 +75,7 @@ real = Units(
 )
 
 
-metal = Units(
+METAL = Units(
     time=1e-12,
     length=1e-10,
     energy=1.6022e-19,
@@ -86,7 +86,7 @@ metal = Units(
 )
 
 
-si = Units(
+SI = Units(
     time=1,
     length=1,
     energy=1,
@@ -97,4 +97,4 @@ si = Units(
 )
 
 
-units_dict = {"real": real, "metal": metal, "si": si}
+units_dict = {"real": REAL, "metal": METAL, "si": SI}
