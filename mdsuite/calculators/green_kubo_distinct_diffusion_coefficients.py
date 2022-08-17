@@ -30,15 +30,16 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any, List, Union
 
+import jax
 import numpy as np
 import tensorflow as tf
 from bokeh.models import Span
-from scipy import signal
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils.calculator_helper_methods import correlate
 
 
 @dataclass
@@ -170,6 +171,70 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         self.combinations = list(itertools.combinations_with_replacement(self.species, 2))
 
+    def _compute_self_correlation(self, ds_a, ds_b):
+        """
+        Compute the self correlation coefficients.
+        Parameters
+        ----------
+        ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
+        ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
+        data_range : int (default = 500)
+                Range over which the acf will be computed.
+        correlation_time : int (default = 1)
+        Returns
+        -------
+        """
+        atomwise_vmap = jax.vmap(correlate, in_axes=0)
+
+        return np.mean(atomwise_vmap(ds_a, ds_b), axis=0)
+
+    def _map_over_particles(self, ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
+        """
+        Function to map a correlation in a Gram matrix style over two data sets.
+
+        This function will perform the nxm calculations to compute the correlation
+        between all particles in ds_a with all particles in ds_b.
+
+        Parameters
+        ----------
+        ds_a : np.ndarray (n_particles, n_configurations, dimension)
+                Dataset to compute correlation with.
+        ds_b : np.ndarray (n_particles, n_configurations, dimension)
+                Other dataset to compute correlation with. Does not need to be the
+                same shape as ds_a along the zeroth (particle) axis.
+
+        Returns
+        -------
+
+        """
+
+        def ref_conf_map(ref_dataset, full_ds):
+            """
+            Maps over the atoms axis in dataset
+            Parameters
+            ----------
+            dataset
+            Returns
+            -------
+            """
+
+            def test_conf_map(test_dataset):
+                """
+                Map over atoms in test dataset.
+                Parameters
+                ----------
+                test_dataset
+                Returns
+                -------
+                """
+                return correlate(ref_dataset, test_dataset)
+
+            return np.mean(jax.vmap(test_conf_map, in_axes=0)(full_ds), axis=0)
+
+        acf_calc = jax.vmap(ref_conf_map, in_axes=(0, None))
+
+        return np.mean(acf_calc(ds_a, ds_b), axis=0)
+
     def ensemble_operation(self, data: dict, dict_ref: list, same_species: bool = False):
         """
         Compute the vacf on the given dictionary of data.
@@ -187,26 +252,16 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
         updates the class state
         """
-        self.vacf = np.zeros(self.args.data_range)
-        vacf = np.zeros(2 * self.args.data_range - 1)
-        for i in range(len(data[dict_ref[0]])):
-            for j in range(i + 1, len(data[dict_ref[1]])):
-                if same_species and i == j:
-                    continue
-                else:
-                    vacf += sum(
-                        [
-                            signal.correlate(
-                                data[dict_ref[0]][i][:, idx],
-                                data[dict_ref[1]][j][:, idx],
-                                mode="full",
-                                method="auto",
-                            )
-                            for idx in range(3)
-                        ]
-                    )
-        self.vacf += vacf[int(self.args.data_range - 1) :]
-        self.sigma.append(np.trapz(vacf[int(self.args.data_range - 1) :], x=self.time))
+        vacf = self._map_over_particles(
+            data[dict_ref[0]].numpy(), data[dict_ref[1]].numpy()
+        )
+        if same_species:
+            self_correlation = self._compute_self_correlation(
+                data[dict_ref[0]].numpy(), data[dict_ref[1]].numpy()
+            )
+            vacf -= self_correlation
+        self.vacf += vacf
+        self.sigma.append(np.trapz(vacf, x=self.time))
 
     def run_calculator(self):
         """
@@ -230,7 +285,9 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             ):
                 ensemble_ds = self.get_ensemble_dataset(batch, species_values)
                 for ensemble in ensemble_ds:
-                    self.ensemble_operation(ensemble, dict_ref)
+                    self.ensemble_operation(
+                        ensemble, dict_ref, species_values[0] == species_values[1]
+                    )
 
             self._calculate_prefactor(combination)
             self._post_operation_processes(combination)
@@ -248,21 +305,9 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-        if species[0] == species[1]:
-            atom_scale = self.experiment.species[species[0]].n_particles * (
-                self.experiment.species[species[1]].n_particles - 1
-            )
-
-        else:
-            atom_scale = (
-                self.experiment.species[species[0]].n_particles
-                * self.experiment.species[species[1]].n_particles
-            )
 
         numerator = self.experiment.units.length**2
-        denominator = (
-            3 * self.experiment.units.time * (self.args.data_range - 1) * atom_scale
-        )
+        denominator = self.experiment.units.time * (self.args.data_range - 1)
 
         self.prefactor = numerator / denominator
 
@@ -309,7 +354,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 * self.experiment.units.time,
                 y_data=np.array(val[self.result_series_keys[1]]),
                 title=(
-                    f"{val[self.result_keys[0]]: 0.3E} +-"
+                    f"{selected_species}: {val[self.result_keys[0]]: 0.3E} +-"
                     f" {val[self.result_keys[1]]: 0.3E}"
                 ),
                 layouts=[span],
