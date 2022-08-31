@@ -38,7 +38,7 @@ with open(requirements_path.absolute().as_posix(), "r") as f:
 
 setuptools.setup(
     name="MDSuite",
-    version="0.1.0",
+    version="0.2.0",
     author="zincwarecode",
     author_email="zincwarecode@gmail.com",
     description="A postprocessing tool for molecular dynamics simulations.",
