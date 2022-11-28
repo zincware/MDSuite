@@ -190,7 +190,7 @@ class Experiment(ExperimentDatabase):
 
         if self.units is None:
             if units is None:
-                units = "real"
+                units = mdsuite.units.REAL
             self.units = self.units_to_si(units)  # Units used during the simulation.
 
         self.box_array = None  # Box vectors.
