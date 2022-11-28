@@ -28,12 +28,13 @@ try:
     from importlib import metadata
 except ImportError:  # for Python<3.8
     import importlib_metadata as metadata
+
 import logging
 import sys
 
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
-from mdsuite.utils import config
+from mdsuite.utils import config, units
 from mdsuite.utils.molecule import Molecule
 from mdsuite.utils.report_computer_characteristics import Report
 
@@ -43,6 +44,7 @@ __all__ = [
     Report.__name__,
     "config",
     Molecule.__name__,
+    "units",
 ]
 __version__ = metadata.version("mdsuite")
 

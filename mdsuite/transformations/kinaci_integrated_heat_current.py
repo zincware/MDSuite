@@ -58,7 +58,6 @@ class KinaciIntegratedHeatCurrent(MultiSpeciesTrafo):
         batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
         carryover: tf.Tensor = None,
     ) -> typing.Tuple[tf.Tensor, tf.Tensor]:
-
         currents = []
 
         if carryover is None:

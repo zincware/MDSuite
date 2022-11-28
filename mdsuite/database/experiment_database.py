@@ -85,9 +85,9 @@ class ExperimentDatabase:
     sample_rate = LazyProperty()
     property_groups = LazyProperty()
 
-    def __init__(self, project: Project, experiment_name):
+    def __init__(self, project: Project, name):
         self.project = project
-        self.name = experiment_name
+        self.name = name
 
         # Property cache
         self._species = None

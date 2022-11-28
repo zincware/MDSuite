@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -62,6 +61,24 @@ jobs:
       - name: Install package
         run: |
           pip3 install .
-      - name: Pytest
+      - name: Notebook test
         run: |
           pytest --nbmake ./examples --nbmake-timeout=7200
+
+  docstest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker://pandoc/core:2.9
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+      - name: Install package
+        run: |
+          sudo apt install pandoc
+          pip3 install -r dev-requirements.txt
+          pip3 install .
+      - name: Build documentation
+        run: |
+          cd ./docs
+          make html
