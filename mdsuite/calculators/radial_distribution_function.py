@@ -250,7 +250,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 self.args.species = list(self.experiment.molecules)
             else:
                 self.args.species = list(self.experiment.species)
-
         self._initialize_rdf_parameters()
 
     def _initialize_rdf_parameters(self):
@@ -424,7 +423,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             self.minibatch = False
 
         self.remainder = 0
-        self.minibatch = False
 
     def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """
@@ -439,7 +437,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         positions_tensor : tf.Tensor
 
         """
-
         # Compute the number of atoms and configurations in the batch.
         atoms_per_batch, batch_size, _ = tf.shape(atoms)
 
@@ -505,7 +502,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             for name in self.key_list
         }
         indices = tf.transpose(indices)
-
+        print(self.particles_list)
+        print(self.index_list)
         particles_list = self.particles_list
         for tuples in itertools.combinations_with_replacement(self.index_list, 2):
             names = self._get_species_names(tuples)

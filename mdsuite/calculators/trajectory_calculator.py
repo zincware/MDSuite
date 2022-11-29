@@ -266,7 +266,7 @@ class TrajectoryCalculator(Calculator, ABC):
             self.batch_size,
             self.n_batches,
             self.remainder,
-        ) = self.memory_manager.get_batch_size(system=self.system_property)
+        ) = self.memory_manager.get_batch_size()
 
         self.ensemble_loop, self.minibatch = self.memory_manager.get_ensemble_loop(
             self.args.data_range, self.args.correlation_time
@@ -281,7 +281,6 @@ class TrajectoryCalculator(Calculator, ABC):
 
         if correct:
             self._correct_batch_properties()
-
         self.data_manager = DataManager(
             data_path=data_path,
             database=self.database,
