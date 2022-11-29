@@ -245,8 +245,11 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
-                    self.msd_array += self.ensemble_operation(ensemble[dict_ref])
-                    self.count += 1
+                    if not ensemble[dict_ref].shape[1] == self.args.data_range:
+                        continue
+                    else:
+                        self.msd_array += self.ensemble_operation(ensemble[dict_ref])
+                        self.count += 1
 
             # self.msd_array = np.array(tf.reduce_sum(self.msd_array, axis=0))
             fit_results = self.fit_diff_coeff()
