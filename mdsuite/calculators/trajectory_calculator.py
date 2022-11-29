@@ -267,7 +267,6 @@ class TrajectoryCalculator(Calculator, ABC):
             self.n_batches,
             self.remainder,
         ) = self.memory_manager.get_batch_size()
-
         self.ensemble_loop, self.minibatch = self.memory_manager.get_ensemble_loop(
             self.args.data_range, self.args.correlation_time
         )

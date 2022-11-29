@@ -39,7 +39,7 @@ from mdsuite.database.simulation_database import (
     TrajectoryMetadata,
 )
 from mdsuite.file_io.script_input import ScriptInput
-mdsuite.config.memory_fraction = 1e-2
+
 
 def test_calculator(tmp_path):
     """
@@ -51,7 +51,7 @@ def test_calculator(tmp_path):
 
     n_part = 500
     n_step = 5000
-    msd_range = 500
+    msd_range = 200
 
     vel = np.sqrt(2 * diff_coeff / time_step) * tf.random.normal(
         shape=(n_step, n_part, 3), mean=0, stddev=1

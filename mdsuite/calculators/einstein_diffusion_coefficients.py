@@ -184,17 +184,22 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         msd = tf.math.squared_difference(
             tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
         )
+        self.count += msd.shape[0]
         # average over particles, sum over dimensions
-        msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
+        # msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
+        msd = tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=-1)
+
         # sum up ensembles to average in post processing
-        self.msd_array += np.array(msd)
+        return np.array(msd)
 
     def fit_diff_coeff(self):
         """
         Apply unit conversion, fit line to the data, prepare for database storage
         """
 
-        self.msd_array /= int(self.n_batches) * self.ensemble_loop
+        # self.msd_array /= int(self.n_batches) * self.ensemble_loop
+        self.msd_array /= self.count
+
         self.msd_array *= self.experiment.units.length**2
         self.time *= self.experiment.units.time
 
@@ -225,13 +230,13 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
             # species-wise
             self.time = None
             self.time = self._handle_tau_values()
-            self.msd_array = np.zeros(self.data_resolution)
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
             batch_ds = self.get_batch_dataset([species])
-
+            self.msd_array = np.zeros(self.data_resolution)
+            self.count = 0
             # loop over batches to get MSD
-            for batch in tqdm(
-                batch_ds,
+            for i, batch in tqdm(
+                enumerate(batch_ds),
                 ncols=70,
                 desc=species,
                 total=self.n_batches,
@@ -240,8 +245,10 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
-                    self.ensemble_operation(ensemble[dict_ref])
+                    self.msd_array += self.ensemble_operation(ensemble[dict_ref])
+                    self.count += 1
 
+            # self.msd_array = np.array(tf.reduce_sum(self.msd_array, axis=0))
             fit_results = self.fit_diff_coeff()
             self.queue_data(data=fit_results, subjects=[species])
 
