@@ -344,7 +344,6 @@ class TrajectoryCalculator(Calculator, ABC):
         """
         path_list = [join_path(item, self.loaded_property.name) for item in subject_list]
         self._prepare_managers(path_list, correct=correct)
-
         type_spec = {}
         for item in subject_list:
             dict_ref = "/".join([item, self.loaded_property.name])

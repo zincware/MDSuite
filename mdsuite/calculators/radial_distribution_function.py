@@ -502,8 +502,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             for name in self.key_list
         }
         indices = tf.transpose(indices)
-        print(self.particles_list)
-        print(self.index_list)
+
         particles_list = self.particles_list
         for tuples in itertools.combinations_with_replacement(self.index_list, 2):
             names = self._get_species_names(tuples)
