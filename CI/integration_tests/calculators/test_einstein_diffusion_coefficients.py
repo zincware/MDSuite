@@ -39,7 +39,6 @@ from mdsuite.database.simulation_database import (
     TrajectoryMetadata,
 )
 from mdsuite.file_io.script_input import ScriptInput
-mdsuite.config.memory_fraction = 0.0005
 
 
 def test_calculator(tmp_path):
