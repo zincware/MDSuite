@@ -506,7 +506,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         particles_list = self.particles_list
         for tuples in itertools.combinations_with_replacement(self.index_list, 2):
             names = self._get_species_names(tuples)
-            start_ = tf.concat(
+            start_ = tf.stack(
                 [
                     sum(particles_list[: tuples[0]]) - start_batch,
                     sum(particles_list[: tuples[1]]),

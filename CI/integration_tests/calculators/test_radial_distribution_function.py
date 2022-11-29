@@ -32,7 +32,6 @@ from zinchub import DataHub
 import mdsuite
 import mdsuite as mds
 from mdsuite.utils.testing import assertDeepAlmostEqual
-mdsuite.config.memory_fraction = 1e-100
 
 
 @pytest.fixture(scope="session")
