@@ -31,6 +31,7 @@ import numpy as np
 import tensorflow as tf
 
 from mdsuite.database.simulation_database import Database
+from mdsuite.utils import config
 from mdsuite.utils.meta_functions import get_machine_properties, gpu_available
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
@@ -104,7 +105,7 @@ class MemoryManager:
         self.data_path = data_path
         self.parallel = parallel
         self.database = database
-        self.memory_fraction = memory_fraction
+        self.memory_fraction = config.memory_fraction
         self.offset = offset
 
         self.machine_properties = get_machine_properties()
