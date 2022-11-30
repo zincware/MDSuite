@@ -30,6 +30,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.helpers import compute_memory_fraction
 
 
 @pytest.fixture(scope="session")
@@ -67,6 +68,21 @@ def test_project(traj_file, true_values, tmp_path):
         "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
     )
 
+
+def test_low_memory(traj_file, true_values, tmp_path):
+    """Test the Einstein_Helfand_Ionic_Conductivity called from the project class
+
+    Notes
+    ------
+    Test uncertainty is very high!
+    """
+    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+    mds.config.memory_fraction = 0.5
     # computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
 
     # assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-6)

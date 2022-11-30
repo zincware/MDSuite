@@ -36,6 +36,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.helpers import compute_memory_fraction
 
 
 @pytest.fixture(scope="session")
@@ -101,6 +102,22 @@ def test_eddc_experiment(traj_file, true_values, tmp_path):
         plot=False, data_range=300, correlation_time=100
     )
 
+
+def test_eddc_low_memory(traj_file, true_values, tmp_path):
+    """
+    Test the EinsteinDistinctDiffusionCoefficients called from the experiment class
+    """
+    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    project.experiments["NaCl"].run.EinsteinDiffusionCoefficients(
+        plot=False, data_range=300, correlation_time=100
+    )
+    mds.config.memory_fraction = 0.5
     # data_dict = (
     #     project.experiments["NaCl"].load.EinsteinDiffusionCoefficients()[0].data_dict
     # )

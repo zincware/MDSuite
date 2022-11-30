@@ -30,6 +30,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.helpers import compute_memory_fraction
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
@@ -69,3 +70,21 @@ def test_project(traj_file, true_values, tmp_path):
         computation["NaCl"].data_dict[item].pop("max_peak")
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
+
+
+def test_low_memory(traj_file, true_values, tmp_path):
+    """Test the ADF called from the project class"""
+    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.run.AngularDistributionFunction(plot=False)
+
+    for item in computation["NaCl"].data_dict:
+        computation["NaCl"].data_dict[item].pop("max_peak")
+
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
+    mds.config.memory_fraction = 0.5

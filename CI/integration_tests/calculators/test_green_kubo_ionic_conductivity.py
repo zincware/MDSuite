@@ -31,6 +31,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.helpers import compute_memory_fraction
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
@@ -75,3 +76,26 @@ def test_project(traj_file, true_values, tmp_path):
     true_values["System"]["acf"] = (np.array(true_values["System"]["acf"]) / 500).tolist()
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)
+
+
+def test_low_memory(traj_file, true_values, tmp_path):
+    """Test the green_kubo_ionic_conductivity called from the project class"""
+    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.run.GreenKuboIonicConductivity(plot=False)
+
+    # Time is wrong in the test data
+    computation["NaCl"]["System"].pop("time")
+    computation["NaCl"]["System"].pop("integral")
+    computation["NaCl"]["System"].pop("integral_uncertainty")
+
+    true_values["System"].pop("time")
+    true_values["System"]["acf"] = (np.array(true_values["System"]["acf"]) / 500).tolist()
+
+    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)
+    mds.config.memory_fraction = 0.5

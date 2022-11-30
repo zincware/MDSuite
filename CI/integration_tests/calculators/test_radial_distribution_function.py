@@ -30,6 +30,7 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
+from mdsuite.utils.helpers import compute_memory_fraction
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 
@@ -100,3 +101,18 @@ def test_computation_parameter(traj_file, true_values, tmp_path):
     assert computation.computation_parameter["cutoff"] == 5
     assert computation.computation_parameter["number_of_configurations"] == 150
     assert computation.computation_parameter["species"] == ["Na"]
+
+
+def test_low_memory(traj_file, true_values, tmp_path):
+    """Test the rdf called from the experiment class"""
+    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    os.chdir(tmp_path)
+    project = mds.Project()
+    project.add_experiment(
+        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+    )
+
+    computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
+
+    assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
+    mds.config.memory_fraction = 0.5  # set back to default
