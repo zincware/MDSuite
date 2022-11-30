@@ -8,6 +8,9 @@ Copyright Contributors to the Zincware Project.
 
 Description:
 """
+import numpy as np
+
+from mdsuite.utils.meta_functions import get_machine_properties
 
 
 class NoneType:
@@ -23,3 +26,28 @@ class NoneType:
 
     def __init__(self):
         raise NotImplementedError()
+
+
+def compute_memory_fraction(desired_memory: float, total_memory: float = None):
+    """
+    Compute fraction of memory for the current system.
+
+    Parameters
+    ----------
+    desired_memory : float
+            Amount of memory in GB to be used.
+    total_memory : float (default = None)
+            If not None, this will be used as the total memory, good for testing.
+
+    Returns
+    -------
+    memory fraction : float
+            What fraction of the current systems memory this value corresponds to.
+            If this number is above 1, it is clipped to 1
+    """
+    if total_memory is None:
+        total_memory = get_machine_properties()["memory"] / (1024.0**3)
+
+    memory_fraction = desired_memory / total_memory
+
+    return np.clip(memory_fraction, None, 0.9)
