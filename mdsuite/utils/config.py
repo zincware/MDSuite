@@ -36,11 +36,15 @@ class Config:
     bokeh_sizing_mode: str
         The way bokeh scales plots.
         see bokeh / sizing_mode for more information
+    jupyter : bool
+            If true, jupyter is being used.
+    memory_fraction: bool
+            The portion of the available memory to be used.
     """
 
     jupyter: bool = False
-    GPU: bool = False
     bokeh_sizing_mode: str = "stretch_both"
+    memory_fraction: float = 0.5
 
 
 config = Config()
