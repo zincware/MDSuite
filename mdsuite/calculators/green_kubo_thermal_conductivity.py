@@ -222,8 +222,8 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            "computation_results": result[0],
-            "uncertainty": result[1],
+            "computation_results": result[0].tolist(),
+            "uncertainty": result[1].tolist(),
             "time": self.time.tolist(),
             "acf": self.jacf.numpy().tolist(),
         }
