@@ -16,7 +16,5 @@ extend-ignore = [
 
 exclude = [
     "tmp",
-    "tests",
     "docs",
-    "CI",
 ]
