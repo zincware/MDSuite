@@ -31,6 +31,7 @@ import numpy as np
 import tensorflow as tf
 
 from mdsuite.database.simulation_database import Database
+from mdsuite.utils import config
 from mdsuite.utils.meta_functions import get_machine_properties, gpu_available
 from mdsuite.utils.scale_functions import (
     linear_scale_function,
@@ -104,7 +105,7 @@ class MemoryManager:
         self.data_path = data_path
         self.parallel = parallel
         self.database = database
-        self.memory_fraction = memory_fraction
+        self.memory_fraction = config.memory_fraction
         self.offset = offset
 
         self.machine_properties = get_machine_properties()
@@ -174,19 +175,13 @@ class MemoryManager:
 
         return scale_function, scale_function_parameters
 
-    def get_batch_size(self, system: bool = False) -> tuple:
+    def get_batch_size(self) -> tuple:
         """
         Calculate the batch size of an operation.
 
         This method takes the tensor_values requirements of an operation and returns
         how big each batch of tensor_values should be for such an operation.
 
-
-        Parameters
-        ----------
-        system : bool
-                Tell the database what kind of tensor_values it is looking at,
-                atomistic, or system wide.
         Returns
         -------
         batch_size : int
@@ -199,7 +194,6 @@ class MemoryManager:
         """
         if self.data_path is None:
             raise ValueError("No tensor_values have been requested.")
-
         per_configuration_memory: float = 0.0
         for item in self.data_path:
             n_particles, n_configs, n_bytes = self.database.get_data_size(item)
