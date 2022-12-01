@@ -148,9 +148,7 @@ class TestMemoryManager(unittest.TestCase):
         self.memory_manager.data_path = ["Test/Path"]
         self.memory_manager.memory_fraction = 0.5
         self.memory_manager.machine_properties["memory"] = 50000
-        batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size(
-            system=False
-        )
+        batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size()
         self.assertEqual(batch_size, 10)
         self.assertEqual(number_of_batches, 1)
         self.assertEqual(remainder, 0)
@@ -160,9 +158,7 @@ class TestMemoryManager(unittest.TestCase):
         self.memory_manager.data_path = ["Test/Path"]
         self.memory_manager.memory_fraction = 1.0
         self.memory_manager.machine_properties["memory"] = 50
-        batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size(
-            system=False
-        )
+        batch_size, number_of_batches, remainder = self.memory_manager.get_batch_size()
         self.assertEqual(batch_size, 1)
         self.assertEqual(number_of_batches, 13)
         self.assertEqual(remainder, 0)
