@@ -95,6 +95,7 @@ def test_low_memory(traj_file, true_values, tmp_path):
     computation["NaCl"]["System"].pop("integral_uncertainty")
 
     true_values["System"]["acf"] = (np.array(true_values["System"]["acf"]) / 500).tolist()
+    true_values["System"].pop("time")
 
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)
     mds.config.memory_fraction = 0.5

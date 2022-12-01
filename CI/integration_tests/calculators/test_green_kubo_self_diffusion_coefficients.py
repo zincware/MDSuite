@@ -125,7 +125,7 @@ class TestGreenKuboSelfDiffusion:
         particles. Here, the diffusion coefficient as well as the velocity autocorrelation
         are exactly known.
         """
-        mds.config.memory_fraction = compute_memory_fraction(0.1)
+        mds.config.memory_fraction = compute_memory_fraction(0.001)
         diff_coeff = 1.2345
         kT = 0.7
         mass = 1.5

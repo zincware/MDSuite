@@ -74,7 +74,7 @@ def test_project(traj_file, true_values, tmp_path):
 
 def test_low_memory(traj_file, true_values, tmp_path):
     """Test the ADF called from the project class"""
-    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    mds.config.memory_fraction = compute_memory_fraction(0.001)
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(

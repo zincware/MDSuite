@@ -99,7 +99,7 @@ def test_low_memory(tmp_path):
     Check correctness of the msd and diffusion coefficient by generating data
     where these quantities are known.
     """
-    mds.config.memory_fraction = compute_memory_fraction(0.1)
+    mds.config.memory_fraction = compute_memory_fraction(0.001)
     diff_coeff = 1.2345
     time_step = 0.1
 
