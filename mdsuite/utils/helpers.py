@@ -8,6 +8,8 @@ Copyright Contributors to the Zincware Project.
 
 Description:
 """
+import contextlib
+
 import numpy as np
 
 from mdsuite.utils.meta_functions import get_machine_properties
@@ -51,3 +53,28 @@ def compute_memory_fraction(desired_memory: float, total_memory: float = None):
     memory_fraction = desired_memory / total_memory
 
     return np.clip(memory_fraction, None, 0.9)
+
+
+@contextlib.contextmanager
+def change_memory_fraction(desired_memory):
+    """Context manager to adapt the memory within.
+
+    Parameters
+    ----------
+    desired_memory: float
+        Amount of memory in GB to be used.
+
+    Yields
+    ------
+        environment where the 'config.memory_fraction' is adapted
+        in regard to the desired_memory.
+    """
+    import mdsuite
+
+    default = mdsuite.config.memory_fraction
+    if desired_memory is not None:
+        mdsuite.utils.helpers.compute_memory_fraction(desired_memory)
+    try:
+        yield
+    finally:
+        mdsuite.config.memory_fraction = default

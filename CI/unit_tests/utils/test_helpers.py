@@ -26,30 +26,35 @@ Summary
 Module for testing the calculator helper methods.
 """
 
-from mdsuite.utils.helpers import NoneType, compute_memory_fraction
+import mdsuite
+from mdsuite.utils.helpers import (
+    NoneType,
+    change_memory_fraction,
+    compute_memory_fraction,
+)
 
 
-class TestHelpers:
-    """
-    Test suite for the helpers test.
-    """
+def test_change_memory_fraction():
+    """Test the temporary memory fraction change."""
+    assert mdsuite.config.memory_fraction == 0.5
+    with change_memory_fraction(desired_memory=0.00001):
+        assert mdsuite.config.memory_fraction < 0.5
+    assert mdsuite.config.memory_fraction == 0.5
 
-    def test_none_type_class(self):
-        """
-        Test the NonType class helper.
-        """
-        my_type = NoneType
 
-        assert my_type is not None
+def test_none_type_class():
+    """Test the NonType class helper."""
+    my_type = NoneType
 
-    def test_compute_memory_fraction(self):
-        """
-        Test the compute memory fraction helper function.
-        """
-        # Assert for real fraction.
-        memory_fraction = compute_memory_fraction(desired_memory=1.0, total_memory=2.0)
-        assert memory_fraction == 0.5
+    assert my_type is not None
 
-        # Assert for impossible fraction
-        memory_fraction = compute_memory_fraction(desired_memory=2.5, total_memory=2.0)
-        assert memory_fraction == 0.9
+
+def test_compute_memory_fraction():
+    """Test the compute memory fraction helper function."""
+    # Assert for real fraction.
+    memory_fraction = compute_memory_fraction(desired_memory=1.0, total_memory=2.0)
+    assert memory_fraction == 0.5
+
+    # Assert for impossible fraction
+    memory_fraction = compute_memory_fraction(desired_memory=2.5, total_memory=2.0)
+    assert memory_fraction == 0.9

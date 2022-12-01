@@ -32,6 +32,7 @@ except ImportError:  # for Python<3.8
 import logging
 import sys
 
+from mdsuite import utils
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
 from mdsuite.utils import config, units
@@ -45,6 +46,7 @@ __all__ = [
     "config",
     Molecule.__name__,
     "units",
+    "utils",
 ]
 __version__ = metadata.version("mdsuite")
 
