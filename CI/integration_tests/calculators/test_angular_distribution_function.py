@@ -30,7 +30,6 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
-from mdsuite.utils.helpers import compute_memory_fraction
 from mdsuite.utils.testing import assertDeepAlmostEqual
 
 

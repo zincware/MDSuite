@@ -30,7 +30,6 @@ import pytest
 from zinchub import DataHub
 
 import mdsuite as mds
-from mdsuite.utils.helpers import compute_memory_fraction
 
 
 @pytest.fixture(scope="session")
@@ -82,44 +81,18 @@ def test_project(traj_file, true_values, tmp_path):
     # )
 
 
-def test_experiment(traj_file, true_values, tmp_path):
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_experiment(traj_file, true_values, tmp_path, desired_memory):
     """
     Test the green_kubo_distinct_diffusion_coefficients called from the experiment class
     """
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-        plot=False, correlation_time=500
-    )
-
-
-def test_low_memory(traj_file, true_values, tmp_path):
-    """
-    Test the green_kubo_distinct_diffusion_coefficients called from the experiment class
-    """
-    mds.config.memory_fraction = compute_memory_fraction(0.001)
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
-
-    project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-        plot=False, correlation_time=500
-    )
-    mds.config.memory_fraction = 0.5
-
-    # data_dict = (
-    #     project.experiments["NaCl"]
-    #     .load.GreenKuboDistinctDiffusionCoefficients()[0]
-    #     .data_dict
-    # )
-
-    # np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
-    # np.testing.assert_array_almost_equal(
-    #     data_dict["uncertainty"], true_values["uncertainty"]
-    # )
+        project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
+            plot=False, correlation_time=500
+        )
