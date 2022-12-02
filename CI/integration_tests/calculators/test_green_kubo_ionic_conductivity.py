@@ -73,7 +73,13 @@ def test_project(traj_file, true_values, tmp_path, desired_memory):
         computation["NaCl"]["System"].pop("integral")
         computation["NaCl"]["System"].pop("integral_uncertainty")
 
-        true_values["System"].pop("time")
+        # If this is run twice in the runner it will throw an error.
+        # Temporary: This will be removed when new data for tests is introduced.
+        try:
+            true_values["System"].pop("time")
+        except KeyError:
+            pass
+
         true_values["System"]["acf"] = (
             np.array(true_values["System"]["acf"]) / 500
         ).tolist()
