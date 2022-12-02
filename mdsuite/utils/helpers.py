@@ -73,7 +73,9 @@ def change_memory_fraction(desired_memory):
 
     default = mdsuite.config.memory_fraction
     if desired_memory is not None:
-        mdsuite.utils.helpers.compute_memory_fraction(desired_memory)
+        mdsuite.config.memory_fraction = mdsuite.utils.helpers.compute_memory_fraction(
+            desired_memory
+        )
     try:
         yield
     finally:
