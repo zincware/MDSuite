@@ -18,3 +18,4 @@ black
 znvis
 ase
 astroid
+ruff
