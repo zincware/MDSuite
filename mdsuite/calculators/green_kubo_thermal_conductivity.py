@@ -190,7 +190,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        jacf = self.args.data_range * tf.reduce_mean(
+        jacf = self.args.data_range * tf.reduce_sum(
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )

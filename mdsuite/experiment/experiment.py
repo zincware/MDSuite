@@ -543,11 +543,16 @@ class Experiment(ExperimentDatabase):
         architecture = _species_list_to_architecture_dict(
             metadata.species_list, metadata.n_configurations
         )
+
         if not database.database_exists():
             self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
             database.initialize_database(architecture)
         else:
-            database.resize_datasets(architecture)
+            for item in architecture:
+                if database.check_existence(item):
+                    database.resize_datasets(architecture)
+                else:
+                    database.initialize_database({item: architecture[item]})
 
         for i, batch in enumerate(file_processor.get_configurations_generator()):
             database.add_data(chunk=batch, start_idx=self.number_of_configurations)
