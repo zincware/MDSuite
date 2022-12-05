@@ -100,33 +100,30 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
         Implement abstract parent method
         """
         with open(self.file_path, "r") as file:
-            with open(self.file_path, "r") as file:
-                file.seek(0)
-                mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
-                # lammps log files can have multiple blocks of data interrupted
-                # by blocks of log info we read only the first block starting after
-                # n_header_lines this will mess up batching if this block is significantly
-                # smaller than the total file but it will only affect performance,
-                # not safety
+            file.seek(0)
+            mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
+            # lammps log files can have multiple blocks of data interrupted
+            # by blocks of log info we read only the first block starting after
+            # n_header_lines this will mess up batching if this block is significantly
+            # smaller than the total file but it will only affect performance,
+            # not safety
 
-                first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(
-                    file, 1
-                )[0]
-                n_columns = len(first_data_line.split())
-                n_steps = 1
-                for line in file:
-                    if len(line.split()) != n_columns:
-                        break
-                    n_steps += 1
+            first_data_line = mdsuite.file_io.tabular_text_files.read_n_lines(file, 1)[0]
+            n_columns = len(first_data_line.split())
+            n_steps = 1
+            for line in file:
+                if len(line.split()) != n_columns:
+                    break
+                n_steps += 1
 
-                file.seek(0)
-                headers = mdsuite.file_io.tabular_text_files.read_n_lines(
-                    file, self.n_header_lines
-                )
-                column_header = headers[-1]
-                properties_dict = extract_properties_from_header(
-                    column_header.split(), self._column_name_dict
-                )
+            file.seek(0)
+            headers = mdsuite.file_io.tabular_text_files.read_n_lines(
+                file, self.n_header_lines
+            )
+            column_header = headers[-1]
+            properties_dict = extract_properties_from_header(
+                column_header.split(), self._column_name_dict
+            )
 
             species_dict = {"Observables": [0]}
             return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(

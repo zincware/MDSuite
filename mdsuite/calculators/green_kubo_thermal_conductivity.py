@@ -177,15 +177,6 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
         self.prefactor = (numerator / denominator) * prefactor_units
 
-    def _apply_averaging_factor(self):
-        """
-        Apply the averaging factor to the msd array.
-        Returns
-        -------
-
-        """
-        pass
-
     def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
@@ -199,7 +190,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
+        jacf = self.args.data_range * tf.reduce_mean(
             tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
             axis=-1,
         )
@@ -258,11 +249,16 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
-        dict_ref = str.encode(
-            "/".join([self.loaded_property.name, self.loaded_property.name])
-        )
-
-        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+        try:
+            batch_ds = self.get_batch_dataset([self.loaded_property.name])
+            dict_ref = str.encode(
+                "/".join([self.loaded_property.name, self.loaded_property.name])
+            )
+            subject = self.loaded_property.name
+        except KeyError:
+            batch_ds = self.get_batch_dataset(["Observables"])
+            dict_ref = str.encode("/".join(["Observables", self.loaded_property.name]))
+            subject = "Observables"
 
         for batch in tqdm(
             batch_ds,
@@ -270,11 +266,10 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+            ensemble_ds = self.get_ensemble_dataset(batch, subject)
 
             for ensemble in ensemble_ds:
-                self.ensemble_operation(ensemble[dict_ref])
+                self.ensemble_operation(np.squeeze(ensemble[dict_ref]))
 
         # Scale, save, and plot the data.
-        self._apply_averaging_factor()
         self._post_operation_processes()

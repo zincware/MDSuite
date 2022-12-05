@@ -354,6 +354,7 @@ class Database:
                     write_data = chunk_data[sp_info.name][prop_info.name]
 
                     dataset_shape = database[dataset_name].shape
+
                     if len(dataset_shape) == 2:
                         # only one particle
                         database[dataset_name][start_idx:stop_index, :] = write_data[
@@ -487,7 +488,7 @@ class Database:
                     dataset_path,
                     dataset_information,
                     maxshape=max_shape,
-                    scaleoffset=5,
+                    compression="gzip",
                     chunks=True,
                 )
 
@@ -561,6 +562,7 @@ class Database:
             path = f"/{path}"  # add the / to avoid name overlapping
 
             response = any(list(item.endswith(path) for item in keys))
+
         return response
 
     def change_key_names(self, mapping: dict):

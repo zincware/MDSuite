@@ -128,6 +128,7 @@ class TrajectoryCalculator(Calculator, ABC):
 
         if self.dependency is not None:
             dependency_exists = self.database.check_existence(self.dependency.name)
+
             if not dependency_exists:
                 self._resolve_dependencies(self.dependency)
 
