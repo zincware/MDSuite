@@ -221,22 +221,6 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
         self.queue_data(data=data, subjects=["System"])
 
-        # Update the plot if required
-        if self.plot:
-            span = Span(
-                location=(np.array(self.time) * self.experiment.units.time)[
-                    self.args.integration_range - 1
-                ],
-                dimension="height",
-                line_dash="dashed",
-            )
-            self.run_visualization(
-                x_data=np.array(self.time) * self.experiment.units.time,
-                y_data=self.jacf.numpy(),
-                title=f"{result[0]} +- {result[1]}",
-                layouts=[span],
-            )
-
     def run_calculator(self):
         """
         Run analysis.
