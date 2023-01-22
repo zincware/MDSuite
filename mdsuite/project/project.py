@@ -163,7 +163,7 @@ class Project(ProjectDatabase):
         simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,  # TODO make this the second argument, (name, data, ...)
-        update_with_pubchempy: bool = False
+        update_with_pubchempy: bool = False,
     ) -> Experiment:
         """Add an experiment to the project
 
