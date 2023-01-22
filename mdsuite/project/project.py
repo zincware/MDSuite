@@ -163,6 +163,7 @@ class Project(ProjectDatabase):
         simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,  # TODO make this the second argument, (name, data, ...)
+        update_with_pubchempy: bool = False
     ) -> Experiment:
         """Add an experiment to the project
 
@@ -186,6 +187,8 @@ class Project(ProjectDatabase):
             see mdsuite.experiment.add_data() for details of the file specification.
             you can also create the experiment with simulation_data == None and add data
             later
+        update_with_pubchempy : bool (default=False)
+                Passed to the add data method.
         Notes
         ------
         Using custom NoneType to raise a custom ValueError message with useful info.
@@ -232,7 +235,9 @@ class Project(ProjectDatabase):
         self._experiments[name] = new_experiment
 
         if simulation_data is not None:
-            self.experiments[name].add_data(simulation_data)
+            self.experiments[name].add_data(
+                simulation_data, update_with_pubchempy=update_with_pubchempy
+            d)
 
         return self.experiments[name]
 
