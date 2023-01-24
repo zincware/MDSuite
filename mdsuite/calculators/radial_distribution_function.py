@@ -269,7 +269,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             self.args.start,
             self.args.stop,
             self.args.number_of_configurations,
-            dtype=np.int,
+            dtype=int,
         )  # choose sampled configurations
 
         # Generate the tuples e.g ('Na', 'Cl'), ('Na', 'Na')
@@ -360,7 +360,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         # Compute the true RDF for each species combination.
         self.rdf.update(
-            {key: np.array(val.numpy(), dtype=np.float) for key, val in self.rdf.items()}
+            {key: np.array(val.numpy(), dtype=float) for key, val in self.rdf.items()}
         )
 
         for names in self.key_list:

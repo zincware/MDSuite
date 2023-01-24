@@ -282,7 +282,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.args.start,
             self.args.stop,
             self.args.number_of_configurations,
-            dtype=np.int,
+            dtype=int,
         )
 
         species_indices = []
