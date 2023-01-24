@@ -1,3 +1,4 @@
+"""MDSuite Tabular Text file reader module."""
 import abc
 import copy
 import dataclasses

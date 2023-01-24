@@ -1,3 +1,4 @@
+"""Test MDSuites chemfiles read module."""
 import pathlib
 import typing
 

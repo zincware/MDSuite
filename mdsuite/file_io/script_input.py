@@ -1,3 +1,4 @@
+"""MDSuite script input module."""
 import typing
 
 import mdsuite.file_io.file_read
