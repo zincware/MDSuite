@@ -307,7 +307,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         species : str
                 The species tuple of the RDF being studied, e.g. Na_Na
         """
-
         species_scale_factor = 1
         species_split = species.split("_")
         if species_split[0] == species_split[1]:
@@ -580,7 +579,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 If true, the main tqdm loop over batches is disabled and only the
                 mini-batch loop will be displayed.
         """
-
         path_list = [
             join_path(item, self.loaded_property.name) for item in self.args.species
         ]
@@ -732,7 +730,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         correction : float
                 Correct ideal gas term for the RDF prefactor
         """
-
         # TODO make it a property
         def _spherical_symmetry(data: np.array) -> np.array:
             """
@@ -761,7 +758,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                     result of the operation
 
             """
-
             return 2 * np.pi * data * (3 - 4 * data)
 
         def _correction_2(data: np.array) -> np.array:
@@ -801,7 +797,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             scaled_data : np.array
                     tensor_values that has been operated on.
             """
-
             # Boundaries on the ideal gsa correction. These go to 73% over half the box
             # size, the most for a cubic box.
             lower_bound = self.experiment.box_array[0] / 2

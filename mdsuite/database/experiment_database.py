@@ -262,7 +262,6 @@ class ExperimentDatabase:
     @property
     def molecules(self) -> Dict[str, MoleculeInfo]:
         """Get the molecules dict"""
-
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (

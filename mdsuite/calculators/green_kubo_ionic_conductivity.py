@@ -92,7 +92,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         experiment :  object
                 Experiment class to call from
         """
-
         # update experiment class
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
@@ -132,7 +131,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         integration_range : int
                 Range over which integration should be performed.
         """
-
         self.plot = plot
         self.jacf: np.ndarray
         self.sigma = []

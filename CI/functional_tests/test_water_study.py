@@ -102,7 +102,6 @@ def test_water_analysis(mdsuite_project):
     The diffusion, angle, and eventually coordination data tested here are comparable
     with values taken from experiment and published studies.
     """
-
     water = mdsuite_project.experiments["water_sim"]
 
     water_molecule = mds.Molecule(

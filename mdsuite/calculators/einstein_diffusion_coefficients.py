@@ -90,7 +90,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         experiments :  Experiment
                 Experiment classes to call from
         """
-
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
@@ -192,7 +191,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     def fit_diff_coeff(self):
         """Apply unit conversion, fit line to the data, prepare for database storage"""
-
         # self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array /= self.count
 

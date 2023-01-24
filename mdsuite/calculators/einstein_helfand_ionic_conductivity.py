@@ -74,7 +74,6 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         experiment :  object
             Experiment class to call from
         """
-
         # parse to the experiment class
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}

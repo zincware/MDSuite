@@ -148,7 +148,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         None
 
         """
-
         if species is None:
             species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(species, 2))

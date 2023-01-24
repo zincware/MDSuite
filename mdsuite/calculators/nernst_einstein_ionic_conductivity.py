@@ -94,7 +94,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         save : bool
                 if true, save the output.
         """
-
         self.update_user_args(plot=plot, save=False, data_range=data_range, export=export)
         self.corrected = corrected
         self.data = self._load_data()  # tensor_values to be read in
@@ -113,7 +112,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         tensor_values: dict
                 A dictionary of tensor_values stored in the yaml file
         """
-
         test = self.experiment.export_property_data(
             {"property": "Diffusion_Coefficients"}
         )
@@ -180,7 +178,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         -------
         Nernst-Einstein Ionic conductivity of the experiment in units of S/cm
         """
-
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge**2)
         denominator = (
@@ -225,7 +222,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         -------
         Corrected Nernst-Einstein ionic conductivity in units of S/cm
         """
-
         # evaluate the prefactor
         numerator = self.experiment.number_of_atoms * (elementary_charge**2)
         denominator = (
@@ -333,7 +329,6 @@ class NernstEinsteinIonicConductivity(Calculator):
         -------
         Updates the experiment database_path
         """
-
         cne_table = [self.truth_table[0][1], self.truth_table[1][1]]
 
         if cne_table[0]:

@@ -269,7 +269,6 @@ def extract_properties_from_header(
         {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
         Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,8]}
     """
-
     column_dict_properties = {
         variable: idx for idx, variable in enumerate(header_property_names)
     }

@@ -301,7 +301,6 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
-
         numerator = self.experiment.units.length**2
         denominator = self.experiment.units.time * (self.args.data_range - 1)
 

@@ -403,7 +403,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         angles : dict
                 A dictionary of the triples references and their histogram values.
         """
-
         tmp = tf.transpose(tf.concat(positions, axis=0), (1, 0, 2))
 
         timesteps, atoms, _ = tf.shape(tmp)

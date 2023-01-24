@@ -128,7 +128,6 @@ class Project(ProjectDatabase):
 
     def attach_file_logger(self):
         """Attach a file logger for this project"""
-
         logger = logging.getLogger("mdsuite")
         formatter = logging.Formatter(
             "%(asctime)s %(levelname)s (%(module)s): %(message)s"
@@ -251,7 +250,6 @@ class Project(ProjectDatabase):
         -------
         Updates the class state.
         """
-
         if isinstance(names, str):
             names = [names]
 
@@ -269,7 +267,6 @@ class Project(ProjectDatabase):
         -------
 
         """
-
         if isinstance(names, str):
             names = [names]
 
@@ -294,7 +291,6 @@ class Project(ProjectDatabase):
         -------
         Updates the experiment classes.
         """
-
         for key, val in data_sets.items():
             self.experiments[key].add_data(val)
 
@@ -312,7 +308,6 @@ class Project(ProjectDatabase):
     @property
     def experiments(self) -> Dict[str, Experiment]:
         """Get a DotDict of instantiated experiments!"""
-
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).all()
 
@@ -326,7 +321,6 @@ class Project(ProjectDatabase):
     @property
     def active_experiments(self) -> Dict[str, Experiment]:
         """Get a DotDict of instantiated experiments that are currently selected!"""
-
         active_experiment = {
             key: val for key, val in self.experiments.items() if val.active
         }

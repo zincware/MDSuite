@@ -159,7 +159,6 @@ class Experiment(ExperimentDatabase):
                 will be adjusted so as to allow for optimal performance on a large
                 computing cluster.
         """
-
         if not name[0].isalpha():
             raise ValueError(
                 f"Experiment name must start with a letter! Found '{name[0]}' instead."
@@ -257,7 +256,6 @@ class Experiment(ExperimentDatabase):
         accompanied by a loading bar which should be customized to make it more
         interesting.
         """
-
         # Create new analysis directory and change into it
         try:
             self.path.mkdir()
@@ -302,7 +300,6 @@ class Experiment(ExperimentDatabase):
         units: Units
             dataclass that contains the conversion factors to SI
         """
-
         if isinstance(units_system, Units):
             return units_system
         elif isinstance(units_system, str):
@@ -325,7 +322,6 @@ class Experiment(ExperimentDatabase):
         Check if the experiment already exists and decide whether to load it or build a
         new one.
         """
-
         # Check if the experiment exists and load if it does.
         if Path(self.path).exists():
             log.debug(
@@ -441,7 +437,6 @@ class Experiment(ExperimentDatabase):
         charge : list
                 New charge/s of the element
         """
-
         species = self.species
         species[element].charge = [charge]
         self.species = species
@@ -492,7 +487,6 @@ class Experiment(ExperimentDatabase):
             Default: True
 
         """
-
         if isinstance(simulation_data, list):
             for elem in simulation_data:
                 proc = _get_processor(elem)
@@ -525,7 +519,6 @@ class Experiment(ExperimentDatabase):
         update_with_pubchempy: bool
                 Whether or not to look for the masses of the species in pubchempy
         """
-
         already_read = str(file_processor) in self.read_files
         if already_read and not force:
             log.info(

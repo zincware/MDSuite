@@ -107,7 +107,6 @@ def get_dimensionality(box: list) -> int:
             dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably don't
             make sense just yet)
     """
-
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
         if (
@@ -138,7 +137,6 @@ def get_machine_properties() -> dict:
     machine_properties : dict
             A dictionary containing information about the hardware being used.
     """
-
     machine_properties = {}
     available_memory = psutil.virtual_memory().available  # RAM available
     total_cpu_cores = psutil.cpu_count(logical=True)  # CPU cores available
@@ -177,7 +175,6 @@ def line_counter(filename: str) -> int:
     lines : int
             Number of lines in the file
     """
-
     f = open(filename, "rb")
     num_lines = sum(1 for _ in f)
     f.close()
@@ -283,7 +280,6 @@ def simple_file_read(filename: str) -> list:
     data_array: list
             Data read in by the function.
     """
-
     data_array = []  # define empty tensor_values array
     with open(filename, "r+") as f:  # Open the file for reading
         for line in f:  # Loop over the lines
@@ -355,7 +351,6 @@ def apply_savgol_filter(
     There are no tests for this method as a test would simply be testing the scipy
     implementation which they have done.
     """
-
     return savgol_filter(data, window_length, order)
 
 
@@ -413,7 +408,6 @@ def golden_section_search(
     minimum range : tuple
             Returns two radii values within which the minimum can be found.
     """
-
     # Define the golden ratio identities
     phi_a = 1 / golden_ratio
     phi_b = 1 / (golden_ratio**2)
@@ -461,7 +455,6 @@ def get_nearest_divisor(a: int, b: int) -> int:
     divisor : int
             nearest number to a that divides into b evenly.
     """
-
     remainder = 1  # initialize a remainder
     a += 1
     while remainder != 0:
@@ -486,7 +479,6 @@ def split_array(data: np.array, condition: np.array) -> list:
     split_array : list
             A list of split up arrays.
     """
-
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if (

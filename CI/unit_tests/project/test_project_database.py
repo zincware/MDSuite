@@ -50,7 +50,6 @@ def prepare_env():
 
 def test_project_description():
     """Test that the project description is stored correctly in the database"""
-
     project_1 = mds.Project()
     project_1.description = "HelloWorld"
 
@@ -63,7 +62,6 @@ def test_project_description_from_file():
     Test that the project description is stored correctly in the database if
     read from file
     """
-
     desc = Path("desc.md")
     desc.write_text("HelloWorld")
 

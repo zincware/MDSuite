@@ -68,7 +68,6 @@ def get_angles(r_ij_mat, indices, acos=True):
     -------
     tf.Tensor: Tensor with the shape (triples)
     """
-
     r_ij = tf.gather_nd(
         r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1)
     )
@@ -132,7 +131,6 @@ def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
     tensor : tf.Tensor
     cutoff : flaot
     """
-
     cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
 
     return tf.boolean_mask(tensor, cutoff_mask)

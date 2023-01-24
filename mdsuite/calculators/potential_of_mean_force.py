@@ -111,7 +111,6 @@ class PotentialOfMeanForce(Calculator):
                         Class object of the experiment.
         load_data : bool
         """
-
         super().__init__(**kwargs)
         self.file_to_study = None
         self.rdf = None
@@ -153,7 +152,6 @@ class PotentialOfMeanForce(Calculator):
         number_of_shells : int
                 Number of shells to integrate through.
         """
-
         if isinstance(rdf_data, Computation):
             self.rdf_data = rdf_data
         else:
@@ -283,7 +281,6 @@ class PotentialOfMeanForce(Calculator):
                 {'1': [0.1, 0.2]} indicates that the first pomf peak is betwee 0.1 and
                 0.2 angstrom.
         """
-
         # get the peaks of the tensor_values post-filtering
         peaks = self.get_pomf_peaks(pomf_data)
 

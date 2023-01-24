@@ -50,7 +50,6 @@ class DataVisualizer2D:
         path : pathlib.Path
                 path to the saving directory of the plot
         """
-
         if config.jupyter:
             output_notebook()
         else:

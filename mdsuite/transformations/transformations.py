@@ -181,7 +181,6 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
-
         # turn data into trajectory chunk
         # data_structure is dict {'/path/to/property':{'indices':irrelevant,
         #                           'columns':deduce->deduce n_dims, 'length':n_particles}
@@ -285,7 +284,6 @@ class Transformations:
         tensor_values structure for use in saving the tensor_values to the
         database_path.
         """
-
         if system_tensor:
             output_length = 1
             path = join_path(self.output_property.name, self.output_property.name)

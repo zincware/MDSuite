@@ -275,7 +275,6 @@ class Database:
         -------
 
         """
-
         ids = np.reshape(np.array(data[:, 0]).astype(int), (-1, n_atoms))
         ref_ids = np.argsort(ids, axis=1)
         n_batches = ids.shape[0]
@@ -315,7 +314,6 @@ class Database:
                 or {'/Na/Forces': (200, 5000, 3)}
 
         """
-
         # Build file paths for the addition.
         architecture = {}
         for group in structure:
@@ -338,7 +336,6 @@ class Database:
         start_idx:
             Configuration at which to start writing
         """
-
         workaround_time_in_axis_1 = True
 
         chunk_data = chunk.get_data()
@@ -428,7 +425,6 @@ class Database:
         -------
 
         """
-
         self.add_dataset(structure)  # add a dataset to the groups
 
     def database_exists(self) -> bool:
@@ -457,7 +453,6 @@ class Database:
         -------
         Updates the database_path directly.
         """
-
         with hf.File(self.path, "a") as database:
             architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
@@ -505,7 +500,6 @@ class Database:
         -------
         Updates the database_path directly.
         """
-
         with hf.File(self.path, "a") as database:
             # Build file paths for the addition.
             architecture = self._build_path_input(structure=structure)
@@ -667,7 +661,6 @@ class Database:
                 Tuple of tensor_values about the dataset, e.g.
                 (n_rows, n_columns, n_bytes)
         """
-
         with hf.File(self.path, "r") as db:
             data_tuple = (
                 db[data_path].shape[0],

@@ -122,7 +122,6 @@ class TrajectoryCalculator(Calculator, ABC):
         -------
         Will call transformations if required.
         """
-
         if self.loaded_property is None:
             return
 
@@ -164,7 +163,6 @@ class TrajectoryCalculator(Calculator, ABC):
             -------
             transformation call.
             """
-
             switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             # add the other transformations and merge the dictionaries

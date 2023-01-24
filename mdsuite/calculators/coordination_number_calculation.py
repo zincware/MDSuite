@@ -136,7 +136,6 @@ class CoordinationNumbers(Calculator):
         experiment : class object
                         Class object of the experiment.
         """
-
         super().__init__(**kwargs)
         self.file_to_study = None
 
@@ -179,7 +178,6 @@ class CoordinationNumbers(Calculator):
         number_of_shells : int
                 Number of shells to look for.
         """
-
         if isinstance(rdf_data, Computation):
             self.rdf_data = rdf_data
         else:
@@ -220,7 +218,6 @@ class CoordinationNumbers(Calculator):
 
     def _get_density(self, species: str) -> float:
         """Use the species_tuple in front of the name to get information about the pair"""
-
         species = species.split("_")  # get an array of the species being studied
         rdf_number_of_atoms = self.experiment.species[species[0]].n_particles
 
@@ -246,7 +243,6 @@ class CoordinationNumbers(Calculator):
         ValueError
                 Raised if the number of peaks required for the analysis are not met.
         """
-
         filtered_data = apply_savgol_filter(
             rdf,
             order=self.args.savgol_order,
@@ -282,7 +278,6 @@ class CoordinationNumbers(Calculator):
         coordination_shells : dict
                 A dictionary of coordination shell radial ranges.
         """
-
         peaks = self._get_rdf_peaks(rdf)  # get the max value indices
 
         # Calculate the range in which the coordination numbers should exist.
@@ -317,7 +312,6 @@ class CoordinationNumbers(Calculator):
         coordination_numbers : dict
                 A dictionary of coordination numbers.
         """
-
         coordination_shells = self._find_minima(radii, rdf)  # get the minimums
 
         coordination_numbers = {}
@@ -337,7 +331,6 @@ class CoordinationNumbers(Calculator):
 
     def run_calculator(self):
         """Calculate the coordination numbers and perform error analysis"""
-
         for selected_species, vals in self.rdf_data.data_dict.items():
             log.debug(f"Computing coordination numbers for {selected_species}")
 

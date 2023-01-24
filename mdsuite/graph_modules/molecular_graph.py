@@ -395,7 +395,6 @@ def _apply_system_cutoff(input_tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
             and 0s indicated no bonding. Note, the diagonals of this tensor are
             set to 0 as a particle cannot bond itself.
     """
-
     cutoff_mask = tf.cast(
         tf.less(input_tensor, cutoff), dtype=tf.int16
     )  # Construct the mask

@@ -145,7 +145,6 @@ class DataManager:
         -------
         Returns a generator function and its arguments
         """
-
         args = (
             self.n_batches,
             self.batch_size,
@@ -305,7 +304,6 @@ class DataManager:
         -------
         Ensemble loop generator
         """
-
         args = (self.ensemble_loop, self.correlation_time, self.data_range)
 
         def dictionary_generator(ensemble_loop, correlation_time, data_range):

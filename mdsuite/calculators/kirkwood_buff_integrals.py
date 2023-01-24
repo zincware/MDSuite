@@ -97,7 +97,6 @@ class KirkwoodBuffIntegral(Calculator):
         experiment : class object
                         Class object of the experiment.
         """
-
         super().__init__(**kwargs)
         self.file_to_study = None
         self.data_files = []

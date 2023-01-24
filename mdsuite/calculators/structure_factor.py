@@ -120,7 +120,6 @@ class StructureFactor(Calculator):
         experiment : class object
                 Class object of the experiment.
         """
-
         super().__init__(**kwargs)
 
         self.post_generation = True
