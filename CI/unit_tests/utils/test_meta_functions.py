@@ -48,9 +48,7 @@ from mdsuite.utils.meta_functions import (
 
 
 class TestMetaFunction:
-    """
-    A test class for the meta functions module.
-    """
+    """A test class for the meta functions module."""
 
     def test_join_path(self):
         """
@@ -171,9 +169,10 @@ class TestMetaFunction:
         def func(x: np.ndarray):
             """
             test function.
+
             Parameters
             ----------
-            x : np.ndarray
+            x : np.ndarray.
 
             Returns
             -------

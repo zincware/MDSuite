@@ -46,9 +46,7 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -75,7 +73,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database_path for the analysis
+            Property loaded from the database_path for the analysis.
 
     See Also
     --------
@@ -204,7 +202,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     def plot_data(self, data: dict):
         """
-        Plot the data
+        Plot the data.
 
         Parameters
         ----------

@@ -48,9 +48,7 @@ from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -61,7 +59,7 @@ class Args:
 
 class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Green-Kubo ionic conductivity implementation
+    Class for the Green-Kubo ionic conductivity implementation.
 
     Attributes
     ----------
@@ -94,7 +92,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         experiment :  object
                 Experiment class to call from
         """
-
         # update experiment class
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
@@ -134,7 +131,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         integration_range : int
                 Range over which integration should be performed.
         """
-
         self.plot = plot
         self.jacf: np.ndarray
         self.sigma = []
@@ -191,8 +187,10 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
+        -------.
 
         """
         pass
@@ -220,7 +218,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         sigma = np.mean(self.sigmas, axis=0)
@@ -242,7 +240,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.queue_data(data=data, subjects=["System"])
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 

@@ -2,7 +2,7 @@ sphinxcontrib.bibtex
 pybtex
 pytest
 nbsphinx
-Sphinx==5.1.1
+Sphinx==5.3.0
 sphinx_rtd_theme
 numpydoc
 docutils==0.19
@@ -18,3 +18,4 @@ black
 znvis
 ase
 astroid
+ruff>=0.0.231

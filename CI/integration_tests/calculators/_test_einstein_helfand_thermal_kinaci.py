@@ -38,7 +38,7 @@ import mdsuite as mds
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -51,7 +51,7 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
@@ -59,7 +59,7 @@ def true_values() -> dict:
 
 
 def test_project(traj_files, true_values, tmp_path):
-    """Test the einstein_helfand_thermal_kinaci called from the project class"""
+    """Test the einstein_helfand_thermal_kinaci called from the project class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -81,7 +81,7 @@ def test_project(traj_files, true_values, tmp_path):
 
 
 def test_experiment(traj_files, true_values, tmp_path):
-    """Test the einstein_helfand_thermal_kinaci called from the experiment class"""
+    """Test the einstein_helfand_thermal_kinaci called from the experiment class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(

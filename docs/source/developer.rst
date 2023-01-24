@@ -12,7 +12,7 @@ some resources to help you get started and avoid making some of the same mistake
 Code Style
 -----------
 
-MDSuite uses `Black <https://github.com/psf/black>`_, `Isort <https://github.com/PyCQA/isort>`_ and `flake8 <https://github.com/PyCQA/flake8>`_.
+MDSuite uses `Black <https://github.com/psf/black>`_, `Isort <https://github.com/PyCQA/isort>`_ and `ruff <https://github.com/charliermarsh/ruff>`_.
 We provide a pre-commit hook to check these requirements.
 One can install the hook via
 

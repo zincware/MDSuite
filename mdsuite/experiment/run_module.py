@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 class RunModule:
-    """Run a calculator from the experiment class
+    """Run a calculator from the experiment class.
 
     Notes
     -----
@@ -52,7 +52,7 @@ class RunModule:
             A dictionary containing all the modules / calculators / Time series
             operations with their names as keys
         kwargs:
-            Additional parameters to be passed to the module_dict
+            Additional parameters to be passed to the module_dict.
         """
         self.parent: Experiment = parent
         self._kwargs = kwargs
@@ -63,9 +63,10 @@ class RunModule:
     def __getattribute__(self, item):
         """Call via function
         You can call the computation via a function and autocompletion
-        >>> self.run.EinsteinDiffusionCoefficients(plot=True)
+        >>> self.run.EinsteinDiffusionCoefficients(plot=True).
 
         Returns
+        -------
             Instantiated calculator class with added experiment that can be called.
         """
         if item.startswith("_"):

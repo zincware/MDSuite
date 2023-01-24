@@ -50,9 +50,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -65,7 +63,7 @@ class Args:
 
 class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
     """
-    Class for the Einstein diffusion coefficient implementation
+    Class for the Einstein diffusion coefficient implementation.
 
     Attributes
     ----------
@@ -92,7 +90,6 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         experiments :  Experiment
                 Experiment classes to call from
         """
-
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
@@ -193,10 +190,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         return np.array(msd)
 
     def fit_diff_coeff(self):
-        """
-        Apply unit conversion, fit line to the data, prepare for database storage
-        """
-
+        """Apply unit conversion, fit line to the data, prepare for database storage."""
         # self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array /= self.count
 
@@ -221,9 +215,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         return data
 
     def run_calculator(self):
-        """
-        Run analysis.
-        """
+        """Run analysis."""
         self._run_dependency_check()
         for species in self.args.species:
             # Here for now to avoid issues. Should be moved out when calculators become

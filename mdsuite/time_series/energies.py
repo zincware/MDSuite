@@ -35,6 +35,8 @@ if TYPE_CHECKING:
 
 
 class Energies(TimeSeries):
+    """Energies Time Series class."""
+
     def __init__(self, experiment: Experiment):
         super().__init__(experiment)
         self.loaded_property = "PE"

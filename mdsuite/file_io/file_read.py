@@ -45,7 +45,7 @@ class FileProcessor(abc.ABC):
     def __str__(self):
         """
         Return a unique string representing this FileProcessor. (
-        The absolute file path, for example)
+        The absolute file path, for example).
         """
         raise NotImplementedError("File Processors must implement a string")
 
@@ -54,7 +54,7 @@ class FileProcessor(abc.ABC):
         """
         Return the metadata required to build a database.
         See mdsuite.database.simulation_database.TrajectoryMetadata to see the details of
-        which values must be extracted from the file
+        which values must be extracted from the file.
         """
         raise NotImplementedError("File Processors must implement metadata extraction")
 

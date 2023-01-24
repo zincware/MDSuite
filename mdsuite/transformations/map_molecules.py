@@ -61,9 +61,7 @@ class MolecularMap(Transformations):
     """
 
     def __init__(self):
-        """
-        Constructor for the MolecularMap class.
-        """
+        """Constructor for the MolecularMap class."""
         super().__init__()
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}
@@ -82,6 +80,7 @@ class MolecularMap(Transformations):
                 Name of the species to be added
         number_of_molecules : int
                 Number of molecules to be added to the database.
+
         Returns
         -------
         data_structure : dict
@@ -98,7 +97,7 @@ class MolecularMap(Transformations):
         # data_structure = {path: {"indices": np.s_[:], "columns": [0, 1, 2]}}
         data_structure = {
             path: {
-                "indices": [i for i in range(number_of_molecules)],
+                "indices": list(range(number_of_molecules)),
                 "columns": [0, 1, 2],
             }
         }
@@ -126,6 +125,7 @@ class MolecularMap(Transformations):
         ----------
         species : list
                 List of species to be loaded.
+
         Returns
         -------
         mass_array : list

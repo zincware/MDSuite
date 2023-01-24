@@ -34,9 +34,7 @@ from mdsuite.database.simulation_database import Database
 
 
 class TestScalingFunctions(unittest.TestCase):
-    """
-    A test class for the simulation database class.
-    """
+    """A test class for the simulation database class."""
 
     def test_build_path_input(self):
         """

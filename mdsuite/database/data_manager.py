@@ -40,7 +40,7 @@ log = logging.getLogger(__name__)
 
 class DataManager:
     """
-    Class for the MDS tensor_values fetcher
+    Class for the MDS tensor_values fetcher.
 
     Due to the amount of tensor_values that needs to be collected and the possibility
     to optimize repeated loading, a separate tensor_values fetching class is required.
@@ -66,7 +66,7 @@ class DataManager:
         offset: int = 0,
     ):
         """
-        Constructor for the DataManager class
+        Constructor for the DataManager class.
 
         Parameters
         ----------
@@ -115,7 +115,7 @@ class DataManager:
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
-    def batch_generator(
+    def batch_generator(  # noqa: C901
         self,
         dictionary: bool = False,
         system: bool = False,
@@ -123,7 +123,7 @@ class DataManager:
         loop_array: np.ndarray = None,
     ) -> tuple:
         """
-        Build a generator object for the batch loop
+        Build a generator object for the batch loop.
 
         Parameters
         ----------
@@ -145,7 +145,6 @@ class DataManager:
         -------
         Returns a generator function and its arguments
         """
-
         args = (
             self.n_batches,
             self.batch_size,
@@ -288,7 +287,7 @@ class DataManager:
 
     def ensemble_generator(self, system: bool = False, glob_data: dict = None) -> tuple:
         """
-        Build a generator for the ensemble loop
+        Build a generator for the ensemble loop.
 
         Parameters
         ----------
@@ -305,7 +304,6 @@ class DataManager:
         -------
         Ensemble loop generator
         """
-
         args = (self.ensemble_loop, self.correlation_time, self.data_range)
 
         def dictionary_generator(ensemble_loop, correlation_time, data_range):
@@ -321,7 +319,7 @@ class DataManager:
                     Size of each ensemble
             Returns
             -------
-            None
+            None.
             """
             ensemble_loop = int(
                 np.clip(

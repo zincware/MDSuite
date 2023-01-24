@@ -63,22 +63,16 @@ def assertDeepAlmostEqual(expected, actual, *args, **kwargs):
 
 
 class MDSuiteProcess(multiprocessing.Process):
-    """
-    Process class for use in ZnVis testing.
-    """
+    """Process class for use in ZnVis testing."""
 
     def __init__(self, *args, **kwargs):
-        """
-        Multiprocessing class constructor.
-        """
+        """Multiprocessing class constructor."""
         super(MDSuiteProcess, self).__init__(*args, **kwargs)
         self._pconn, self._cconn = multiprocessing.Pipe()
         self._exception = None
 
     def run(self):
-        """
-        Run the process and catch exceptions.
-        """
+        """Run the process and catch exceptions."""
         try:
             multiprocessing.Process.run(self)
             self._cconn.send(None)
@@ -88,9 +82,7 @@ class MDSuiteProcess(multiprocessing.Process):
 
     @property
     def exception(self):
-        """
-        Exception property to be stored by the process.
-        """
+        """Exception property to be stored by the process."""
         if self._pconn.poll():
             self._exception = self._pconn.recv()
         return self._exception

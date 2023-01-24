@@ -29,16 +29,12 @@ import tensorflow as tf
 
 
 def unit_vector(vector):
-    """
-    Returns the unit vector of the vector.
-    """
+    """Returns the unit vector of the vector."""
     return vector / tf.expand_dims(tf.norm(vector, axis=-1), -1)
 
 
 def angle_between(v1, v2, acos=True):
-    """
-    Returns the angle in radians between vectors 'v1' and 'v2'::
-    """
+    """Returns the angle in radians between vectors 'v1' and 'v2'."""
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
     # return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
@@ -54,7 +50,7 @@ def angle_between(v1, v2, acos=True):
 
 def get_angles(r_ij_mat, indices, acos=True):
     """
-    Compute the cosine angle for the given triples
+    Compute the cosine angle for the given triples.
 
     Using :math theta = acos(r_ij * r_ik / (|r_ij| * |r_ik|))
 
@@ -72,7 +68,6 @@ def get_angles(r_ij_mat, indices, acos=True):
     -------
     tf.Tensor: Tensor with the shape (triples)
     """
-
     r_ij = tf.gather_nd(
         r_ij_mat, tf.stack([indices[:, 0], indices[:, 1], indices[:, 2]], axis=1)
     )
@@ -105,7 +100,7 @@ def apply_minimum_image(r_ij, box_array):
 
 
 def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
-    """Calculate the indices of a slice of the triu values
+    """Calculate the indices of a slice of the triu values.
 
     Parameters
     ----------
@@ -129,14 +124,13 @@ def get_partial_triu_indices(n_atoms: int, m_atoms: int, idx: int) -> tf.Tensor:
 
 def apply_system_cutoff(tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
     """
-    Enforce a cutoff on a tensor
+    Enforce a cutoff on a tensor.
 
     Parameters
     ----------
     tensor : tf.Tensor
     cutoff : flaot
     """
-
     cutoff_mask = tf.cast(tf.less(tensor, cutoff), dtype=tf.bool)  # Construct the mask
 
     return tf.boolean_mask(tensor, cutoff_mask)
@@ -162,7 +156,9 @@ def cartesian_to_spherical_coordinates(
       eps: A small `float`, to be added to the denominator. If left as `None`, its
         value is automatically selected using `point_cartesian.dtype`.
       name: A name for this op. Defaults to "cartesian_to_spherical_coordinates".
-    Returns:
+
+    Returns
+    -------
       A tensor of shape `[A1, ..., An, 3]`. The last dimensions contains
       (`r`,`theta`,`phi`), where `r` is the sphere radius, `theta` is the polar
       angle and `phi` is the azimuthal angle. Returns `NaN` gradient if x = y = 0.
@@ -193,10 +189,14 @@ def spherical_to_cartesian_coordinates(
         contains r, theta, and phi that respectively correspond to the radius,
         polar angle and azimuthal angle; r must be non-negative.
       name: A name for this op. Defaults to "spherical_to_cartesian_coordinates".
-    Raises:
+
+    Raises
+    ------
       tf.errors.InvalidArgumentError: If r, theta or phi contains out of range
       data.
-    Returns:
+
+    Returns
+    -------
       A tensor of shape `[A1, ..., An, 3]`, where the last dimension contains the
       cartesian coordinates in x,y,z order.
     """
@@ -213,7 +213,7 @@ def spherical_to_cartesian_coordinates(
 
 def get2dHistogram(x, y, value_range, nbins=100, dtype=tf.dtypes.int32):
     """
-    Bins x, y coordinates of points onto simple square 2d histogram
+    Bins x, y coordinates of points onto simple square 2d histogram.
 
     Given the tensor x and y:
     x: x coordinates of points
