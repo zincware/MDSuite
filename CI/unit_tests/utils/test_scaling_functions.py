@@ -1,5 +1,5 @@
-"""
-MDSuite: A Zincwarecode package.
+"""MDSuite: A Zincwarecode package.
+
 License
 -------
 This program and the accompanying materials are made available under the terms
@@ -33,9 +33,7 @@ from mdsuite.utils.scale_functions import (
 
 
 class TestScalingFunctions(unittest.TestCase):
-    """
-    A test class for the scaling functions module.
-    """
+    """A test class for the scaling functions module."""
 
     def test_linear_scaling_function(self):
         """

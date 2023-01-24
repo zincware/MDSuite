@@ -27,7 +27,7 @@ Summary
 
 
 def get_or_create(session, model, **kwargs):
-    """Query or create an instance of a model
+    """Query or create an instance of a model.
 
     Parameters
     ----------

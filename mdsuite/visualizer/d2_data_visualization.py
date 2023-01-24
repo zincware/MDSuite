@@ -37,9 +37,7 @@ from mdsuite.utils import config
 
 
 class DataVisualizer2D:
-    """
-    Visualizer for two-dimensional data.
-    """
+    """Visualizer for two-dimensional data."""
 
     def __init__(self, title: str, path: pathlib.Path):
         """
@@ -52,7 +50,6 @@ class DataVisualizer2D:
         path : pathlib.Path
                 path to the saving directory of the plot
         """
-
         if config.jupyter:
             output_notebook()
         else:
@@ -82,6 +79,7 @@ class DataVisualizer2D:
                 label of the y axis.
         title : str
                 name of the specific plot.
+
         Returns
         -------
         figure : figure

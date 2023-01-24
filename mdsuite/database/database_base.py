@@ -38,9 +38,7 @@ log = logging.getLogger(__name__)
 
 
 class DatabaseBase:
-    """
-    Docstring
-    """
+    """Docstring."""
 
     def __init__(self, database_name: str):
         """
@@ -59,7 +57,7 @@ class DatabaseBase:
 
     @property
     def engine(self) -> Engine:
-        """Create a SQLAlchemy Engine
+        """Create a SQLAlchemy Engine.
 
         Returns
         -------
@@ -78,12 +76,13 @@ class DatabaseBase:
         """
 
         Notes
-        -------
+        -----
         Use with context manager like:
         >>> with self.session as ses:
         >>>     ses.add()
 
         Returns
+        -------
             Session that can be used inside a context manager
 
         """
@@ -101,6 +100,6 @@ class DatabaseBase:
         return Base
 
     def build_database(self):
-        """Build the database and get create the tables"""
+        """Build the database and get create the tables."""
         log.debug("Creating the database if it does not exist.")
         self.base.metadata.create_all(self.engine)

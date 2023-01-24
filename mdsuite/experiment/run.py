@@ -1,8 +1,9 @@
-"""
+"""MDSuite run module.
+
 This program and the accompanying materials are made available under the terms of the
 Eclipse Public License v2.0 which accompanies this distribution, and is available at
 https://www.eclipse.org/legal/epl-v20.html
-SPDX-License-Identifier: EPL-2.0
+SPDX-License-Identifier: EPL-2.0.
 
 Copyright Contributors to the Zincware Project.
 
@@ -55,12 +56,12 @@ if TYPE_CHECKING:
 
 
 class RunComputation:
-    """Collection of all calculators that can be used by an experiment"""
+    """Collection of all calculators that can be used by an experiment."""
 
     def __init__(
         self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
-        """Collection of all calculators
+        """Collection of all calculators.
 
         Parameters
         ----------
@@ -87,7 +88,7 @@ class RunComputation:
         return wrapper
 
     def transformation_wrapper(self, func: Union[Type[Transformations], Any]):
-        """Run the transformation for every selected experiment
+        """Run the transformation for every selected experiment.
 
         Parameters
         ----------

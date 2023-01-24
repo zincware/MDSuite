@@ -40,9 +40,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     savgol_order: int
     savgol_window_length: int
@@ -53,7 +51,7 @@ class Args:
 
 class KirkwoodBuffIntegral(Calculator):
     """
-    Class for the calculation of the Kirkwood-Buff integrals
+    Class for the calculation of the Kirkwood-Buff integrals.
 
     Attributes
     ----------
@@ -92,14 +90,13 @@ class KirkwoodBuffIntegral(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Python constructor for the class
+        Python constructor for the class.
 
         Parameters
         ----------
         experiment : class object
                         Class object of the experiment.
         """
-
         super().__init__(**kwargs)
         self.file_to_study = None
         self.data_files = []
@@ -158,7 +155,7 @@ class KirkwoodBuffIntegral(Calculator):
 
     def _calculate_kb_integral(self, radii_data: np.ndarray, rdf_data: np.ndarray):
         """
-        calculate the Kirkwood-Buff integral
+        calculate the Kirkwood-Buff integral.
 
         Parameters
         ----------
@@ -184,9 +181,7 @@ class KirkwoodBuffIntegral(Calculator):
         return 4 * np.pi * integral_data
 
     def run_calculator(self):
-        """
-        Calculate the potential of mean-force and perform error analysis
-        """
+        """Calculate the potential of mean-force and perform error analysis."""
         for selected_species, vals in self.rdf_data.data_dict.items():
             selected_species = selected_species.split("_")
 
@@ -202,7 +197,7 @@ class KirkwoodBuffIntegral(Calculator):
             self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             self.run_visualization(
                 x_data=val[self.result_series_keys[0]],

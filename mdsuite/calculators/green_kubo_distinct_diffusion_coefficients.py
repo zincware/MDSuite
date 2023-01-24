@@ -44,9 +44,7 @@ from mdsuite.utils.calculator_helper_methods import correlate
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -71,7 +69,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database_path for the analysis
+            Property loaded from the database_path for the analysis.
 
     See Also
     --------
@@ -174,15 +172,18 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
+
         Parameters
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
         ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
         data_range : int (default = 500)
                 Range over which the acf will be computed.
-        correlation_time : int (default = 1)
+        correlation_time : int (default = 1).
+
         Returns
         -------
+        -------.
         """
         atomwise_vmap = jax.vmap(correlate, in_axes=0)
 
@@ -215,17 +216,18 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             ----------
             dataset
             Returns
-            -------
+            -------.
             """
 
             def test_conf_map(test_dataset):
                 """
                 Map over atoms in test dataset.
+
                 Parameters
                 ----------
                 test_dataset
                 Returns
-                -------
+                -------.
                 """
                 return correlate(ref_dataset, test_dataset)
 
@@ -248,6 +250,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Dictionary of data returned by tensorflow
         same_species : bool
                 If true, the species are the same and i=j should be skipped.
+
         Returns
         -------
         updates the class state
@@ -264,9 +267,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.sigma.append(np.trapz(vacf, x=self.time))
 
     def run_calculator(self):
-        """
-        Perform the distinct coefficient analysis analysis
-        """
+        """Perform the distinct coefficient analysis analysis."""
         self.check_input()
         for combination in self.combinations:
             species_values = list(combination)
@@ -301,11 +302,11 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         ----------
         species : str
                 Species property if required.
+
         Returns
         -------
 
         """
-
         numerator = self.experiment.units.length**2
         denominator = self.experiment.units.time * (self.args.data_range - 1)
 
@@ -325,7 +326,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         result = self.prefactor * np.array(self.sigma)
@@ -340,7 +341,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.queue_data(data=data, subjects=list(species))
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             span = Span(
                 location=(

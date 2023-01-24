@@ -1,3 +1,4 @@
+"""MDSuite script input module."""
 import typing
 
 import mdsuite.file_io.file_read
@@ -7,7 +8,7 @@ from mdsuite.database.simulation_database import TrajectoryChunkData, Trajectory
 class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
     """
     For testing purposes. Does not actually process files, instead uses data given
-     on instantiation
+     on instantiation.
     """
 
     def __init__(
@@ -20,7 +21,7 @@ class ScriptInput(mdsuite.file_io.file_read.FileProcessor):
         data
         metadata
         name : A unique name for this dataset. Used to prevent multiple adding of the
-         same data
+         same data.
         """
         self.data = data
         self.mdata = metadata

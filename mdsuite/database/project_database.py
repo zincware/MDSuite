@@ -36,24 +36,20 @@ log = logging.getLogger(__name__)
 
 
 class ProjectDatabase(DatabaseBase):
-    """
-    Class for the management of the project database.
-    """
+    """Class for the management of the project database."""
 
     def __init__(self):
-        """
-        Constructor for the Project database class.
-        """
+        """Constructor for the Project database class."""
         super().__init__(database_name="project.db")
 
     @property
     def project_id(self) -> int:
-        """The id of this project in the database"""
+        """The id of this project in the database."""
         return 1
 
     @property
     def db_experiments(self):
-        """Get all experiments"""
+        """Get all experiments."""
         # renamed to db_experiments because experiments contains the instances of the
         # Experiment class
         with self.session as ses:
@@ -72,7 +68,7 @@ class ProjectDatabase(DatabaseBase):
     @description.setter
     def description(self, value: str):
         """
-        Allow users to add a short description to their project
+        Allow users to add a short description to their project.
 
         Parameters
         ----------

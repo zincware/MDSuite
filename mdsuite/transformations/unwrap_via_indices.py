@@ -33,9 +33,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class UnwrapViaIndices(SingleSpeciesTrafo):
-    """
-    Unwrap corrdinates via the box images (pos + box_length * box_image_idx)
-    """
+    """Unwrap corrdinates via the box images (pos + box_length * box_image_idx)."""
 
     def __init__(self):
         super(UnwrapViaIndices, self).__init__(
@@ -51,9 +49,7 @@ class UnwrapViaIndices(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> tf.Tensor:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.positions.name]
         box_im = batch[mdsuite_properties.box_images.name]
         box_l = batch[mdsuite_properties.box_length.name]

@@ -1,7 +1,8 @@
-"""
+"""Velocity from positions Trafo module.
+
 This program and the accompanying materials are made available under the terms of the
 Eclipse Public License v2.0 which accompanies this distribution, and is available at
-https://www.eclipse.org/legal/epl-v20.html
+https://www.eclipse.org/legal/epl-v20.html.
 
 SPDX-License-Identifier: EPL-2.0
 
@@ -41,9 +42,7 @@ class VelocityFromPositions(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> tf.Tensor:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.unwrapped_positions.name]
         dt = (
             batch[mdsuite_properties.time_step.name]

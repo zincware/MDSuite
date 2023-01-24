@@ -42,9 +42,7 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -54,7 +52,7 @@ class Args:
 
 
 class GreenKuboViscosity(TrajectoryCalculator, ABC):
-    """Class for the Green-Kubo ionic conductivity implementation
+    """Class for the Green-Kubo ionic conductivity implementation.
 
     Attributes
     ----------
@@ -175,8 +173,10 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
+        -------.
 
         """
         pass
@@ -210,7 +210,7 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         result = self.prefactor * np.array(self.sigma)
