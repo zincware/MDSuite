@@ -99,7 +99,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     Examples
     --------
-
     .. code-block:: python
 
         project = mdsuite.Project()

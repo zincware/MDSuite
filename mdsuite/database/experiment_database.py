@@ -198,7 +198,6 @@ class ExperimentDatabase:
 
         Returns
         -------
-
         dict[str, SpeciesInfo]:
             A dictionary of species such as {Li: SpeciesInfo}
         """

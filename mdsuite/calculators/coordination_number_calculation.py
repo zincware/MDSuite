@@ -116,7 +116,6 @@ class CoordinationNumbers(Calculator):
 
     Examples
     --------
-
     .. code-block:: python
 
         experiment.run.CoordinationNumbers(
