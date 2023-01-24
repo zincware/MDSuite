@@ -51,10 +51,14 @@ if TYPE_CHECKING:
 
 
 class CannotFindTransformationError(Exception):
+    """Exception for when a transformation cannot be found."""
+
     pass
 
 
 class CannotFindPropertyError(Exception):
+    """Exception for when a property cannot be found."""
+
     pass
 
 

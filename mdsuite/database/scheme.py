@@ -63,6 +63,8 @@ class SpeciesAssociation(Base):
 
 
 class Project(Base):
+    """Project table."""
+
     __tablename__ = "projects"
     id = Column(Integer, primary_key=True)
     description = Column(String, nullable=True)

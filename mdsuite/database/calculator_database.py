@@ -44,6 +44,8 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class ComputationResults:
+    """Computation Results dataclass."""
+
     data: dict = field(default_factory=dict)
     subjects: dict = field(default_factory=list)
 

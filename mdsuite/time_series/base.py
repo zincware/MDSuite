@@ -45,6 +45,8 @@ def running_mean(x, N):
 
 
 class TimeSeries:
+    """Time Series class."""
+
     def __init__(self, experiment: Experiment):
         """
 

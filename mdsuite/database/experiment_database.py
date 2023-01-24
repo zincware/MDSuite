@@ -78,6 +78,8 @@ class LazyProperty:
 
 
 class ExperimentDatabase:
+    """Experiment Database helper class for lazy access."""
+
     temperature = LazyProperty()
     time_step = LazyProperty()
     number_of_configurations = LazyProperty()
