@@ -63,7 +63,7 @@ class SmilesTestData:
 
 
 class MockExperiment:
-    """Experiment class for a unit test"""
+    """Experiment class for a unit test."""
 
     database_path = Path("./")
 

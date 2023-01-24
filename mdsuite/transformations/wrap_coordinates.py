@@ -34,11 +34,11 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class CoordinateWrapper(SingleSpeciesTrafo):
-    """Wrap coordinates into the simulation box"""
+    """Wrap coordinates into the simulation box."""
 
     def __init__(self, center_box: bool = True):
         """
-        Class init
+        Class init.
 
         Parameters
         ----------

@@ -69,7 +69,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database_path for the analysis
+            Property loaded from the database_path for the analysis.
 
     See Also
     --------
@@ -180,7 +180,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Range over which the acf will be computed.
         correlation_time : int (default = 1)
         Returns
-        -------
+        -------.
         """
         atomwise_vmap = jax.vmap(correlate, in_axes=0)
 
@@ -213,7 +213,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             ----------
             dataset
             Returns
-            -------
+            -------.
             """
 
             def test_conf_map(test_dataset):
@@ -223,7 +223,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ----------
                 test_dataset
                 Returns
-                -------
+                -------.
                 """
                 return correlate(ref_dataset, test_dataset)
 
@@ -262,7 +262,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.sigma.append(np.trapz(vacf, x=self.time))
 
     def run_calculator(self):
-        """Perform the distinct coefficient analysis analysis"""
+        """Perform the distinct coefficient analysis analysis."""
         self.check_input()
         for combination in self.combinations:
             species_values = list(combination)
@@ -320,7 +320,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         result = self.prefactor * np.array(self.sigma)
@@ -335,7 +335,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         self.queue_data(data=data, subjects=list(species))
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             span = Span(
                 location=(

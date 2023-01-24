@@ -404,7 +404,7 @@ def _apply_system_cutoff(input_tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
 
 def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
     """
-    Generate the neighbour list
+    Generate the neighbour list.
 
     Parameters
     ----------

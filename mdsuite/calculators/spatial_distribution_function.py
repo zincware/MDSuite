@@ -70,11 +70,11 @@ class Args:
 
 
 class SpatialDistributionFunction(TrajectoryCalculator):
-    """Spatial Distribution Function Calculator based on the r_ij matrix"""
+    """Spatial Distribution Function Calculator based on the r_ij matrix."""
 
     def __init__(self, experiment: Experiment, experiments=None):
         """
-        Constructor of the SpatialDistributionFunction
+        Constructor of the SpatialDistributionFunction.
 
         Parameters
         ----------
@@ -111,7 +111,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         **kwargs,
     ):
         """
-        User Interface to the Spatial Distribution Function
+        User Interface to the Spatial Distribution Function.
 
         Parameters
         ----------
@@ -158,7 +158,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
     def _load_positions(self, indices: list, species: str) -> tf.Tensor:
         """
-        Load the positions matrix
+        Load the positions matrix.
 
         This function is here to optimize calculation speed
 
@@ -187,7 +187,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
             return tf.cast(tf.concat(data, axis=0), dtype=self.dtype)
 
     def run_calculator(self):
-        """Run the computation"""
+        """Run the computation."""
         path_list = [
             join_path(item, self.loaded_property.name) for item in self.args.species
         ]
@@ -252,7 +252,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         self._run_visualization(coordinates, colour_map)
 
     def _get_unit_sphere(self) -> tf.Tensor:
-        """Get the coordinates on the sphere for the bins
+        """Get the coordinates on the sphere for the bins.
 
         Returns
         -------
@@ -273,7 +273,7 @@ class SpatialDistributionFunction(TrajectoryCalculator):
 
     def r_ij_to_bins(self, r_ij) -> tf.Tensor:
         """Compute the 2D histogram in spherical coordinates while projecting
-        all values of r to a unit sphere
+        all values of r to a unit sphere.
 
         Parameters
         ----------

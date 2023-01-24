@@ -33,7 +33,7 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class IntegratedHeatCurrent(MultiSpeciesTrafo):
-    """Transformation to calculate the integrated heat current (positions * energies)"""
+    """Transformation to calculate the integrated heat current (positions * energies)."""
 
     def __init__(self):
         super(IntegratedHeatCurrent, self).__init__(

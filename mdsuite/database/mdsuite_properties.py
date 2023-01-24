@@ -32,8 +32,8 @@ from mdsuite.database.simulation_database import PropertyInfo
 # disable init. This class is not supposed to be changed from its default values
 @dataclass(frozen=True, init=False)
 class MDSuiteProperties:
-    """
-    The names of properties used by MDSuite.
+    """The names of properties used by MDSuite.
+
     Use members in the code whenever referencing properties. A string is only needed when
     writing/reading the database.
     Non-obvious members are described below:

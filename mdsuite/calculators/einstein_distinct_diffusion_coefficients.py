@@ -59,7 +59,7 @@ warnings.filterwarnings("ignore")
 
 class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     """
-    Class for the Green-Kubo diffusion coefficient implementation
+    Class for the Green-Kubo diffusion coefficient implementation.
 
     Attributes
     ----------
@@ -195,7 +195,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             """
             Maps over the atoms axis in dataset
             Parameters
-            ----------
+            ----------.
 
             Returns
             -------
@@ -208,7 +208,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 ----------
                 test_dataset
                 Returns
-                -------
+                -------.
                 """
                 return msd_operation(ref_dataset, test_dataset)
 
@@ -224,7 +224,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         Parameters
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
-        ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
+        ds_b : np.ndarray (n_timesteps, n_atoms, dimension).
 
         Returns
         -------
@@ -266,7 +266,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         Apply an averaging factor to the tensor_values.
         Returns
         -------
-        averaged copy of the tensor_values
+        averaged copy of the tensor_values.
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
@@ -274,7 +274,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         self._apply_averaging_factor()  # update in place
@@ -322,7 +322,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self._run_dependency_check()
 
     def run_calculator(self):
-        """Perform the distinct coefficient analysis analysis"""
+        """Perform the distinct coefficient analysis analysis."""
         self.check_input()
         for combination in self.combinations:
             species_values = list(combination)

@@ -35,7 +35,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 class CoordinateUnwrapper(SingleSpeciesTrafo):
     """
     Unwrap coordinates by checking if particles moved from one side of the box to
-    the other within one time step
+    the other within one time step.
     """
 
     def __init__(self):

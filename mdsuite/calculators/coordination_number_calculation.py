@@ -81,7 +81,7 @@ def _integrate_rdf(radii_data: np.array, rdf_data: np.array, density: float) -> 
 
 class CoordinationNumbers(Calculator):
     """
-    Class for the calculation of coordination numbers
+    Class for the calculation of coordination numbers.
 
     Attributes
     ----------
@@ -129,7 +129,7 @@ class CoordinationNumbers(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Python constructor
+        Python constructor.
 
         Parameters
         ----------
@@ -217,7 +217,7 @@ class CoordinationNumbers(Calculator):
         self.volume = volume_si / 1e-9**3
 
     def _get_density(self, species: str) -> float:
-        """Use the species_tuple in front of the name to get information about the pair"""
+        """Use the species_tuple in front of the name for information about the pair."""
         species = species.split("_")  # get an array of the species being studied
         rdf_number_of_atoms = self.experiment.species[species[0]].n_particles
 
@@ -225,7 +225,7 @@ class CoordinationNumbers(Calculator):
 
     def _get_rdf_peaks(self, rdf: np.ndarray) -> np.ndarray:
         """
-        Get the max values of the rdf for use in the minimum calculation
+        Get the max values of the rdf for use in the minimum calculation.
 
         Parameters
         ----------
@@ -265,7 +265,7 @@ class CoordinationNumbers(Calculator):
 
     def _find_minima(self, radii: np.ndarray, rdf: np.ndarray) -> dict:
         """
-        Use min finding algorithm to determine the minima of the function
+        Use min finding algorithm to determine the minima of the function.
 
         Parameters
         ----------
@@ -296,7 +296,7 @@ class CoordinationNumbers(Calculator):
         self, integral_data: np.ndarray, radii: np.ndarray, rdf: np.ndarray
     ) -> dict:
         """
-        Calculate the coordination numbers
+        Calculate the coordination numbers.
 
         Parameters
         ----------
@@ -330,7 +330,7 @@ class CoordinationNumbers(Calculator):
         return coordination_numbers
 
     def run_calculator(self):
-        """Calculate the coordination numbers and perform error analysis"""
+        """Calculate the coordination numbers and perform error analysis."""
         for selected_species, vals in self.rdf_data.data_dict.items():
             log.debug(f"Computing coordination numbers for {selected_species}")
 
@@ -357,7 +357,7 @@ class CoordinationNumbers(Calculator):
             self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
-        """Plot the CN"""
+        """Plot the CN."""
         # Plot the values if required
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)

@@ -52,7 +52,7 @@ class Args:
 
 class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Einstein-Helfand Ionic Conductivity
+    Class for the Einstein-Helfand Ionic Conductivity.
 
     See Also
     --------
@@ -67,7 +67,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Python constructor
+        Python constructor.
 
         Parameters
         ----------
@@ -101,7 +101,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         fit_range: int = -1,
     ):
         """
-        Python constructor
+        Python constructor.
 
         Parameters
         ----------
@@ -161,7 +161,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
-        -------
+        -------.
 
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
@@ -188,7 +188,7 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(

@@ -74,7 +74,7 @@ class DataVisualizer3D:
         """
         Build the colour map
         Returns
-        -------
+        -------.
 
         """
         viridis = cm.get_cmap("binary")

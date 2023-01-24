@@ -44,7 +44,7 @@ log = logging.getLogger(__name__)
 
 
 class LazyProperty:
-    """Property preset for I/O with the database
+    """Property preset for I/O with the database.
 
     References
     ----------
@@ -52,11 +52,11 @@ class LazyProperty:
     """
 
     def __set_name__(self, owner, name):
-        """See https://www.python.org/dev/peps/pep-0487/"""
+        """See https://www.python.org/dev/peps/pep-0487/."""
         self.name = name
 
     def __get__(self, instance: ExperimentDatabase, owner):
-        """Get the value either from memory or from the database
+        """Get the value either from memory or from the database.
 
         Try to get the value from memory, if not write it to memory
         """
@@ -67,7 +67,7 @@ class LazyProperty:
             return self.__get__(instance, owner)
 
     def __set__(self, instance: ExperimentDatabase, value):
-        """Write value to the database
+        """Write value to the database.
 
         Write the given value to the database and remove it from memory
         """
@@ -115,7 +115,7 @@ class ExperimentDatabase:
         )
 
     def set_db(self, name: str, value):
-        """Store values in the database
+        """Store values in the database.
 
         Parameters
         ----------
@@ -135,7 +135,7 @@ class ExperimentDatabase:
             ses.commit()
 
     def get_db(self, name: str, default=None):
-        """Load values from the database
+        """Load values from the database.
 
         Parameters
         ----------
@@ -176,14 +176,14 @@ class ExperimentDatabase:
 
     @property
     def active(self):
-        """Get the state (activated or not) of the experiment"""
+        """Get the state (activated or not) of the experiment."""
         with self.project.session as ses:
             experiment = get_or_create(ses, db.Experiment, name=self.name)
         return experiment.active
 
     @active.setter
     def active(self, value):
-        """Set the state (activated or not) of the experiment"""
+        """Set the state (activated or not) of the experiment."""
         if value is None:
             return
         with self.project.session as ses:
@@ -193,7 +193,7 @@ class ExperimentDatabase:
 
     @property
     def species(self) -> Dict[str, SpeciesInfo]:
-        """Get species
+        """Get species.
 
         Returns
         -------
@@ -217,7 +217,7 @@ class ExperimentDatabase:
 
     @species.setter
     def species(self, value: dict):
-        """Save the SpeciesInfo to the SQL database
+        """Save the SpeciesInfo to the SQL database.
 
         Parameters
         ----------
@@ -261,7 +261,7 @@ class ExperimentDatabase:
 
     @property
     def molecules(self) -> Dict[str, MoleculeInfo]:
-        """Get the molecules dict"""
+        """Get the molecules dict."""
         if self._molecules is None:
             with self.project.session as ses:
                 experiment = (
@@ -281,7 +281,7 @@ class ExperimentDatabase:
 
     @molecules.setter
     def molecules(self, value):
-        """Save the molecules dict to the database"""
+        """Save the molecules dict to the database."""
         if value is None:
             return
 
@@ -317,12 +317,12 @@ class ExperimentDatabase:
     # Almost Lazy Properties
     @property
     def box_array(self):
-        """Get the sample_rate of the experiment"""
+        """Get the sample_rate of the experiment."""
         return self.get_db(name="box_array")
 
     @box_array.setter
     def box_array(self, value):
-        """Set the time_step of the experiment"""
+        """Set the time_step of the experiment."""
         if value is None:
             return
         if isinstance(value, np.ndarray):
@@ -332,7 +332,7 @@ class ExperimentDatabase:
 
     @property
     def units(self) -> Union[Units, None]:
-        """Get the units of the experiment"""
+        """Get the units of the experiment."""
         dict_data = self.get_db(name="units")
         if dict_data is None:
             return None
@@ -340,7 +340,7 @@ class ExperimentDatabase:
 
     @units.setter
     def units(self, value: Units):
-        """Set the units of the experiment"""
+        """Set the units of the experiment."""
         if value is None:
             return
         self.set_db(name="units", value=dataclasses.asdict(value))
@@ -359,7 +359,7 @@ class ExperimentDatabase:
 
     @read_files.setter
     def read_files(self, value):
-        """Add a file that has been read to the database
+        """Add a file that has been read to the database.
 
         Does nothing if the file already  exists within the database
 
@@ -377,7 +377,7 @@ class ExperimentDatabase:
     def simulation_data(self) -> dict:
         """
         Load simulation data from internals.
-        If not available try to read them from file
+        If not available try to read them from file.
 
         Returns
         -------
@@ -388,7 +388,7 @@ class ExperimentDatabase:
 
     @simulation_data.setter
     def simulation_data(self, value: dict):
-        """Update simulation data
+        """Update simulation data.
 
         Try to load the data from self.simulation_data_file, update the internals and
         update the yaml file.
@@ -409,7 +409,7 @@ class ExperimentDatabase:
 
     @property
     def version(self) -> int:
-        """Get the version of the experiment
+        """Get the version of the experiment.
 
         Versioning starts at 0 and can be increased by +1 for every added file
         """
@@ -417,7 +417,7 @@ class ExperimentDatabase:
 
     @version.setter
     def version(self, value: int):
-        """Update the version of the experiment
+        """Update the version of the experiment.
 
         Can be used to differentiate between different experiment versions in
         calculations
@@ -429,5 +429,5 @@ class ExperimentDatabase:
     # On the fly properties
     @property
     def volume(self):
-        """Compute the Volume"""
+        """Compute the Volume."""
         return np.prod(self.box_array)

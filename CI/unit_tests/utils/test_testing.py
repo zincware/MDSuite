@@ -34,7 +34,7 @@ from mdsuite.utils.testing import MDSuiteProcess, assertDeepAlmostEqual
 
 
 class TestProcess(unittest.TestCase):
-    """Test the process class"""
+    """Test the process class."""
 
     def test_exception(self):
         """
@@ -71,7 +71,7 @@ class TestProcess(unittest.TestCase):
         """
         Process to throw exception.
         Returns
-        -------
+        -------.
 
         """
         raise ValueError("Test error")
@@ -81,7 +81,7 @@ class TestProcess(unittest.TestCase):
         """
         Process to not throw an exception.
         Returns
-        -------
+        -------.
 
         """
         pass

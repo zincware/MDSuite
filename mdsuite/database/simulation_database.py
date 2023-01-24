@@ -46,7 +46,7 @@ class PropertyInfo:
     Information of a trajectory property.
     example:
     pos_info = PropertyInfo('Positions', 3)
-    vel_info = PropertyInfo('Velocities', 3)
+    vel_info = PropertyInfo('Velocities', 3).
 
     Attributes
     ----------
@@ -63,7 +63,7 @@ class PropertyInfo:
 @dataclasses.dataclass
 class SpeciesInfo:
     """
-    Information of a species
+    Information of a species.
 
     Attributes
     ----------
@@ -99,7 +99,7 @@ class SpeciesInfo:
 
 @dataclasses.dataclass
 class MoleculeInfo(SpeciesInfo):
-    """Information about a Molecule
+    """Information about a Molecule.
 
     All the information of a species + groups
 
@@ -119,7 +119,7 @@ class MoleculeInfo(SpeciesInfo):
     groups: dict = None
 
     def __eq__(self, other):
-        """Add a check to see if the groups are identical"""
+        """Add a check to see if the groups are identical."""
         if self.groups != other.groups:
             return False
         return super(MoleculeInfo, self).__eq__(other)
@@ -129,7 +129,7 @@ class MoleculeInfo(SpeciesInfo):
 class TrajectoryMetadata:
     """
     This metadata must be extracted from trajectory files to build the database into
-    which the trajectory will be stored
+    which the trajectory will be stored.
 
     Attributes
     ----------
@@ -167,7 +167,7 @@ class TrajectoryMetadata:
 
 
 class TrajectoryChunkData:
-    """Class to specify the data format for transfer from the file to the database"""
+    """Class to specify the data format for transfer from the file to the database."""
 
     def __init__(self, species_list: List[SpeciesInfo], chunk_size: int):
         """
@@ -205,7 +205,7 @@ class TrajectoryChunkData:
         species_name
             Name of the species to which the data belongs
         property_name
-            Name of the property being added
+            Name of the property being added.
 
         example:
         Storing velocity Information for 42 Na atoms in the 17th iteration of a loop
@@ -225,7 +225,7 @@ class TrajectoryChunkData:
 
 class Database:
     """
-    Database class
+    Database class.
 
     Databases make up a large part of the functionality of MDSuite and are kept
     fairly consistent in structure. Therefore, the database_path structure we
@@ -286,7 +286,7 @@ class Database:
     @staticmethod
     def _build_path_input(structure: dict) -> dict:
         """
-        Build an input to a hdf5 database_path from a dictionary
+        Build an input to a hdf5 database_path from a dictionary.
 
         In many cases, whilst a dict can be passed on to a method, it is not ideal for
         use in the hdf5 database_path. This method takes a dictionary and return a new
@@ -334,7 +334,7 @@ class Database:
         chunk:
             a data chunk
         start_idx:
-            Configuration at which to start writing
+            Configuration at which to start writing.
         """
         workaround_time_in_axis_1 = True
 
@@ -370,7 +370,7 @@ class Database:
 
     def resize_datasets(self, structure: dict):
         """
-        Resize a dataset so more tensor_values can be added
+        Resize a dataset so more tensor_values can be added.
 
         Parameters
         ----------
@@ -428,12 +428,12 @@ class Database:
         self.add_dataset(structure)  # add a dataset to the groups
 
     def database_exists(self) -> bool:
-        """Check if the database file already exists"""
+        """Check if the database file already exists."""
         return pathlib.Path(self.path).exists()
 
     def add_dataset(self, structure: dict):
         """
-        Add a dataset of the necessary size to the database_path
+        Add a dataset of the necessary size to the database_path.
 
         Just as a separate method exists for building the group structure of the hdf5
         database_path, so too do we include a separate method for adding a dataset.
@@ -511,7 +511,7 @@ class Database:
 
     def get_memory_information(self) -> dict:
         """
-        Get memory information from the database_path
+        Get memory information from the database_path.
 
         Returns
         -------
@@ -529,7 +529,7 @@ class Database:
 
     def check_existence(self, path: str) -> bool:
         """
-        Check to see if a dataset is in the database_path
+        Check to see if a dataset is in the database_path.
 
         Parameters
         ----------
@@ -555,7 +555,7 @@ class Database:
 
     def change_key_names(self, mapping: dict):
         """
-        Change the name of database_path keys
+        Change the name of database_path keys.
 
         Parameters
         ----------
@@ -648,7 +648,7 @@ class Database:
 
     def get_data_size(self, data_path: str) -> tuple:
         """
-        Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes)
+        Return the size of a dataset as a tuple (n_rows, n_columns, n_bytes).
 
         Parameters
         ----------
@@ -676,7 +676,7 @@ class Database:
         Returns
         -------
         summary : list
-                A list of properties that are in the database
+                A list of properties that are in the database.
         """
         with hf.File(self.path, "r") as db:
             return list(db.keys())

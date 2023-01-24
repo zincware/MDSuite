@@ -37,7 +37,7 @@ cwd = os.getcwd()
 
 @pytest.fixture(autouse=True)
 def prepare_env():
-    """Prepare temporary environment"""
+    """Prepare temporary environment."""
     temp_dir = TemporaryDirectory()
     os.chdir(temp_dir.name)
 
@@ -48,7 +48,7 @@ def prepare_env():
 
 
 def test_project_load_experiments():
-    """Test that the project loads experiments"""
+    """Test that the project loads experiments."""
     project_1 = mds.Project()
     project_1.description = "HelloWorld"
     project_1.add_experiment("Exp01", active=False)

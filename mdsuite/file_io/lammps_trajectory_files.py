@@ -67,7 +67,7 @@ column_names = {
 
 
 class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
-    """Reader for LAMMPS files"""
+    """Reader for LAMMPS files."""
 
     def __init__(
         self,
@@ -103,7 +103,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
     def _get_tabular_text_reader_mdata(
         self,
     ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
-        """Implement abstract parent method"""
+        """Implement abstract parent method."""
         with open(self.file_path, "r") as file:
             header = mdsuite.file_io.tabular_text_files.read_n_lines(
                 file, self.n_header_lines, start_at=0
@@ -183,7 +183,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
     ):
         """
         Get the information which species are present and which particle ids/ lines in
-        the file belong to them
+        the file belong to them.
 
         Parameters
         ----------

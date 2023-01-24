@@ -29,7 +29,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    """Collection of MDSuite configurations
+    """Collection of MDSuite configurations.
 
     Attributes
     -----------

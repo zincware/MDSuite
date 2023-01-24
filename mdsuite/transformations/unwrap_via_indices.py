@@ -33,7 +33,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class UnwrapViaIndices(SingleSpeciesTrafo):
-    """Unwrap corrdinates via the box images (pos + box_length * box_image_idx)"""
+    """Unwrap corrdinates via the box images (pos + box_length * box_image_idx)."""
 
     def __init__(self):
         super(UnwrapViaIndices, self).__init__(

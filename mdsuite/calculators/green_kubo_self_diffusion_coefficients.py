@@ -73,7 +73,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database_path for the analysis
+            Property loaded from the database_path for the analysis.
 
     See Also
     --------
@@ -202,7 +202,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
     def plot_data(self, data: dict):
         """
-        Plot the data
+        Plot the data.
 
         Parameters
         ----------

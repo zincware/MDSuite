@@ -30,7 +30,7 @@ from .helpers import triu_indices as compute_triu
 
 
 class NLLayer(tf.keras.layers.Layer):
-    """Convert positions to an r_ij distance matrix"""
+    """Convert positions to an r_ij distance matrix."""
 
     def __init__(self, dense: bool = True, **kwargs):
         """
@@ -43,7 +43,7 @@ class NLLayer(tf.keras.layers.Layer):
         self.dense = dense
 
     def call(self, inputs, *args, **kwargs):
-        """Convert positions to r_ij distance matrix
+        """Convert positions to r_ij distance matrix.
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class NLLayer(tf.keras.layers.Layer):
         if self.dense:
 
             def to_dense(flat_rij):
-                """Convert the flattened output to a dense r_ij matrix
+                """Convert the flattened output to a dense r_ij matrix.
 
                 Parameters
                 ----------

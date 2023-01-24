@@ -34,7 +34,7 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class ThermalFlux(MultiSpeciesTrafo):
-    """Transformation to calculate the integrated heat current (positions * energies)"""
+    """Transformation to calculate the integrated heat current (positions * energies)."""
 
     def __init__(self):
         super(ThermalFlux, self).__init__(

@@ -131,7 +131,7 @@ class Transformations:
 
     @property
     def database(self):
-        """Update the database
+        """Update the database.
 
         replace for https://github.com/zincware/MDSuite/issues/404
         """
@@ -141,7 +141,7 @@ class Transformations:
 
     @property
     def experiment(self) -> Experiment:
-        """TODO replace for https://github.com/zincware/MDSuite/issues/404"""
+        """TODO replace for https://github.com/zincware/MDSuite/issues/404."""
         return self._experiment
 
     @experiment.setter
@@ -272,7 +272,7 @@ class Transformations:
 
     def _prepare_database_entry(self, species: str, system_tensor=False):
         """
-        Add or extend the dataset in which the transformation result is stored
+        Add or extend the dataset in which the transformation result is stored.
 
         Parameters
         ----------
@@ -448,7 +448,7 @@ class SingleSpeciesTrafo(Transformations):
         Parameters
         ----------
         species : Iterable[str]
-            Names of the species on which to perform the transformation
+            Names of the species on which to perform the transformation.
 
         Returns
         -------
@@ -529,7 +529,7 @@ class SingleSpeciesTrafo(Transformations):
             {'Property1': tansordata, ...}
         carryover : any
             if the transformation batching is only possible with carryover,
-            this argument will provide it
+            this argument will provide it.
 
         Returns
         -------
@@ -544,7 +544,7 @@ class SingleSpeciesTrafo(Transformations):
 class MultiSpeciesTrafo(Transformations):
     """
     Base class for all transformations, where information of multiple species is combined
-    in the transformation of a new property
+    in the transformation of a new property.
     """
 
     def run_transformation(self, species: typing.Iterable[str] = None) -> None:
@@ -554,7 +554,7 @@ class MultiSpeciesTrafo(Transformations):
         Parameters
         ----------
         species : Iterable[str]
-            Names of the species on which to perform the transformation
+            Names of the species on which to perform the transformation.
 
         Returns
         -------

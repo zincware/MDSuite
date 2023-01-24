@@ -35,7 +35,7 @@ import mdsuite as mds
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> list:
-    """Download files into a temporary directory and keep them for all tests"""
+    """Download files into a temporary directory and keep them for all tests."""
     base_url = "https://github.com/zincware/DataHub/tree/main"
 
     files_to_load = [
@@ -59,7 +59,7 @@ def traj_files(tmp_path_factory) -> list:
 
 @pytest.fixture(scope="session")
 def project(tmp_path_factory) -> mds.Project:
-    """Create a project in a temporary directory"""
+    """Create a project in a temporary directory."""
     os.chdir(tmp_path_factory.getbasetemp())
     project = mds.Project()
 
@@ -67,7 +67,7 @@ def project(tmp_path_factory) -> mds.Project:
 
 
 def test_add_run_load_data(project, traj_files):
-    """Add data and run RDF on all of them
+    """Add data and run RDF on all of them.
 
     Test the run_computation and load_data method on multiple experiments
     """

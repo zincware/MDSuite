@@ -59,7 +59,7 @@ class Args:
 
 class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Green-Kubo ionic conductivity implementation
+    Class for the Green-Kubo ionic conductivity implementation.
 
     Attributes
     ----------
@@ -188,7 +188,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
-        -------
+        -------.
 
         """
         pass
@@ -216,7 +216,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         sigma = np.mean(self.sigmas, axis=0)
@@ -238,7 +238,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.queue_data(data=data, subjects=["System"])
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 

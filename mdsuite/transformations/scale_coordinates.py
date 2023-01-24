@@ -33,7 +33,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class ScaleCoordinates(SingleSpeciesTrafo):
-    """Scale coordinates by multiplying them with the box size"""
+    """Scale coordinates by multiplying them with the box size."""
 
     def __init__(self):
         super(ScaleCoordinates, self).__init__(

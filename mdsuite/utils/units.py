@@ -58,7 +58,7 @@ class Units:
 
     @property
     def volume(self) -> float:
-        """Get the volume factor"""
+        """Get the volume factor."""
         return self.length**3
 
 

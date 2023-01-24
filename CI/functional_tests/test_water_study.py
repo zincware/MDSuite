@@ -37,7 +37,7 @@ from mdsuite.utils import Units
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> List[str]:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     water = DataHub(
@@ -95,7 +95,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
 
 def test_water_analysis(mdsuite_project):
     """
-    Run a functional test by performing a study on an MD simulation of water
+    Run a functional test by performing a study on an MD simulation of water.
 
     Notes
     -----

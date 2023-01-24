@@ -1,5 +1,5 @@
-"""
-MDSuite: A Zincwarecode package.
+"""MDSuite: A Zincwarecode package.
+
 License
 -------
 This program and the accompanying materials are made available under the terms

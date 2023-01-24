@@ -37,7 +37,7 @@ class JSONEncodedDict(TypeDecorator):
     impl = VARCHAR
 
     def process_bind_param(self, value: dict, dialect):
-        """Provide a bound value processing function
+        """Provide a bound value processing function.
 
         Convert a dictionary to a json string and store the string in the database
         """
@@ -46,7 +46,7 @@ class JSONEncodedDict(TypeDecorator):
         return value
 
     def process_result_value(self, value, dialect) -> dict:
-        """Receive a result-row column value to be converted
+        """Receive a result-row column value to be converted.
 
         Convert a loaded string from the database into a dict object
         """
@@ -56,7 +56,7 @@ class JSONEncodedDict(TypeDecorator):
 
 
 class MutableDict(Mutable, dict):
-    """Subclassed version of a dictionary used in the database"""
+    """Subclassed version of a dictionary used in the database."""
 
     @classmethod
     def coerce(cls, key, value):

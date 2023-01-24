@@ -52,7 +52,7 @@ class Args:
 
 
 class GreenKuboViscosity(TrajectoryCalculator, ABC):
-    """Class for the Green-Kubo ionic conductivity implementation
+    """Class for the Green-Kubo ionic conductivity implementation.
 
     Attributes
     ----------
@@ -174,7 +174,7 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
-        -------
+        -------.
 
         """
         pass
@@ -208,7 +208,7 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         result = self.prefactor * np.array(self.sigma)

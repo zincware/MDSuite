@@ -53,7 +53,7 @@ class Args:
 
 class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Green-Kubo Thermal conductivity implementation
+    Class for the Green-Kubo Thermal conductivity implementation.
 
     Attributes
     ----------
@@ -78,7 +78,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Class for the Green-Kubo Thermal conductivity implementation
+        Class for the Green-Kubo Thermal conductivity implementation.
 
         Attributes
         ----------
@@ -106,7 +106,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         integration_range: int = None,
     ):
         """
-        Class for the Green-Kubo Thermal conductivity implementation
+        Class for the Green-Kubo Thermal conductivity implementation.
 
         Parameters
         ----------
@@ -179,7 +179,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
-        -------
+        -------.
 
         """
         pass
@@ -211,7 +211,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
     def _post_operation_processes(self):
         """
-        call the post-op processes
+        call the post-op processes.
 
         Returns
         -------

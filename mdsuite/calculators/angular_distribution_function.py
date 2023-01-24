@@ -70,7 +70,7 @@ class Args:
 
 class AngularDistributionFunction(TrajectoryCalculator, ABC):
     """
-    Compute the Angular Distribution Function for all species combinations
+    Compute the Angular Distribution Function for all species combinations.
 
     Attributes
     ----------
@@ -112,7 +112,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Compute the Angular Distribution Function for all species combinations
+        Compute the Angular Distribution Function for all species combinations.
 
         Parameters
         ----------
@@ -273,7 +273,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         Prepare variables and dicts for the analysis.
         Returns
-        -------
+        -------.
 
         """
         sample_configs = np.linspace(
@@ -303,7 +303,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         Prepare the triples generators including tf.function
         Returns
-        -------
+        -------.
 
         """
         if self.use_tf_function:
@@ -472,7 +472,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.queue_data(data=data, subjects=self.selected_species)
 
     def plot_data(self, data):
-        """Plot data"""
+        """Plot data."""
         for selected_species, val in data.items():
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),

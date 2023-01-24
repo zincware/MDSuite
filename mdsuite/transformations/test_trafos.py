@@ -36,7 +36,7 @@ from mdsuite.transformations.transformations import (
 
 
 class TestMultispecies(MultiSpeciesTrafo):
-    """transformation for testing purposes only"""
+    """transformation for testing purposes only."""
 
     def __init__(self, input_properties: typing.Iterable, output_property):
         super(TestMultispecies, self).__init__(
@@ -50,7 +50,7 @@ class TestMultispecies(MultiSpeciesTrafo):
         batch: typing.Dict[str, typing.Dict[str, tf.Tensor]],
         carryover: typing.Any = None,
     ) -> typing.Tuple[tf.Tensor, typing.Any]:
-        """'use' all input properties, return array of 516"""
+        """'use' all input properties, return array of 516."""
         for properties in batch.values():
             for input_prop in self.input_properties:
                 val = properties[input_prop.name]
@@ -67,7 +67,7 @@ class TestMultispecies(MultiSpeciesTrafo):
 
 
 class TestSingleSpecies(SingleSpeciesTrafo):
-    """Wrap coordinates into the simulation box"""
+    """Wrap coordinates into the simulation box."""
 
     def __init__(self, input_properties: typing.Iterable, output_property):
         super(TestSingleSpecies, self).__init__(
@@ -79,7 +79,7 @@ class TestSingleSpecies(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> typing.Tuple[tf.Tensor, int]:
-        """'use' all input properties, return array of 516"""
+        """'use' all input properties, return array of 516."""
         self.logger.debug(batch)
         for input_prop in self.input_properties:
             val = batch[input_prop.name]

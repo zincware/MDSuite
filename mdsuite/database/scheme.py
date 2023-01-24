@@ -37,7 +37,7 @@ Base = declarative_base()
 
 
 class SpeciesAssociation(Base):
-    """Connection between Computations and Experiment Species
+    """Connection between Computations and Experiment Species.
 
     This table is required to be defined specifically, because we need add the count,
     e.g. Na - Na would otherwise only appear as Na.
@@ -58,7 +58,7 @@ class SpeciesAssociation(Base):
 
     @property
     def name(self):
-        """Get the name of the species"""
+        """Get the name of the species."""
         return self.species.name
 
 
@@ -106,7 +106,7 @@ class Experiment(Base):
         return f"{self.id}: {self.name}"
 
     def get_species(self) -> dict:
-        """Get the species information for the experiment"""
+        """Get the species information for the experiment."""
         species_dict = {}
         for species in self.species:
             if species.molecule:
@@ -117,7 +117,7 @@ class Experiment(Base):
         return species_dict
 
     def get_molecules(self) -> dict:
-        """Get the molecules information for the experiment"""
+        """Get the molecules information for the experiment."""
         molecule_dict = {}
         for molecule in self.species:
             if molecule.molecule:
@@ -165,7 +165,7 @@ class ExperimentAttribute(Base):
 
 
 class ExperimentSpecies(Base):
-    """Table for storing species information
+    """Table for storing species information.
 
     This table is used to store species and molecule information that can be related to
     a specific experiment
@@ -268,7 +268,7 @@ class Computation(Base):
         return species_dict
 
     def __getitem__(self, item):
-        """Allow for subscription
+        """Allow for subscription.
 
         Parameters
         ----------
@@ -296,12 +296,12 @@ class Computation(Base):
             )
 
     def keys(self) -> list:
-        """Map the data_dict keys"""
+        """Map the data_dict keys."""
         return list(self.data_dict.keys())
 
     @property
     def computation_parameter(self) -> dict:
-        """Get a dict of all used computation parameters
+        """Get a dict of all used computation parameters.
 
         Examples
         --------
@@ -327,14 +327,14 @@ class Computation(Base):
 
     @property
     def data_range(self) -> int:
-        """Get the data_range stored in computation_attributes"""
+        """Get the data_range stored in computation_attributes."""
         for comp_attr in self.computation_attributes:
             if comp_attr.name == "data_range":
                 return int(comp_attr.data["serialized_value"])
 
     @property
     def subjects(self) -> list:
-        """Get the subjects stored in computation_attributes"""
+        """Get the subjects stored in computation_attributes."""
         log.warning("This function will be depreciated!")
         subjects = []
         for x in self.computation_results:

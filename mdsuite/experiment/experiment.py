@@ -60,7 +60,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_processor(simulation_data):
-    """Read in one file"""
+    """Read in one file."""
     if isinstance(simulation_data, str) or isinstance(simulation_data, pathlib.Path):
         suffix = pathlib.Path(simulation_data).suffix
         if suffix == ".lammpstraj":
@@ -212,7 +212,7 @@ class Experiment(ExperimentDatabase):
 
     @property
     def run(self) -> RunComputation:
-        """Method to access the available calculators
+        """Method to access the available calculators.
 
         Returns
         -------
@@ -230,7 +230,7 @@ class Experiment(ExperimentDatabase):
         return f"exp_{self.name}"
 
     def _create_internal_file_paths(self):
-        """Create or update internal file paths
+        """Create or update internal file paths.
 
         Attributes
         -----------
@@ -248,7 +248,7 @@ class Experiment(ExperimentDatabase):
 
     def _build_model(self):
         """
-        Build the 'experiment' for the analysis
+        Build the 'experiment' for the analysis.
 
         A method to build the database_path in the hdf5 format. Within this method,
         several other are called to develop the database_path skeleton,
@@ -268,7 +268,7 @@ class Experiment(ExperimentDatabase):
         log.info(f"** An experiment has been added titled {self.name} **")
 
     def cls_transformation_run(self, transformation: Transformations, *args, **kwargs):
-        """Run the transformation
+        """Run the transformation.
 
         The Transformation class is updated with this experiment and afterwards
         performs the transformation.
@@ -428,7 +428,7 @@ class Experiment(ExperimentDatabase):
 
     def set_charge(self, element: str, charge: float):
         """
-        Set the charge/s of an element
+        Set the charge/s of an element.
 
         Parameters
         ----------
@@ -443,7 +443,7 @@ class Experiment(ExperimentDatabase):
 
     def set_mass(self, element: str, mass: float):
         """
-        Set the mass/es of an element
+        Set the mass/es of an element.
 
         Parameters
         ----------
@@ -484,7 +484,7 @@ class Experiment(ExperimentDatabase):
             Default: False
         update_with_pubchempy: bool
             Whether or not to look for the masses of the species in pubchempy.
-            Default: True
+            Default: True.
 
         """
         if isinstance(simulation_data, list):
@@ -506,7 +506,7 @@ class Experiment(ExperimentDatabase):
         update_with_pubchempy: bool = True,
     ):
         """
-        Add tensor_values to the database_path
+        Add tensor_values to the database_path.
 
         Parameters
         ----------
@@ -597,7 +597,7 @@ class Experiment(ExperimentDatabase):
         return database.load_data(path_list=path_list, select_slice=select_slice)
 
     def _store_metadata(self, metadata: TrajectoryMetadata, update_with_pubchempy=False):
-        """Save Metadata in the SQL DB
+        """Save Metadata in the SQL DB.
 
         Parameters
         ----------
@@ -641,7 +641,7 @@ class Experiment(ExperimentDatabase):
 
 def update_species_attributes_with_pubchempy(species_list: List[SpeciesInfo]):
     """
-    Add information to the species dictionary
+    Add information to the species dictionary.
 
     A fundamental part of this package is species specific analysis. Therefore, the
     Pubchempy package is used to add important species specific information to the
@@ -692,7 +692,7 @@ def _species_list_to_architecture_dict(species_list, n_configurations):
     Parameters
     ----------
     species_list
-    n_configurations
+    n_configurations.
 
     Returns
     -------

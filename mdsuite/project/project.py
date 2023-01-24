@@ -16,7 +16,7 @@ Citation
 --------
 If you use this module please cite us with:
 Summary
--------
+-------.
 """
 from __future__ import annotations
 
@@ -84,7 +84,7 @@ class Project(ProjectDatabase):
         storage_path: Union[str, Path] = "./",
         description: str = None,
     ):
-        """Project class constructor
+        """Project class constructor.
 
         The constructor will check to see if the project already exists, if so,
         it will load the state of each of the classes so that they can be used
@@ -127,7 +127,7 @@ class Project(ProjectDatabase):
         self.description = description
 
     def attach_file_logger(self):
-        """Attach a file logger for this project"""
+        """Attach a file logger for this project."""
         logger = logging.getLogger("mdsuite")
         formatter = logging.Formatter(
             "%(asctime)s %(levelname)s (%(module)s): %(message)s"
@@ -163,7 +163,7 @@ class Project(ProjectDatabase):
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,  # TODO make this the second argument, (name, data, ...)
     ) -> Experiment:
-        """Add an experiment to the project
+        """Add an experiment to the project.
 
         Parameters
         ----------
@@ -236,11 +236,11 @@ class Project(ProjectDatabase):
         return self.experiments[name]
 
     def load_experiments(self, names: Union[str, list]):
-        """Alias for activate_experiments"""
+        """Alias for activate_experiments."""
         self.activate_experiments(names)
 
     def activate_experiments(self, names: Union[str, list]):
-        """Load experiments, such that they are used for the computations
+        """Load experiments, such that they are used for the computations.
 
         Parameters
         ----------
@@ -257,7 +257,7 @@ class Project(ProjectDatabase):
             self.experiments[name].active = True
 
     def disable_experiments(self, names: Union[str, list]):
-        """Disable experiments
+        """Disable experiments.
 
         Parameters
         ----------
@@ -296,7 +296,7 @@ class Project(ProjectDatabase):
 
     @property
     def run(self) -> RunComputation:
-        """Method to access the available calculators
+        """Method to access the available calculators.
 
         Returns
         -------
@@ -307,7 +307,7 @@ class Project(ProjectDatabase):
 
     @property
     def experiments(self) -> Dict[str, Experiment]:
-        """Get a DotDict of instantiated experiments!"""
+        """Get a DotDict of instantiated experiments!."""
         with self.session as ses:
             db_experiments = ses.query(db.Experiment).all()
 
@@ -320,7 +320,7 @@ class Project(ProjectDatabase):
 
     @property
     def active_experiments(self) -> Dict[str, Experiment]:
-        """Get a DotDict of instantiated experiments that are currently selected!"""
+        """Get a DotDict of instantiated experiments that are currently selected!."""
         active_experiment = {
             key: val for key, val in self.experiments.items() if val.active
         }

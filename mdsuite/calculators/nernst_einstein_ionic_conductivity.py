@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 
 class NernstEinsteinIonicConductivity(Calculator):
     """
-    Class for the calculation of the Nernst-Einstein ionic conductivity
+    Class for the calculation of the Nernst-Einstein ionic conductivity.
 
     See Also
     --------
@@ -49,7 +49,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Standard constructor
+        Standard constructor.
 
         Parameters
         ----------
@@ -76,7 +76,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         save: bool = True,
     ):
         """
-        Standard constructor
+        Standard constructor.
 
         Parameters
         ----------
@@ -105,7 +105,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     def _load_data(self):
         """
-        Load tensor_values from a yaml file
+        Load tensor_values from a yaml file.
 
         Returns
         -------
@@ -167,7 +167,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     def _nernst_einstein(self, diffusion_information: list):
         """
-        Calculate the Nernst-Einstein ionic conductivity
+        Calculate the Nernst-Einstein ionic conductivity.
 
         Parameters
         ----------
@@ -209,7 +209,7 @@ class NernstEinsteinIonicConductivity(Calculator):
         self, self_diffusion_information: list, distinct_diffusion_information: list
     ):
         """
-        Calculate the corrected Nernst-Einstein ionic conductivity
+        Calculate the corrected Nernst-Einstein ionic conductivity.
 
         Parameters
         ----------
@@ -267,7 +267,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     def _run_nernst_einstein(self):
         """
-        Process truth table and run all possible nernst-einstein calculations
+        Process truth table and run all possible nernst-einstein calculations.
 
         Returns
         -------
@@ -323,7 +323,7 @@ class NernstEinsteinIonicConductivity(Calculator):
 
     def _run_corrected_nernst_einstein(self):
         """
-        Process truth table and run all possible nernst-einstein calculations
+        Process truth table and run all possible nernst-einstein calculations.
 
         Returns
         -------
@@ -396,7 +396,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
     def run_post_generation_analysis(self):
-        """Run the analysis"""
+        """Run the analysis."""
         self._run_nernst_einstein()
         if self.corrected:
             self._run_corrected_nernst_einstein()

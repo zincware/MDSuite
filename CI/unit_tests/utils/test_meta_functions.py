@@ -171,7 +171,7 @@ class TestMetaFunction:
             test function.
             Parameters
             ----------
-            x : np.ndarray
+            x : np.ndarray.
 
             Returns
             -------

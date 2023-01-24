@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 
 
 def running_mean(x, N):
-    """Perform a rolling window mean"""
+    """Perform a rolling window mean."""
     cumsum = np.cumsum(np.insert(x, 0, 0))
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
@@ -75,14 +75,14 @@ class TimeSeries:
 
     @property
     def database(self):
-        """Get the database"""
+        """Get the database."""
         if self._database is None:
             self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
 
     @property
     def data(self):
-        """Get the data for all species and timesteps for the loaded_property"""
+        """Get the data for all species and timesteps for the loaded_property."""
         if self._data is None:
             self._data = tf.concat(
                 [
@@ -95,7 +95,7 @@ class TimeSeries:
 
     @property
     def preprocess_data(self):
-        """Perform some data preprocessing before plotting it"""
+        """Perform some data preprocessing before plotting it."""
         data = self.data
         if self.reduce_sum:
             data = tf.einsum("atx -> t", data)
@@ -107,7 +107,7 @@ class TimeSeries:
         return data
 
     def plot(self):
-        """Plot the data over timesteps"""
+        """Plot the data over timesteps."""
         fig, ax = plt.subplots()
         ax.plot(self.preprocess_data)
         ax.set_xlabel(self.fig_labels["x"])

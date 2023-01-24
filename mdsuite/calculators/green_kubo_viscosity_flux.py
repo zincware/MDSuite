@@ -53,7 +53,7 @@ class Args:
 
 class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
     """
-    Class for the Green Kubo viscosity from flux implementation
+    Class for the Green Kubo viscosity from flux implementation.
 
     Attributes
     ----------
@@ -172,7 +172,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
-        -------
+        -------.
 
         """
         self.jacf /= max(self.jacf)
@@ -203,7 +203,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
 
     def _post_operation_processes(self):
         """
-        call the post-op processes
+        call the post-op processes.
 
         Returns
         -------

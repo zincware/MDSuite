@@ -52,13 +52,13 @@ class ComputationResults:
 
 @dataclass
 class Args:
-    """Dummy Class for type hinting"""
+    """Dummy Class for type hinting."""
 
     pass
 
 
 def conv_to_db(val):
-    """Convert the given value to something that can be stored in the database"""
+    """Convert the given value to something that can be stored in the database."""
     if is_jsonable(val):
         if not isinstance(val, dict):
             val = {"serialized_value": val}
@@ -68,13 +68,13 @@ def conv_to_db(val):
 
 
 class CalculatorDatabase:
-    """Database Interactions of the calculator class
+    """Database Interactions of the calculator class.
 
     This class handles the interaction of the calculator with the project database
     """
 
     def __init__(self, experiment):
-        """Constructor for the calculator database"""
+        """Constructor for the calculator database."""
         self.experiment: Experiment = experiment
         self.db_computation: db.Computation = None
         self.database_group = None
@@ -89,7 +89,7 @@ class CalculatorDatabase:
         self.db_computation_attributes = []
 
     def prepare_db_entry(self):
-        """Prepare a database entry based on the attributes defined in the init"""
+        """Prepare a database entry based on the attributes defined in the init."""
         with self.experiment.project.session as ses:
             experiment = (
                 ses.query(db.Experiment)
@@ -101,7 +101,7 @@ class CalculatorDatabase:
         self.db_computation.name = self.analysis_name
 
     def get_computation_data(self) -> db.Computation:
-        """Query the database for computation data
+        """Query the database for computation data.
 
         This method used the self.args dataclass to look for matching
         calculator attributes and returns a db.Computation object if
@@ -172,7 +172,7 @@ class CalculatorDatabase:
         return None
 
     def save_computation_args(self):
-        """Store the user args
+        """Store the user args.
 
         This method stored the user args from the self.args dataclass
         into SQLAlchemy objects and adds them to a list which will be
@@ -195,7 +195,7 @@ class CalculatorDatabase:
 
     def save_db_data(self):
         """Save all the collected computationattributes and computation data to the
-        database
+        database.
 
         This will be run after the computation was successful.
         """
@@ -234,7 +234,7 @@ class CalculatorDatabase:
             ses.commit()
 
     def queue_data(self, data, subjects):
-        """Queue data to be stored in the database
+        """Queue data to be stored in the database.
 
         Parameters:
             data: dict
@@ -248,7 +248,7 @@ class CalculatorDatabase:
 
     def update_database(self, parameters, delete_duplicate: bool = True):
         """
-        Add data to the database
+        Add data to the database.
 
         Parameters
         ----------
@@ -267,7 +267,7 @@ class CalculatorDatabase:
     # REMOVE
     # TODO rename and potentially move to a RDF based parent class
     def _get_rdf_data(self) -> List[db.Computation]:
-        """Fill the data_files list with filenames of the rdf tensor_values"""
+        """Fill the data_files list with filenames of the rdf tensor_values."""
         # TODO replace with exp.load.RDF()
         raise DeprecationWarning(
             "Replaced by experiment.run.RadialDistributionFunction(**kwargs)"
@@ -291,7 +291,7 @@ class CalculatorDatabase:
 
     # TODO rename and potentially move to a RDF based parent class
     def _load_rdf_from_file(self, computation: db.Computation):
-        """Load the raw rdf tensor_values from a directory"""
+        """Load the raw rdf tensor_values from a directory."""
         raise DeprecationWarning(
             "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
         )

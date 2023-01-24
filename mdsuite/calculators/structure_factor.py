@@ -65,7 +65,7 @@ class StructureFactor(Calculator):
     using the Faber-Ziman partial structure factors. This analysis is valid for a
     magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom. This means that
     the radii of the rdf has to be in Angstrom, otherwise it wont work.
-    Explicitly equations 9, 10 and 11 of the paper
+    Explicitly equations 9, 10 and 11 of the paper.
 
     'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
     Samuel Tovey, Anand Narayanan Krishnamoorthy, Ganesh Sivaraman, Jicheng Guo,
@@ -113,7 +113,7 @@ class StructureFactor(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Constructor for the class
+        Constructor for the class.
 
         Parameters
         ----------

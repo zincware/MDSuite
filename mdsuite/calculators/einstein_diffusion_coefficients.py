@@ -63,7 +63,7 @@ class Args:
 
 class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
     """
-    Class for the Einstein diffusion coefficient implementation
+    Class for the Einstein diffusion coefficient implementation.
 
     Attributes
     ----------
@@ -190,7 +190,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         return np.array(msd)
 
     def fit_diff_coeff(self):
-        """Apply unit conversion, fit line to the data, prepare for database storage"""
+        """Apply unit conversion, fit line to the data, prepare for database storage."""
         # self.msd_array /= int(self.n_batches) * self.ensemble_loop
         self.msd_array /= self.count
 
