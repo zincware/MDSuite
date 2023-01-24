@@ -36,10 +36,10 @@ log = logging.getLogger(__name__)
 
 def get_triu_indicies(n_atoms):
     """
-    Version of np.triu_indices with k=1
+    Version of np.triu_indices with k=1.
 
     Returns
-    ---------
+    -------
     Returns a vector of size (2, None) instead of a tuple of two values like
     np.triu_indices
     """
@@ -53,7 +53,7 @@ def get_triu_indicies(n_atoms):
 
 def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.Tensor:
     """
-    Generate the neighbour list
+    Generate the neighbour list.
 
     Parameters
     ----------
@@ -112,7 +112,7 @@ def get_neighbour_list(positions: tf.Tensor, cell=None, batch_size=None) -> tf.T
 def get_triplets(
     full_r_ij: tf.Tensor, r_cut: float, n_atoms: int, n_batches=200, disable_tqdm=True
 ) -> tf.Tensor:
-    """Compute the triple indices within a cutoff
+    """Compute the triple indices within a cutoff.
 
     Mostly vectorized method to compute the triples inside the cutoff sphere. Therefore
     a matrix of all possible distances *r_ijk* over all timesteps

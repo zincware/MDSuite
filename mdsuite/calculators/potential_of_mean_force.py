@@ -45,9 +45,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     savgol_order: int
     savgol_window_length: int
@@ -59,7 +57,7 @@ class Args:
 
 class PotentialOfMeanForce(Calculator):
     """
-    Class for the calculation of the potential of mean-force
+    Class for the calculation of the potential of mean-force.
 
     The potential of mean-force is a measure of the binding strength between
     atomic species in a experiment.
@@ -103,7 +101,7 @@ class PotentialOfMeanForce(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Python constructor for the class
+        Python constructor for the class.
 
         Parameters
         ----------
@@ -113,7 +111,6 @@ class PotentialOfMeanForce(Calculator):
                         Class object of the experiment.
         load_data : bool
         """
-
         super().__init__(**kwargs)
         self.file_to_study = None
         self.rdf = None
@@ -140,7 +137,7 @@ class PotentialOfMeanForce(Calculator):
         number_of_shells: int = 1,
     ):
         """
-        Python constructor for the class
+        Python constructor for the class.
 
         Parameters
         ----------
@@ -155,7 +152,6 @@ class PotentialOfMeanForce(Calculator):
         number_of_shells : int
                 Number of shells to integrate through.
         """
-
         if isinstance(rdf_data, Computation):
             self.rdf_data = rdf_data
         else:
@@ -183,7 +179,7 @@ class PotentialOfMeanForce(Calculator):
 
     def _calculate_potential_of_mean_force(self, rdf: np.ndarray) -> np.ndarray:
         """
-        Calculate the potential of mean force
+        Calculate the potential of mean force.
 
         Parameters
         ----------
@@ -266,7 +262,7 @@ class PotentialOfMeanForce(Calculator):
 
     def _find_minimum(self, pomf_data: np.ndarray, radii_data: np.ndarray) -> dict:
         """
-        Find the minimum of the pomf function
+        Find the minimum of the pomf function.
 
         This function calls an implementation of the Golden-section search
         algorithm to determine the minimum of the potential of mean-force function.
@@ -285,7 +281,6 @@ class PotentialOfMeanForce(Calculator):
                 {'1': [0.1, 0.2]} indicates that the first pomf peak is betwee 0.1 and
                 0.2 angstrom.
         """
-
         # get the peaks of the tensor_values post-filtering
         peaks = self.get_pomf_peaks(pomf_data)
 
@@ -331,9 +326,7 @@ class PotentialOfMeanForce(Calculator):
         return pomf_data
 
     def run_calculator(self):
-        """
-        Calculate the potential of mean-force and perform error analysis
-        """
+        """Calculate the potential of mean-force and perform error analysis."""
         for selected_species, vals in self.rdf_data.data_dict.items():
             selected_species = selected_species.split("_")
             radii = np.array(vals["x"]).astype(float)[1:]
@@ -354,7 +347,7 @@ class PotentialOfMeanForce(Calculator):
             self.queue_data(data=data, subjects=selected_species)
 
     def plot_data(self, data):
-        """Plot the POMF"""
+        """Plot the POMF."""
         log.debug("Start plotting the POMF.")
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)

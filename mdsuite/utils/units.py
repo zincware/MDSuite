@@ -44,9 +44,7 @@ golden_ratio = 1.618033988749895  # The golden ratio as taken from scipy
 
 @dataclass(frozen=True)
 class Units:
-    """
-    Dataclass for the units.
-    """
+    """Dataclass for the units."""
 
     time: float
     length: float
@@ -60,7 +58,7 @@ class Units:
 
     @property
     def volume(self) -> float:
-        """Get the volume factor"""
+        """Get the volume factor."""
         return self.length**3
 
 

@@ -41,9 +41,7 @@ from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -54,7 +52,7 @@ class Args:
 
 class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
     """
-    Class for the Einstein-Helfand Ionic Conductivity
+    Class for the Einstein-Helfand Ionic Conductivity.
 
     Attributes
     ----------
@@ -83,14 +81,13 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Python constructor
+        Python constructor.
 
         Parameters
         ----------
         experiment :  object
             Experiment class to call from
         """
-
         # parse to the experiment class
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
@@ -117,7 +114,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         fit_range: int = -1,
     ):
         """
-        Python constructor
+        Python constructor.
 
         Parameters
         ----------
@@ -181,8 +178,10 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
+        -------.
 
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
@@ -208,7 +207,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         fit_values, covariance, gradients, gradient_errors = fit_einstein_curve(

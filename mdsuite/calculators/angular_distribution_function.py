@@ -53,9 +53,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     number_of_bins: int
     number_of_configurations: int
@@ -72,7 +70,7 @@ class Args:
 
 class AngularDistributionFunction(TrajectoryCalculator, ABC):
     """
-    Compute the Angular Distribution Function for all species combinations
+    Compute the Angular Distribution Function for all species combinations.
 
     Attributes
     ----------
@@ -114,7 +112,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Compute the Angular Distribution Function for all species combinations
+        Compute the Angular Distribution Function for all species combinations.
 
         Parameters
         ----------
@@ -274,8 +272,10 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
     def _prepare_data_structure(self):
         """
         Prepare variables and dicts for the analysis.
+
         Returns
         -------
+        -------.
 
         """
         sample_configs = np.linspace(
@@ -305,7 +305,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         Prepare the triples generators including tf.function
         Returns
-        -------
+        -------.
 
         """
         if self.use_tf_function:
@@ -405,7 +405,6 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         angles : dict
                 A dictionary of the triples references and their histogram values.
         """
-
         tmp = tf.transpose(tf.concat(positions, axis=0), (1, 0, 2))
 
         timesteps, atoms, _ = tf.shape(tmp)
@@ -475,7 +474,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
             self.queue_data(data=data, subjects=self.selected_species)
 
     def plot_data(self, data):
-        """Plot data"""
+        """Plot data."""
         for selected_species, val in data.items():
             bin_range_to_angles = np.linspace(
                 self.bin_range[0] * (180 / 3.14159),

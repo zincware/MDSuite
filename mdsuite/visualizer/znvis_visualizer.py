@@ -39,9 +39,7 @@ from mdsuite.utils.meta_functions import join_path
 
 
 class SimulationVisualizer:
-    """
-    Visualize a simulation.
-    """
+    """Visualize a simulation."""
 
     def __init__(
         self,

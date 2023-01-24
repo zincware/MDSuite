@@ -109,7 +109,7 @@ class TrajectoryCalculator(Calculator, ABC):
 
     @property
     def database(self):
-        """Get the database based on the experiment database path"""
+        """Get the database based on the experiment database path."""
         if self._database is None:
             self._database = Database(self.experiment.database_path / "database.hdf5")
         return self._database
@@ -122,7 +122,6 @@ class TrajectoryCalculator(Calculator, ABC):
         -------
         Will call transformations if required.
         """
-
         if self.loaded_property is None:
             return
 
@@ -153,7 +152,7 @@ class TrajectoryCalculator(Calculator, ABC):
 
         def _string_to_function(argument):
             """
-            Select a transformation based on an input
+            Select a transformation based on an input.
 
             Parameters
             ----------
@@ -164,7 +163,6 @@ class TrajectoryCalculator(Calculator, ABC):
             -------
             transformation call.
             """
-
             switcher_unwrapping = {"Unwrapped_Positions": self._unwrap_choice()}
 
             # add the other transformations and merge the dictionaries
@@ -183,8 +181,10 @@ class TrajectoryCalculator(Calculator, ABC):
     def _unwrap_choice(self):
         """
         Unwrap either with indices or with box arrays.
+
         Returns
         -------
+        -------.
 
         """
         indices = self.database.check_existence("Box_Images")

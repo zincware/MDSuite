@@ -308,6 +308,7 @@ class MolecularGraph:
         graph_dict : dict
                 Dict of decomposed graphs to be converted into correct particle species
                 indices.
+
         Returns
         -------
         group_dict : dict
@@ -395,7 +396,6 @@ def _apply_system_cutoff(input_tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
             and 0s indicated no bonding. Note, the diagonals of this tensor are
             set to 0 as a particle cannot bond itself.
     """
-
     cutoff_mask = tf.cast(
         tf.less(input_tensor, cutoff), dtype=tf.int16
     )  # Construct the mask
@@ -405,7 +405,7 @@ def _apply_system_cutoff(input_tensor: tf.Tensor, cutoff: float) -> tf.Tensor:
 
 def get_neighbour_list(positions: tf.Tensor, cell: list = None) -> tf.Tensor:
     """
-    Generate the neighbour list
+    Generate the neighbour list.
 
     Parameters
     ----------

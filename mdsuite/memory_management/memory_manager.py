@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 
 class MemoryManager:
     """
-    A class to manage memory during MDSuite operations
+    A class to manage memory during MDSuite operations.
 
     In most MDSuite operations the memory requirements of a complete procedure will be
     greater than what is available to the average computer. Therefore, some degree of
@@ -135,7 +135,7 @@ class MemoryManager:
     @staticmethod
     def _select_scale_function(input_dict: dict):
         """
-        select a scale function
+        select a scale function.
 
         Parameters
         ----------
@@ -155,6 +155,7 @@ class MemoryManager:
             ----------
             argument : str
                     String to use in the matching.
+
             Returns
             -------
             function : Callable
@@ -220,7 +221,7 @@ class MemoryManager:
     @staticmethod
     def hdf5_load_time(n: int):
         """
-        Describes the load time of a hdf5 database i.e. O(log N)
+        Describes the load time of a hdf5 database i.e. O(log N).
 
         Parameters
         ----------

@@ -42,9 +42,7 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -55,7 +53,7 @@ class Args:
 
 class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Green-Kubo Thermal conductivity implementation
+    Class for the Green-Kubo Thermal conductivity implementation.
 
     Attributes
     ----------
@@ -80,7 +78,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
     def __init__(self, **kwargs):
         """
-        Class for the Green-Kubo Thermal conductivity implementation
+        Class for the Green-Kubo Thermal conductivity implementation.
 
         Attributes
         ----------
@@ -108,7 +106,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         integration_range: int = None,
     ):
         """
-        Class for the Green-Kubo Thermal conductivity implementation
+        Class for the Green-Kubo Thermal conductivity implementation.
 
         Parameters
         ----------
@@ -180,8 +178,10 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
+        -------.
 
         """
         pass
@@ -213,7 +213,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
     def _post_operation_processes(self):
         """
-        call the post-op processes
+        call the post-op processes.
 
         Returns
         -------

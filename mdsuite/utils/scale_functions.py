@@ -38,6 +38,7 @@ def linear_scale_function(memory_usage: int, scale_factor: int = 1) -> int:
     scale_factor : int
             Scalar scaling factor for the memory usage in cases on non-size dependent
             inflation.
+
     Returns
     -------
     scaled_memory : int
@@ -57,6 +58,7 @@ def linearithmic_scale_function(memory_usage: int, scale_factor: int = 1) -> flo
     scale_factor : int
             Scalar scaling factor for the memory usage in cases on non-size dependent
             inflation.
+
     Returns
     -------
     scaled_memory : float
@@ -106,6 +108,7 @@ def polynomial_scale_function(
             Scalar scaling factor for the outer multiplication
     order : int
             Order of the polynomial.
+
     Returns
     -------
     scaled_memory : int

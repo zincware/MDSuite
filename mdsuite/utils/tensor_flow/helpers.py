@@ -29,7 +29,7 @@ import tensorflow as tf
 
 
 def triu_mask(n, k=0, m=None):
-    """Compute the triu mask"""
+    """Compute the triu mask."""
     if m is None:
         m = n
     bool_mat = tf.ones((n, m), dtype=tf.bool)
@@ -40,5 +40,5 @@ def triu_mask(n, k=0, m=None):
 
 
 def triu_indices(n, k=0, m=None):
-    """Replicate of np.triu_mask"""
+    """Replicate of np.triu_mask."""
     return tf.where(triu_mask(n, k, m))

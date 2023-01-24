@@ -57,9 +57,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     number_of_bins: int
     number_of_configurations: int
@@ -75,7 +73,7 @@ class Args:
 
 class RadialDistributionFunction(TrajectoryCalculator, ABC):
     """
-    Class for the calculation of the radial distribution function
+    Class for the calculation of the radial distribution function.
 
     Attributes
     ----------
@@ -101,7 +99,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     Examples
     --------
-
     .. code-block:: python
 
         project = mdsuite.Project()
@@ -155,7 +152,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         **kwargs,
     ):
         """
-        Compute the RDF with the given user parameters
+        Compute the RDF with the given user parameters.
 
         Parameters
         ----------
@@ -261,9 +258,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         Updates class attributes.
         """
         self.bin_range = [0, self.args.cutoff]
-        self.index_list = [
-            i for i in range(len(self.args.species))
-        ]  # Get the indices of the species
+        self.index_list = list(range(len(self.args.species)))
+        # Get the indices of the species
 
         self.sample_configurations = np.linspace(
             self.args.start,
@@ -284,7 +280,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     def _get_species_names(self, species_tuple: tuple) -> str:
         """
-        Get the correct names of the species being studied
+        Get the correct names of the species being studied.
 
         Parameters
         ----------
@@ -302,14 +298,13 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     def _calculate_prefactor(self, species: Union[str, tuple] = None):
         """
-        Calculate the relevant prefactor for the analysis
+        Calculate the relevant prefactor for the analysis.
 
         Parameters
         ----------
         species : str
                 The species tuple of the RDF being studied, e.g. Na_Na
         """
-
         species_scale_factor = 1
         species_split = species.split("_")
         if species_split[0] == species_split[1]:
@@ -388,7 +383,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     def _ang_to_nm(self, data_in: np.ndarray) -> np.ndarray:
         """
-        Convert Angstroms to nm
+        Convert Angstroms to nm.
 
         Returns
         -------
@@ -426,7 +421,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     def run_minibatch_loop(self, atoms, stop, n_atoms, minibatch_start, positions_tensor):
         """
-        Run a minibatch loop
+        Run a minibatch loop.
 
         Parameters
         ----------
@@ -476,7 +471,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         self, indices: tf.Tensor, start_batch, d_ij: tf.Tensor
     ) -> dict:
         """
-        Compute species-wise histograms
+        Compute species-wise histograms.
 
         Parameters
         ----------
@@ -529,7 +524,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         return rdf
 
     def plot_data(self, data):
-        """Plot the RDF data"""
+        """Plot the RDF data."""
         for selected_species, val in data.items():
             self.run_visualization(
                 x_data=np.array(val[self.result_series_keys[0]]),
@@ -582,7 +577,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                 If true, the main tqdm loop over batches is disabled and only the
                 mini-batch loop will be displayed.
         """
-
         path_list = [
             join_path(item, self.loaded_property.name) for item in self.args.species
         ]
@@ -607,14 +601,14 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     @staticmethod
     def combine_dictionaries(dict_a: dict, dict_b: dict):
         """
-        Combine two dictionaries in a tf.function call
+        Combine two dictionaries in a tf.function call.
 
         Parameters
         ----------
         dict_a : dict
         dict_b : dict
         """
-        out = dict()
+        out = {}
         for key in dict_a:
             out[key] = dict_a[key] + dict_b[key]
         return out
@@ -625,7 +619,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         start, stop, indices, d_ij, bin_range, number_of_bins, cutoff
     ) -> tf.Tensor:
         """
-        Compute the minibatch histogram
+        Compute the minibatch histogram.
 
         Parameters
         ----------
@@ -654,7 +648,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     @tf.function(experimental_relax_shapes=True)
     def get_dij(indices, positions_tensor, atoms, box_array):
         """
-        Compute the distance matrix for the minibatch
+        Compute the distance matrix for the minibatch.
 
         Parameters
         ----------
@@ -698,8 +692,10 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     def particles_list(self):
         """
         List of number of atoms of each species being studied.
+
         Returns
         -------
+        -------.
 
         """
         if self.args.molecules:
@@ -723,7 +719,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     @property
     def ideal_correction(self) -> float:
         """
-        Get the correct ideal gas term
+        Get the correct ideal gas term.
 
         In the case of a cutoff value greater than half of the box size, the ideal gas
         term of the experiment must be corrected due to the lack of spherical symmetry
@@ -734,11 +730,10 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         correction : float
                 Correct ideal gas term for the RDF prefactor
         """
-
         # TODO make it a property
         def _spherical_symmetry(data: np.array) -> np.array:
             """
-            Operation to perform for full spherical symmetry
+            Operation to perform for full spherical symmetry.
 
             Parameters
             ----------
@@ -763,7 +758,6 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
                     result of the operation
 
             """
-
             return 2 * np.pi * data * (3 - 4 * data)
 
         def _correction_2(data: np.array) -> np.array:
@@ -796,14 +790,13 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
             Parameters
             ----------
             data : np.array
-                    tensor_values on which to operate
+                    tensor_values on which to operate.
 
             Returns
             -------
             scaled_data : np.array
                     tensor_values that has been operated on.
             """
-
             # Boundaries on the ideal gsa correction. These go to 73% over half the box
             # size, the most for a cubic box.
             lower_bound = self.experiment.box_array[0] / 2

@@ -35,7 +35,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 class CoordinateUnwrapper(SingleSpeciesTrafo):
     """
     Unwrap coordinates by checking if particles moved from one side of the box to
-    the other within one time step
+    the other within one time step.
     """
 
     def __init__(self):
@@ -51,9 +51,7 @@ class CoordinateUnwrapper(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> typing.Tuple[tf.Tensor, dict]:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
 

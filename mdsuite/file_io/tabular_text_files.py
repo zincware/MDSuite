@@ -1,3 +1,4 @@
+"""MDSuite Tabular Text file reader module."""
 import abc
 import copy
 import dataclasses
@@ -15,7 +16,7 @@ import mdsuite.utils.meta_functions
 @dataclasses.dataclass
 class TabularTextFileReaderMData:
     """Class to hold the data that needs to be extracted from tabular text files before
-    reading them
+    reading them.
 
     Attributes
     ----------
@@ -55,7 +56,7 @@ class TabularTextFileReaderMData:
 
 class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
     """Parent class for all file readers that are based on tabular text data
-    (e.g. lammps, extxyz,...)
+    (e.g. lammps, extxyz,...).
     """
 
     def __init__(
@@ -83,7 +84,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         custom_column_names:
             Dict connecting user-defined properties the column names. To be provided by
             the user.
-            Example: {'MyMagicProperty':['MMP1', 'MMP2']}
+            Example: {'MyMagicProperty':['MMP1', 'MMP2']}.
         """
         self.file_path = pathlib.Path(file_path).resolve()
         my_file_format_column_names = copy.deepcopy(file_format_column_names)
@@ -105,7 +106,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         """
         Child classes of TabularTextFileProcessor must implement this function, so its
         output can be used in get_configurations_generator.
-        See TabularTextFileReaderData for the data that needs to be provided
+        See TabularTextFileReaderData for the data that needs to be provided.
         """
         raise NotImplementedError("Tabular text files must implement this function")
 
@@ -125,7 +126,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         TabularTextFiles implements the parent virtual function,
         but requires its children to provide the necessary information about the table
         contents,
-        see self._get_tabular_text_reader_data
+        see self._get_tabular_text_reader_data.
         """
         n_configs = self.tabular_text_reader_data.n_configs
 
@@ -173,7 +174,7 @@ class TabularTextFileProcessor(mdsuite.file_io.file_read.FileProcessor):
         n_header_lines:
             Number of header lines PER CONFIG
         -------
-            The chunk for your reader output
+            The chunk for your reader output.
         """
         species_list = self.metadata.species_list
         chunk = mdsuite.database.simulation_database.TrajectoryChunkData(
@@ -225,7 +226,7 @@ def read_n_lines(file, n_lines: int, start_at: int = None) -> list:
     If start_at is None, read from the current file state
     Returns
     -------
-    A list of strings, one string for each line
+    A list of strings, one string for each line.
     """
     if start_at is not None:
         file.seek(0)
@@ -239,7 +240,7 @@ def skip_n_lines(file, n_lines: int) -> None:
     Parameters
     ----------
     file: the file where we skip lines
-    n_lines: the number of lines to skip
+    n_lines: the number of lines to skip.
 
     Returns
     -------
@@ -255,10 +256,10 @@ def get_species_list_from_tabular_text_reader_data(
     """
     Use the data collected in TabularTextFileProcessor._get_tabular_text_reader_data() to
     get the values necessary for
-    TabularTextFileProcessor.metadata
+    TabularTextFileProcessor.metadata.
     """
     # all species have the same properties
-    properties_list = list()
+    properties_list = []
     for (
         key,
         val,
@@ -267,7 +268,7 @@ def get_species_list_from_tabular_text_reader_data(
             mdsuite.database.simulation_database.PropertyInfo(name=key, n_dims=len(val))
         )
 
-    species_list = list()
+    species_list = []
     for key, val in tabular_text_reader_data.species_name_to_line_idx_dict.items():
         species_list.append(
             mdsuite.database.simulation_database.SpeciesInfo(
