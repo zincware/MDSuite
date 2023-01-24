@@ -33,9 +33,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class ScaleCoordinates(SingleSpeciesTrafo):
-    """
-    Scale coordinates by multiplying them with the box size
-    """
+    """Scale coordinates by multiplying them with the box size."""
 
     def __init__(self):
         super(ScaleCoordinates, self).__init__(
@@ -50,9 +48,7 @@ class ScaleCoordinates(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> tf.Tensor:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.scaled_positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
         return pos * box_l

@@ -18,4 +18,4 @@ black
 znvis
 ase
 astroid
-ruff
+ruff>=0.0.231

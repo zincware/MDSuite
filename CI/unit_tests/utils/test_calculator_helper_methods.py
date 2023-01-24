@@ -37,9 +37,7 @@ from mdsuite.utils.calculator_helper_methods import (
 
 
 class TestCalculatorHelperMethods:
-    """
-    Test suite for the calculator helper methods.
-    """
+    """Test suite for the calculator helper methods."""
 
     def test_fit_einstein_curve(self):
         """

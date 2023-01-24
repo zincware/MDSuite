@@ -42,9 +42,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     number_of_bins: int
     number_of_configurations: int
@@ -54,9 +52,7 @@ class Args:
 
 @dataclass
 class SpeciesData:
-    """
-    Data class for species data to be used in the calculation.
-    """
+    """Data class for species data to be used in the calculation."""
 
     particle_density: float
     molar_fraction: float
@@ -69,7 +65,7 @@ class StructureFactor(Calculator):
     using the Faber-Ziman partial structure factors. This analysis is valid for a
     magnitude of the X-ray scattering vector Q < 25 * 1/Angstrom. This means that
     the radii of the rdf has to be in Angstrom, otherwise it wont work.
-    Explicitly equations 9, 10 and 11 of the paper
+    Explicitly equations 9, 10 and 11 of the paper.
 
     'DFT Accurate Interatomic Potential for Molten NaCl from MachineLearning' from
     Samuel Tovey, Anand Narayanan Krishnamoorthy, Ganesh Sivaraman, Jicheng Guo,
@@ -117,14 +113,13 @@ class StructureFactor(Calculator):
 
     def __init__(self, **kwargs):
         """
-        Constructor for the class
+        Constructor for the class.
 
         Parameters
         ----------
         experiment : class object
                 Class object of the experiment.
         """
-
         super().__init__(**kwargs)
 
         self.post_generation = True
@@ -324,9 +319,7 @@ class StructureFactor(Calculator):
         return structure_factor
 
     def run_calculator(self):
-        """
-        Compute the total structure factor.
-        """
+        """Compute the total structure factor."""
         partial_sf = self._compute_partial_structure_factors()
         print(partial_sf)
         weight_factors = self._compute_weight_factors()

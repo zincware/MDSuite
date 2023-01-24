@@ -50,7 +50,7 @@ column_names = {
 
 
 class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
-    """LAMMPS Flux file reader"""
+    """LAMMPS Flux file reader."""
 
     def __init__(
         self,
@@ -80,7 +80,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
             Dictionary connecting the name in the mdsuite database to the name of the
             corresponding columns
             example:
-            {"Thermal_Flux":["c_flux_thermal[1]","c_flux_thermal[2]","c_flux_thermal[3]"]}
+            {"Thermal_Flux":["c_flux_thermal[1]","c_flux_thermal[2]","c_flux_thermal[3]"]}.
         """
         super(LAMMPSFluxFile, self).__init__(
             file_path,
@@ -96,9 +96,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
     def _get_tabular_text_reader_mdata(
         self,
     ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
-        """
-        Implement abstract parent method
-        """
+        """Implement abstract parent method."""
         with open(self.file_path, "r") as file:
             with open(self.file_path, "r") as file:
                 file.seek(0)

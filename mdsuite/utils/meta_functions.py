@@ -47,7 +47,7 @@ log = logging.getLogger(__name__)
 
 
 def gpu_available() -> bool:
-    """Check if TensorFlow has access to any GPU device"""
+    """Check if TensorFlow has access to any GPU device."""
     return len(tf.config.list_physical_devices("GPU")) > 1
 
 
@@ -58,6 +58,7 @@ def is_jsonable(x: dict) -> bool:
     ----------
     x: dict
         Dictionary to check, if it is json serializable.
+
     Returns
     -------
     bool: Whether the dict was serializable or not.
@@ -70,7 +71,7 @@ def is_jsonable(x: dict) -> bool:
 
 
 def join_path(a, b):
-    """Join a and b and make sure to use forward slashes
+    """Join a and b and make sure to use forward slashes.
 
     Parameters
     ----------
@@ -94,7 +95,7 @@ def join_path(a, b):
 
 def get_dimensionality(box: list) -> int:
     """
-    Calculate the dimensionality of the experiment box
+    Calculate the dimensionality of the experiment box.
 
     Parameters
     ----------
@@ -107,7 +108,6 @@ def get_dimensionality(box: list) -> int:
             dimension of the box i.e, 1 or 2 or 3 (Higher dimensions probably don't
             make sense just yet)
     """
-
     # Check if the x, y, or z entries are empty, i.e. 2 dimensions
     if box[0] == 0 or box[1] == 0 or box[2] == 0:
         if (
@@ -131,14 +131,13 @@ def get_dimensionality(box: list) -> int:
 
 def get_machine_properties() -> dict:
     """
-    Get the properties of the machine being used
+    Get the properties of the machine being used.
 
     Returns
     -------
     machine_properties : dict
             A dictionary containing information about the hardware being used.
     """
-
     machine_properties = {}
     available_memory = psutil.virtual_memory().available  # RAM available
     total_cpu_cores = psutil.cpu_count(logical=True)  # CPU cores available
@@ -161,7 +160,7 @@ def get_machine_properties() -> dict:
 
 def line_counter(filename: str) -> int:
     """
-    Count the number of lines in a file
+    Count the number of lines in a file.
 
     This function used a memory safe method to count the number of lines in the file.
     Using the other tensor_values collected during the trajectory analysis, this is
@@ -177,7 +176,6 @@ def line_counter(filename: str) -> int:
     lines : int
             Number of lines in the file
     """
-
     f = open(filename, "rb")
     num_lines = sum(1 for _ in f)
     f.close()
@@ -192,7 +190,7 @@ def optimize_batch_size(
     test: bool = False,
 ) -> int:
     """
-    Optimize the size of batches during initial processing
+    Optimize the size of batches during initial processing.
 
     During the database_path construction a batch size must be chosen in order to
     process the trajectories with the least RAM but reasonable performance.
@@ -242,7 +240,7 @@ def optimize_batch_size(
 
 def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
     """
-    Linear function for line fitting
+    Linear function for line fitting.
 
     In many cases, namely those involving an Einstein relation, a linear curve must be
     fit to some tensor_values. This function is called by the scipy curve_fit module as
@@ -267,7 +265,7 @@ def linear_fitting_function(x: np.array, a: float, b: float) -> np.array:
 
 def simple_file_read(filename: str) -> list:
     """
-    Trivially read a file and load it into an array
+    Trivially read a file and load it into an array.
 
     There are many occasions when a file simply must be read and dumped into a file. In
     these cases, we call this method and dump tensor_values into an array. This is NOT
@@ -283,7 +281,6 @@ def simple_file_read(filename: str) -> list:
     data_array: list
             Data read in by the function.
     """
-
     data_array = []  # define empty tensor_values array
     with open(filename, "r+") as f:  # Open the file for reading
         for line in f:  # Loop over the lines
@@ -316,9 +313,7 @@ def timeit(f: Callable) -> Callable:
 
     @wraps(f)
     def wrap(*args, **kw):
-        """
-        Function to wrap a method and time its execution
-        """
+        """Function to wrap a method and time its execution."""
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.
@@ -333,7 +328,7 @@ def apply_savgol_filter(
     data: np.ndarray, order: int = 2, window_length: int = 17
 ) -> np.ndarray:
     """
-    Apply a savgol filter for function smoothing
+    Apply a savgol filter for function smoothing.
 
     This function will simply call the scipy SavGol implementation with preset
     parameters for the polynomial number and window size.
@@ -357,7 +352,6 @@ def apply_savgol_filter(
     There are no tests for this method as a test would simply be testing the scipy
     implementation which they have done.
     """
-
     return savgol_filter(data, window_length, order)
 
 
@@ -391,7 +385,7 @@ def golden_section_search(
     fd: float = None,
 ) -> tuple:
     """
-    Perform a golden-section search for function minimums
+    Perform a golden-section search for function minimums.
 
     The Golden-section search algorithm is one of the best min-finding algorithms
     available and is here used to the minimums of functions during analysis.
@@ -402,7 +396,7 @@ def golden_section_search(
 
 
     Parameters
-    ---------
+    ----------
     data : np.array
             Data on which to find minimums.
     a : float
@@ -415,7 +409,6 @@ def golden_section_search(
     minimum range : tuple
             Returns two radii values within which the minimum can be found.
     """
-
     # Define the golden ratio identities
     phi_a = 1 / golden_ratio
     phi_b = 1 / (golden_ratio**2)
@@ -463,7 +456,6 @@ def get_nearest_divisor(a: int, b: int) -> int:
     divisor : int
             nearest number to a that divides into b evenly.
     """
-
     remainder = 1  # initialize a remainder
     a += 1
     while remainder != 0:
@@ -481,20 +473,19 @@ def split_array(data: np.array, condition: np.array) -> list:
     data : np.array
             tensor_values to split
     condition : np.array
-            condition on which to split by
+            condition on which to split by.
 
     Returns
     -------
     split_array : list
             A list of split up arrays.
     """
-
     initial_split = [data[condition], data[~condition]]  # attempt to split the array
 
     if (
         len(initial_split[1]) == 0
     ):  # if the condition is never met, return only the raw tensor_values
-        return list([data[condition]])
+        return [data[condition]]
     else:  # else return the whole array
         return list(initial_split)
 
@@ -538,7 +529,7 @@ def sort_array_by_column(array: np.ndarray, column_idx: int):
 
 def check_a_in_b(a, b):
     """
-    Check if any value of a is in b
+    Check if any value of a is in b.
 
     Parameters
     ----------

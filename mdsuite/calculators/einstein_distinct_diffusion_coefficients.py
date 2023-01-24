@@ -42,9 +42,7 @@ from mdsuite.utils.calculator_helper_methods import fit_einstein_curve, msd_oper
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -61,7 +59,7 @@ warnings.filterwarnings("ignore")
 
 class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     """
-    Class for the Green-Kubo diffusion coefficient implementation
+    Class for the Green-Kubo diffusion coefficient implementation.
 
     Attributes
     ----------
@@ -150,7 +148,6 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         None
 
         """
-
         if species is None:
             species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(species, 2))
@@ -198,7 +195,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             """
             Maps over the atoms axis in dataset
             Parameters
-            ----------
+            ----------.
 
             Returns
             -------
@@ -207,11 +204,12 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             def test_conf_map(test_dataset):
                 """
                 Map over atoms in test dataset.
+
                 Parameters
                 ----------
                 test_dataset
                 Returns
-                -------
+                -------.
                 """
                 return msd_operation(ref_dataset, test_dataset)
 
@@ -224,10 +222,11 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
+
         Parameters
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
-        ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
+        ds_b : np.ndarray (n_timesteps, n_atoms, dimension).
 
         Returns
         -------
@@ -248,6 +247,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                 Data paths for accessing the dictionary.
         combination : tuple
                 Tuple being studied in the msd, i.e. ('Na', 'Cl) or ('Na', 'Na').
+
         Returns
         -------
         updates the class state
@@ -267,9 +267,10 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     def _apply_averaging_factor(self):
         """
         Apply an averaging factor to the tensor_values.
+
         Returns
         -------
-        averaged copy of the tensor_values
+        averaged copy of the tensor_values.
         """
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
@@ -277,7 +278,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
         self._apply_averaging_factor()  # update in place
@@ -325,9 +326,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self._run_dependency_check()
 
     def run_calculator(self):
-        """
-        Perform the distinct coefficient analysis analysis
-        """
+        """Perform the distinct coefficient analysis analysis."""
         self.check_input()
         for combination in self.combinations:
             species_values = list(combination)

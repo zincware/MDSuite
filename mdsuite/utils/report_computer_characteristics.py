@@ -35,8 +35,7 @@ from mdsuite.utils.exceptions import NoGPUInSystem
 
 
 class Report(scooby.Report):
-    """
-    A class for custom scooby.Report."""
+    """A class for custom scooby.Report."""
 
     def __init__(
         self,

@@ -53,9 +53,7 @@ var_names = {
 
 
 class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
-    """
-    Reader for extxyz files
-    """
+    """Reader for extxyz files."""
 
     def __init__(
         self, file_path: typing.Union[str, pathlib.Path], custom_data_map: dict = None
@@ -84,9 +82,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     def _get_tabular_text_reader_mdata(
         self,
     ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
-        """
-        Implement abstract parent method
-        """
+        """Implement abstract parent method."""
         with open(self.file_path, "r") as file:
             # first header line: number of particles
             n_particles = int(file.readline())
@@ -160,7 +156,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
     def _get_species_information(self, file, species_idx: int, n_particles: int):
         """
-        Get the initial species information
+        Get the initial species information.
 
         Parameters
         ----------
@@ -189,7 +185,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
 
 def _get_box_l(header: str) -> list:
     """
-    Get the box lengths from the Lattice property in the header
+    Get the box lengths from the Lattice property in the header.
 
     Parameters
     ----------
@@ -232,10 +228,11 @@ def _get_time(header: str) -> float:
     """
     Retrieve the time value from a header line.
     Can be used to infer the sampling step by calling on consecutive config headers.
+
     Parameters
     ----------
     header
-        The extxyz header line as one string
+        The extxyz header line as one string.
     """
     data = copy.deepcopy(header).split()
     time = None

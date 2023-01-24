@@ -47,7 +47,7 @@ import mdsuite.file_io.lammps_flux_files
 def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
     """
     References
-    -----------
+    ----------
     https://wiki.fysik.dtu.dk/ase/tutorials/md/md.html
 
     Returns
@@ -84,7 +84,7 @@ def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> dict:
-    """Download files into a temporary directory and keep them for all tests"""
+    """Download files into a temporary directory and keep them for all tests."""
     base_url = "https://github.com/zincware/DataHub/tree/main"
 
     files_to_load = [
@@ -98,7 +98,7 @@ def traj_files(tmp_path_factory) -> dict:
     ]
 
     temporary_path = tmp_path_factory.getbasetemp()
-    file_paths = dict()
+    file_paths = {}
     for fname in files_to_load:
         folder = fname.split(".")[0]
         url = f"{base_url}/{folder}"
@@ -115,9 +115,7 @@ def traj_files(tmp_path_factory) -> dict:
 
 
 def test_experiment_return():
-    """
-    Check that an experiment is returned by the add_experiment argument.
-    """
+    """Check that an experiment is returned by the add_experiment argument."""
     project_1 = mds.Project()
     exp_1 = project_1.add_experiment("Exp01")
     assert type(exp_1) is mdsuite.experiment.experiment.Experiment
@@ -125,7 +123,7 @@ def test_experiment_return():
 
 
 def test_add_file_from_list(traj_files, tmp_path):
-    """Check that adding files from lists does not raise an error"""
+    """Check that adding files from lists does not raise an error."""
     os.chdir(tmp_path)
     project = mds.Project()
     file_names = [
@@ -141,7 +139,7 @@ def test_add_file_from_list(traj_files, tmp_path):
 
 
 def test_add_file_from_str(traj_files, tmp_path):
-    """Check that adding files from str does not raise an error"""
+    """Check that adding files from str does not raise an error."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -156,7 +154,7 @@ def test_add_file_from_str(traj_files, tmp_path):
 
 
 def test_add_file_from_str_extxyz(ase_md_extxyz, tmp_path):
-    """Check that adding extxyz files from an ASE md simulation works"""
+    """Check that adding extxyz files from an ASE md simulation works."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -173,7 +171,7 @@ def test_add_file_from_str_extxyz(ase_md_extxyz, tmp_path):
 
 
 def test_multiple_experiments(tmp_path):
-    """Test the paths within the experiment classes
+    """Test the paths within the experiment classes.
 
     Parameters
     ----------

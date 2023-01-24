@@ -42,7 +42,7 @@ def fit_einstein_curve(
     x_data: np.ndarray, y_data: np.ndarray, fit_max_index: int
 ) -> Tuple[Union[ndarray, Iterable, int, float], Any, list, list]:
     """
-    Fit operation for Einstein calculations
+    Fit operation for Einstein calculations.
 
     Parameters
     ----------

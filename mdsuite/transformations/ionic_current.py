@@ -33,10 +33,7 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class IonicCurrent(MultiSpeciesTrafo):
-    """
-    Transformation to calculate the ionic current (charge * velocities)
-
-    """
+    """Transformation to calculate the ionic current (charge * velocities)."""
 
     def __init__(self):
         super(IonicCurrent, self).__init__(
