@@ -107,7 +107,7 @@ class CalculatorDatabase:
         calculator attributes and returns a db.Computation object if
         the calculation has already been performed
 
-        Return
+        Return:
         ------
         db.Computation
             Returns the computation object from the database if available,
