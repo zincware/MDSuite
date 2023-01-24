@@ -143,7 +143,7 @@ class Project(ProjectDatabase):
         logger.addHandler(channel)
 
     def __str__(self):
-        """
+        r"""
 
         Returns
         -------

@@ -487,7 +487,7 @@ class Database:
                     dataset_path,
                     dataset_information,
                     maxshape=max_shape,
-                    scaleoffset=5,
+                    compression="gzip",
                     chunks=True,
                 )
 
