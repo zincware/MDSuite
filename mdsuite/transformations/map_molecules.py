@@ -80,6 +80,7 @@ class MolecularMap(Transformations):
                 Name of the species to be added
         number_of_molecules : int
                 Number of molecules to be added to the database.
+
         Returns
         -------
         data_structure : dict
@@ -124,6 +125,7 @@ class MolecularMap(Transformations):
         ----------
         species : list
                 List of species to be loaded.
+
         Returns
         -------
         mass_array : list

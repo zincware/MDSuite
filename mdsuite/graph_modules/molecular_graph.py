@@ -308,6 +308,7 @@ class MolecularGraph:
         graph_dict : dict
                 Dict of decomposed graphs to be converted into correct particle species
                 indices.
+
         Returns
         -------
         group_dict : dict

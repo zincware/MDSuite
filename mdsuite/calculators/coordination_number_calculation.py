@@ -273,6 +273,7 @@ class CoordinationNumbers(Calculator):
                 A numpy array of radii values.
         rdf : np.ndarray
                 A numpy array of rdf values.
+
         Returns
         -------
         coordination_shells : dict

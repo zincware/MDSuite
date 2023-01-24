@@ -79,6 +79,7 @@ class DataVisualizer2D:
                 label of the y axis.
         title : str
                 name of the specific plot.
+
         Returns
         -------
         figure : figure

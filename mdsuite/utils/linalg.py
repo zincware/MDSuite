@@ -156,6 +156,7 @@ def cartesian_to_spherical_coordinates(
       eps: A small `float`, to be added to the denominator. If left as `None`, its
         value is automatically selected using `point_cartesian.dtype`.
       name: A name for this op. Defaults to "cartesian_to_spherical_coordinates".
+
     Returns
     -------
       A tensor of shape `[A1, ..., An, 3]`. The last dimensions contains
@@ -188,10 +189,12 @@ def spherical_to_cartesian_coordinates(
         contains r, theta, and phi that respectively correspond to the radius,
         polar angle and azimuthal angle; r must be non-negative.
       name: A name for this op. Defaults to "spherical_to_cartesian_coordinates".
+
     Raises
     ------
       tf.errors.InvalidArgumentError: If r, theta or phi contains out of range
       data.
+
     Returns
     -------
       A tensor of shape `[A1, ..., An, 3]`, where the last dimension contains the

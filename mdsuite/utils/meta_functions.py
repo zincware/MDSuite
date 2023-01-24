@@ -58,6 +58,7 @@ def is_jsonable(x: dict) -> bool:
     ----------
     x: dict
         Dictionary to check, if it is json serializable.
+
     Returns
     -------
     bool: Whether the dict was serializable or not.

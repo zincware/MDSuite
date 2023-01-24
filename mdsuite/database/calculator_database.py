@@ -259,6 +259,7 @@ class CalculatorDatabase:
                 "data_range": 500, "data": 1.8e-9}
         delete_duplicate : bool
                 If true, duplicate entries will be deleted.
+
         Returns
         -------
         Updates the sql database

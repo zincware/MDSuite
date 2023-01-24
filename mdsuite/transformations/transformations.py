@@ -158,6 +158,7 @@ class Transformations:
         ----------
         path : str
                 dataset path to check.
+
         Returns
         -------
         outcome : bool

@@ -423,6 +423,7 @@ class Database:
                 'Temperature': (5000, 1)} In this case, the last value in the tuple
                 corresponds to the number of components that wil be parsed to the
                 database_path.
+
         Returns
         -------
 
@@ -630,6 +631,7 @@ class Database:
         ----------
         database_path : str
                 Database path on which to test the time.
+
         Returns
         -------
         opening time : float

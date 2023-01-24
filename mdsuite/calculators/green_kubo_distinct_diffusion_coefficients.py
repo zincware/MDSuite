@@ -178,7 +178,8 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         ds_b : np.ndarray (n_timesteps, n_atoms, dimension)
         data_range : int (default = 500)
                 Range over which the acf will be computed.
-        correlation_time : int (default = 1)
+        correlation_time : int (default = 1).
+
         Returns
         -------
         -------.
@@ -247,6 +248,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Dictionary of data returned by tensorflow
         same_species : bool
                 If true, the species are the same and i=j should be skipped.
+
         Returns
         -------
         updates the class state
@@ -298,6 +300,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
         ----------
         species : str
                 Species property if required.
+
         Returns
         -------
 

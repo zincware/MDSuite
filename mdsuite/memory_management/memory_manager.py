@@ -155,6 +155,7 @@ class MemoryManager:
             ----------
             argument : str
                     String to use in the matching.
+
             Returns
             -------
             function : Callable

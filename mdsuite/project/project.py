@@ -246,6 +246,7 @@ class Project(ProjectDatabase):
         ----------
         names: Name or list of names of experiments that should be instantiated
                and loaded into self.experiments.
+
         Returns
         -------
         Updates the class state.
