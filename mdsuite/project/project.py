@@ -1,5 +1,6 @@
 """
 MDSuite: A Zincwarecode package.
+
 License
 -------
 This program and the accompanying materials are made available under the terms
@@ -15,8 +16,10 @@ web: https://zincwarecode.com/
 Citation
 --------
 If you use this module please cite us with:
+
 Summary
--------.
+-------
+Parent class for the project.
 """
 from __future__ import annotations
 
@@ -188,8 +191,9 @@ class Project(ProjectDatabase):
             later
         update_with_pubchempy : bool (default=False)
                 Passed to the add data method.
+
         Notes
-        ------
+        -----
         Using custom NoneType to raise a custom ValueError message with useful info.
 
         Returns
