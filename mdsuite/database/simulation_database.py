@@ -167,9 +167,7 @@ class TrajectoryMetadata:
 
 
 class TrajectoryChunkData:
-    """
-    Class to specify the data format for transfer from the file to the database
-    """
+    """Class to specify the data format for transfer from the file to the database"""
 
     def __init__(self, species_list: List[SpeciesInfo], chunk_size: int):
         """
@@ -434,9 +432,7 @@ class Database:
         self.add_dataset(structure)  # add a dataset to the groups
 
     def database_exists(self) -> bool:
-        """
-        Check if the database file already exists
-        """
+        """Check if the database file already exists"""
         return pathlib.Path(self.path).exists()
 
     def add_dataset(self, structure: dict):

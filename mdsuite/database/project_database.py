@@ -36,14 +36,10 @@ log = logging.getLogger(__name__)
 
 
 class ProjectDatabase(DatabaseBase):
-    """
-    Class for the management of the project database.
-    """
+    """Class for the management of the project database."""
 
     def __init__(self):
-        """
-        Constructor for the Project database class.
-        """
+        """Constructor for the Project database class."""
         super().__init__(database_name="project.db")
 
     @property

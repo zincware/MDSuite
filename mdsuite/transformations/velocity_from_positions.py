@@ -41,9 +41,7 @@ class VelocityFromPositions(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> tf.Tensor:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.unwrapped_positions.name]
         dt = (
             batch[mdsuite_properties.time_step.name]

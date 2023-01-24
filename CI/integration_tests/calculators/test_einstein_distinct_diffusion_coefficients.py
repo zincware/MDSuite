@@ -88,9 +88,7 @@ def test_eddc_project(traj_file, true_values, tmp_path):
 
 
 def test_eddc_experiment(traj_file, true_values, tmp_path):
-    """
-    Test the EinsteinDistinctDiffusionCoefficients called from the experiment class
-    """
+    """Test the EinsteinDistinctDiffusionCoefficients called from the experiment class"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(

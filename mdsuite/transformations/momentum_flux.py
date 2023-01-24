@@ -33,9 +33,7 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class MomentumFlux(MultiSpeciesTrafo):
-    """
-    Transformation to calculate the momentum flux
-    """
+    """Transformation to calculate the momentum flux"""
 
     def __init__(self):
         super(MomentumFlux, self).__init__(

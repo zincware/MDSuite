@@ -53,9 +53,7 @@ var_names = {
 
 
 class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
-    """
-    Reader for extxyz files
-    """
+    """Reader for extxyz files"""
 
     def __init__(
         self, file_path: typing.Union[str, pathlib.Path], custom_data_map: dict = None
@@ -84,9 +82,7 @@ class EXTXYZFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
     def _get_tabular_text_reader_mdata(
         self,
     ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
-        """
-        Implement abstract parent method
-        """
+        """Implement abstract parent method"""
         with open(self.file_path, "r") as file:
             # first header line: number of particles
             n_particles = int(file.readline())

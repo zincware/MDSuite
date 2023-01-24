@@ -115,9 +115,7 @@ def traj_files(tmp_path_factory) -> dict:
 
 
 def test_experiment_return():
-    """
-    Check that an experiment is returned by the add_experiment argument.
-    """
+    """Check that an experiment is returned by the add_experiment argument."""
     project_1 = mds.Project()
     exp_1 = project_1.add_experiment("Exp01")
     assert type(exp_1) is mdsuite.experiment.experiment.Experiment

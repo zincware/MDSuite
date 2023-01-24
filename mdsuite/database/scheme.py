@@ -73,9 +73,7 @@ class Project(Base):
 
 
 class Experiment(Base):
-    """
-    Class for the experiment table associated with the Project table.
-    """
+    """Class for the experiment table associated with the Project table."""
 
     __tablename__ = "experiments"
 
@@ -345,9 +343,7 @@ class Computation(Base):
 
 
 class ComputationAttribute(Base):
-    """
-    Class for the meta data of a computation.
-    """
+    """Class for the meta data of a computation."""
 
     __tablename__ = "computation_attributes"
 
@@ -365,9 +361,7 @@ class ComputationAttribute(Base):
 
 
 class ComputationResult(Base):
-    """
-    raw computation data of a calculation.
-    """
+    """raw computation data of a calculation."""
 
     __tablename__ = "computation_results"
 

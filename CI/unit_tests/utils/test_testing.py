@@ -34,9 +34,7 @@ from mdsuite.utils.testing import MDSuiteProcess, assertDeepAlmostEqual
 
 
 class TestProcess(unittest.TestCase):
-    """
-    Test the process class
-    """
+    """Test the process class"""
 
     def test_exception(self):
         """
@@ -90,9 +88,7 @@ class TestProcess(unittest.TestCase):
 
 
 class TestAssertDeepAlmostEqual(unittest.TestCase):
-    """
-    Test the deep array assert testing method.
-    """
+    """Test the deep array assert testing method."""
 
     def test_almost_equal(self):
         """

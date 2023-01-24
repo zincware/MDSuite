@@ -55,9 +55,7 @@ def true_values() -> dict:
 
 
 def test_project(traj_file, true_values, tmp_path):
-    """
-    Test the green_kubo_distinct_diffusion_coefficients called from the project class
-    """
+    """Test the GK distinct diffusion coefficients called from the project class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -82,9 +80,7 @@ def test_project(traj_file, true_values, tmp_path):
 
 
 def test_experiment(traj_file, true_values, tmp_path):
-    """
-    Test the green_kubo_distinct_diffusion_coefficients called from the experiment class
-    """
+    """Test the GK distinct diffusion coefficients called from the experiment class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(

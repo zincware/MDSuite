@@ -187,9 +187,7 @@ def test_experiment_simulation_data(tmp_path):
 
 
 def test_experiment_simulation_data_nested(tmp_path):
-    """
-    Test that nested experiment simulation data is stored correctly in the database
-    """
+    """Test that nested experiment simulation data is stored correctly in the database"""
     os.chdir(tmp_path)
     simulation_data = {"a": {"one": [1.0, 2.0, 3.0], "two": [4.0, 5.0, 6.0]}}
 

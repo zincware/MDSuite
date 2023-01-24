@@ -56,9 +56,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     number_of_configurations: int
     data_range: int

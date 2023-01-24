@@ -60,9 +60,7 @@ log = logging.getLogger(__name__)
 
 
 def _get_processor(simulation_data):
-    """
-    Read in one file
-    """
+    """Read in one file"""
     if isinstance(simulation_data, str) or isinstance(simulation_data, pathlib.Path):
         suffix = pathlib.Path(simulation_data).suffix
         if suffix == ".lammpstraj":

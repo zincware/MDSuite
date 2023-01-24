@@ -63,17 +63,13 @@ class SmilesTestData:
 
 
 class MockExperiment:
-    """
-    Experiment class for a unit test
-    """
+    """Experiment class for a unit test"""
 
     database_path = Path("./")
 
 
 class TestMolecularGraph:
-    """
-    Class to test the molecular graph module.
-    """
+    """Class to test the molecular graph module."""
 
     def test_apply_system_cutoff(self):
         """

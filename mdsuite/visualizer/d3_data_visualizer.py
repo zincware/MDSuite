@@ -37,9 +37,7 @@ from PIL.ImageColor import getcolor
 
 
 class DataVisualizer3D:
-    """
-    Class for the visualizer of three dimensional data.
-    """
+    """Class for the visualizer of three dimensional data."""
 
     def __init__(
         self,

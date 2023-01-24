@@ -34,9 +34,7 @@ from mdsuite.transformations.transformations import SingleSpeciesTrafo
 
 
 class CoordinateWrapper(SingleSpeciesTrafo):
-    """
-    Wrap coordinates into the simulation box
-    """
+    """Wrap coordinates into the simulation box"""
 
     def __init__(self, center_box: bool = True):
         """
@@ -63,9 +61,7 @@ class CoordinateWrapper(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> tf.Tensor:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         unwrap_pos = batch[mdsuite_properties.unwrapped_positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
 

@@ -117,9 +117,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
     def get_configurations_generator(
         self,
     ) -> typing.Iterator[mdsuite.file_io.file_read.TrajectoryChunkData]:
-        """
-        Implement parent abstract method
-        """
+        """Implement parent abstract method"""
 
         batch_size = mdsuite.utils.meta_functions.optimize_batch_size(
             filepath=self.traj_file_path,

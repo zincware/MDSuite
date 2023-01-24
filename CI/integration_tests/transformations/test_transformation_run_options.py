@@ -86,17 +86,13 @@ def test_from_experiment_twice(mdsuite_project):
 
 
 def test_pass_instance_to_exp(mdsuite_project):
-    """
-    Test passing the transformation to the experiment class.
-    """
+    """Test passing the transformation to the experiment class."""
     mdsuite_project.experiments.NaCl.cls_transformation_run(
         mdsuite.transformations.CoordinateUnwrapper()
     )
 
 
 def test_call_with_instance(mdsuite_project):
-    """
-    test instanciating and then calling the trafo
-    """
+    """Test instanciating and then calling the trafo."""
     trafo = mdsuite.transformations.CoordinateUnwrapper()
     mdsuite_project.experiments.NaCl.cls_transformation_run(trafo)

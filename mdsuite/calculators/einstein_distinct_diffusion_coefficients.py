@@ -42,9 +42,7 @@ from mdsuite.utils.calculator_helper_methods import fit_einstein_curve, msd_oper
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -325,9 +323,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self._run_dependency_check()
 
     def run_calculator(self):
-        """
-        Perform the distinct coefficient analysis analysis
-        """
+        """Perform the distinct coefficient analysis analysis"""
         self.check_input()
         for combination in self.combinations:
             species_values = list(combination)

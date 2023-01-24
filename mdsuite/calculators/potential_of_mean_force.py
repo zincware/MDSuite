@@ -45,9 +45,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     savgol_order: int
     savgol_window_length: int
@@ -331,9 +329,7 @@ class PotentialOfMeanForce(Calculator):
         return pomf_data
 
     def run_calculator(self):
-        """
-        Calculate the potential of mean-force and perform error analysis
-        """
+        """Calculate the potential of mean-force and perform error analysis"""
         for selected_species, vals in self.rdf_data.data_dict.items():
             selected_species = selected_species.split("_")
             radii = np.array(vals["x"]).astype(float)[1:]

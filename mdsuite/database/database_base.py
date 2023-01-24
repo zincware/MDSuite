@@ -38,9 +38,7 @@ log = logging.getLogger(__name__)
 
 
 class DatabaseBase:
-    """
-    Docstring
-    """
+    """Docstring"""
 
     def __init__(self, database_name: str):
         """

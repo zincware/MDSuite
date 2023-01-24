@@ -51,9 +51,7 @@ class CoordinateUnwrapper(SingleSpeciesTrafo):
     def transform_batch(
         self, batch: typing.Dict[str, tf.Tensor], carryover: typing.Any = None
     ) -> typing.Tuple[tf.Tensor, dict]:
-        """
-        Implement parent class abstract method.
-        """
+        """Implement parent class abstract method."""
         pos = batch[mdsuite_properties.positions.name]
         box_l = batch[mdsuite_properties.box_length.name]
 

@@ -34,10 +34,7 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class KinaciIntegratedHeatCurrent(MultiSpeciesTrafo):
-    """
-    Transformation to calculate the Kinaci integrated heat current
-
-    """
+    """Transformation to calculate the Kinaci integrated heat current"""
 
     def __init__(self):
         super(KinaciIntegratedHeatCurrent, self).__init__(

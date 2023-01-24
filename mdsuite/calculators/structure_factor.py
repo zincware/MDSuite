@@ -42,9 +42,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     number_of_bins: int
     number_of_configurations: int
@@ -54,9 +52,7 @@ class Args:
 
 @dataclass
 class SpeciesData:
-    """
-    Data class for species data to be used in the calculation.
-    """
+    """Data class for species data to be used in the calculation."""
 
     particle_density: float
     molar_fraction: float
@@ -324,9 +320,7 @@ class StructureFactor(Calculator):
         return structure_factor
 
     def run_calculator(self):
-        """
-        Compute the total structure factor.
-        """
+        """Compute the total structure factor."""
         partial_sf = self._compute_partial_structure_factors()
         print(partial_sf)
         weight_factors = self._compute_weight_factors()

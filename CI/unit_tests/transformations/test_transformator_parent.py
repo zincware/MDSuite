@@ -119,9 +119,7 @@ def test_full_transformation_with_values(tmp_path):
 
 
 def test_not_found_errors(tmp_path):
-    """
-    Test that the correct error is thrown if input data cannot be found
-    """
+    """Test that the correct error is thrown if input data cannot be found"""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(name="TestExp1234", timestep=12345)
@@ -206,9 +204,7 @@ def test_data_from_species_and_experiment(tmp_path):
 
 
 def test_transformation_on_new_data_(tmp_path):
-    """
-    Check that after adding new data, the transformation still works
-    """
+    """Check that after adding new data, the transformation still works"""
     os.chdir(tmp_path)
     project = mds.Project()
 

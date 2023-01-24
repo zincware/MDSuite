@@ -46,9 +46,7 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     savgol_order: int
     savgol_window_length: int
@@ -221,9 +219,7 @@ class CoordinationNumbers(Calculator):
         self.volume = volume_si / 1e-9**3
 
     def _get_density(self, species: str) -> float:
-        """
-        Use the species_tuple in front of the name to get information about the pair
-        """
+        """Use the species_tuple in front of the name to get information about the pair"""
 
         species = species.split("_")  # get an array of the species being studied
         rdf_number_of_atoms = self.experiment.species[species[0]].n_particles
@@ -340,9 +336,7 @@ class CoordinationNumbers(Calculator):
         return coordination_numbers
 
     def run_calculator(self):
-        """
-        Calculate the coordination numbers and perform error analysis
-        """
+        """Calculate the coordination numbers and perform error analysis"""
 
         for selected_species, vals in self.rdf_data.data_dict.items():
             log.debug(f"Computing coordination numbers for {selected_species}")

@@ -117,9 +117,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
 
 
 class TestMoleculeMapping:
-    """
-    Class to wrap test suite so we can run all tests within PyCharm.
-    """
+    """Class to wrap test suite so we can run all tests within PyCharm."""
 
     def test_water_molecule_smiles(self, mdsuite_project):
         """

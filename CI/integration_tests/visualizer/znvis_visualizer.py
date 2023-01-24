@@ -37,9 +37,7 @@ from mdsuite.utils.testing import MDSuiteProcess
 
 
 class TestZnvisVisualizer(unittest.TestCase):
-    """
-    A test class for the Particle class.
-    """
+    """A test class for the Particle class."""
 
     def test_run(self):
         """

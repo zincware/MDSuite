@@ -27,57 +27,43 @@ Summary
 
 
 class NoElementInDump(Exception):
-    """
-    Thrown when no elements are found in a dump file
-    """
+    """Thrown when no elements are found in a dump file"""
 
     pass
 
 
 class NoTempInData(Exception):
-    """
-    Thrown when no temperature is found in a tensor_values file
-    """
+    """Thrown when no temperature is found in a tensor_values file"""
 
     pass
 
 
 class NotApplicableToAnalysis(Exception):
-    """
-    Thrown when the function is not applicable to the type of analysis being performed
-    """
+    """Thrown when the function is not applicable to the type of analysis"""
 
     pass
 
 
 class CannotPerformThisAnalysis(Exception):
-    """
-    Thrown when analysis cannot be reliably performed given the tensor_values
-    """
+    """Thrown when analysis cannot be reliably performed given the tensor_values"""
 
     pass
 
 
 class ElementMassAssignedZero(Exception):
-    """
-    Thrown when an element mass has been assigned zero.
-    """
+    """Thrown when an element mass has been assigned zero."""
 
     pass
 
 
 class NoGPUInSystem(Exception):
-    """
-    Thrown during experiment analysis when GPUs are being searched for.
-    """
+    """Thrown during experiment analysis when GPUs are being searched for."""
 
     pass
 
 
 class DatasetExists(Exception):
-    """
-    Thrown if a dataset in a hdf5 database_path already exists
-    """
+    """Thrown if a dataset in a hdf5 database_path already exists"""
 
     pass
 
@@ -92,9 +78,7 @@ class RangeExceeded(Exception):
 
 
 class DatabaseDoesNotExist(Exception):
-    """
-    Thrown when a preexisting database_path object is called but none exists
-    """
+    """Thrown when a preexisting database_path object is called but none exists"""
 
     def __init__(self):
         """Constructor method"""
@@ -103,8 +87,6 @@ class DatabaseDoesNotExist(Exception):
 
 
 class NotInDataFile(Exception):
-    """
-    Thrown when a parameter is not in a data file.
-    """
+    """Thrown when a parameter is not in a data file."""
 
     pass

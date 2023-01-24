@@ -308,9 +308,7 @@ class Calculator(CalculatorDatabase):
             )
 
     def run_analysis(self):
-        """
-        Run the appropriate analysis
-        """
+        """Run the appropriate analysis"""
         if self.experimental:
             log.warning(
                 "This is an experimental calculator. Please see the "

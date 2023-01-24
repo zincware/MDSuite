@@ -61,9 +61,7 @@ class MolecularMap(Transformations):
     """
 
     def __init__(self):
-        """
-        Constructor for the MolecularMap class.
-        """
+        """Constructor for the MolecularMap class."""
         super().__init__()
         self.molecules = None  # parsed by the user.
         self.reference_molecules = {}

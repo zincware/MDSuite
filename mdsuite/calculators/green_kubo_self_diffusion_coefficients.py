@@ -46,9 +46,7 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int

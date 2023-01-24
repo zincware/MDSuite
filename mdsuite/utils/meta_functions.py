@@ -316,9 +316,7 @@ def timeit(f: Callable) -> Callable:
 
     @wraps(f)
     def wrap(*args, **kw):
-        """
-        Function to wrap a method and time its execution
-        """
+        """Function to wrap a method and time its execution"""
         ts = time()  # get the initial time
         result = f(*args, **kw)  # run the function.
         te = time()  # get the time after the function as run.

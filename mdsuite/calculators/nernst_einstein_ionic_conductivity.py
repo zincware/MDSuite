@@ -401,9 +401,7 @@ class NernstEinsteinIonicConductivity(Calculator):
             self._update_properties_file(properties)
 
     def run_post_generation_analysis(self):
-        """
-        Run the analysis
-        """
+        """Run the analysis"""
         self._run_nernst_einstein()
         if self.corrected:
             self._run_corrected_nernst_einstein()

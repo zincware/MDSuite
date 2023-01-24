@@ -37,9 +37,7 @@ from mdsuite.utils import config
 
 
 class DataVisualizer2D:
-    """
-    Visualizer for two-dimensional data.
-    """
+    """Visualizer for two-dimensional data."""
 
     def __init__(self, title: str, path: pathlib.Path):
         """
