@@ -100,7 +100,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         temperature=300.0,
         units=gmx_units,
         simulation_data=file_reader_1,
-        update_with_pubchempy=True
+        update_with_pubchempy=True,
     )
     project.add_experiment(
         name="ligand_water",
@@ -108,7 +108,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         temperature=300.0,
         units=gmx_units,
         simulation_data=file_reader_2,
-        update_with_pubchempy=True
+        update_with_pubchempy=True,
     )
 
     project.add_experiment(
