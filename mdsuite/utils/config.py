@@ -32,7 +32,7 @@ class Config:
     """Collection of MDSuite configurations.
 
     Attributes
-    -----------
+    ----------
     bokeh_sizing_mode: str
         The way bokeh scales plots.
         see bokeh / sizing_mode for more information

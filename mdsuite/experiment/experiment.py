@@ -233,7 +233,7 @@ class Experiment(ExperimentDatabase):
         """Create or update internal file paths.
 
         Attributes
-        -----------
+        ----------
         path: Path
             The default path for the experiment files
         database_path: Path

@@ -39,7 +39,7 @@ def get_triu_indicies(n_atoms):
     Version of np.triu_indices with k=1.
 
     Returns
-    ---------
+    -------
     Returns a vector of size (2, None) instead of a tuple of two values like
     np.triu_indices
     """

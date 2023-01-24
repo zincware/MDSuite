@@ -395,7 +395,7 @@ def golden_section_search(
 
 
     Parameters
-    ---------
+    ----------
     data : np.array
             Data on which to find minimums.
     a : float

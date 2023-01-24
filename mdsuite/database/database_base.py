@@ -76,7 +76,7 @@ class DatabaseBase:
         """
 
         Notes
-        -------
+        -----
         Use with context manager like:
         >>> with self.session as ses:
         >>>     ses.add()

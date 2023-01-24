@@ -58,7 +58,7 @@ def test_project(traj_file, true_values, tmp_path):
     """Test the Einstein_Helfand_Ionic_Conductivity called from the project class.
 
     Notes
-    ------
+    -----
     Test uncertainty is very high!
     """
     os.chdir(tmp_path)

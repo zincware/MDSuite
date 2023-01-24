@@ -190,7 +190,7 @@ class Project(ProjectDatabase):
         Using custom NoneType to raise a custom ValueError message with useful info.
 
         Returns
-        --------
+        -------
         Experiment:
             The experiment object that was added to the project
 

@@ -47,7 +47,7 @@ import mdsuite.file_io.lammps_flux_files
 def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
     """
     References
-    -----------
+    ----------
     https://wiki.fysik.dtu.dk/ase/tutorials/md/md.html
 
     Returns
