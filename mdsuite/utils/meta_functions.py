@@ -485,7 +485,7 @@ def split_array(data: np.array, condition: np.array) -> list:
     if (
         len(initial_split[1]) == 0
     ):  # if the condition is never met, return only the raw tensor_values
-        return list([data[condition]])
+        return [data[condition]]
     else:  # else return the whole array
         return list(initial_split)
 
