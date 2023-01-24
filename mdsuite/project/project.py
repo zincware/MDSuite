@@ -304,7 +304,7 @@ class Project(ProjectDatabase):
         RunComputation:
             class that has all available calculators as properties
         """
-        return RunComputation(experiments=[x for x in self.active_experiments.values()])
+        return RunComputation(experiments=list(self.active_experiments.values()))
 
     @property
     def experiments(self) -> Dict[str, Experiment]:

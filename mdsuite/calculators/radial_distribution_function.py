@@ -258,9 +258,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         Updates class attributes.
         """
         self.bin_range = [0, self.args.cutoff]
-        self.index_list = [
-            i for i in range(len(self.args.species))
-        ]  # Get the indices of the species
+        self.index_list = list(range(len(self.args.species)))
+        # Get the indices of the species
 
         self.sample_configurations = np.linspace(
             self.args.start,

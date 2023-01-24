@@ -92,7 +92,7 @@ def test_add_run_load_data(project, traj_files):
     # Check that data for 4 experiments has been loaded
     assert len(loaded_data) == 4
     # Check the keys
-    assert {x for x in loaded_data} == {"NaCl0", "NaCl1", "NaCl2", "NaCl3"}  #
+    assert set(loaded_data) == {"NaCl0", "NaCl1", "NaCl2", "NaCl3"}  #
 
     # Each loaded data should contain 3 entries, Na-Na, Na-Cl, Cl-Cl
     for data in loaded_data.values():

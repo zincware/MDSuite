@@ -308,7 +308,7 @@ class Experiment(ExperimentDatabase):
             except KeyError:
                 raise KeyError(
                     f"The unit '{units_system}' is not implemented."
-                    f" The available units are: {[x for x in units_dict]}"
+                    f" The available units are: {list(units_dict)}"
                 )
         else:
             raise ValueError(
