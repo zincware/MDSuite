@@ -620,7 +620,7 @@ class Experiment(ExperimentDatabase):
         if update_with_pubchempy:
             update_species_attributes_with_pubchempy(species_list)
         # store the species information in dict format
-        species_dict = dict()
+        species_dict = {}
         for sp_info in species_list:
             species_dict[sp_info.name] = {
                 # look here

@@ -98,7 +98,7 @@ def traj_files(tmp_path_factory) -> dict:
     ]
 
     temporary_path = tmp_path_factory.getbasetemp()
-    file_paths = dict()
+    file_paths = {}
     for fname in files_to_load:
         folder = fname.split(".")[0]
         url = f"{base_url}/{folder}"

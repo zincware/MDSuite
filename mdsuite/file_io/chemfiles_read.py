@@ -98,7 +98,7 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
             else:
                 self.properties_in_file[mds_prop] = chemfile_attr_name
 
-        species_list = list()
+        species_list = []
         for key, val in self.species_name_to_line_idxs_dict.items():
             species_list.append(
                 mdsuite.database.simulation_database.SpeciesInfo(

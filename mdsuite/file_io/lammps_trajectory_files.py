@@ -205,7 +205,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         else:
             raise ValueError("Insufficient species or type identification available.")
 
-        species_dict = dict()
+        species_dict = {}
         # skip the header
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration

@@ -14,10 +14,10 @@ err_decimal = 5
 
 
 def get_species_list(n_species=1, prop_names=["Positions"], n_particles=17, n_dims=3):
-    props = list()
+    props = []
     for prop_name in prop_names:
         props.append(PropertyInfo(name=prop_name, n_dims=n_dims))
-    ret = list()
+    ret = []
     for i in range(n_species):
         ret.append(
             SpeciesInfo(

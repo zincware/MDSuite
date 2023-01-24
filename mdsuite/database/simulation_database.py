@@ -184,9 +184,9 @@ class TrajectoryChunkData:
         """
         self.chunk_size = chunk_size
         self.species_list = species_list
-        self._data = dict()
+        self._data = {}
         for sp_info in species_list:
-            self._data[sp_info.name] = dict()
+            self._data[sp_info.name] = {}
             for prop_info in sp_info.properties:
                 self._data[sp_info.name][prop_info.name] = np.zeros(
                     (chunk_size, sp_info.n_particles, prop_info.n_dims)

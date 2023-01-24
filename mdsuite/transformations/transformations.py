@@ -185,7 +185,7 @@ class Transformations:
         # turn data into trajectory chunk
         # data_structure is dict {'/path/to/property':{'indices':irrelevant,
         #                           'columns':deduce->deduce n_dims, 'length':n_particles}
-        species_list = list()
+        species_list = []
         # data structure only has 1 element
         key, val = list(data_structure.items())[0]
         path = str(copy.copy(key))

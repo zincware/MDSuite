@@ -259,7 +259,7 @@ def get_species_list_from_tabular_text_reader_data(
     TabularTextFileProcessor.metadata.
     """
     # all species have the same properties
-    properties_list = list()
+    properties_list = []
     for (
         key,
         val,
@@ -268,7 +268,7 @@ def get_species_list_from_tabular_text_reader_data(
             mdsuite.database.simulation_database.PropertyInfo(name=key, n_dims=len(val))
         )
 
-    species_list = list()
+    species_list = []
     for key, val in tabular_text_reader_data.species_name_to_line_idx_dict.items():
         species_list.append(
             mdsuite.database.simulation_database.SpeciesInfo(

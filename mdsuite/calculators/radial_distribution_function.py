@@ -608,7 +608,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         dict_a : dict
         dict_b : dict
         """
-        out = dict()
+        out = {}
         for key in dict_a:
             out[key] = dict_a[key] + dict_b[key]
         return out
