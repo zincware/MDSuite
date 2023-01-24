@@ -66,6 +66,7 @@ class RunModule:
         >>> self.run.EinsteinDiffusionCoefficients(plot=True).
 
         Returns
+        -------
             Instantiated calculator class with added experiment that can be called.
         """
         if item.startswith("_"):

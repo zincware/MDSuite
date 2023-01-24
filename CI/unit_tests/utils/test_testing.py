@@ -71,6 +71,7 @@ class TestProcess(unittest.TestCase):
         """
         Process to throw exception.
         Returns
+        -------
         -------.
 
         """
@@ -81,6 +82,7 @@ class TestProcess(unittest.TestCase):
         """
         Process to not throw an exception.
         Returns
+        -------
         -------.
 
         """

@@ -180,6 +180,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
                 Range over which the acf will be computed.
         correlation_time : int (default = 1)
         Returns
+        -------
         -------.
         """
         atomwise_vmap = jax.vmap(correlate, in_axes=0)

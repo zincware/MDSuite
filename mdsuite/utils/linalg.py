@@ -157,6 +157,7 @@ def cartesian_to_spherical_coordinates(
         value is automatically selected using `point_cartesian.dtype`.
       name: A name for this op. Defaults to "cartesian_to_spherical_coordinates".
     Returns
+    -------
       A tensor of shape `[A1, ..., An, 3]`. The last dimensions contains
       (`r`,`theta`,`phi`), where `r` is the sphere radius, `theta` is the polar
       angle and `phi` is the azimuthal angle. Returns `NaN` gradient if x = y = 0.
@@ -188,9 +189,11 @@ def spherical_to_cartesian_coordinates(
         polar angle and azimuthal angle; r must be non-negative.
       name: A name for this op. Defaults to "spherical_to_cartesian_coordinates".
     Raises
+    ------
       tf.errors.InvalidArgumentError: If r, theta or phi contains out of range
       data.
     Returns
+    -------
       A tensor of shape `[A1, ..., An, 3]`, where the last dimension contains the
       cartesian coordinates in x,y,z order.
     """

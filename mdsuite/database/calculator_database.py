@@ -237,6 +237,7 @@ class CalculatorDatabase:
         """Queue data to be stored in the database.
 
         Parameters
+        ----------
             data: dict
                 A  dictionary containing all the data that was computed by the
                 computation

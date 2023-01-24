@@ -273,6 +273,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         """
         Prepare variables and dicts for the analysis.
         Returns
+        -------
         -------.
 
         """

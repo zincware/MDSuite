@@ -179,6 +179,7 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
+        -------
         -------.
 
         """

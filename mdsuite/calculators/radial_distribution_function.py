@@ -695,6 +695,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         """
         List of number of atoms of each species being studied.
         Returns
+        -------
         -------.
 
         """

@@ -182,6 +182,7 @@ class TrajectoryCalculator(Calculator, ABC):
         """
         Unwrap either with indices or with box arrays.
         Returns
+        -------
         -------.
 
         """

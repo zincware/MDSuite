@@ -209,6 +209,7 @@ class TrajectoryChunkData:
             Name of the property being added.
 
         Example:
+        -------
         Storing velocity Information for 42 Na atoms in the 17th iteration of a loop
         that reads 5 configs per loop:
         add_data(vel_array, 16*5, 'Na', 'Velocities')

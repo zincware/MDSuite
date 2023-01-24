@@ -82,6 +82,7 @@ class DatabaseBase:
         >>>     ses.add()
 
         Returns
+        -------
             Session that can be used inside a context manager
 
         """

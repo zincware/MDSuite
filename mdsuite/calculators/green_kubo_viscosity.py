@@ -174,6 +174,7 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         """
         Apply the averaging factor to the msd array.
         Returns
+        -------
         -------.
 
         """
