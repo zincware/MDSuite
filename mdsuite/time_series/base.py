@@ -38,10 +38,10 @@ if TYPE_CHECKING:
     from mdsuite import Experiment
 
 
-def running_mean(x, N):
+def running_mean(x, size):
     """Perform a rolling window mean."""
     cumsum = np.cumsum(np.insert(x, 0, 0))
-    return (cumsum[N:] - cumsum[:-N]) / float(N)
+    return (cumsum[size:] - cumsum[:-size]) / float(size)
 
 
 class TimeSeries:
