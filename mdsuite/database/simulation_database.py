@@ -127,7 +127,8 @@ class MoleculeInfo(SpeciesInfo):
 
 @dataclasses.dataclass
 class TrajectoryMetadata:
-    """
+    """Trajectory Metadata container.
+
     This metadata must be extracted from trajectory files to build the database into
     which the trajectory will be stored.
 
