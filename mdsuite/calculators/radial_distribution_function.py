@@ -694,6 +694,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
     def particles_list(self):
         """
         List of number of atoms of each species being studied.
+
         Returns
         -------
         -------.

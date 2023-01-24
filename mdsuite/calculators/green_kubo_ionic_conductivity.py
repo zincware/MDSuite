@@ -187,6 +187,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
         -------.

@@ -523,6 +523,7 @@ class SingleSpeciesTrafo(Transformations):
     ) -> typing.Union[tf.Tensor, typing.Tuple[tf.Tensor, typing.Any]]:
         """
         Do the actual transformation.
+
         Parameters
         ----------
         batch : dict
@@ -624,6 +625,7 @@ class MultiSpeciesTrafo(Transformations):
     ) -> tf.Tensor | typing.Tuple[tf.Tensor, typing.Any]:
         """
         Do the actual transformation.
+
         Parameters
         ----------
         batch : dict

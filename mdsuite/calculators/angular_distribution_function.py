@@ -272,6 +272,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
     def _prepare_data_structure(self):
         """
         Prepare variables and dicts for the analysis.
+
         Returns
         -------
         -------.

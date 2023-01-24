@@ -172,6 +172,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
     def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
+
         Parameters
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
@@ -221,6 +222,7 @@ class GreenKuboDistinctDiffusionCoefficients(TrajectoryCalculator, ABC):
             def test_conf_map(test_dataset):
                 """
                 Map over atoms in test dataset.
+
                 Parameters
                 ----------
                 test_dataset

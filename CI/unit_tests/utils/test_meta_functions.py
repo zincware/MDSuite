@@ -169,6 +169,7 @@ class TestMetaFunction:
         def func(x: np.ndarray):
             """
             test function.
+
             Parameters
             ----------
             x : np.ndarray.

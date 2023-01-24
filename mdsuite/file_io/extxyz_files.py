@@ -228,6 +228,7 @@ def _get_time(header: str) -> float:
     """
     Retrieve the time value from a header line.
     Can be used to infer the sampling step by calling on consecutive config headers.
+
     Parameters
     ----------
     header

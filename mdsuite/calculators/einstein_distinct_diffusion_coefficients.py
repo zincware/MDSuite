@@ -204,6 +204,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
             def test_conf_map(test_dataset):
                 """
                 Map over atoms in test dataset.
+
                 Parameters
                 ----------
                 test_dataset
@@ -221,6 +222,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     def _compute_self_correlation(self, ds_a, ds_b):
         """
         Compute the self correlation coefficients.
+
         Parameters
         ----------
         ds_a : np.ndarray (n_timesteps, n_atoms, dimension)
@@ -265,6 +267,7 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
     def _apply_averaging_factor(self):
         """
         Apply an averaging factor to the tensor_values.
+
         Returns
         -------
         averaged copy of the tensor_values.

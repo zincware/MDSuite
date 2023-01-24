@@ -181,6 +181,7 @@ class TrajectoryCalculator(Calculator, ABC):
     def _unwrap_choice(self):
         """
         Unwrap either with indices or with box arrays.
+
         Returns
         -------
         -------.

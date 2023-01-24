@@ -331,6 +331,7 @@ class Database:
     def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
         """
         Add new data to the dataset.
+
         Parameters
         ----------
         chunk:
@@ -677,6 +678,7 @@ class Database:
     def get_database_summary(self):
         """
         Get a summary of the database properties.
+
         Returns
         -------
         summary : list

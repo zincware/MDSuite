@@ -70,6 +70,7 @@ class TestProcess(unittest.TestCase):
     def _exception_throw():
         """
         Process to throw exception.
+
         Returns
         -------
         -------.
@@ -81,6 +82,7 @@ class TestProcess(unittest.TestCase):
     def _no_exception():
         """
         Process to not throw an exception.
+
         Returns
         -------
         -------.
