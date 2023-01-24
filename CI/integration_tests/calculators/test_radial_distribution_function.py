@@ -70,7 +70,7 @@ def test_project(traj_file, true_values, tmp_path):
 
 @pytest.mark.parametrize("desired_memory", (None, 0.001))
 def test_experiment(traj_file, true_values, tmp_path, desired_memory):
-    """Test the rdf called from the experiment class"""
+    """Test the rdf called from the experiment class."""
     with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
         os.chdir(tmp_path)
         project = mds.Project()

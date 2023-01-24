@@ -56,7 +56,7 @@ def true_values() -> dict:
 
 @pytest.mark.parametrize("desired_memory", (None, 0.001))
 def test_project(traj_file, true_values, tmp_path, desired_memory):
-    """Test the Einstein_Helfand_Ionic_Conductivity called from the project class
+    """Test the Einstein_Helfand_Ionic_Conductivity called from the project class.
 
     Notes
     -----

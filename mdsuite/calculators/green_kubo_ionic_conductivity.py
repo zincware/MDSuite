@@ -283,10 +283,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             self.plot_array.append(fig)
 
     def run_calculator(self):
-        """
-        Run analysis.
-
-        """
+        """Run analysis."""
         self.check_input()
         # Compute the pre-factor early.
         self._calculate_prefactor()

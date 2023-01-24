@@ -62,7 +62,7 @@ def true_values() -> dict:
 
 @pytest.mark.parametrize("desired_memory", (None, 0.001))
 def test_eddc_project(traj_file, true_values, tmp_path, desired_memory):
-    """Test the EinsteinDistinctDiffusionCoefficients called from the project class"""
+    """Test the EinsteinDistinctDiffusionCoefficients called from the project class."""
     with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
         os.chdir(tmp_path)
         project = mds.Project()
