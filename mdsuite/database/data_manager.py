@@ -115,7 +115,7 @@ class DataManager:
         self.correlation_time = correlation_time
         self.atom_selection = atom_selection
 
-    def batch_generator(
+    def batch_generator(  # noqa: C901
         self,
         dictionary: bool = False,
         system: bool = False,
