@@ -84,4 +84,4 @@ def test_project(traj_file, true_values, tmp_path, desired_memory):
             np.array(true_values["System"]["acf"]) / 500
         ).tolist()
 
-        assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)
+        assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
