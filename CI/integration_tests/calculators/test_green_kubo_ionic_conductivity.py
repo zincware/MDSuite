@@ -53,7 +53,10 @@ def true_values() -> dict:
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
-    return NaCl.get_analysis(analysis="GreenKuboIonicConductivity.json")
+    data = NaCl.get_analysis(analysis="GreenKuboIonicConductivity.json")
+    data["System"].pop("time")
+    data["System"]["acf"] = (np.array(data["System"]["acf"]) / 500).tolist()
+    return data
 
 
 @pytest.mark.parametrize("desired_memory", (None, 0.001))
@@ -65,23 +68,11 @@ def test_project(traj_file, true_values, tmp_path, desired_memory):
         project.add_experiment(
             "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
         )
-
         computation = project.run.GreenKuboIonicConductivity(plot=False)
 
         # Time is wrong in the test data
         computation["NaCl"]["System"].pop("time")
         computation["NaCl"]["System"].pop("integral")
         computation["NaCl"]["System"].pop("integral_uncertainty")
-
-        # If this is run twice in the runner it will throw an error.
-        # Temporary: This will be removed when new data for tests is introduced.
-        try:
-            true_values["System"].pop("time")
-        except KeyError:
-            pass
-
-        true_values["System"]["acf"] = (
-            np.array(true_values["System"]["acf"]) / 500
-        ).tolist()
 
         assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
