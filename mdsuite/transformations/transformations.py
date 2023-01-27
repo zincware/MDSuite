@@ -68,9 +68,9 @@ class Transformations:
 
     Attributes
     ----------
-    database : Database
+    _database : Database
             database class object for data loading and storing
-    experiment : object
+    _experiment : object
             Experiment class instance to update
     batch_size : int
             batch size for the computation
@@ -94,7 +94,7 @@ class Transformations:
         dtype=tf.float64,
     ):
         """
-        Init of the transformator base class.
+        Init of the transformer base class.
 
         Parameters
         ----------
@@ -287,7 +287,7 @@ class Transformations:
         """
         if system_tensor:
             output_length = 1
-            path = join_path(self.output_property.name, self.output_property.name)
+            path = join_path("Observables", self.output_property.name)
         else:
             try:
                 output_length = self.experiment.species[species].n_particles

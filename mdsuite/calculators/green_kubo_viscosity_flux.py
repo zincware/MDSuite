@@ -250,11 +250,9 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
-        dict_ref = str.encode(
-            "/".join([self.loaded_property.name, self.loaded_property.name])
-        )
+        dict_ref = str.encode("/".join(["Observables", self.loaded_property.name]))
 
-        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+        batch_ds = self.get_batch_dataset(["Observables"])
 
         for batch in tqdm(
             batch_ds,
@@ -262,7 +260,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+            ensemble_ds = self.get_ensemble_dataset(batch, "Observables")
 
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])
