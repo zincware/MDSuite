@@ -87,6 +87,7 @@ def mdsuite_project(traj_files, tmp_path) -> mdsuite.Project:
         temperature=300.0,
         units=gmx_units,
         simulation_data=file_reader,
+        update_with_pubchempy=True,
     )
     exp.sample_rate = 5000
     project.run.CoordinateUnwrapper()

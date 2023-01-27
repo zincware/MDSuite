@@ -1,5 +1,6 @@
 """
 MDSuite: A Zincwarecode package.
+
 License
 -------
 This program and the accompanying materials are made available under the terms
@@ -15,8 +16,10 @@ web: https://zincwarecode.com/
 Citation
 --------
 If you use this module please cite us with:
+
 Summary
--------.
+-------
+Parent class for the project.
 """
 from __future__ import annotations
 
@@ -162,6 +165,7 @@ class Project(ProjectDatabase):
         simulation_data: Union[
             str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
         ] = None,  # TODO make this the second argument, (name, data, ...)
+        update_with_pubchempy: bool = False,
     ) -> Experiment:
         """Add an experiment to the project.
 
@@ -185,8 +189,11 @@ class Project(ProjectDatabase):
             see mdsuite.experiment.add_data() for details of the file specification.
             you can also create the experiment with simulation_data == None and add data
             later
+        update_with_pubchempy : bool (default=False)
+                Passed to the add data method.
+
         Notes
-        ------
+        -----
         Using custom NoneType to raise a custom ValueError message with useful info.
 
         Returns
@@ -231,7 +238,9 @@ class Project(ProjectDatabase):
         self._experiments[name] = new_experiment
 
         if simulation_data is not None:
-            self.experiments[name].add_data(simulation_data)
+            self.experiments[name].add_data(
+                simulation_data, update_with_pubchempy=update_with_pubchempy
+            )
 
         return self.experiments[name]
 
