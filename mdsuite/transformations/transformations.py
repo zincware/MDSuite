@@ -307,7 +307,7 @@ class Transformations:
                 )
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)
+            self.database.resize_datasets(resize_structure)
 
         else:
             number_of_configurations = self.experiment.number_of_configurations
