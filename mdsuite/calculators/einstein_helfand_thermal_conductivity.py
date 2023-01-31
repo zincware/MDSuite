@@ -35,6 +35,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils import DatasetKeys
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 
 
@@ -238,9 +239,11 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
-        dict_ref = str.encode("/".join(["Observables", self.loaded_property.name]))
+        dict_ref = str.encode(
+            "/".join([DatasetKeys.OBSERVABLES, self.loaded_property.name])
+        )
 
-        batch_ds = self.get_batch_dataset(["Observables"])
+        batch_ds = self.get_batch_dataset([DatasetKeys.OBSERVABLES])
 
         for batch in tqdm(
             batch_ds,
@@ -248,7 +251,7 @@ class EinsteinHelfandThermalConductivity(TrajectoryCalculator, ABC):
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, "Observables")
+            ensemble_ds = self.get_ensemble_dataset(batch, DatasetKeys.OBSERVABLES)
 
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])

@@ -44,6 +44,7 @@ import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management.memory_manager import MemoryManager
+from mdsuite.utils import DatasetKeys
 from mdsuite.utils.meta_functions import join_path
 
 if TYPE_CHECKING:
@@ -287,7 +288,7 @@ class Transformations:
         """
         if system_tensor:
             output_length = 1
-            path = join_path("Observables", self.output_property.name)
+            path = join_path(DatasetKeys.OBSERVABLES, self.output_property.name)
         else:
             try:
                 output_length = self.experiment.species[species].n_particles

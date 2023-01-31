@@ -166,7 +166,9 @@ def test_save_to_correct_name(tmp_path):
         output_property=PropertyInfo(name="test_multi", n_dims=2),
     )
     exp.cls_transformation_run(trafo2)
-    ret2 = exp.load_matrix(species=["Observables"], property_name="test_multi")
+    ret2 = exp.load_matrix(
+        species=[mds.utils.DatasetKeys.OBSERVABLES], property_name="test_multi"
+    )
     assert isinstance(ret2, dict)
 
 
