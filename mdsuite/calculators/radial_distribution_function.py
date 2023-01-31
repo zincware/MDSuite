@@ -730,6 +730,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         correction : float
                 Correct ideal gas term for the RDF prefactor
         """
+
         # TODO make it a property
         def _spherical_symmetry(data: np.array) -> np.array:
             """
