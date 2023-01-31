@@ -79,25 +79,16 @@ def test_project(traj_file, true_values, tmp_path):
     # )
 
 
-def test_experiment(traj_file, true_values, tmp_path):
-    """Test the GK distinct diffusion coefficients called from the experiment class."""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_experiment(traj_file, true_values, tmp_path, desired_memory):
+    """Test the green_kubo_distinct_diffusion_coefficients."""
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-        plot=False, correlation_time=500
-    )
-
-    # data_dict = (
-    #     project.experiments["NaCl"]
-    #     .load.GreenKuboDistinctDiffusionCoefficients()[0]
-    #     .data_dict
-    # )
-
-    # np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
-    # np.testing.assert_array_almost_equal(
-    #     data_dict["uncertainty"], true_values["uncertainty"]
-    # )
+        project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
+            plot=False, correlation_time=500
+        )

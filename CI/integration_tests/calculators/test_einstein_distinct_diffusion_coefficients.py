@@ -60,17 +60,19 @@ def true_values() -> dict:
     return NaCl.get_analysis(analysis="RadialDistributionFunction.json")
 
 
-def test_eddc_project(traj_file, true_values, tmp_path):
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_eddc_project(traj_file, true_values, tmp_path, desired_memory):
     """Test the EinsteinDistinctDiffusionCoefficients called from the project class."""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    project.run.EinsteinDistinctDiffusionCoefficients(
-        plot=False, data_range=300, correlation_time=100
-    )
+        project.run.EinsteinDistinctDiffusionCoefficients(
+            plot=False, data_range=300, correlation_time=100
+        )
 
     # data_dict = project.load.EinsteinDistinctDiffusionCoefficients()[0].data_dict
     #
@@ -98,12 +100,3 @@ def test_eddc_experiment(traj_file, true_values, tmp_path):
     project.experiments["NaCl"].run.EinsteinDiffusionCoefficients(
         plot=False, data_range=300, correlation_time=100
     )
-
-    # data_dict = (
-    #     project.experiments["NaCl"].load.EinsteinDiffusionCoefficients()[0].data_dict
-    # )
-    #
-    # np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
-    # np.testing.assert_array_almost_equal(
-    #     data_dict["uncertainty"], true_values["uncertainty"]
-    # )

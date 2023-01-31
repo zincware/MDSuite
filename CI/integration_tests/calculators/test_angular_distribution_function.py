@@ -55,17 +55,19 @@ def true_values() -> dict:
     return NaCl.get_analysis(analysis="AngularDistributionFunction.json")
 
 
-def test_project(traj_file, true_values, tmp_path):
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_project(traj_file, true_values, tmp_path, desired_memory):
     """Test the ADF called from the project class."""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    computation = project.run.AngularDistributionFunction(plot=False)
+        computation = project.run.AngularDistributionFunction(plot=False)
 
-    for item in computation["NaCl"].data_dict:
-        computation["NaCl"].data_dict[item].pop("max_peak")
+        for item in computation["NaCl"].data_dict:
+            computation["NaCl"].data_dict[item].pop("max_peak")
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
+        assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
