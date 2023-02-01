@@ -33,7 +33,11 @@ from mdsuite.transformations.transformations import MultiSpeciesTrafo
 
 
 class TranslationalDipoleMoment(MultiSpeciesTrafo):
-    """Transformation to compute the translational dipole moment (charge * positions)."""
+    """
+    Transformation to compute the translational dipole moment.
+
+    The translational dipole moment is defined as the charges * positions.
+    """
 
     def __init__(self):
         super(TranslationalDipoleMoment, self).__init__(

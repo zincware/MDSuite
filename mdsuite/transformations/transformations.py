@@ -44,6 +44,7 @@ import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management.memory_manager import MemoryManager
+from mdsuite.utils import DatasetKeys
 from mdsuite.utils.meta_functions import join_path
 
 if TYPE_CHECKING:
@@ -68,9 +69,9 @@ class Transformations:
 
     Attributes
     ----------
-    database : Database
+    _database : Database
             database class object for data loading and storing
-    experiment : object
+    _experiment : object
             Experiment class instance to update
     batch_size : int
             batch size for the computation
@@ -94,7 +95,7 @@ class Transformations:
         dtype=tf.float64,
     ):
         """
-        Init of the transformator base class.
+        Init of the transformer base class.
 
         Parameters
         ----------
@@ -287,7 +288,7 @@ class Transformations:
         """
         if system_tensor:
             output_length = 1
-            path = join_path(self.output_property.name, self.output_property.name)
+            path = join_path(DatasetKeys.OBSERVABLES, self.output_property.name)
         else:
             try:
                 output_length = self.experiment.species[species].n_particles
@@ -307,7 +308,7 @@ class Transformations:
                 )
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)
+            self.database.resize_datasets(resize_structure)
 
         else:
             number_of_configurations = self.experiment.number_of_configurations
