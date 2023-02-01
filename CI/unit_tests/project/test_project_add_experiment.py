@@ -258,7 +258,7 @@ def test_lammpsflux_read(traj_files, tmp_path):
         "NaCl_flux", simulation_data=file_reader, timestep=0.1, temperature=1600
     )
     pressures = project.experiments["NaCl_flux"].load_matrix(
-        species=["Observables"], property_name="Pressure"
+        species=[mds.utils.DatasetKeys.OBSERVABLES], property_name="Pressure"
     )
     # check one value from the file
     # line 87
