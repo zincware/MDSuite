@@ -27,6 +27,7 @@ Summary
 import os
 import pathlib
 
+import h5py as hf
 import MDAnalysis
 import numpy as np
 import pytest
@@ -134,7 +135,40 @@ def test_add_file_from_list(traj_files, tmp_path):
         "NaCl", simulation_data=file_names, timestep=0.1, temperature=1600
     )
 
-    print(project.experiments)
+    assert list(project.experiments) == ["NaCl"]
+
+
+def test_add_new_groups(traj_files, tmp_path):
+    """Check that adding files from lists does not raise an error."""
+    os.chdir(tmp_path)
+    project = mds.Project()
+
+    exp = project.add_experiment(
+        "NaCl",
+        simulation_data=traj_files["NaCl_gk_ni_nq.lammpstraj"],
+        timestep=0.1,
+        temperature=1600,
+    )
+
+    with hf.File("MDSuite_Project/NaCl/database.hdf5") as db:
+        assert list(db["Na"].keys()) == ["Forces", "Positions", "Velocities"]
+        old_shape = db["Na"]["Positions"].shape
+
+    exp.add_data(traj_files["NaCl_gk_i_q.lammpstraj"])
+
+    with hf.File("MDSuite_Project/NaCl/database.hdf5") as db:
+        assert list(db["Na"].keys()) == [
+            "Box_Images",
+            "Charge",
+            "Forces",
+            "Positions",
+            "Velocities",
+        ]
+        new_shape = db["Na"]["Positions"].shape
+        assert new_shape[1] == 2 * old_shape[1]
+
+        assert db["Na"]["Charge"].shape == (500, 501, 1)  # Should be old shape
+
     assert list(project.experiments) == ["NaCl"]
 
 
@@ -149,7 +183,6 @@ def test_add_file_from_str(traj_files, tmp_path):
         temperature=1600,
     )
 
-    print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
 
 

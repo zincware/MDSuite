@@ -398,14 +398,19 @@ class Database:
 
                 # get the correct maximum shape for the dataset -- changes if an
                 # experiment property or an atomic property
-                if len(dataset_information[:-1]) == 1:
-                    axis = 0
-                    expansion = dataset_information[0] + db[identifier].shape[0]
-                else:
-                    axis = 1
-                    expansion = dataset_information[1] + db[identifier].shape[1]
+                try:
+                    if len(dataset_information[:-1]) == 1:
+                        axis = 0
+                        expansion = dataset_information[0] + db[identifier].shape[0]
+                    else:
+                        axis = 1
+                        expansion = dataset_information[1] + db[identifier].shape[1]
 
-                db[identifier].resize(expansion, axis)
+                    db[identifier].resize(expansion, axis)
+
+                # It is actually a new group
+                except KeyError:
+                    self.add_dataset({identifier: architecture[identifier]})
 
     def initialize_database(self, structure: dict):
         """
@@ -429,13 +434,14 @@ class Database:
         -------
 
         """
-        self.add_dataset(structure)  # add a dataset to the groups
+        architecture = self._build_path_input(structure)
+        self.add_dataset(architecture)  # add a dataset to the groups
 
     def database_exists(self) -> bool:
         """Check if the database file already exists."""
         return pathlib.Path(self.path).exists()
 
-    def add_dataset(self, structure: dict):
+    def add_dataset(self, architecture: dict):
         """
         Add a dataset of the necessary size to the database_path.
 
@@ -449,8 +455,8 @@ class Database:
 
         Parameters
         ----------
-        structure : dict
-                Structure of a single property to be added to the database_path.
+        architecture : dict
+                Structure of properties to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
 
         Returns
@@ -458,7 +464,6 @@ class Database:
         Updates the database_path directly.
         """
         with hf.File(self.path, "a") as database:
-            architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path
