@@ -405,11 +405,10 @@ class Database:
                 try:
                     if len(dataset_information[:-1]) == 1:
                         axis = 0
-                        expansion = dataset_information[axis] + db[identifier].shape[axis]
                     else:
                         axis = 1
-                        expansion = dataset_information[axis] + db[identifier].shape[axis]
 
+                    expansion = dataset_information[axis] + db[identifier].shape[axis]
                     db[identifier].resize(expansion, axis)
 
                 # It is actually a new group
