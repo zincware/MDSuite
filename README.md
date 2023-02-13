@@ -7,7 +7,6 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/268dae1d7098161ff81d/maintainability)](https://codeclimate.com/github/zincware/MDSuite/maintainability)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zincware/MDSuite/HEAD)
 
-
 Introduction
 ------------
 
@@ -80,3 +79,10 @@ experience. You can take full advantage of the autocomplete features that are av
 for the calculators.
 
 ![autocomplete](docs/source/images/mdsuite_autocomplete.gif)
+
+Disclaimer
+----------
+MDSuite as far as is possible is tested against results validated by simulation engines
+or theoretical models. 
+However, MDSuite or zincware are not liable for incorrect results produced when
+using the software.
