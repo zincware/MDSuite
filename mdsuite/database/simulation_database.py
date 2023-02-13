@@ -328,7 +328,7 @@ class Database:
 
         return architecture
 
-    def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
+    def add_data(self, chunk: TrajectoryChunkData):
         """
         Add new data to the dataset.
 
@@ -344,32 +344,36 @@ class Database:
         chunk_data = chunk.get_data()
 
         with hf.File(self.path, "r+") as database:
-            stop_index = start_idx + chunk.chunk_size
-
             for sp_info in chunk.species_list:
                 for prop_info in sp_info.properties:
                     dataset_name = f"{sp_info.name}/{prop_info.name}"
                     write_data = chunk_data[sp_info.name][prop_info.name]
 
                     dataset_shape = database[dataset_name].shape
+                    start_index = database[dataset_name].attrs["starting_index"]
+                    stop_index = start_index + chunk.chunk_size
+
                     if len(dataset_shape) == 2:
                         # only one particle
-                        database[dataset_name][start_idx:stop_index, :] = write_data[
+                        database[dataset_name][start_index:stop_index, :] = write_data[
                             :, 0, :
                         ]
 
                     elif len(dataset_shape) == 3:
                         if workaround_time_in_axis_1:
                             database[dataset_name][
-                                :, start_idx:stop_index, :
+                                :, start_index:stop_index, :
                             ] = np.swapaxes(write_data, 0, 1)
                         else:
-                            database[dataset_name][start_idx:stop_index, ...] = write_data
+                            database[dataset_name][
+                                start_index:stop_index, ...
+                            ] = write_data
                     else:
                         raise ValueError(
                             "dataset shape must be either (n_part,n_config,n_dim) or"
                             " (n_config, n_dim)"
                         )
+                    database[dataset_name].attrs["starting_index"] += chunk.chunk_size
 
     def resize_datasets(self, structure: dict):
         """
@@ -398,14 +402,18 @@ class Database:
 
                 # get the correct maximum shape for the dataset -- changes if an
                 # experiment property or an atomic property
-                if len(dataset_information[:-1]) == 1:
-                    axis = 0
-                    expansion = dataset_information[0] + db[identifier].shape[0]
-                else:
-                    axis = 1
-                    expansion = dataset_information[1] + db[identifier].shape[1]
+                try:
+                    if len(dataset_information[:-1]) == 1:
+                        axis = 0
+                    else:
+                        axis = 1
 
-                db[identifier].resize(expansion, axis)
+                    expansion = dataset_information[axis] + db[identifier].shape[axis]
+                    db[identifier].resize(expansion, axis)
+
+                # It is actually a new group
+                except KeyError:
+                    self.add_dataset({identifier: architecture[identifier]})
 
     def initialize_database(self, structure: dict):
         """
@@ -429,13 +437,14 @@ class Database:
         -------
 
         """
-        self.add_dataset(structure)  # add a dataset to the groups
+        architecture = self._build_path_input(structure)
+        self.add_dataset(architecture)  # add a dataset to the groups
 
     def database_exists(self) -> bool:
         """Check if the database file already exists."""
         return pathlib.Path(self.path).exists()
 
-    def add_dataset(self, structure: dict):
+    def add_dataset(self, architecture: dict):
         """
         Add a dataset of the necessary size to the database_path.
 
@@ -449,8 +458,8 @@ class Database:
 
         Parameters
         ----------
-        structure : dict
-                Structure of a single property to be added to the database_path.
+        architecture : dict
+                Structure of properties to be added to the database_path.
                 e.g. {'Na': {'Forces': (200, 5000, 3)}}
 
         Returns
@@ -458,7 +467,6 @@ class Database:
         Updates the database_path directly.
         """
         with hf.File(self.path, "a") as database:
-            architecture = self._build_path_input(structure)  # get the correct file path
             for item in architecture:
                 dataset_information = architecture[item]  # get the tuple information
                 dataset_path = item  # get the dataset path in the database_path
@@ -485,6 +493,8 @@ class Database:
                     compression="gzip",
                     chunks=True,
                 )
+                dataset = database[dataset_path]
+                dataset.attrs["starting_index"] = 0
 
     def _add_group_structure(self, structure: dict):
         """
