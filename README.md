@@ -1,3 +1,4 @@
+[![zincware](https://img.shields.io/badge/Powered%20by-zincware-darkcyan)](https://github.com/zincware)
 ![madewithpython](https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat)
 ![build](https://github.com/zincware/MDSuite/actions/workflows/pytest.yml/badge.svg)
 [![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)

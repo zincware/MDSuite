@@ -718,8 +718,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     @property
     def ideal_correction(self) -> float:
-        """
-        Get the correct ideal gas term.
+        """Get the correct ideal gas term.
 
         In the case of a cutoff value greater than half of the box size, the ideal gas
         term of the experiment must be corrected due to the lack of spherical symmetry
@@ -730,8 +729,8 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         correction : float
                 Correct ideal gas term for the RDF prefactor
         """
-        # TODO make it a property
-        def _spherical_symmetry(data: np.array) -> np.array:
+
+        def _spherical_symmetry(data: np.array) -> np.array:  # TODO make it a property
             """
             Operation to perform for full spherical symmetry.
 

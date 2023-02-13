@@ -36,6 +36,7 @@ from mdsuite.file_io.lammps_trajectory_files import extract_properties_from_head
 from mdsuite.file_io.tabular_text_files import (
     get_species_list_from_tabular_text_reader_data,
 )
+from mdsuite.utils import DatasetKeys
 
 column_names = {
     mdsuite_properties.temperature: ["temp"],
@@ -126,7 +127,7 @@ class LAMMPSFluxFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor
                     column_header.split(), self._column_name_dict
                 )
 
-            species_dict = {"Observables": [0]}
+            species_dict = {DatasetKeys.OBSERVABLES: [0]}
             return mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData(
                 n_configs=n_steps,
                 species_name_to_line_idx_dict=species_dict,
