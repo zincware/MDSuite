@@ -14,7 +14,7 @@ sqlalchemy >= 1.4
 pandas >= 1.0.0
 tensorflow_probability
 colorutils
-bokeh
+bokeh >= 3.0.0
 chemfiles
 dot4dict
 jaxlib

@@ -111,5 +111,5 @@ class DataVisualizer2D:
         -------
 
         """
-        grid = gridplot(figures, ncols=3, sizing_mode="scale_both")
+        grid = gridplot(figures, ncols=3)
         show(grid)
