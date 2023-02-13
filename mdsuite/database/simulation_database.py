@@ -328,7 +328,7 @@ class Database:
 
         return architecture
 
-    def add_data(self, chunk: TrajectoryChunkData, start_idx: int):
+    def add_data(self, chunk: TrajectoryChunkData):
         """
         Add new data to the dataset.
 
@@ -344,14 +344,15 @@ class Database:
         chunk_data = chunk.get_data()
 
         with hf.File(self.path, "r+") as database:
-            stop_index = start_idx + chunk.chunk_size
-
             for sp_info in chunk.species_list:
                 for prop_info in sp_info.properties:
                     dataset_name = f"{sp_info.name}/{prop_info.name}"
                     write_data = chunk_data[sp_info.name][prop_info.name]
 
                     dataset_shape = database[dataset_name].shape
+                    start_idx = database[dataset_name].attrs["starting_index"]
+                    stop_index = start_idx + chunk.chunk_size
+
                     if len(dataset_shape) == 2:
                         # only one particle
                         database[dataset_name][start_idx:stop_index, :] = write_data[
@@ -370,6 +371,7 @@ class Database:
                             "dataset shape must be either (n_part,n_config,n_dim) or"
                             " (n_config, n_dim)"
                         )
+                    database[dataset_name].attrs["starting_index"] += chunk.chunk_size
 
     def resize_datasets(self, structure: dict):
         """
@@ -490,6 +492,8 @@ class Database:
                     compression="gzip",
                     chunks=True,
                 )
+                dataset = database[dataset_path]
+                dataset.attrs["starting_index"] = 0
 
     def _add_group_structure(self, structure: dict):
         """

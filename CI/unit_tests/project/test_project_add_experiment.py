@@ -155,7 +155,6 @@ def test_add_new_groups(traj_files, tmp_path):
         old_shape = db["Na"]["Positions"].shape
 
     exp.add_data(traj_files["NaCl_gk_i_q.lammpstraj"])
-
     with hf.File("MDSuite_Project/NaCl/database.hdf5") as db:
         assert list(db["Na"].keys()) == [
             "Box_Images",
@@ -168,6 +167,10 @@ def test_add_new_groups(traj_files, tmp_path):
         assert new_shape[1] == 2 * old_shape[1]
 
         assert db["Na"]["Charge"].shape == (500, 501, 1)  # Should be old shape
+
+        # Ensure data is actually added
+        assert np.sum(db["Cl"]["Charge"][:]) / (500 * 501) == -1
+        assert np.sum(db["Na"]["Charge"][:]) / (500 * 501) == 1
 
     assert list(project.experiments) == ["NaCl"]
 
