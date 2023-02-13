@@ -138,7 +138,9 @@ class ChemfilesRead(mdsuite.file_io.file_read.FileProcessor):
         self, traj: chemfiles.Trajectory, n_configs: int
     ) -> mdsuite.database.simulation_database.TrajectoryChunkData:
         """
-        Read n configurations and package them into a trajectory chunk of the right format
+        Read n configurations and package them into a trajectory chunk of the
+        right format.
+
         Parameters
         ----------
         traj : chemfiles.Trajectory

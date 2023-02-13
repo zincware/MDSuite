@@ -226,7 +226,7 @@ class Transformations:
         )
 
         try:
-            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
+            self.database.add_data(chunk=chunk)
         except OSError:
             """
             This is used because in Windows and in WSL we got the error that
@@ -234,7 +234,7 @@ class Transformations:
             wait, and we add again.
             """
             time.sleep(0.5)
-            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
+            self.database.add_data(chunk=chunk)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """
