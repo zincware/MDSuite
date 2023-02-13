@@ -350,22 +350,24 @@ class Database:
                     write_data = chunk_data[sp_info.name][prop_info.name]
 
                     dataset_shape = database[dataset_name].shape
-                    start_idx = database[dataset_name].attrs["starting_index"]
-                    stop_index = start_idx + chunk.chunk_size
+                    start_index = database[dataset_name].attrs["starting_index"]
+                    stop_index = start_index + chunk.chunk_size
 
                     if len(dataset_shape) == 2:
                         # only one particle
-                        database[dataset_name][start_idx:stop_index, :] = write_data[
+                        database[dataset_name][start_index:stop_index, :] = write_data[
                             :, 0, :
                         ]
 
                     elif len(dataset_shape) == 3:
                         if workaround_time_in_axis_1:
                             database[dataset_name][
-                                :, start_idx:stop_index, :
+                                :, start_index:stop_index, :
                             ] = np.swapaxes(write_data, 0, 1)
                         else:
-                            database[dataset_name][start_idx:stop_index, ...] = write_data
+                            database[dataset_name][
+                                start_index:stop_index, ...
+                            ] = write_data
                     else:
                         raise ValueError(
                             "dataset shape must be either (n_part,n_config,n_dim) or"
@@ -403,10 +405,10 @@ class Database:
                 try:
                     if len(dataset_information[:-1]) == 1:
                         axis = 0
-                        expansion = dataset_information[0] + db[identifier].shape[0]
+                        expansion = dataset_information[axis] + db[identifier].shape[axis]
                     else:
                         axis = 1
-                        expansion = dataset_information[1] + db[identifier].shape[1]
+                        expansion = dataset_information[axis] + db[identifier].shape[axis]
 
                     db[identifier].resize(expansion, axis)
 
