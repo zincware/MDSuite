@@ -1,0 +1,150 @@
+# NaCl 1300 Sim
+
+#############################
+### Configure system type ###
+#############################
+
+units           real
+boundary        p p p
+atom_style      full
+
+################################
+### Define system parameters ###
+################################
+
+region          myRegion block 0.0 32.28 0.0 32.28 0.0 32.28 
+create_box      2 myRegion
+
+##############################################################
+### Read input file and assign types and elementary groups ###
+##############################################################
+
+read_dump       starting-configuration.xyz 0 x y z box no add yes format xyz
+set		atom 1*500 type 1
+set		atom 501*1000 type 2
+set		type 1 charge 1
+set		type 2 charge -1
+mass            1  22.989
+mass            2  35.453
+group           Na type 1
+group           Cl type 2
+
+velocity       all create 1400.0 132465
+
+# ------------- #
+# Set variables #
+# ------------- #
+
+variable TK equal 1400.0
+variable PBAR equal 1.0
+
+timestep 1.0
+
+# ----------------- #
+# Pair coefficients #
+# ----------------- #
+
+pair_style born/coul/long 10.0
+kspace_style pppm 1.0e-5
+
+pair_coeff 1 1 627.5925693 0.105836 0.0 137.8155824 385.92
+pair_coeff 2 2 62759.25693 0.345869281 0.0 3059.505929 2875.15
+pair_coeff 1 2 42362.49 0.305884393 0.0 515.4302781 644.49
+
+# ----------------- #
+# Warmup simulation #
+# ----------------- #
+thermo_style custom step cpu etotal ke pe evdwl ecoul elong temp press vol density
+thermo 100
+
+dump TRAJ all custom 1000 npt.lammpstraj id type element q x y z vx vy vz ix iy iz
+dump_modify TRAJ element Na Cl
+dump_modify TRAJ sort id
+
+fix BSTAT all npt temp ${TK} ${TK} $(100*dt) iso 0.0 0.0 $(100.0*dt)
+
+run 1000
+undump TRAJ
+reset_timestep 0
+# ----------------------- #
+# Computation Definitions #
+# ----------------------- #
+variable kb equal 1.3806504e-23  # [J/K]
+
+# Electrical Conductivity #
+#group      Na
+#group	   Cl
+
+# Global Computations #
+compute      myKE all ke/atom
+compute      myPE all pe/atom
+compute      myStress all stress/atom NULL virial
+compute      flux all heat/flux myKE myPE myStress
+
+# Ionic Conductivity #
+variable     ex atom q*vx
+variable     ey atom q*vy
+variable     ez atom q*vz
+
+compute      current all reduce sum v_ex v_ey v_ez
+
+fix          II all ave/correlate 10 200 2000 c_current[1] c_current[2] c_current[3] &
+                type auto file current.flux ave running
+
+variable     electro_convert equal 0.00005
+variable     ssscale equal dt*vol/${kb}/${TK}
+variable     i11 equal trap(f_II[3])*${ssscale}
+variable     i22 equal trap(f_II[4])*${ssscale}
+variable     i33 equal trap(f_II[5])*${ssscale}
+
+# Thermal Conductivity #
+variable     Jx  equal  c_flux[1]/vol
+variable     Jy  equal  c_flux[2]/vol
+variable     Jz  equal  c_flux[3]/vol
+
+fix          JJ all ave/correlate 10 200 2000 c_flux[1] c_flux[2] c_flux[3] &
+                type auto file heat.flux ave running
+
+variable     therm_convert equal 69467.043
+variable     scale equal dt/${TK}/${TK}/0.0019875/vol
+variable     k11 equal trap(f_JJ[3])*${scale}
+variable     k22 equal trap(f_JJ[4])*${scale}
+variable     k33 equal trap(f_JJ[5])*${scale}
+
+# Viscosity #
+variable     pxy equal pxy
+variable     pxz equal pxz
+variable     pyz equal pyz
+
+fix          SS all ave/correlate 10 200 2000 v_pxy v_pxz v_pyz &
+                type auto file stress.flux ave running
+
+variable     visc_convert equal 1.026675563e-35
+variable     sscale equal vol*10*dt/${kb}/${TK}
+variable     v11 equal trap(f_SS[3])*${sscale}
+variable     v22 equal trap(f_SS[4])*${sscale}
+variable     v33 equal trap(f_SS[5])*${sscale}
+
+# ------------------- #
+# New dump parameters #
+# ------------------- #
+
+dump MEASURE all custom 10 production.lammpstraj id type element q x y z vx vy vz ix iy iz
+dump_modify MEASURE element Na Cl
+dump_modify MEASURE sort id
+
+thermo_style custom step temp press vol density c_flux[1] c_flux[2] c_flux[3] pxy pxz pyz c_current[1] c_current[2] c_current[3]
+thermo 10
+
+run   500000
+
+
+variable     kappa equal (v_k11+v_k22+v_k33)*${therm_convert}/3.0
+print        "Thermal Conductivity: ${kappa}"
+
+variable     eta equal (v_v11+v_v22+v_v33)*${visc_convert}/3.0
+print        "Viscosity ${eta}"
+
+variable     sigma equal (v_i11+v_i22+v_i33)*${electro_convert}/3.0
+print        "Ionic Conductivity ${sigma}"
+
