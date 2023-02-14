@@ -74,7 +74,7 @@ class TestScalingFunctions(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         os.chdir(temp_dir.name)
         database = Database()
-        database.add_dataset({"Na": {"Forces": (200, 5000, 3)}})
+        database.initialize_database({"Na": {"Forces": (200, 5000, 3)}})
         with hf.File("database") as db:
             keys_top = list(db.keys())
             keys_bottom = list(db[keys_top[0]])
@@ -97,7 +97,7 @@ class TestScalingFunctions(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         os.chdir(temp_dir.name)
         database = Database()
-        database.add_dataset({"Na": {"Forces": (200, 5000, 3)}})
+        database.initialize_database({"Na": {"Forces": (200, 5000, 3)}})
         database.resize_datasets({"Na": {"Forces": (200, 300, 3)}})
 
         with hf.File("database") as db:
@@ -123,7 +123,7 @@ class TestScalingFunctions(unittest.TestCase):
         os.chdir(temp_dir.name)
         database = Database()
         assert not database.database_exists()
-        database.add_dataset({"Na": {"Forces": (200, 5000, 3)}})
+        database.initialize_database({"Na": {"Forces": (200, 5000, 3)}})
         assert database.database_exists()
         os.chdir("..")
         temp_dir.cleanup()
@@ -139,7 +139,7 @@ class TestScalingFunctions(unittest.TestCase):
         temp_dir = tempfile.TemporaryDirectory()
         os.chdir(temp_dir.name)
         database = Database()
-        database.add_dataset({"Na": {"Forces": (200, 5000, 3)}})
+        database.initialize_database({"Na": {"Forces": (200, 5000, 3)}})
         assert not database.check_existence("Na/Positions")
         assert database.check_existence("Na/Forces")
         os.chdir("..")

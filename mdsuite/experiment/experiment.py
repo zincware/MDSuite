@@ -541,7 +541,7 @@ class Experiment(ExperimentDatabase):
             database.resize_datasets(architecture)
 
         for i, batch in enumerate(file_processor.get_configurations_generator()):
-            database.add_data(chunk=batch, start_idx=self.number_of_configurations)
+            database.add_data(chunk=batch)
             self.number_of_configurations += batch.chunk_size
 
         self.version += 1
