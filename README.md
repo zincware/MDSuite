@@ -1,4 +1,5 @@
 [![zincware](https://img.shields.io/badge/Powered%20by-zincware-darkcyan)](https://github.com/zincware)
+[![DOI](https://img.shields.io/badge/DOI-10.1186%2Fs13321--023--00687--y-orange)](https://doi.org/10.1186/s13321-023-00687-y)
 ![madewithpython](https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat)
 ![build](https://github.com/zincware/MDSuite/actions/workflows/pytest.yml/badge.svg)
 [![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)
