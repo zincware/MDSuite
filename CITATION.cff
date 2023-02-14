@@ -12,29 +12,35 @@ authors:
     family-names: Tovey
     email: tovey.samuel@gmail.com
     affiliation: >-
-      Institute for Computational Physics, University
-      of Stuttgart
+      Institute for Computational Physics, University of
+      Stuttgart
     orcid: 'https://orcid.org/0000-0001-9537-8361'
   - given-names: Fabian
     family-names: Zills
     affiliation: >-
-      Institute for Computational Physics, University
-      of Stuttgart
+      Institute for Computational Physics, University of
+      Stuttgart
     orcid: 'https://orcid.org/0000-0002-6936-4692'
   - given-names: Francisco
     family-names: Torres-Herrador
     affiliation: >-
-      Aeronautics and Aerospace department, von
-      Karman Institute for Fluid Dynamics,
-      Rhode-St-Genese, Belgium. Thermo and Fluid
-      dynamics (FLOW), Vrije Universiteit Brussel,
-      Brussels, Belgium. Laboratory for Chemical
-      Technology (LCT), Ghent University, Ghent,
-      Belgium
+      Aeronautics and Aerospace department, von Karman
+      Institute for Fluid Dynamics, Rhode-St-Genese,
+      Belgium. Thermo and Fluid dynamics (FLOW), Vrije
+      Universiteit Brussel, Brussels, Belgium. Laboratory
+      for Chemical Technology (LCT), Ghent University,
+      Ghent, Belgium
     orcid: 'https://orcid.org/0000-0002-3901-3461'
   - given-names: Christoph
     family-names: Lohrmann
     affiliation: >-
-      Institute for Computational Physics, University
-      of Stuttgart
+      Institute for Computational Physics, University of
+      Stuttgart
     orcid: 'https://orcid.org/0000-0002-9011-2975'
+identifiers:
+  - type: doi
+    value: 10.1186/s13321-023-00687-y
+    description: >-
+      MDSuite: comprehensive post-processing tool for
+      particle simulations
+license: EPL-2.0
