@@ -69,7 +69,7 @@ def test_automatic_coordinate_unwrapping(tmp_path):
     """
     check if positions are automatically unwrapped if needed in another transformation.
     This also tests the fallback mechanism in case the first trafo (unwrap_via_indices)
-    does not work
+    does not work.
     """
     os.chdir(tmp_path)
 
@@ -94,7 +94,7 @@ def test_automatic_coordinate_unwrapping(tmp_path):
 def test_full_transformation_with_values(tmp_path):
     """
     Check for one transformation, that the correct data is loaded and
-    transferred to the actual transformation function
+    transferred to the actual transformation function.
     """
     os.chdir(tmp_path)
 
@@ -119,9 +119,7 @@ def test_full_transformation_with_values(tmp_path):
 
 
 def test_not_found_errors(tmp_path):
-    """
-    Test that the correct error is thrown if input data cannot be found
-    """
+    """Test that the correct error is thrown if input data cannot be found."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(name="TestExp1234", timestep=12345)
@@ -145,7 +143,7 @@ def test_not_found_errors(tmp_path):
 def test_save_to_correct_name(tmp_path):
     """
     Check that the transformation result is at the correct place
-    in the simulation database
+    in the simulation database.
     """
     os.chdir(tmp_path)
     project = mds.Project()
@@ -168,14 +166,16 @@ def test_save_to_correct_name(tmp_path):
         output_property=PropertyInfo(name="test_multi", n_dims=2),
     )
     exp.cls_transformation_run(trafo2)
-    ret2 = exp.load_matrix(species=["test_multi"], property_name="test_multi")
+    ret2 = exp.load_matrix(
+        species=[mds.utils.DatasetKeys.OBSERVABLES], property_name="test_multi"
+    )
     assert isinstance(ret2, dict)
 
 
 def test_data_from_species_and_experiment(tmp_path):
     """
     test trafo that takes positions time dependent, charge from the species,
-    and box_l from the experiment
+    and box_l from the experiment.
     """
     os.chdir(tmp_path)
 
@@ -206,9 +206,7 @@ def test_data_from_species_and_experiment(tmp_path):
 
 
 def test_transformation_on_new_data_(tmp_path):
-    """
-    Check that after adding new data, the transformation still works
-    """
+    """Check that after adding new data, the transformation still works."""
     os.chdir(tmp_path)
     project = mds.Project()
 

@@ -44,6 +44,7 @@ import mdsuite.database.simulation_database
 from mdsuite.database.data_manager import DataManager
 from mdsuite.database.simulation_database import Database
 from mdsuite.memory_management.memory_manager import MemoryManager
+from mdsuite.utils import DatasetKeys
 from mdsuite.utils.meta_functions import join_path
 
 if TYPE_CHECKING:
@@ -51,10 +52,14 @@ if TYPE_CHECKING:
 
 
 class CannotFindTransformationError(Exception):
+    """Exception for when a transformation cannot be found."""
+
     pass
 
 
 class CannotFindPropertyError(Exception):
+    """Exception for when a property cannot be found."""
+
     pass
 
 
@@ -64,9 +69,9 @@ class Transformations:
 
     Attributes
     ----------
-    database : Database
+    _database : Database
             database class object for data loading and storing
-    experiment : object
+    _experiment : object
             Experiment class instance to update
     batch_size : int
             batch size for the computation
@@ -90,7 +95,7 @@ class Transformations:
         dtype=tf.float64,
     ):
         """
-        Init of the transformator base class.
+        Init of the transformer base class.
 
         Parameters
         ----------
@@ -127,7 +132,7 @@ class Transformations:
 
     @property
     def database(self):
-        """Update the database
+        """Update the database.
 
         replace for https://github.com/zincware/MDSuite/issues/404
         """
@@ -137,7 +142,7 @@ class Transformations:
 
     @property
     def experiment(self) -> Experiment:
-        """TODO replace for https://github.com/zincware/MDSuite/issues/404"""
+        """TODO replace for https://github.com/zincware/MDSuite/issues/404."""
         return self._experiment
 
     @experiment.setter
@@ -154,6 +159,7 @@ class Transformations:
         ----------
         path : str
                 dataset path to check.
+
         Returns
         -------
         outcome : bool
@@ -177,11 +183,10 @@ class Transformations:
         -------
         saves the tensor_values to the database_path.
         """
-
         # turn data into trajectory chunk
         # data_structure is dict {'/path/to/property':{'indices':irrelevant,
         #                           'columns':deduce->deduce n_dims, 'length':n_particles}
-        species_list = list()
+        species_list = []
         # data structure only has 1 element
         key, val = list(data_structure.items())[0]
         path = str(copy.copy(key))
@@ -221,7 +226,7 @@ class Transformations:
         )
 
         try:
-            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
+            self.database.add_data(chunk=chunk)
         except OSError:
             """
             This is used because in Windows and in WSL we got the error that
@@ -229,7 +234,7 @@ class Transformations:
             wait, and we add again.
             """
             time.sleep(0.5)
-            self.database.add_data(chunk=chunk, start_idx=index + self.offset)
+            self.database.add_data(chunk=chunk)
 
     def _prepare_monitors(self, data_path: Union[list, np.array]):
         """
@@ -269,7 +274,7 @@ class Transformations:
 
     def _prepare_database_entry(self, species: str, system_tensor=False):
         """
-        Add or extend the dataset in which the transformation result is stored
+        Add or extend the dataset in which the transformation result is stored.
 
         Parameters
         ----------
@@ -281,10 +286,9 @@ class Transformations:
         tensor_values structure for use in saving the tensor_values to the
         database_path.
         """
-
         if system_tensor:
             output_length = 1
-            path = join_path(self.output_property.name, self.output_property.name)
+            path = join_path(DatasetKeys.OBSERVABLES, self.output_property.name)
         else:
             try:
                 output_length = self.experiment.species[species].n_particles
@@ -304,7 +308,7 @@ class Transformations:
                 )
             }
             self.offset = old_shape[0]
-            self.database.resize_dataset(resize_structure)
+            self.database.resize_datasets(resize_structure)
 
         else:
             number_of_configurations = self.experiment.number_of_configurations
@@ -446,7 +450,7 @@ class SingleSpeciesTrafo(Transformations):
         Parameters
         ----------
         species : Iterable[str]
-            Names of the species on which to perform the transformation
+            Names of the species on which to perform the transformation.
 
         Returns
         -------
@@ -520,6 +524,7 @@ class SingleSpeciesTrafo(Transformations):
     ) -> typing.Union[tf.Tensor, typing.Tuple[tf.Tensor, typing.Any]]:
         """
         Do the actual transformation.
+
         Parameters
         ----------
         batch : dict
@@ -527,7 +532,7 @@ class SingleSpeciesTrafo(Transformations):
             {'Property1': tansordata, ...}
         carryover : any
             if the transformation batching is only possible with carryover,
-            this argument will provide it
+            this argument will provide it.
 
         Returns
         -------
@@ -542,7 +547,7 @@ class SingleSpeciesTrafo(Transformations):
 class MultiSpeciesTrafo(Transformations):
     """
     Base class for all transformations, where information of multiple species is combined
-    in the transformation of a new property
+    in the transformation of a new property.
     """
 
     def run_transformation(self, species: typing.Iterable[str] = None) -> None:
@@ -552,7 +557,7 @@ class MultiSpeciesTrafo(Transformations):
         Parameters
         ----------
         species : Iterable[str]
-            Names of the species on which to perform the transformation
+            Names of the species on which to perform the transformation.
 
         Returns
         -------
@@ -621,6 +626,7 @@ class MultiSpeciesTrafo(Transformations):
     ) -> tf.Tensor | typing.Tuple[tf.Tensor, typing.Any]:
         """
         Do the actual transformation.
+
         Parameters
         ----------
         batch : dict

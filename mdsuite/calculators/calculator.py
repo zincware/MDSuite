@@ -51,7 +51,7 @@ log = logging.getLogger(__name__)
 
 def call(func):
     """
-    Decorator for the calculator call method
+    Decorator for the calculator call method.
 
     This decorator provides a unified approach for handling run_computation and
     load_data for a single or multiple experiments.
@@ -93,7 +93,7 @@ def call(func):
 
     @functools.wraps(func)
     def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
-        """Manage the call method
+        """Manage the call method.
 
         Parameters
         ----------
@@ -150,7 +150,7 @@ def call(func):
 
 class Calculator(CalculatorDatabase):
     """
-    Parent class for analysis modules
+    Parent class for analysis modules.
 
     Attributes
     ----------
@@ -241,7 +241,7 @@ class Calculator(CalculatorDatabase):
 
     @property
     def dtype(self):
-        """Get the dtype used for the calculator"""
+        """Get the dtype used for the calculator."""
         return self._dtype
 
     def run_visualization(
@@ -290,7 +290,7 @@ class Calculator(CalculatorDatabase):
 
     def plot_data(self, data):
         """
-        Plot the data coming from the database
+        Plot the data coming from the database.
 
         Parameters
         ----------
@@ -308,9 +308,7 @@ class Calculator(CalculatorDatabase):
             )
 
     def run_analysis(self):
-        """
-        Run the appropriate analysis
-        """
+        """Run the appropriate analysis."""
         if self.experimental:
             log.warning(
                 "This is an experimental calculator. Please see the "

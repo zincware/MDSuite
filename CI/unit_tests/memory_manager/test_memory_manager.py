@@ -27,14 +27,10 @@ from mdsuite.memory_management.memory_manager import MemoryManager
 
 
 class TestDatabase:
-    """
-    Test database for the unit testing.
-    """
+    """Test database for the unit testing."""
 
     def __init__(self, data_size: int = 500, rows: int = 10, columns: int = 10):
-        """
-        Constructor for the test database.
-        """
+        """Constructor for the test database."""
         self.data_size = data_size
         self.rows = rows
         self.columns = columns
@@ -51,9 +47,7 @@ class TestDatabase:
 
 
 class TestMemoryManager(unittest.TestCase):
-    """
-    Test the memory manager module.
-    """
+    """Test the memory manager module."""
 
     @classmethod
     def setUpClass(cls) -> None:

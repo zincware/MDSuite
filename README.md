@@ -1,3 +1,5 @@
+[![zincware](https://img.shields.io/badge/Powered%20by-zincware-darkcyan)](https://github.com/zincware)
+[![DOI](https://img.shields.io/badge/DOI-10.1186%2Fs13321--023--00687--y-orange)](https://doi.org/10.1186/s13321-023-00687-y)
 ![madewithpython](https://img.shields.io/badge/Made%20With-Python-blue.svg?style=flat)
 ![build](https://github.com/zincware/MDSuite/actions/workflows/pytest.yml/badge.svg)
 [![docs](https://readthedocs.org/projects/mdsuite/badge/?version=latest&style=flat)](https://mdsuite.readthedocs.io/en/latest/)
@@ -5,7 +7,6 @@
 [![coverage](https://coveralls.io/repos/github/zincware/MDSuite/badge.svg?branch=main)](https://coveralls.io/github/zincware/MDSuite?branch=main)
 [![Maintainability](https://api.codeclimate.com/v1/badges/268dae1d7098161ff81d/maintainability)](https://codeclimate.com/github/zincware/MDSuite/maintainability)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zincware/MDSuite/HEAD)
-
 
 Introduction
 ------------
@@ -79,3 +80,10 @@ experience. You can take full advantage of the autocomplete features that are av
 for the calculators.
 
 ![autocomplete](docs/source/images/mdsuite_autocomplete.gif)
+
+Disclaimer
+----------
+MDSuite as far as is possible is tested against results validated by simulation engines
+or theoretical models. 
+However, MDSuite or zincware are not liable for incorrect results produced when
+using the software.

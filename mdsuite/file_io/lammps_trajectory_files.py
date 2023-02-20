@@ -67,9 +67,7 @@ column_names = {
 
 
 class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFileProcessor):
-    """
-    Reader for LAMMPS files
-    """
+    """Reader for LAMMPS files."""
 
     def __init__(
         self,
@@ -105,9 +103,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
     def _get_tabular_text_reader_mdata(
         self,
     ) -> mdsuite.file_io.tabular_text_files.TabularTextFileReaderMData:
-        """
-        Implement abstract parent method
-        """
+        """Implement abstract parent method."""
         with open(self.file_path, "r") as file:
             header = mdsuite.file_io.tabular_text_files.read_n_lines(
                 file, self.n_header_lines, start_at=0
@@ -187,7 +183,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
     ):
         """
         Get the information which species are present and which particle ids/ lines in
-        the file belong to them
+        the file belong to them.
 
         Parameters
         ----------
@@ -209,7 +205,7 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
         else:
             raise ValueError("Insufficient species or type identification available.")
 
-        species_dict = dict()
+        species_dict = {}
         # skip the header
         mdsuite.file_io.tabular_text_files.skip_n_lines(file, self.n_header_lines)
         # read one configuration
@@ -273,7 +269,6 @@ def extract_properties_from_header(
         {'MDSuite_Property_1': [column_indices], 'MDSuite_Property_2': ...}
         Example {'Unwrapped_Positions': [2,3,4], 'Velocities': [5,6,8]}
     """
-
     column_dict_properties = {
         variable: idx for idx, variable in enumerate(header_property_names)
     }

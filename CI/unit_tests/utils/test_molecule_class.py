@@ -57,7 +57,5 @@ def test_instantiation():
 
 
 def test_project_import():
-    """
-    Test that the molecule can be import directly from the mdsuite import.
-    """
+    """Test that the molecule can be import directly from the mdsuite import."""
     mdsuite.Molecule(name="test", amount=1, cutoff=1.0)

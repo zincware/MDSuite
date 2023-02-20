@@ -46,9 +46,7 @@ from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -75,7 +73,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
     analysis_name : str
             Name of the analysis
     loaded_property : str
-            Property loaded from the database_path for the analysis
+            Property loaded from the database_path for the analysis.
 
     See Also
     --------
@@ -167,7 +165,6 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         # Note: The following attributes are in SI units
         self.time = self._handle_tau_values() * self.experiment.units.time
         self.vacfs = []
-        self.sigmas = []
 
     def check_input(self):
         """
@@ -196,15 +193,19 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             / self.experiment.units.time**2
             * tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         )
+        self.count += vacf.shape[0]
 
         # average particles, sum dimensions
-        vacf = tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1)
-        self.sigmas.append(cumtrapz(vacf, x=self.time))
-        self.vacfs.append(vacf)
+        return_vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
+        self.sigmas.append(
+            cumtrapz(tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time)
+        )
+
+        return np.array(return_vacf)
 
     def plot_data(self, data: dict):
         """
-        Plot the data
+        Plot the data.
 
         Parameters
         ----------
@@ -277,12 +278,10 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         -------
 
         """
+        self.acf_array = self.acf_array / self.count
         self.sigmas = np.array(self.sigmas)
-        sigma = np.mean(self.sigmas, axis=0)
+        sigma = cumtrapz(self.acf_array, x=self.time)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
-
-        self.vacfs = np.array(self.vacfs)
-        vacf = np.mean(self.vacfs, axis=0)
 
         diff_coeff = 1 / 3 * sigma[self.args.integration_range - 1]
         diff_coeff_SEM = 1 / 3 * sigma_SEM[self.args.integration_range - 1]
@@ -291,7 +290,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             self.result_keys[0]: [diff_coeff],
             self.result_keys[1]: [diff_coeff_SEM],
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: vacf.tolist(),
+            self.result_series_keys[1]: self.acf_array.tolist(),
             self.result_series_keys[2]: sigma.tolist(),
             self.result_series_keys[3]: sigma_SEM.tolist(),
         }
@@ -312,6 +311,9 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
             dict_ref = str.encode("/".join([species, self.loaded_property.name]))
 
             batch_ds = self.get_batch_dataset([species])
+            self.count = 0
+            self.acf_array = np.zeros(self.data_resolution)
+            self.sigmas = []
 
             for batch in tqdm(
                 batch_ds,
@@ -323,9 +325,11 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
-                    self.ensemble_operation(ensemble[dict_ref])
+                    if not ensemble[dict_ref].shape[1] == self.args.data_range:
+                        continue
+                    else:
+                        self.acf_array += self.ensemble_operation(ensemble[dict_ref])
+                        self.count += 1
 
             # Scale, save, and plot the data.
             self.postprocessing(species)
-            self.sigmas = []
-            self.vacfs = []

@@ -27,6 +27,7 @@ Summary
 import os
 import pathlib
 
+import h5py as hf
 import MDAnalysis
 import numpy as np
 import pytest
@@ -47,7 +48,7 @@ import mdsuite.file_io.lammps_flux_files
 def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
     """
     References
-    -----------
+    ----------
     https://wiki.fysik.dtu.dk/ase/tutorials/md/md.html
 
     Returns
@@ -84,7 +85,7 @@ def ase_md_extxyz(tmp_path_factory) -> pathlib.Path:
 
 @pytest.fixture(scope="session")
 def traj_files(tmp_path_factory) -> dict:
-    """Download files into a temporary directory and keep them for all tests"""
+    """Download files into a temporary directory and keep them for all tests."""
     base_url = "https://github.com/zincware/DataHub/tree/main"
 
     files_to_load = [
@@ -98,7 +99,7 @@ def traj_files(tmp_path_factory) -> dict:
     ]
 
     temporary_path = tmp_path_factory.getbasetemp()
-    file_paths = dict()
+    file_paths = {}
     for fname in files_to_load:
         folder = fname.split(".")[0]
         url = f"{base_url}/{folder}"
@@ -115,9 +116,7 @@ def traj_files(tmp_path_factory) -> dict:
 
 
 def test_experiment_return():
-    """
-    Check that an experiment is returned by the add_experiment argument.
-    """
+    """Check that an experiment is returned by the add_experiment argument."""
     project_1 = mds.Project()
     exp_1 = project_1.add_experiment("Exp01")
     assert type(exp_1) is mdsuite.experiment.experiment.Experiment
@@ -125,7 +124,7 @@ def test_experiment_return():
 
 
 def test_add_file_from_list(traj_files, tmp_path):
-    """Check that adding files from lists does not raise an error"""
+    """Check that adding files from lists does not raise an error."""
     os.chdir(tmp_path)
     project = mds.Project()
     file_names = [
@@ -136,12 +135,48 @@ def test_add_file_from_list(traj_files, tmp_path):
         "NaCl", simulation_data=file_names, timestep=0.1, temperature=1600
     )
 
-    print(project.experiments)
+    assert list(project.experiments) == ["NaCl"]
+
+
+def test_add_new_groups(traj_files, tmp_path):
+    """Check that adding files from lists does not raise an error."""
+    os.chdir(tmp_path)
+    project = mds.Project()
+
+    exp = project.add_experiment(
+        "NaCl",
+        simulation_data=traj_files["NaCl_gk_ni_nq.lammpstraj"],
+        timestep=0.1,
+        temperature=1600,
+    )
+
+    with hf.File("MDSuite_Project/NaCl/database.hdf5") as db:
+        assert list(db["Na"].keys()) == ["Forces", "Positions", "Velocities"]
+        old_shape = db["Na"]["Positions"].shape
+
+    exp.add_data(traj_files["NaCl_gk_i_q.lammpstraj"])
+    with hf.File("MDSuite_Project/NaCl/database.hdf5") as db:
+        assert list(db["Na"].keys()) == [
+            "Box_Images",
+            "Charge",
+            "Forces",
+            "Positions",
+            "Velocities",
+        ]
+        new_shape = db["Na"]["Positions"].shape
+        assert new_shape[1] == 2 * old_shape[1]
+
+        assert db["Na"]["Charge"].shape == (500, 501, 1)  # Should be old shape
+
+        # Ensure data is actually added
+        assert np.sum(db["Cl"]["Charge"][:]) / (500 * 501) == -1
+        assert np.sum(db["Na"]["Charge"][:]) / (500 * 501) == 1
+
     assert list(project.experiments) == ["NaCl"]
 
 
 def test_add_file_from_str(traj_files, tmp_path):
-    """Check that adding files from str does not raise an error"""
+    """Check that adding files from str does not raise an error."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -151,12 +186,11 @@ def test_add_file_from_str(traj_files, tmp_path):
         temperature=1600,
     )
 
-    print(project.experiments)
     assert list(project.experiments) == ["NaCl"]
 
 
 def test_add_file_from_str_extxyz(ase_md_extxyz, tmp_path):
-    """Check that adding extxyz files from an ASE md simulation works"""
+    """Check that adding extxyz files from an ASE md simulation works."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -173,7 +207,7 @@ def test_add_file_from_str_extxyz(ase_md_extxyz, tmp_path):
 
 
 def test_multiple_experiments(tmp_path):
-    """Test the paths within the experiment classes
+    """Test the paths within the experiment classes.
 
     Parameters
     ----------
@@ -260,7 +294,7 @@ def test_lammpsflux_read(traj_files, tmp_path):
         "NaCl_flux", simulation_data=file_reader, timestep=0.1, temperature=1600
     )
     pressures = project.experiments["NaCl_flux"].load_matrix(
-        species=["Observables"], property_name="Pressure"
+        species=[mds.utils.DatasetKeys.OBSERVABLES], property_name="Pressure"
     )
     # check one value from the file
     # line 87

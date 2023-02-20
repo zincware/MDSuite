@@ -35,7 +35,7 @@ from mdsuite.utils.testing import assertDeepAlmostEqual
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -48,24 +48,26 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
     return NaCl.get_analysis(analysis="AngularDistributionFunction.json")
 
 
-def test_project(traj_file, true_values, tmp_path):
-    """Test the ADF called from the project class"""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_project(traj_file, true_values, tmp_path, desired_memory):
+    """Test the ADF called from the project class."""
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    computation = project.run.AngularDistributionFunction(plot=False)
+        computation = project.run.AngularDistributionFunction(plot=False)
 
-    for item in computation["NaCl"].data_dict:
-        computation["NaCl"].data_dict[item].pop("max_peak")
+        for item in computation["NaCl"].data_dict:
+            computation["NaCl"].data_dict[item].pop("max_peak")
 
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)
+        assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)

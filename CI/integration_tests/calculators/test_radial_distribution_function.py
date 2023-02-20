@@ -35,7 +35,7 @@ from mdsuite.utils.testing import assertDeepAlmostEqual
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -48,7 +48,7 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
@@ -56,7 +56,7 @@ def true_values() -> dict:
 
 
 def test_project(traj_file, true_values, tmp_path):
-    """Test the rdf called from the project class"""
+    """Test the rdf called from the project class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -68,17 +68,19 @@ def test_project(traj_file, true_values, tmp_path):
     assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=1)
 
 
-def test_experiment(traj_file, true_values, tmp_path):
-    """Test the rdf called from the experiment class"""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_experiment(traj_file, true_values, tmp_path, desired_memory):
+    """Test the rdf called from the experiment class."""
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
+        computation = project.experiments.NaCl.run.RadialDistributionFunction(plot=False)
 
-    assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
+        assertDeepAlmostEqual(computation.data_dict, true_values, decimal=1)
 
 
 def test_computation_parameter(traj_file, true_values, tmp_path):

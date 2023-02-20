@@ -34,7 +34,7 @@ import mdsuite as mds
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -47,26 +47,25 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
     return NaCl.get_analysis(analysis="EinsteinHelfandIonicConductivity.json")
 
 
-def test_project(traj_file, true_values, tmp_path):
-    """Test the Einstein_Helfand_Ionic_Conductivity called from the project class
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_project(traj_file, true_values, tmp_path, desired_memory):
+    """Test the Einstein_Helfand_Ionic_Conductivity called from the project class.
 
     Notes
-    ------
+    -----
     Test uncertainty is very high!
     """
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
-
-    # computation = project.run.EinsteinHelfandIonicConductivity(plot=False)
-
-    # assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-6)
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
+        _ = project.run.EinsteinHelfandIonicConductivity(plot=False)

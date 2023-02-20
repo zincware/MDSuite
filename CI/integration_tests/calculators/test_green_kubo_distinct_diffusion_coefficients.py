@@ -34,7 +34,7 @@ import mdsuite as mds
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -47,7 +47,7 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
@@ -55,9 +55,7 @@ def true_values() -> dict:
 
 
 def test_project(traj_file, true_values, tmp_path):
-    """
-    Test the green_kubo_distinct_diffusion_coefficients called from the project class
-    """
+    """Test the GK distinct diffusion coefficients called from the project class."""
     os.chdir(tmp_path)
     project = mds.Project()
     project.add_experiment(
@@ -81,27 +79,16 @@ def test_project(traj_file, true_values, tmp_path):
     # )
 
 
-def test_experiment(traj_file, true_values, tmp_path):
-    """
-    Test the green_kubo_distinct_diffusion_coefficients called from the experiment class
-    """
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_experiment(traj_file, true_values, tmp_path, desired_memory):
+    """Test the green_kubo_distinct_diffusion_coefficients."""
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
 
-    project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-        plot=False, correlation_time=500
-    )
-
-    # data_dict = (
-    #     project.experiments["NaCl"]
-    #     .load.GreenKuboDistinctDiffusionCoefficients()[0]
-    #     .data_dict
-    # )
-
-    # np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
-    # np.testing.assert_array_almost_equal(
-    #     data_dict["uncertainty"], true_values["uncertainty"]
-    # )
+        project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
+            plot=False, correlation_time=500
+        )

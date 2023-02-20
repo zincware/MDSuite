@@ -25,8 +25,10 @@ Summary
 -------
 """
 
+from mdsuite.utils import helpers
 from mdsuite.utils.colours import Colour
 from mdsuite.utils.config import config
+from mdsuite.utils.constants import DatasetKeys
 from mdsuite.utils.units import Units
 
-__all__ = ["config", "Units", "Colour"]
+__all__ = ["config", "Units", "Colour", "helpers", "DatasetKeys"]

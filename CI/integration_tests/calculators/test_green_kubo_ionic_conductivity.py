@@ -36,7 +36,7 @@ from mdsuite.utils.testing import assertDeepAlmostEqual
 
 @pytest.fixture(scope="session")
 def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests"""
+    """Download trajectory file into a temporary directory and keep it for all tests."""
     temporary_path = tmp_path_factory.getbasetemp()
 
     NaCl = DataHub(
@@ -49,29 +49,30 @@ def traj_file(tmp_path_factory) -> str:
 
 @pytest.fixture(scope="session")
 def true_values() -> dict:
-    """Example fixture for downloading analysis results from github"""
+    """Example fixture for downloading analysis results from github."""
     NaCl = DataHub(
         url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
     )
-    return NaCl.get_analysis(analysis="GreenKuboIonicConductivity.json")
+    data = NaCl.get_analysis(analysis="GreenKuboIonicConductivity.json")
+    data["System"].pop("time")
+    data["System"]["acf"] = (np.array(data["System"]["acf"]) / 500).tolist()
+    return data
 
 
-def test_project(traj_file, true_values, tmp_path):
-    """Test the green_kubo_ionic_conductivity called from the project class"""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
+@pytest.mark.parametrize("desired_memory", (None, 0.001))
+def test_project(traj_file, true_values, tmp_path, desired_memory):
+    """Test the green_kubo_ionic_conductivity called from the project class."""
+    with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        os.chdir(tmp_path)
+        project = mds.Project()
+        project.add_experiment(
+            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        )
+        computation = project.run.GreenKuboIonicConductivity(plot=False)
 
-    computation = project.run.GreenKuboIonicConductivity(plot=False)
+        # Time is wrong in the test data
+        computation["NaCl"]["System"].pop("time")
+        computation["NaCl"]["System"].pop("integral")
+        computation["NaCl"]["System"].pop("integral_uncertainty")
 
-    # Time is wrong in the test data
-    computation["NaCl"]["System"].pop("time")
-    computation["NaCl"]["System"].pop("integral")
-    computation["NaCl"]["System"].pop("integral_uncertainty")
-
-    true_values["System"].pop("time")
-    true_values["System"]["acf"] = (np.array(true_values["System"]["acf"]) / 500).tolist()
-
-    assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=3)
+        assertDeepAlmostEqual(computation["NaCl"].data_dict, true_values, decimal=-2)

@@ -24,3 +24,15 @@ If you use this module please cite us with:
 Summary
 -------
 """
+import dataclasses
+
+
+class _FrozenCls(type):
+    def __setattr__(cls, name, value):
+        raise dataclasses.FrozenInstanceError(f"cannot assign to attribute '{name}'")
+
+
+class DatasetKeys(metaclass=_FrozenCls):
+    """Class to hold the keys for the datasets."""
+
+    OBSERVABLES = "Observables"

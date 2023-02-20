@@ -43,14 +43,13 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils import DatasetKeys
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -61,7 +60,7 @@ class Args:
 
 class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     """
-    Class for the Green-Kubo ionic conductivity implementation
+    Class for the Green-Kubo ionic conductivity implementation.
 
     Attributes
     ----------
@@ -94,7 +93,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         experiment :  object
                 Experiment class to call from
         """
-
         # update experiment class
         super().__init__(**kwargs)
         self.scale_function = {"linear": {"scale_factor": 5}}
@@ -134,7 +132,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         integration_range : int
                 Range over which integration should be performed.
         """
-
         self.plot = plot
         self.jacf: np.ndarray
         self.sigma = []
@@ -188,15 +185,6 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         )
         self.prefactor = numerator / denominator
 
-    def _apply_averaging_factor(self):
-        """
-        Apply the averaging factor to the msd array.
-        Returns
-        -------
-
-        """
-        pass
-
     def ensemble_operation(self, ensemble: tf.Tensor):
         """
         Calculate and return the msd.
@@ -213,19 +201,20 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
         jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
-        self.acfs.append(jacf)
         self.sigmas.append(cumtrapz(jacf, x=self.time))
+
+        return np.array(jacf)
 
     def _post_operation_processes(self):
         """
         call the post-op processes
         Returns
-        -------
+        -------.
 
         """
-        sigma = np.mean(self.sigmas, axis=0)
+        self.acf_array /= self.count
+        sigma = cumtrapz(self.acf_array, x=self.time)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
-        acf = np.mean(self.acfs, axis=0)
         ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 1]
         ionic_conductivity_SEM = (
             self.prefactor * sigma_SEM[self.args.integration_range - 1]
@@ -234,7 +223,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             self.result_keys[0]: [ionic_conductivity],
             self.result_keys[1]: [ionic_conductivity_SEM],
             self.result_series_keys[0]: self.time.tolist(),
-            self.result_series_keys[1]: acf.tolist(),
+            self.result_series_keys[1]: self.acf_array.tolist(),
             self.result_series_keys[2]: sigma.tolist(),
             self.result_series_keys[3]: sigma_SEM.tolist(),
         }
@@ -242,7 +231,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.queue_data(data=data, subjects=["System"])
 
     def plot_data(self, data):
-        """Plot the data"""
+        """Plot the data."""
         for selected_species, val in data.items():
             fig = figure(x_axis_label=self.x_label, y_axis_label=self.y_label)
 
@@ -295,32 +284,27 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             self.plot_array.append(fig)
 
     def run_calculator(self):
-        """
-        Run analysis.
-
-        Returns
-        -------
-
-        """
+        """Run analysis."""
         self.check_input()
         # Compute the pre-factor early.
         self._calculate_prefactor()
 
         dict_ref = str.encode(
-            "/".join([self.loaded_property.name, self.loaded_property.name])
+            "/".join([DatasetKeys.OBSERVABLES, self.loaded_property.name])
         )
-
-        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+        self.count = 0
+        self.acf_array = np.zeros((self.args.data_range,))
+        batch_ds = self.get_batch_dataset([DatasetKeys.OBSERVABLES])
         for batch in tqdm(
             batch_ds,
             ncols=70,
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+            ensemble_ds = self.get_ensemble_dataset(batch, DatasetKeys.OBSERVABLES)
             for ensemble in ensemble_ds:
-                self.ensemble_operation(ensemble[dict_ref])
+                self.acf_array += self.ensemble_operation(ensemble[dict_ref])
+                self.count += 1
 
         # Scale, save, and plot the data.
-        self._apply_averaging_factor()
         self._post_operation_processes()

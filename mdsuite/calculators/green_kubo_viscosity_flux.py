@@ -38,13 +38,12 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.utils import DatasetKeys
 
 
 @dataclass
 class Args:
-    """
-    Data class for the saved properties.
-    """
+    """Data class for the saved properties."""
 
     data_range: int
     correlation_time: int
@@ -55,7 +54,7 @@ class Args:
 
 class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
     """
-    Class for the Green Kubo viscosity from flux implementation
+    Class for the Green Kubo viscosity from flux implementation.
 
     Attributes
     ----------
@@ -173,8 +172,10 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
     def _apply_averaging_factor(self):
         """
         Apply the averaging factor to the msd array.
+
         Returns
         -------
+        -------.
 
         """
         self.jacf /= max(self.jacf)
@@ -205,7 +206,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
 
     def _post_operation_processes(self):
         """
-        call the post-op processes
+        call the post-op processes.
 
         Returns
         -------
@@ -251,10 +252,10 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         self._calculate_prefactor()
 
         dict_ref = str.encode(
-            "/".join([self.loaded_property.name, self.loaded_property.name])
+            "/".join([DatasetKeys.OBSERVABLES, self.loaded_property.name])
         )
 
-        batch_ds = self.get_batch_dataset([self.loaded_property.name])
+        batch_ds = self.get_batch_dataset([DatasetKeys.OBSERVABLES])
 
         for batch in tqdm(
             batch_ds,
@@ -262,7 +263,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             total=self.n_batches,
             disable=self.memory_manager.minibatch,
         ):
-            ensemble_ds = self.get_ensemble_dataset(batch, self.loaded_property.name)
+            ensemble_ds = self.get_ensemble_dataset(batch, DatasetKeys.OBSERVABLES)
 
             for ensemble in ensemble_ds:
                 self.ensemble_operation(ensemble[dict_ref])
