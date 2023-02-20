@@ -323,8 +323,8 @@ class Database:
                 architecture[group] = structure[group]
             else:
                 for subgroup in structure[group]:
-                    db_path = join_path(group, subgroup)
-                    architecture[db_path] = structure[group][subgroup]
+                    db_path = join_path(group, subgroup.name)
+                    architecture[db_path] = structure[group][subgroup.name]
 
         return architecture
 
