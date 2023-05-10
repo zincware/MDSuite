@@ -5,7 +5,7 @@ nbsphinx
 Sphinx==5.3.0
 sphinx_rtd_theme
 numpydoc
-docutils==0.19
+docutils==0.20
 sphinx-copybutton
 IPython
 nbsphinx-link
