@@ -9,8 +9,8 @@ repos:
       - id: check-docstring-first
       - id: check-executables-have-shebangs
       - id: check-json
-      # - id: check-merge-conflict
-        args: ['--assume-in-merge']
+#      - id: check-merge-conflict
+#        args: ['--assume-in-merge']
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
