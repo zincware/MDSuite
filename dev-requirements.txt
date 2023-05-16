@@ -10,12 +10,9 @@ sphinx-copybutton
 IPython
 nbsphinx-link
 git+https://github.com/zincware/ZincHub.git
-isort
 coverage
 coveralls
 mdanalysis
-black
 znvis
 ase
 astroid
-ruff>=0.0.231
