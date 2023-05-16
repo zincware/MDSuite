@@ -54,6 +54,8 @@ from mdsuite.utils.exceptions import ElementMassAssignedZero
 from mdsuite.utils.meta_functions import join_path
 from mdsuite.utils.units import Units, units_dict
 
+import znh5md
+
 from .run_module import RunModule
 
 log = logging.getLogger(__name__)
@@ -458,99 +460,24 @@ class Experiment(ExperimentDatabase):
 
     def add_data(
         self,
-        simulation_data: Union[
-            str, pathlib.Path, mdsuite.file_io.file_read.FileProcessor, list
-        ],
-        force: bool = False,
-        update_with_pubchempy: bool = False,
+        file: str
     ):
-        """
-        Add data to experiment. This method takes a filename, file path or a file
-        reader (or a list thereof). If given a filename, it will try to instantiate the
-        appropriate file reader with its default arguments. If you have a custom data
-        format with its own reader or want to use non-default arguments for your reader,
-        instantiate the reader and pass it to this method.
-        TODO reference online documentation of data loading in the error messages
-        Parameters
-        ----------
-        simulation_data : str or pathlib.Path or mdsuite.file_io.file_read.FileProcessor
-            or list thereof
-            if str or pathlib.Path: path to the file that contains the simulation_data
-            if mdsuite.file_io.file_read.FileProcessor: An already instantiated file
-            reader from mdsuite.file_io
-            if list : must be list of any of the above (can be mixed).
-        force : bool
-            If true, a file will be read regardless of if it has already been seen.
-            Default: False
-        update_with_pubchempy: bool
-            Whether or not to look for the masses of the species in pubchempy.
-            Default: True.
+        """Convert trajectory file into H5MD database.
 
-        """
-        if isinstance(simulation_data, list):
-            for elem in simulation_data:
-                proc = _get_processor(elem)
-                self._add_data_from_file_processor(
-                    proc, force=force, update_with_pubchempy=update_with_pubchempy
-                )
-        else:
-            proc = _get_processor(simulation_data)
-            self._add_data_from_file_processor(
-                proc, force=force, update_with_pubchempy=update_with_pubchempy
-            )
-
-    def _add_data_from_file_processor(
-        self,
-        file_processor: mdsuite.file_io.file_read.FileProcessor,
-        force: bool = False,
-        update_with_pubchempy: bool = False,
-    ):
-        """
-        Add tensor_values to the database_path.
+        Saves the given file as a H5MD database.
 
         Parameters
         ----------
-        file_processor
-            The FileProcessor that is able to provide the metadata and the trajectory
-            to be saved
-        force : bool
-                If true, a file will be read regardless of if it has already
-                been seen.
-        update_with_pubchempy: bool
-                Whether or not to look for the masses of the species in pubchempy
+        file : str
+            Path to the trajectory file to be converted.
+
         """
-        already_read = str(file_processor) in self.read_files
-        if already_read and not force:
-            log.info(
-                "This file has already been read, skipping this now."
-                "If this is not desired, please add force=True "
-                "to the command."
-            )
-            return
-
-        database = Database(self.database_path / "database.hdf5")
-
-        metadata = file_processor.metadata
-        architecture = _species_list_to_architecture_dict(
-            metadata.species_list, metadata.n_configurations
-        )
-        if not database.database_exists():
-            self._store_metadata(metadata, update_with_pubchempy=update_with_pubchempy)
-            database.initialize_database(architecture)
-        else:
-            database.resize_datasets(architecture)
-
-        for i, batch in enumerate(file_processor.get_configurations_generator()):
-            database.add_data(chunk=batch)
-            self.number_of_configurations += batch.chunk_size
-
-        self.version += 1
-
-        self.memory_requirements = database.get_memory_information()
-
-        # set at the end, because if something fails, the file was not properly read.
-        self.read_files = self.read_files + [str(file_processor)]
-
+        database = znh5md.io.DataWriter(filename=self.database_path / "database.hdf5")
+        database.initialize_database_groups()
+        file = pathlib.Path(file)
+        formats = {".extxyz": "XYZ", ".lammpstraj": "LAMMPS"}
+        
+        database.add(znh5md.io.ChemfilesReader(file.as_posix(), format=formats.get(file.suffix)))
     def load_matrix(
         self,
         property_name: str = None,
