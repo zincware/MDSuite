@@ -44,11 +44,13 @@ log = logging.getLogger(__name__)
 class PropertyInfo:
     """
     Information of a trajectory property.
-    example:
+
+    Example:
+    -------
     pos_info = PropertyInfo('Positions', 3)
     vel_info = PropertyInfo('Velocities', 3).
 
-    Attributes
+    Attributes:
     ----------
     name:
         The name of the property

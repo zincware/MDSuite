@@ -291,7 +291,7 @@ def extract_properties_from_header(
     trajectory_properties = {}
     for property_label, properties_columns in database_correspondence_dict.items():
         if all(
-            [isinstance(property_column, int) for property_column in properties_columns]
+            isinstance(property_column, int) for property_column in properties_columns
         ):
             trajectory_properties[property_label] = properties_columns
 
