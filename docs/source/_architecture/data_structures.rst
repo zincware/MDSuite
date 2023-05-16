@@ -80,4 +80,3 @@ The final data structure used by MDSuite is the class state file. These files ar
 and the Experiment class and hold information about the "state" or current attributes of the class. These files are
 saved using the python pickle functionality and are stored under the file extension .bin. They are not intended to be
 read by the users and are only used by the classes to which they belong.
-
