@@ -39,7 +39,6 @@ from mdsuite.transformations import (
     VelocityFromPositions,
 )
 
-
 # Use this dictionary to determine which property can be obtained by which transformation.
 # Needed for transformation dependency resolution.
 
