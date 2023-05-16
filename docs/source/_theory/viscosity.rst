@@ -24,13 +24,13 @@ The :math:`P_{a,b}(t)` can be computed from the contributions of each atom as:
 
     P_{a,b} = \frac{\sum_{i=1}^{N_{atoms}} m^i v_{a}^i v_{b}^i}{V} + \frac{\sum_{i=1}^{N_{atoms}} r_{a}^i f_{b}^i}{V}
 
-And, actually, the two contributions from the summations are equal to minus the stress tensor, so the previous expression can be written as: 
+And, actually, the two contributions from the summations are equal to minus the stress tensor, so the previous expression can be written as:
 
 .. math::
 
     P_{a,b}\cdot V = \sum_{i=1}^{N_{atoms}} m^i v_{a}^i v_{b}^i + \sum_{i=1}^{N_{atoms}} r_{a}^i f_{b}^i = -\sum_{i=1}^{N_{atoms}} \mathbf{S}_{a,b}^i
 
-:math:`\mathbf{S}_{i,a,b}` is the off-diagonal components of the stress tensor of atom :math:`i`. This quantity can be easily extracted from MD codes. 
+:math:`\mathbf{S}_{i,a,b}` is the off-diagonal components of the stress tensor of atom :math:`i`. This quantity can be easily extracted from MD codes.
 
 In principle, the summation over atoms can be done
 at several points of the calculation. In the case of MDSuite, we perform the summation for each part of the ensemble
@@ -39,7 +39,7 @@ over, and then several of these can be averaged to get a final diffusion coeffic
 We will save a discussion of the general Green-Kubo approach to calculations for the
 :ref:`_theory/green_kubo_relations:Green-Kubo Relations` section.
 
-When using trajectory files, the user must provide the aforementioned quantities. However, for flux files, the off-diagonal components of the pressure tensor can be printed directly. 
+When using trajectory files, the user must provide the aforementioned quantities. However, for flux files, the off-diagonal components of the pressure tensor can be printed directly.
 
 Einstein-Helfand
 ---------------------------

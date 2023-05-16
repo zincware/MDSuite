@@ -151,7 +151,7 @@ mdsuite/cython_extensions/*.c
 # APPLE
 .DS_Store
 
-# pycharm 
+# pycharm
 .idea/
 
 # build documentation

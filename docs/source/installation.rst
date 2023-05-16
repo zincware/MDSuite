@@ -19,14 +19,14 @@ From Source
 From the directory in which you wish to store MDSuite, run
 
 .. code-block:: bash
-        
+
         git clone https://github.com/SamTov/MDSuite.git
 
 Once the directory has finished cloning, change into the MDSuite directory,
 and run
 
 .. code-block:: bash
-        
+
    pip3 install .
 
 Or if you want to install as developer:
@@ -39,7 +39,7 @@ which will install the mdsuite package as a python library. Once this has
 been done, you can simply call mdsuite from any of your python projects with
 
 .. code-block:: python
-        
+
    import mdsuite
 
 or with an alias you prefer. We usually run with
