@@ -140,9 +140,9 @@ class LAMMPSTrajectoryFile(mdsuite.file_io.tabular_text_files.TabularTextFilePro
             n_header_lines=self.n_header_lines,
             n_particles=n_particles,
             header_lines_for_each_config=True,
-            sort_by_column_idx=None
-            if self.trajectory_is_sorted_by_ids
-            else id_column_idx,
+            sort_by_column_idx=(
+                None if self.trajectory_is_sorted_by_ids else id_column_idx
+            ),
         )
 
     def _get_metadata(self) -> TrajectoryMetadata:
@@ -282,16 +282,16 @@ def extract_properties_from_header(
             ):  # if this name (x) is in the input file properties
                 # we change the lammps_properties_dict replacing the string of the
                 # property name by the column name
-                database_correspondence_dict[property_label][
-                    idx
-                ] = column_dict_properties[property_name]
+                database_correspondence_dict[property_label][idx] = (
+                    column_dict_properties[property_name]
+                )
 
     # trajectory_properties only need the labels with the integer columns, then we
     # only copy those
     trajectory_properties = {}
     for property_label, properties_columns in database_correspondence_dict.items():
         if all(
-            [isinstance(property_column, int) for property_column in properties_columns]
+            isinstance(property_column, int) for property_column in properties_columns
         ):
             trajectory_properties[property_label] = properties_columns
 

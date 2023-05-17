@@ -27,4 +27,3 @@ coeffients are taken from `TU Graz <http://lampx.tugraz.at/~hadley/ss1/crystaldi
 The atomic form factors are valid for a range of :math:`0 < Q < 25 \, \text{Å} ^{-1}`.
 In order for the calculation to work the element names and charges need to be set in the species dictionary
 as shown in the sample script structure_factor.py .
-

@@ -8,82 +8,78 @@
 [![Maintainability](https://api.codeclimate.com/v1/badges/268dae1d7098161ff81d/maintainability)](https://codeclimate.com/github/zincware/MDSuite/maintainability)
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/zincware/MDSuite/HEAD)
 
-Introduction
-------------
+## Introduction
 
-MDSuite is a software designed specifically for the molecular dynamics community to
-enable fast, reliable, and easy-to-run calculations from simulation data.
+MDSuite is a software designed specifically for the molecular dynamics community
+to enable fast, reliable, and easy-to-run calculations from simulation data.
 
 If you want to start learning about the code, you can check out the docs
 [here](https://mdsuite.readthedocs.io/en/latest/).
 
-Installation
-============
+# Installation
 
-There are several ways to install MDSuite depending on what you would like from it.
+There are several ways to install MDSuite depending on what you would like from
+it.
 
 One can simply install using
 
-````shell
+```shell
 pip install mdsuite
-````
+```
 
-If you would like to install it from source then you can clone the repository by running
+If you would like to install it from source then you can clone the repository by
+running
 
-````shell
+```shell
 git clone https://github.com/SamTov/MDSuite.git
-````
+```
 
-
-Once you have cloned the repository, depending on whether you prefer conda or straight
-pip, you should follow the instructions below.
+Once you have cloned the repository, depending on whether you prefer conda or
+straight pip, you should follow the instructions below.
 
 Installation with pip
-*********************
 
-````shell
+______________________________________________________________________
+
+```shell
   cd MDSuite
   pip install .
-````
+```
 
 Installation with conda
-***********************
 
-````shell
+______________________________________________________________________
+
+```shell
    cd MDSuite
    conda create -n MDSuite python=3.8
    conda activate MDSuite
    pip install .
-````
+```
 
-
-Documentation
-=============
+# Documentation
 
 There is a live version of the documentation hosted
-[here](https://mdsuite.readthedocs.io/en/latest/).
-If you prefer to have a local copy, that can be built using sphinx by following the
-instructions below.
+[here](https://mdsuite.readthedocs.io/en/latest/). If you prefer to have a local
+copy, that can be built using sphinx by following the instructions below.
 
-````shell
+```shell
    cd MDSuite/docs
    make html
    cd build/html
    firefox index.html
-````
+```
 
-HINT
-====
+# HINT
 
 Check out the MDSuite code through a jupyter notebook for a more user-friendly
-experience. You can take full advantage of the autocomplete features that are available
-for the calculators.
+experience. You can take full advantage of the autocomplete features that are
+available for the calculators.
 
 ![autocomplete](docs/source/images/mdsuite_autocomplete.gif)
 
-Disclaimer
-----------
-MDSuite as far as is possible is tested against results validated by simulation engines
-or theoretical models. 
-However, MDSuite or zincware are not liable for incorrect results produced when
-using the software.
+## Disclaimer
+
+MDSuite as far as is possible is tested against results validated by simulation
+engines or theoretical models. However, MDSuite or zincware are not liable for
+incorrect results produced when using the software.

@@ -44,11 +44,13 @@ log = logging.getLogger(__name__)
 class PropertyInfo:
     """
     Information of a trajectory property.
-    example:
+
+    Example:
+    -------
     pos_info = PropertyInfo('Positions', 3)
     vel_info = PropertyInfo('Velocities', 3).
 
-    Attributes
+    Attributes:
     ----------
     name:
         The name of the property
@@ -361,9 +363,9 @@ class Database:
 
                     elif len(dataset_shape) == 3:
                         if workaround_time_in_axis_1:
-                            database[dataset_name][
-                                :, start_index:stop_index, :
-                            ] = np.swapaxes(write_data, 0, 1)
+                            database[dataset_name][:, start_index:stop_index, :] = (
+                                np.swapaxes(write_data, 0, 1)
+                            )
                         else:
                             database[dataset_name][
                                 start_index:stop_index, ...
@@ -558,9 +560,11 @@ class Database:
         with hf.File(self.path, "r") as database_object:
             keys = []
             database_object.visit(
-                lambda item: keys.append(database_object[item].name)
-                if isinstance(database_object[item], hf.Dataset)
-                else None
+                lambda item: (
+                    keys.append(database_object[item].name)
+                    if isinstance(database_object[item], hf.Dataset)
+                    else None
+                )
             )
             path = f"/{path}"  # add the / to avoid name overlapping
 

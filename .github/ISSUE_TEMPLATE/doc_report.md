@@ -1,27 +1,22 @@
----
-name: Docs report
-about: Create a report regarding the docs for us to look at.
-title: ''
-labels: ''
-assignees: ''
+______________________________________________________________________
 
----
+name: Docs report about: Create a report regarding the docs for us to look at.
+title: '' labels: '' assignees: ''
 
-**Describe the problem**
-A clear and concise description of what the bug is.
+______________________________________________________________________
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**Describe the problem** A clear and concise description of what the bug is.
+
+**To Reproduce** Steps to reproduce the behavior:
+
 1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+1. Click on '....'
+1. Scroll down to '....'
+1. See error
 
-**Expected content**
-A clear and concise description of what you expected to see.
+**Expected content** A clear and concise description of what you expected to
+see.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Screenshots** If applicable, add screenshots to help explain your problem.
 
-**Additional context**
-Add any other context about the problem here.
+**Additional context** Add any other context about the problem here.

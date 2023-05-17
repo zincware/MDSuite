@@ -140,24 +140,28 @@ def cartesian_to_spherical_coordinates(
     point_cartesian, name="cartesian_to_spherical_coordinates"
 ):
     """
-    References
+    References:
     ----------
-    https://www.tensorflow.org/graphics/api_docs/python/tfg/math/math_helpers/cartesian_to_spherical_coordinates
+    https://www.tensorflow.org/graphics/api_docs/python/tfg/math/math_helpers/cartesian_to_spherical_coordinates.
 
     Function to transform Cartesian coordinates to spherical coordinates.
     This function assumes a right handed coordinate system with `z` pointing up.
     When `x` and `y` are both `0`, the function outputs `0` for `phi`. Note that
     the function is not smooth when `x = y = 0`.
+
     Note:
+    ----
       In the following, A1 to An are optional batch dimensions.
+
     Args:
+    ----
       point_cartesian: A tensor of shape `[A1, ..., An, 3]`. In the last
         dimension, the data follows the `x`, `y`, `z` order.
       eps: A small `float`, to be added to the denominator. If left as `None`, its
         value is automatically selected using `point_cartesian.dtype`.
       name: A name for this op. Defaults to "cartesian_to_spherical_coordinates".
 
-    Returns
+    Returns:
     -------
       A tensor of shape `[A1, ..., An, 3]`. The last dimensions contains
       (`r`,`theta`,`phi`), where `r` is the sphere radius, `theta` is the polar
@@ -177,25 +181,29 @@ def spherical_to_cartesian_coordinates(
     point_spherical, name="spherical_to_cartesian_coordinates"
 ):
     """
-    References
+    References:
     ----------
-    https://www.tensorflow.org/graphics/api_docs/python/tfg/math/math_helpers/spherical_to_cartesian_coordinates
+    https://www.tensorflow.org/graphics/api_docs/python/tfg/math/math_helpers/spherical_to_cartesian_coordinates.
 
     Function to transform Cartesian coordinates to spherical coordinates.
+
     Note:
+    ----
       In the following, A1 to An are optional batch dimensions.
+
     Args:
+    ----
       point_spherical: A tensor of shape `[A1, ..., An, 3]`. The last dimension
         contains r, theta, and phi that respectively correspond to the radius,
         polar angle and azimuthal angle; r must be non-negative.
       name: A name for this op. Defaults to "spherical_to_cartesian_coordinates".
 
-    Raises
+    Raises:
     ------
       tf.errors.InvalidArgumentError: If r, theta or phi contains out of range
       data.
 
-    Returns
+    Returns:
     -------
       A tensor of shape `[A1, ..., An, 3]`, where the last dimension contains the
       cartesian coordinates in x,y,z order.

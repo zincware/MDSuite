@@ -39,10 +39,9 @@ from mdsuite.transformations import (
     VelocityFromPositions,
 )
 
-"""
-Use this dictionary to determine which property can be obtained by which transformation.
-Needed for transformation dependency resolution.
-"""
+# Use this dictionary to determine which property can be obtained by which transformation.
+# Needed for transformation dependency resolution.
+
 
 property_to_transformation_dict = {
     mdp.integrated_heat_current: IntegratedHeatCurrent,
