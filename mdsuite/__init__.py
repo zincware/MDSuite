@@ -43,7 +43,7 @@ __all__ = [
     Project.__name__,
     Experiment.__name__,
     Report.__name__,
-    config.__name__,
+    "config",
     Molecule.__name__,
     units.__name__,
     utils.__name__,
