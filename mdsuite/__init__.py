@@ -43,15 +43,15 @@ __all__ = [
     Project.__name__,
     Experiment.__name__,
     Report.__name__,
-    "config",
+    config.__name__,
     Molecule.__name__,
-    "units",
-    "utils",
+    units.__name__,
+    utils.__name__,
 ]
 __version__ = metadata.version("mdsuite")
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Formatter for advanced logging
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
