@@ -44,7 +44,7 @@ class Config:
 
     jupyter: bool = False
     bokeh_sizing_mode: str = "stretch_both"
-    memory_fraction: float = 0.5
+    memory_fraction: float = 0.8
 
 
 config = Config()
