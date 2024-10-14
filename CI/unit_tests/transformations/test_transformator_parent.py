@@ -21,6 +21,7 @@ Citation
 --------
 If you use this module please cite us with:
 """
+
 import os
 
 import numpy as np
