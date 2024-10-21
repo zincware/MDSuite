@@ -25,6 +25,7 @@ Summary
 -------
 Module to compute coodination numbers.
 """
+
 import logging
 from dataclasses import dataclass
 
@@ -73,6 +74,7 @@ def _integrate_rdf(radii_data: np.array, rdf_data: np.array, density: float) -> 
     -------
     integral_data : np.array
             Cumulative integral of the RDF scaled by the radius and denisty.
+
     """
     integral_data = cumtrapz(y=radii_data[1:] ** 2 * rdf_data[1:], x=radii_data[1:])
 
@@ -134,6 +136,7 @@ class CoordinationNumbers(Calculator):
         ----------
         experiment : class object
                         Class object of the experiment.
+
         """
         super().__init__(**kwargs)
         self.file_to_study = None
@@ -176,6 +179,7 @@ class CoordinationNumbers(Calculator):
                 Window length of the savgol filter.
         number_of_shells : int
                 Number of shells to look for.
+
         """
         if isinstance(rdf_data, Computation):
             self.rdf_data = rdf_data
@@ -210,6 +214,7 @@ class CoordinationNumbers(Calculator):
         Returns
         -------
         Updates the volume attribute of the class.
+
         """
         volume_si = self.experiment.volume * self.experiment.units.volume
 
@@ -241,6 +246,7 @@ class CoordinationNumbers(Calculator):
         ------
         ValueError
                 Raised if the number of peaks required for the analysis are not met.
+
         """
         filtered_data = apply_savgol_filter(
             rdf,
@@ -277,6 +283,7 @@ class CoordinationNumbers(Calculator):
         -------
         coordination_shells : dict
                 A dictionary of coordination shell radial ranges.
+
         """
         peaks = self._get_rdf_peaks(rdf)  # get the max value indices
 
@@ -311,6 +318,7 @@ class CoordinationNumbers(Calculator):
         -------
         coordination_numbers : dict
                 A dictionary of coordination numbers.
+
         """
         coordination_shells = self._find_minima(radii, rdf)  # get the minimums
 
