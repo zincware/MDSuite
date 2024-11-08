@@ -198,7 +198,9 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         # average particles, sum dimensions
         return_vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
         self.sigmas.append(
-            cumulative_trapezoid(tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time)
+            cumulative_trapezoid(
+                tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time
+            )
         )
 
         return np.array(return_vacf)
