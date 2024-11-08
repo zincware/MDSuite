@@ -37,7 +37,7 @@ import tensorflow_probability as tfp
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 from tqdm import tqdm
 
 from mdsuite.calculators.calculator import call
@@ -201,7 +201,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
         jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
         jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
-        self.sigmas.append(cumtrapz(jacf, x=self.time))
+        self.sigmas.append(cumulative_trapezoid(jacf, x=self.time))
 
         return np.array(jacf)
 
@@ -213,7 +213,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
 
         """
         self.acf_array /= self.count
-        sigma = cumtrapz(self.acf_array, x=self.time)
+        sigma = cumulative_trapezoid(self.acf_array, x=self.time)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
         ionic_conductivity = self.prefactor * sigma[self.args.integration_range - 1]
         ionic_conductivity_SEM = (
