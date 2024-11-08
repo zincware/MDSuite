@@ -29,7 +29,7 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 
 from mdsuite.calculators.calculator import Calculator, call
 from mdsuite.database.scheme import Computation
@@ -174,7 +174,7 @@ class KirkwoodBuffIntegral(Calculator):
             order=self.args.savgol_order,
             window_length=self.args.savgol_window_length,
         )
-        integral_data = cumtrapz(
+        integral_data = cumulative_trapezoid(
             y=(filtered_data[1:] - 1) * (radii_data[1:]) ** 2, x=radii_data[1:]
         )
 
