@@ -35,7 +35,7 @@ import tensorflow_probability as tfp
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 from tqdm import tqdm
 
 from mdsuite import utils
@@ -198,7 +198,9 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         # average particles, sum dimensions
         return_vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
         self.sigmas.append(
-            cumtrapz(tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time)
+            cumulative_trapezoid(
+                tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time
+            )
         )
 
         return np.array(return_vacf)
@@ -280,7 +282,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         """
         self.acf_array = self.acf_array / self.count
         self.sigmas = np.array(self.sigmas)
-        sigma = cumtrapz(self.acf_array, x=self.time)
+        sigma = cumulative_trapezoid(self.acf_array, x=self.time)
         sigma_SEM = np.std(self.sigmas, axis=0) / np.sqrt(len(self.sigmas))
 
         diff_coeff = 1 / 3 * sigma[self.args.integration_range - 1]

@@ -32,7 +32,7 @@ import numpy as np
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid
 from scipy.signal import find_peaks
 
 from mdsuite import utils
@@ -74,7 +74,9 @@ def _integrate_rdf(radii_data: np.array, rdf_data: np.array, density: float) -> 
     integral_data : np.array
             Cumulative integral of the RDF scaled by the radius and denisty.
     """
-    integral_data = cumtrapz(y=radii_data[1:] ** 2 * rdf_data[1:], x=radii_data[1:])
+    integral_data = cumulative_trapezoid(
+        y=radii_data[1:] ** 2 * rdf_data[1:], x=radii_data[1:]
+    )
 
     return 4 * np.pi * density * integral_data
 
