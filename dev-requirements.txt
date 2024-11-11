@@ -11,6 +11,7 @@ IPython
 nbsphinx-link
 git+https://github.com/zincware/ZincHub.git
 coverage
+jupyter
 coveralls
 mdanalysis
 znvis
