@@ -19,3 +19,4 @@ chemfiles
 dot4dict
 jaxlib
 jax
+znh5md >= 0.1.7

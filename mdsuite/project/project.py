@@ -239,7 +239,7 @@ class Project(ProjectDatabase):
 
         if simulation_data is not None:
             self.experiments[name].add_data(
-                simulation_data, update_with_pubchempy=update_with_pubchempy
+                simulation_data
             )
 
         return self.experiments[name]
