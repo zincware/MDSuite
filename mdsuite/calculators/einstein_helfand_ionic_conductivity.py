@@ -35,7 +35,7 @@ from tqdm import tqdm
 from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
-from mdsuite.utils import DatasetKeys
+from mdsuite.utils.constants import DatasetKeys
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
