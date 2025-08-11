@@ -195,10 +195,11 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
-            axis=-1,
+        jacf = tfp.stats.auto_correlation(
+            tf.cast(ensemble, tf.complex64), normalize=False, axis=1, center=False
         )
+        jacf = tf.math.real(jacf)
+        jacf = self.args.data_range * tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
         self.jacf += jacf
         self.sigma.append(
             np.trapz(
@@ -217,8 +218,8 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            "viscosity": result[0],
-            "uncertainty": result[1],
+            "viscosity": float(result[0][0]),
+            "uncertainty": float(result[1][0]),
             "time": self.time.tolist(),
             "acf": self.jacf.numpy().tolist(),
         }

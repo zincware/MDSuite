@@ -187,7 +187,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
 
     def ensemble_operation(self, ensemble: tf.Tensor):
         """
-        Calculate and return the msd.
+        Calculate and return the acf.
 
         Parameters
         ----------
@@ -199,7 +199,9 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         ACF of the tensor_values.
         """
         ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
-        jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
+        jacf = tfp.stats.auto_correlation(
+            tf.cast(ensemble, tf.complex64), normalize=False, axis=1, center=False
+        )
         jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
         self.sigmas.append(cumulative_trapezoid(jacf, x=self.time))
 
@@ -209,8 +211,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         """
         call the post-op processes
         Returns
-        -------.
-
+        -------
         """
         self.acf_array /= self.count
         sigma = cumulative_trapezoid(self.acf_array, x=self.time)
