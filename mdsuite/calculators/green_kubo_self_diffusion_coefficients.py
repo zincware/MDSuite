@@ -191,9 +191,9 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         vacf = (
             self.experiment.units.length**2
             / self.experiment.units.time**2
-            * tfp.stats.auto_correlation(
+            * tf.math.real(tfp.stats.auto_correlation(
                 tf.cast(ensemble, tf.complex64), normalize=False, axis=1, center=False
-            )
+            ))
         )
         self.count += vacf.shape[0]
 

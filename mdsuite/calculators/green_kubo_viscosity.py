@@ -218,8 +218,8 @@ class GreenKuboViscosity(TrajectoryCalculator, ABC):
         result = self.prefactor * np.array(self.sigma)
 
         data = {
-            "viscosity": float(result[0][0]),
-            "uncertainty": float(result[1][0]),
+            "viscosity": float(result[0]),
+            "uncertainty": float(result[1]),
             "time": self.time.tolist(),
             "acf": self.jacf.numpy().tolist(),
         }

@@ -199,9 +199,9 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         ACF of the tensor_values.
         """
         ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
-        jacf = tfp.stats.auto_correlation(
+        jacf = tf.math.real(tfp.stats.auto_correlation(
             tf.cast(ensemble, tf.complex64), normalize=False, axis=1, center=False
-        )
+        ))
         jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
         self.sigmas.append(cumulative_trapezoid(jacf, x=self.time))
 
