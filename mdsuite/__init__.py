@@ -33,6 +33,26 @@ import logging
 import sys
 
 from mdsuite import utils
+from mdsuite.calculators import (
+    AngularDistributionFunction,
+    Calculator,
+    CoordinationNumbers,
+    EinsteinDiffusionCoefficients,
+    EinsteinDistinctDiffusionCoefficients,
+    EinsteinHelfandIonicConductivity,
+    EinsteinHelfandThermalConductivity,
+    EinsteinHelfandThermalKinaci,
+    GreenKuboDiffusionCoefficients,
+    GreenKuboDistinctDiffusionCoefficients,
+    GreenKuboIonicConductivity,
+    GreenKuboThermalConductivity,
+    GreenKuboViscosity,
+    GreenKuboViscosityFlux,
+    KirkwoodBuffIntegral,
+    PotentialOfMeanForce,
+    RadialDistributionFunction,
+    StructureFactor,
+)
 from mdsuite.experiment import Experiment
 from mdsuite.project import Project
 from mdsuite.utils import config, units
@@ -47,6 +67,26 @@ __all__ = [
     Molecule.__name__,
     "units",
     "utils",
+    # Calculators (constructable without an experiment; pass to
+    # ``project.run(calc)`` or ``experiment.run(calc)``).
+    Calculator.__name__,
+    AngularDistributionFunction.__name__,
+    CoordinationNumbers.__name__,
+    EinsteinDiffusionCoefficients.__name__,
+    EinsteinDistinctDiffusionCoefficients.__name__,
+    EinsteinHelfandIonicConductivity.__name__,
+    EinsteinHelfandThermalConductivity.__name__,
+    EinsteinHelfandThermalKinaci.__name__,
+    GreenKuboDiffusionCoefficients.__name__,
+    GreenKuboDistinctDiffusionCoefficients.__name__,
+    GreenKuboIonicConductivity.__name__,
+    GreenKuboThermalConductivity.__name__,
+    GreenKuboViscosity.__name__,
+    GreenKuboViscosityFlux.__name__,
+    KirkwoodBuffIntegral.__name__,
+    PotentialOfMeanForce.__name__,
+    RadialDistributionFunction.__name__,
+    StructureFactor.__name__,
 ]
 __version__ = metadata.version("mdsuite")
 

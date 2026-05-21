@@ -31,7 +31,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.integrate import cumulative_trapezoid
 
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter
 
@@ -88,16 +88,29 @@ class KirkwoodBuffIntegral(Calculator):
     experiment.run.KirkwoodBuffIntegral()
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor for the class.
+    def __init__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+    ):
+        """Kirkwood-Buff integral calculator.
 
         Parameters
         ----------
-        experiment : class object
-                        Class object of the experiment.
+        rdf_data : Computation (optional)
+                MDSuite Computation data schema from which to load the RDF data and
+                store relevant SQL meta-data information. If not given, an RDF will be
+                computed using the default RDF arguments.
+        plot : bool
+                If true, the output will be displayed in a figure.
+        savgol_order : int
+                Order of the savgol polynomial filter.
+        savgol_window_length : int
+                Window length of the savgol filter.
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.file_to_study = None
         self.data_files = []
         self.rdf = None
@@ -111,41 +124,29 @@ class KirkwoodBuffIntegral(Calculator):
         self.data_range = 1
 
         self.post_generation = True
-
-    @call
-    def __call__(
-        self,
-        rdf_data: Computation = None,
-        plot=True,
-        savgol_order: int = 2,
-        savgol_window_length: int = 17,
-    ):
-        """
-        Call method for the KB integrals.
-
-        Parameters
-        ----------
-        rdf_data : Computation
-                MDSuite Computation data schema from which to load the RDF data and
-                store relevant SQL meta-data information. If not give, an RDF will be
-                computed using the default RDF arguments.
-        plot : bool
-                If true, the output will be displayed in a figure.
-        savgol_order : int
-                Order of the savgol polynomial filter
-        savgol_window_length : int
-                Window length of the savgol filter.
-        """
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
-        else:
-            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
         self.plot = plot
 
-        # set args that will affect the computation result
+        self._user_rdf_data = rdf_data
+        self._user_savgol_order = savgol_order
+        self._user_savgol_window_length = savgol_window_length
+
+    def _setup(self):
+        """Resolve experiment-dependent state.
+
+        Accept any duck-typed object with ``data_dict`` and
+        ``computation_parameter``; only fall back to computing the RDF if
+        nothing usable was passed in.
+        """
+        if self._user_rdf_data is not None and hasattr(
+            self._user_rdf_data, "data_dict"
+        ):
+            self.rdf_data = self._user_rdf_data
+        else:
+            self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
+
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=self._user_savgol_order,
+            savgol_window_length=self._user_savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[

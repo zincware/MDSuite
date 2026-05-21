@@ -32,7 +32,6 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
@@ -66,17 +65,28 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
                                                                  correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor.
+    def __init__(
+        self,
+        plot=True,
+        data_range=100,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein-Helfand ionic conductivity calculator.
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the tensor_values
+        data_range :
+                Number of configurations to use in each ensemble
+        correlation_time : int
+                Correlation time to use in the analysis.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        # parse to the experiment class
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.translational_dipole_moment
@@ -92,40 +102,26 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=100,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor.
+        self.plot = plot
+        self._user_data_range = data_range
+        self._user_correlation_time = correlation_time
+        self._user_tau_values = tau_values
+        self._user_fit_range = fit_range
 
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        correlation_time : int
-                Correlation time to use in the analysis.
-        """
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        fit_range = self._user_fit_range
         if fit_range == -1:
-            fit_range = int(data_range - 1)
+            fit_range = int(self._user_data_range - 1)
 
-        # set args that will affect the computation result
         self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            tau_values=tau_values,
+            data_range=self._user_data_range,
+            correlation_time=self._user_correlation_time,
+            tau_values=self._user_tau_values,
             atom_selection=np.s_[:],
             fit_range=fit_range,
         )
 
-        self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -174,11 +170,18 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         -------
         MSD of the tensor_values.
         """
+        # Keep a singleton time axis on the reference frame so the
+        # broadcasted subtraction is well-defined when the leading
+        # (particles) dim of ``ensemble`` is empty (minibatch path).
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
+            tf.gather(ensemble, self.resolved_tau_values, axis=1),
+            ensemble[:, 0:1, :],
         )
+        # Sum over Cartesian components, then over particles. Reducing over
+        # the particles axis is safe even on empty batches (gives zeros)
+        # whereas the previous ``msd[0, :]`` indexing crashed.
         msd = self.prefactor * tf.reduce_sum(msd, axis=2)
-        self.msd_array += np.array(msd)[0, :]
+        self.msd_array += np.array(tf.reduce_sum(msd, axis=0))
 
     def _post_operation_processes(self):
         """

@@ -35,7 +35,7 @@ from bokeh.plotting import figure
 from scipy.signal import find_peaks
 
 from mdsuite import utils
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
 from mdsuite.utils.units import boltzmann_constant
@@ -99,19 +99,31 @@ class PotentialOfMeanForce(Calculator):
                                                     savgol_window_length = 17)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor for the class.
+    def __init__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+        number_of_shells: int = 1,
+    ):
+        """Potential of mean-force calculator.
 
         Parameters
         ----------
-        experiment : class object
-                        Class object of the experiment.
-        experiments : class object
-                        Class object of the experiment.
-        load_data : bool
+        rdf_data : Computation (optional)
+                RDF data to use in the computation. If not given, an RDF will
+                be computed using the default RDF arguments.
+        plot : bool (default=True)
+                Decision to plot the analysis.
+        savgol_order : int
+                Order of the savgol polynomial filter.
+        savgol_window_length : int
+                Window length of the savgol filter.
+        number_of_shells : int
+                Number of shells to integrate through.
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.file_to_study = None
         self.rdf = None
         self.radii = None
@@ -126,53 +138,42 @@ class PotentialOfMeanForce(Calculator):
 
         self.analysis_name = "Potential_of_Mean_Force"
         self.post_generation = True
+        self.plot = plot
 
-    @call
-    def __call__(
-        self,
-        rdf_data: Computation = None,
-        plot=True,
-        savgol_order: int = 2,
-        savgol_window_length: int = 17,
-        number_of_shells: int = 1,
-    ):
-        """
-        Python constructor for the class.
+        self._user_rdf_data = rdf_data
+        self._user_savgol_order = savgol_order
+        self._user_savgol_window_length = savgol_window_length
+        self._user_number_of_shells = number_of_shells
 
-        Parameters
-        ----------
-        rdf_data : Computation
-                RDF data to use in the computation.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        savgol_order : int
-                Order of the savgol polynomial filter
-        savgol_window_length : int
-                Window length of the savgol filter.
-        number_of_shells : int
-                Number of shells to integrate through.
+    def _setup(self):
+        """Resolve experiment-dependent state.
+
+        Accept any duck-typed object with ``data_dict`` and
+        ``computation_parameter``; only fall back to computing the RDF if
+        nothing usable was passed in.
         """
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
+        if self._user_rdf_data is not None and hasattr(
+            self._user_rdf_data, "data_dict"
+        ):
+            self.rdf_data = self._user_rdf_data
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        self.plot = plot
         self.data_files = []
 
-        # set args that will affect the computation result
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=self._user_savgol_order,
+            savgol_window_length=self._user_savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            number_of_shells=number_of_shells,
+            number_of_shells=self._user_number_of_shells,
         )
 
-        # Auto-populate the results.
+        # Auto-populate the results (reset to base each setup so reruns work).
+        self.result_keys = []
         for i in range(self.args.number_of_shells):
             self.result_keys.append(f"POMF_{i + 1}")
             self.result_keys.append(f"POMF_{i + 1}_error")

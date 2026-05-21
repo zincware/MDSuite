@@ -34,7 +34,6 @@ import jax
 import numpy as np
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve, msd_operation
@@ -87,16 +86,42 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                                                                      correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the Green Kubo diffusion coefficients class.
+    def __init__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 500,
+        save: bool = True,
+        correlation_time: int = 1,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        molecules: bool = False,
+        export: bool = False,
+        atom_selection: dict = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein-Helfand distinct diffusion coefficient calculator.
 
-        Attributes
+        Parameters
         ----------
-        experiment :  object
-                Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate. If ``None``, defaults to
+                all species of the experiment at run time.
+        data_range : int
+                Data range to use in the analysis.
+        save : bool
+                if true, save the output.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        export : bool
+                If true, export the data directly into a csv file.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.scale_function = {"quadratic": {"inner_scale_factor": 10}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
@@ -110,66 +135,40 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
         self.result_series_keys = ["time", "msd"]
         self.combinations = []
 
-    @call
-    def __call__(
-        self,
-        plot: bool = True,
-        species: list = None,
-        data_range: int = 500,
-        save: bool = True,
-        correlation_time: int = 1,
-        tau_values: Union[int, List, Any] = np.s_[:],
-        molecules: bool = False,
-        export: bool = False,
-        atom_selection: dict = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        save : bool
-                if true, save the output.
+        self.plot = plot
 
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        export : bool
-                If true, export the data directly into a csv file.
+        # Raw user input.
+        self._user_species = species
+        self._user_data_range = data_range
+        self._user_correlation_time = correlation_time
+        self._user_tau_values = tau_values
+        self._user_molecules = molecules
+        self._user_atom_selection = atom_selection
+        self._user_fit_range = fit_range
 
-        Returns
-        -------
-        None
-
-        """
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        species = self._user_species
         if species is None:
             species = list(self.experiment.species)
         self.combinations = list(itertools.combinations_with_replacement(species, 2))
 
-        self.plot = plot
-
+        fit_range = self._user_fit_range
         if fit_range == -1:
-            fit_range = int(data_range - 1)
+            fit_range = int(self._user_data_range - 1)
 
-        # set args that will affect the computation result
         self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            tau_values=tau_values,
-            molecules=molecules,
+            data_range=self._user_data_range,
+            correlation_time=self._user_correlation_time,
+            atom_selection=self._user_atom_selection,
+            tau_values=self._user_tau_values,
+            molecules=self._user_molecules,
             species=species,
             fit_range=fit_range,
         )
         self.time = self._handle_tau_values() * self.experiment.units.time
 
-        self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
+        self.msd_array = np.zeros(self.resolved_data_range)  # define empty msd array
 
     def _map_over_particles(self, ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
         """
@@ -348,4 +347,4 @@ class EinsteinDistinctDiffusionCoefficients(TrajectoryCalculator):
                     self._compute_msd(ensemble, dict_ref, combination)
 
             self._post_operation_processes(combination)
-            self.msd_array = np.zeros(self.args.data_range)  # define empty msd array
+            self.msd_array = np.zeros(self.resolved_data_range)  # define empty msd array

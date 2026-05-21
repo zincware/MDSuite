@@ -29,7 +29,7 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from dataclasses import dataclass, field, fields
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from sqlalchemy import and_
 
@@ -70,12 +70,14 @@ def conv_to_db(val):
 class CalculatorDatabase:
     """Database Interactions of the calculator class.
 
-    This class handles the interaction of the calculator with the project database
+    This class handles the interaction of the calculator with the project database.
+    ``self.experiment`` is not owned by this mixin; it is set transiently by
+    :meth:`Calculator.run` for the duration of a single calculation.
     """
 
-    def __init__(self, experiment):
-        """Constructor for the calculator database."""
-        self.experiment: Experiment = experiment
+    def __init__(self):
+        """Constructor for the calculator database mixin."""
+        self.experiment: Experiment = None
         self.db_computation: db.Computation = None
         self.database_group = None
         self.analysis_name = None
@@ -247,59 +249,6 @@ class CalculatorDatabase:
         """
         self._queued_data.append(ComputationResults(data=data, subjects=subjects))
 
-    def update_database(self, parameters, delete_duplicate: bool = True):
-        """
-        Add data to the database.
-
-        Parameters
-        ----------
-        parameters : dict
-                Parameters to be used in the addition, i.e.
-                {"Analysis": "Green_Kubo_Self_Diffusion", "Subject": "Na",
-                "data_range": 500, "data": 1.8e-9}
-        delete_duplicate : bool
-                If true, duplicate entries will be deleted.
-
-        Returns
-        -------
-        Updates the sql database
-        """
-        raise DeprecationWarning("This function has been replaced by `queue_data`")
-
-    # REMOVE
-    # TODO rename and potentially move to a RDF based parent class
-    def _get_rdf_data(self) -> List[db.Computation]:
-        """Fill the data_files list with filenames of the rdf tensor_values."""
-        # TODO replace with exp.load.RDF()
-        raise DeprecationWarning(
-            "Replaced by experiment.run.RadialDistributionFunction(**kwargs)"
-        )
-        # with self.experiment.project.session as ses:
-        #     computations = (
-        #         ses.query(db.Computation)
-        #             .filter(
-        #             db.Computation.computation_attributes.any(
-        #                 str_value="Radial_Distribution_Function", name="Property"
-        #             )
-        #         )
-        #             .all()
-        #     )
-        #
-        #     for computation in computations:
-        #         _ = computation.data_dict
-        #         _ = computation.data_range
-        #
-        # return computations
-
-    # TODO rename and potentially move to a RDF based parent class
-    def _load_rdf_from_file(self, computation: db.Computation):
-        """Load the raw rdf tensor_values from a directory."""
-        raise DeprecationWarning(
-            "Replaced by experiment.run.RadialDistributionFuncion(**kwargs)"
-        )
-
-        # self.radii = np.array(computation.data_dict["x"]).astype(float)[1:]
-        # self.rdf = np.array(computation.data_dict["y"]).astype(float)[1:]
 
 
 #####################

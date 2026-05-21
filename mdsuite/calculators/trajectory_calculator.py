@@ -28,7 +28,7 @@ A parent class for calculators that operate on the trajectory.
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, List, Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import tensorflow as tf
@@ -43,7 +43,7 @@ from mdsuite.utils.meta_functions import join_path
 from .calculator import Calculator
 
 if TYPE_CHECKING:
-    from mdsuite import Experiment
+    pass
 
 
 class TrajectoryCalculator(Calculator, ABC):
@@ -80,20 +80,13 @@ class TrajectoryCalculator(Calculator, ABC):
             Simulation database from which data should be loaded.
     """
 
-    def __init__(self, experiment: Experiment = None, experiments: List = None):
-        """
-        Constructor for the TrajectoryCalculator class.
+    def __init__(self):
+        """Constructor for the TrajectoryCalculator class.
 
-        Parameters
-        ----------
-        experiment : Experiment
-                Experiment for which the calculator will be run.
-        experiments : List[Experiment]
-                List of experiments on which to run the calculator.
+        Like its parent, takes no experiment. The experiment is attached
+        transiently by :meth:`Calculator.run`.
         """
-        super(TrajectoryCalculator, self).__init__(
-            experiment=experiment, experiments=experiments
-        )
+        super().__init__()
 
         self.data_resolution = None
         self.loaded_property: mdsuite.database.simulation_database.PropertyInfo = None
@@ -106,6 +99,17 @@ class TrajectoryCalculator(Calculator, ABC):
         self.memory_manager = None
         self.data_manager = None
         self._database = None
+
+    def _reset_run_state(self):
+        """Clear cached per-experiment database handle along with base state."""
+        super()._reset_run_state()
+        self._database = None
+        # Sensible defaults so calculators that never invoke
+        # ``_handle_tau_values`` (e.g. RDF, ADF, KBI) still have these
+        # attributes available downstream. ``_handle_tau_values`` will
+        # overwrite them with experiment-dependent values when called.
+        self.resolved_data_range = None
+        self.resolved_tau_values = None
 
     @property
     def database(self):
@@ -194,38 +198,58 @@ class TrajectoryCalculator(Calculator, ABC):
             return "CoordinateUnwrapper"
 
     def _handle_tau_values(self) -> np.array:
-        """
-        Handle the parsing of custom tau values.
+        """Resolve the user's ``tau_values`` input into derived runtime state.
 
+        Reads (read-only) ``self.args.tau_values`` and ``self.args.data_range``
+        and writes:
+
+        * ``self.resolved_tau_values`` -- explicit integer index array.
+        * ``self.resolved_data_range`` -- effective number of configurations
+          spanned by the selected tau indices.
+        * ``self.data_resolution`` -- length of the tau array.
+
+        ``self.args`` itself is **not** mutated. Keeping the user-provided
+        args intact is what lets the database cache lookup (which keys on
+        ``self.args``) round-trip after a fresh ``run()`` -- without this
+        invariant, ``Calculator.run`` would need to re-run ``_setup()``
+        after persistence to rewind the mutation.
 
         Returns
         -------
         times : np.array
-            The time values corresponding to the selected tau values
+            Time values corresponding to the resolved tau indices.
         """
-        if isinstance(self.args.tau_values, int):
-            self.data_resolution = self.args.tau_values
-            self.args.tau_values = np.linspace(
-                0, self.args.data_range - 1, self.args.tau_values, dtype=int
-            )
-        if isinstance(self.args.tau_values, list) or isinstance(
-            self.args.tau_values, np.ndarray
-        ):
-            self.data_resolution = len(self.args.tau_values)
-            self.args.data_range = self.args.tau_values[-1] + 1
-        if isinstance(self.args.tau_values, slice):
-            self.args.tau_values = np.linspace(
-                0, self.args.data_range - 1, self.args.data_range, dtype=int
-            )[self.args.tau_values]
-            self.data_resolution = len(self.args.tau_values)
+        tau_values_in = self.args.tau_values
+        data_range_in = self.args.data_range
 
-        times = (
-            np.asarray(self.args.tau_values)
+        if isinstance(tau_values_in, int):
+            resolved_tau = np.linspace(
+                0, data_range_in - 1, tau_values_in, dtype=int
+            )
+            resolved_data_range = data_range_in
+        elif isinstance(tau_values_in, (list, np.ndarray)):
+            resolved_tau = np.asarray(tau_values_in)
+            resolved_data_range = int(resolved_tau[-1]) + 1
+        elif isinstance(tau_values_in, slice):
+            resolved_tau = np.linspace(
+                0, data_range_in - 1, data_range_in, dtype=int
+            )[tau_values_in]
+            resolved_data_range = data_range_in
+        else:
+            raise TypeError(
+                f"Unsupported tau_values type {type(tau_values_in).__name__}; "
+                f"expected int, list, np.ndarray, or slice."
+            )
+
+        self.resolved_tau_values = resolved_tau
+        self.resolved_data_range = resolved_data_range
+        self.data_resolution = len(resolved_tau)
+
+        return (
+            resolved_tau
             * self.experiment.time_step
             * self.experiment.sample_rate
         )
-
-        return times
 
     def _check_remainder(self):
         """
@@ -238,7 +262,7 @@ class TrajectoryCalculator(Calculator, ABC):
         -------
         Updates the remainder attribute if required.
         """
-        return self.remainder - (self.remainder % self.args.data_range)
+        return self.remainder - (self.remainder % self.resolved_data_range)
 
     def _prepare_managers(self, data_path: list, correct: bool = False):
         """
@@ -256,6 +280,13 @@ class TrajectoryCalculator(Calculator, ABC):
         -------
         Updates the calculator class
         """
+        # Calculators that don't go through ``_handle_tau_values`` (RDF,
+        # ADF, ...) never populate ``resolved_data_range``; fall back to
+        # the user-provided value from ``self.args`` so the memory and
+        # data managers still get a usable data_range.
+        if self.resolved_data_range is None:
+            self.resolved_data_range = self.args.data_range
+
         self.memory_manager = MemoryManager(
             data_path=data_path,
             database=self.database,
@@ -268,7 +299,7 @@ class TrajectoryCalculator(Calculator, ABC):
             self.remainder,
         ) = self.memory_manager.get_batch_size()
         self.ensemble_loop, self.minibatch = self.memory_manager.get_ensemble_loop(
-            self.args.data_range, self.args.correlation_time
+            self.resolved_data_range, self.args.correlation_time
         )
 
         if self.minibatch:
@@ -283,7 +314,7 @@ class TrajectoryCalculator(Calculator, ABC):
         self.data_manager = DataManager(
             data_path=data_path,
             database=self.database,
-            data_range=self.args.data_range,
+            data_range=self.resolved_data_range,
             batch_size=self.batch_size,
             n_batches=self.n_batches,
             ensemble_loop=self.ensemble_loop,

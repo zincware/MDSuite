@@ -37,7 +37,6 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import get_angles
@@ -110,37 +109,7 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
                                                            use_tf_function = False)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Compute the Angular Distribution Function for all species combinations.
-
-        Parameters
-        ----------
-        experiment : object
-                Experiment object from which to take attributes.
-        """
-        super().__init__(**kwargs)
-        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
-        self.loaded_property = mdsuite_properties.positions
-
-        self.use_tf_function = None
-        self.molecules = None
-        self.bin_range = None
-        self.number_of_atoms = None
-        self.norm_power = None
-        self.sample_configurations = None
-        self.result_keys = ["max_peak"]
-        self.result_series_keys = ["angle", "adf"]
-        self._dtype = tf.float32
-
-        self.adf_minibatch = None  # memory management for triples generation per batch.
-
-        self.analysis_name = "Angular_Distribution_Function"
-        self.x_label = r"$$\text{Angle} / \theta$$"
-        self.y_label = r"$$\text{ADF} / a.u.$$"
-
-    @call
-    def __call__(
+    def __init__(
         self,
         batch_size: int = 1,
         minibatch: int = -1,
@@ -157,7 +126,8 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         norm_power: int = 4,
         **kwargs,
     ):
-        """
+        """Compute the Angular Distribution Function for all species combinations.
+
         Parameters
         ----------
         batch_size : int
@@ -192,52 +162,85 @@ class AngularDistributionFunction(TrajectoryCalculator, ABC):
         plot : bool
                 If true, plot the result of the analysis.
         """
-        # set args that will affect the computation result
-        self.args = Args(
-            number_of_bins=number_of_bins,
-            cutoff=cutoff,
-            start=start,
-            stop=stop,
-            atom_selection=atom_selection,
-            data_range=1,
-            correlation_time=1,
-            molecules=molecules,
-            species=species,
-            number_of_configurations=number_of_configurations,
-            norm_power=norm_power,
-        )
+        super().__init__()
+        self.scale_function = {"quadratic": {"outer_scale_factor": 10}}
+        self.loaded_property = mdsuite_properties.positions
 
-        # Parse the user arguments.
         self.use_tf_function = use_tf_function
+        self.molecules = None
+        self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
+        self.number_of_atoms = None
+        self.norm_power = norm_power
+        self.sample_configurations = None
+        self.result_keys = ["max_peak"]
+        self.result_series_keys = ["angle", "adf"]
+        self._dtype = tf.float32
+
+        self.adf_minibatch = minibatch
+
+        self.analysis_name = "Angular_Distribution_Function"
+        self.x_label = r"$$\text{Angle} / \theta$$"
+        self.y_label = r"$$\text{ADF} / a.u.$$"
+
         self.cutoff = cutoff
         self.plot = plot
-        self._batch_size = batch_size  # memory management for all batches
-        self.adf_minibatch = minibatch
-        self.bin_range = [0.0, 3.15]  # from 0 to a chemists pi
-        self.norm_power = norm_power
+        self._batch_size = batch_size
         self.override_n_batches = kwargs.get("batches")
 
-    def check_input(self):
-        """
-        Check the inputs and set defaults if necessary.
+        # Raw user inputs (args dataclass built in ``_setup`` so that re-runs
+        # rewind any in-place mutation done by ``check_input``).
+        self._user_number_of_bins = number_of_bins
+        self._user_cutoff = cutoff
+        self._user_start = start
+        self._user_stop = stop
+        self._user_atom_selection = atom_selection
+        self._user_molecules = molecules
+        self._user_species = species
+        self._user_number_of_configurations = number_of_configurations
+        self._user_norm_power = norm_power
 
-        Returns
-        -------
-        Updates the class attributes.
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args.
+
+        Defaults that depend on ``self.experiment`` are filled in here so
+        ``self.args`` is fully resolved *before* the database cache lookup
+        in :meth:`Calculator.run`.
+        """
+        stop = self._user_stop
+        if stop is None:
+            stop = self.experiment.number_of_configurations - 1
+
+        species = self._user_species
+        if species is None:
+            species = list(
+                self.experiment.molecules
+                if self._user_molecules
+                else self.experiment.species
+            )
+
+        self.args = Args(
+            number_of_bins=self._user_number_of_bins,
+            cutoff=self._user_cutoff,
+            start=self._user_start,
+            stop=stop,
+            atom_selection=self._user_atom_selection,
+            data_range=1,
+            correlation_time=1,
+            molecules=self._user_molecules,
+            species=species,
+            number_of_configurations=self._user_number_of_configurations,
+            norm_power=self._user_norm_power,
+        )
+
+    def check_input(self):
+        """Dependency check + per-run particle-count initialisation.
+
+        Args defaults are already filled in by :meth:`_setup` so the cache
+        keys stay stable across the run.
         """
         self._run_dependency_check()
-        if self.args.stop is None:
-            self.args.stop = self.experiment.number_of_configurations - 1
-
-        # Get the correct species out.
-        if self.args.species is None:
-            if self.args.molecules:
-                self.args.species = list(self.experiment.molecules)
-                self._compute_number_of_atoms(self.experiment.molecules)
-            else:
-                self.args.species = list(self.experiment.species)
-                self._compute_number_of_atoms(self.experiment.species)
-
+        if self._user_molecules:
+            self._compute_number_of_atoms(self.experiment.molecules)
         else:
             self._compute_number_of_atoms(self.experiment.species)
 

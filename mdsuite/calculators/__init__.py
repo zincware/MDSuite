@@ -59,11 +59,9 @@ from mdsuite.calculators.green_kubo_thermal_conductivity import (
 from mdsuite.calculators.green_kubo_viscosity import GreenKuboViscosity
 from mdsuite.calculators.green_kubo_viscosity_flux import GreenKuboViscosityFlux
 from mdsuite.calculators.kirkwood_buff_integrals import KirkwoodBuffIntegral
-from mdsuite.calculators.nernst_einstein_ionic_conductivity import (
-    NernstEinsteinIonicConductivity,
-)
 from mdsuite.calculators.potential_of_mean_force import PotentialOfMeanForce
 from mdsuite.calculators.radial_distribution_function import RadialDistributionFunction
+from mdsuite.calculators.structure_factor import StructureFactor
 
 __all__ = [
     Calculator.__name__,
@@ -81,7 +79,7 @@ __all__ = [
     GreenKuboThermalConductivity.__name__,
     GreenKuboViscosity.__name__,
     KirkwoodBuffIntegral.__name__,
-    NernstEinsteinIonicConductivity.__name__,
     PotentialOfMeanForce.__name__,
     RadialDistributionFunction.__name__,
+    StructureFactor.__name__,
 ]

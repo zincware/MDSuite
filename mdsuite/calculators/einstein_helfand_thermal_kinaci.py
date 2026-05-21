@@ -33,7 +33,6 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
@@ -80,17 +79,28 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
 
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor.
+    def __init__(
+        self,
+        plot=True,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein-Helfand thermal conductivity (Kinaci) calculator.
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        # parse to the experiment class
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.kinaci_heat_current
@@ -104,42 +114,26 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
 
         self.prefactor = None
+        self.plot = plot
+        self._user_data_range = data_range
+        self._user_correlation_time = correlation_time
+        self._user_tau_values = tau_values
+        self._user_fit_range = fit_range
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor.
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        data_range : int
-                Data range to use in the analysis.
-
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        """
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        fit_range = self._user_fit_range
         if fit_range == -1:
-            fit_range = int(data_range - 1)
+            fit_range = int(self._user_data_range - 1)
 
-        # set args that will affect the computation result
         self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            tau_values=tau_values,
+            data_range=self._user_data_range,
+            correlation_time=self._user_correlation_time,
+            tau_values=self._user_tau_values,
             atom_selection=np.s_[:],
             fit_range=fit_range,
         )
 
-        self.plot = plot
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -188,21 +182,19 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
     def ensemble_operation(self, ensemble):
+        """Accumulate the Kinaci heat-current MSD for one window.
+
+        ``ensemble`` arrives shaped ``(n_particles, n_timesteps, 3)``. The
+        reference frame is ``ensemble[:, 0:1, :]`` so broadcasting works on
+        empty minibatches. Reduce over Cartesian and particles axes for a
+        length-``T`` MSD.
         """
-        Calculate and return the msd.
-
-        Parameters
-        ----------
-        ensemble
-
-        Returns
-        -------
-        MSD of the tensor_values.
-        """
-        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
-
-        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        msd = tf.math.squared_difference(
+            tf.gather(ensemble, self.resolved_tau_values, axis=1),
+            ensemble[:, 0:1, :],
+        )
+        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
+        self.msd_array += np.array(tf.reduce_sum(msd, axis=0))
 
     def _post_operation_processes(self):
         """

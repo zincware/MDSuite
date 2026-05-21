@@ -27,10 +27,9 @@ Parent class for the calculators.
 """
 from __future__ import annotations
 
-import functools
 import logging
 import warnings
-from typing import TYPE_CHECKING, Dict, List, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 import tensorflow as tf
@@ -49,115 +48,22 @@ warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
 
 
-def call(func):
-    """
-    Decorator for the calculator call method.
-
-    This decorator provides a unified approach for handling run_computation and
-    load_data for a single or multiple experiments.
-    It handles the `run.<calc>()` method, iterates over experiments and
-    loads data if requested! Therefore, the __call__ method does not and can
-    not return any values anymore!
-
-
-    Notes
-    -----
-    When calling the calculator it will check if a computation with the given
-    user arguments was already performed:
-    >>> Calculator.get_computation_data() is not None
-
-    if no computations are available it will
-    1. prepare a database entry
-    >>> Calculator.prepare_db_entry()
-    2. save the user arguments
-    >>> Calculator.save_computation_args()
-    3. Run the analysis
-    >>> Calculator.run_analysis()
-    4. Save all the data to the database
-    >>> Calculator.save_db_data()
-    5. Finally query the the data from the database and pass them to the user / plotting
-    >>> data = Calculator.get_computation_data()
-
-
-
-
-    Parameters
-    ----------
-    func: Calculator.__call__ method
-
-    Returns
-    -------
-    decorated __call__ method
-
-    """
-
-    @functools.wraps(func)
-    def inner(self, *args, **kwargs) -> Union[db.Computation, Dict[str, db.Computation]]:
-        """Manage the call method.
-
-        Parameters
-        ----------
-        self: Calculator
-
-        Returns
-        -------
-        data:
-            A dictionary of shape {name: data} when called from the project class
-            A list of [data] when called directly from the experiment class
-        """
-        # This is only true, when called via project.experiments.<exp>.run,
-        #  otherwise the experiment will be None
-        return_dict = self.experiment is None
-
-        out = {}
-        for experiment in self.experiments:
-            CLS = self.__class__
-            # NOTE: if the calculator accepts more than just experiment/experiments
-            #  as init, this has to be changed!
-            cls = CLS(experiment=experiment)
-            # pass the user args to the calculator
-            func(cls, *args, **kwargs)
-            data = cls.get_computation_data()
-            if data is None:
-                # new calculation will be performed
-                cls.prepare_db_entry()
-                cls.save_computation_args()
-                cls.run_analysis()
-                cls.save_db_data()
-                # Need to reset the user args, if they got change
-                # or set to defaults, e.g. n_configurations = - 1 so
-                # that they match the query
-                func(cls, *args, **kwargs)
-                data = cls.get_computation_data()
-
-            if cls.plot:
-                """Plot the data"""
-                cls.plotter = DataVisualizer2D(
-                    title=cls.analysis_name, path=experiment.figures_path
-                )
-                cls.plot_data(data.data_dict)
-                cls.plotter.grid_show(cls.plot_array)
-
-            out[cls.experiment.name] = data
-
-        if return_dict:
-            return out
-        else:
-            return out[self.experiment.name]
-
-    return inner
-
-
 class Calculator(CalculatorDatabase):
     """
     Parent class for analysis modules.
 
+    Calculators are now standalone configuration objects. They are constructed
+    without an experiment, then applied to one or more experiments via
+    ``Calculator.run(experiment)`` (or, equivalently, ``experiment.run(calc)`` /
+    ``project.run(calc)``).
+
     Attributes
     ----------
     experiment : Experiment
-                Experiment for which the calculator will be run.
-    experiments : List[Experiment]
-            List of experiments on which to run the calculator.
+            The experiment currently being processed. Set transiently by
+            :meth:`run`; ``None`` outside of a run. Concrete calculators may
+            read this during :meth:`run_calculator` for trajectory and
+            metadata access.
     plot : bool
             If true, the results will be plotted.
     system_property: bool (default = False)
@@ -193,28 +99,15 @@ class Calculator(CalculatorDatabase):
             species loop.
     """
 
-    def __init__(
-        self, experiment: Experiment = None, experiments: List[Experiment] = None
-    ):
-        """
-        Constructor for the calculator class.
+    def __init__(self):
+        """Constructor for the calculator class.
 
-        Parameters
-        ----------
-        experiment : Experiment
-                Experiment for which the calculator will be run.
-        experiments : List[Experiment]
-                List of experiments on which to run the calculator.
+        Subclasses should accept their user-facing arguments here (data_range,
+        plot, correlation_time, ...) and store them. The calculator must not
+        depend on any experiment at construction time.
         """
-        # Set upon instantiation of parent class
-        super().__init__(experiment)
-        # NOTE: if the calculator accepts more than just experiment/experiments
-        #  in the init the @call decorator has to be changed!
-        self.experiment: Experiment = experiment
-        self.experiments: List[Experiment] = experiments
-        # Setting the experiment value supersedes setting experiments
-        if self.experiment is not None:
-            self.experiments = [self.experiment]
+        super().__init__()
+        self.experiment: Experiment = None
 
         self.plot = False
 
@@ -244,11 +137,77 @@ class Calculator(CalculatorDatabase):
         """Get the dtype used for the calculator."""
         return self._dtype
 
+    def run(self, experiment: Experiment) -> db.Computation:
+        """Apply this calculator to a single experiment.
+
+        Replaces the previous ``@call`` decorator. Handles the full lifecycle:
+        per-run state setup, database cache lookup, analysis, persistence, and
+        optional plotting.
+
+        Parameters
+        ----------
+        experiment : Experiment
+            The experiment to analyze.
+
+        Returns
+        -------
+        db.Computation
+            The computation entry from the database (cached or freshly
+            computed).
+        """
+        self.experiment = experiment
+        try:
+            self._reset_run_state()
+            self._setup()
+
+            data = self.get_computation_data()
+            if data is None:
+                self.prepare_db_entry()
+                self.save_computation_args()
+                self.run_analysis()
+                self.save_db_data()
+                # ``_handle_tau_values`` no longer mutates ``self.args`` —
+                # it writes ``self.resolved_*`` instead — so the cache
+                # lookup keys (which come from ``self.args``) stay stable
+                # across the run and no rewind is needed.
+                data = self.get_computation_data()
+
+            if self.plot:
+                self.plotter = DataVisualizer2D(
+                    title=self.analysis_name, path=experiment.figures_path
+                )
+                self.plot_data(data.data_dict)
+                self.plotter.grid_show(self.plot_array)
+
+            return data
+        finally:
+            self.experiment = None
+
+    def _reset_run_state(self):
+        """Clear any transient state from a previous run.
+
+        Calculators are reusable across experiments; this guarantees no
+        bleed-through between sequential ``run()`` calls.
+        """
+        self._queued_data = []
+        self.db_computation_attributes = []
+        self.db_computation = None
+        self.plot_array = []
+
+    def _setup(self):
+        """Hook for subclasses to compute derived state after ``self.experiment``
+        is set.
+
+        Default is a no-op. Override when the calculator needs to compute
+        experiment-dependent state (defaults filled from species lists, derived
+        time arrays, prefactors that depend on units, etc.).
+        """
+        pass
+
     def run_visualization(
         self, x_data: np.ndarray, y_data: np.ndarray, title: str, layouts: object = None
     ):
-        """
-        Run a visualization session on the data.
+        """Run a visualization session on the data.
 
         Parameters
         ----------
@@ -279,18 +238,15 @@ class Calculator(CalculatorDatabase):
         )
 
     def run_calculator(self):
-        """
-        Run the calculation. This should be implemented in each calculator.
+        """Run the calculation. Must be implemented in each concrete calculator.
 
-        Returns
-        -------
-
+        Concrete subclasses access experiment state via ``self.experiment``,
+        which is set for the duration of :meth:`run`.
         """
         raise NotImplementedError
 
     def plot_data(self, data):
-        """
-        Plot the data coming from the database.
+        """Plot the data coming from the database.
 
         Parameters
         ----------

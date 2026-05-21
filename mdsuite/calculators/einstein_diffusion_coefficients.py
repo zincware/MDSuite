@@ -40,7 +40,6 @@ from bokeh.plotting import figure
 from tqdm import tqdm
 
 from mdsuite import utils
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
@@ -81,16 +80,40 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                                                          correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
+    def __init__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 100,
+        correlation_time: int = 1,
+        atom_selection: np.s_ = np.s_[:],
+        molecules: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein self-diffusion coefficient calculator.
+
         Parameters
         ----------
-        experiment :  Experiment
-                Experiment class to call from
-        experiments :  Experiment
-                Experiment classes to call from
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate. If ``None``, defaults to
+                all species (or molecules) of the experiment at run time.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        tau_values : Union[int, list, np.s_]
+                Selection of tau values to use in the window sliding.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 150}}
         self.loaded_property = mdsuite_properties.unwrapped_positions
         self.x_label = r"$$\text{Time} / s$$"
@@ -106,64 +129,42 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
 
         self.msd_array = None
+        self.plot = plot
+        self.system_property = False
+
+        # Raw user inputs (species defaults are filled in at run time).
+        self._user_species = species
+        self._user_data_range = data_range
+        self._user_correlation_time = correlation_time
+        self._user_atom_selection = atom_selection
+        self._user_tau_values = tau_values
+        self._user_molecules = molecules
+        self._user_fit_range = fit_range
 
         log.info("starting Einstein Diffusion Computation")
 
-    @call
-    def __call__(
-        self,
-        plot: bool = True,
-        species: list = None,
-        data_range: int = 100,
-        correlation_time: int = 1,
-        atom_selection: np.s_ = np.s_[:],
-        molecules: bool = False,
-        tau_values: Union[int, List, Any] = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        molecules : bool
-                If true, molecules are used instead of atoms.
-        tau_values : Union[int, list, np.s_]
-                Selection of tau values to use in the window sliding.
-
-        Returns
-        -------
-        None
-        """
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        species = self._user_species
         if species is None:
-            if molecules:
+            if self._user_molecules:
                 species = list(self.experiment.molecules)
             else:
                 species = list(self.experiment.species)
 
+        fit_range = self._user_fit_range
         if fit_range == -1:
-            fit_range = int(data_range - 1)
-        # set args that will affect the computation result
+            fit_range = int(self._user_data_range - 1)
+
         self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            tau_values=tau_values,
-            molecules=molecules,
+            data_range=self._user_data_range,
+            correlation_time=self._user_correlation_time,
+            atom_selection=self._user_atom_selection,
+            tau_values=self._user_tau_values,
+            molecules=self._user_molecules,
             species=species,
             fit_range=fit_range,
         )
-        self.plot = plot
-        self.system_property = False
 
     def ensemble_operation(self, ensemble):
         """
@@ -179,7 +180,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         MSD of the tensor_values.
         """
         msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, None, 0]
+            tf.gather(ensemble, self.resolved_tau_values, axis=1), ensemble[:, None, 0]
         )
         self.count += msd.shape[0]
         # average over particles, sum over dimensions
@@ -237,7 +238,7 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
-                    if not ensemble[dict_ref].shape[1] == self.args.data_range:
+                    if not ensemble[dict_ref].shape[1] == self.resolved_data_range:
                         continue
                     else:
                         self.msd_array += self.ensemble_operation(ensemble[dict_ref])
