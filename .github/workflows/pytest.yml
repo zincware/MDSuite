@@ -1,5 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+# Run the unit / integration test suite, plus a linting and type-check
+# baseline. Installation goes through ``uv`` for fast resolution.
 
 name: pytest
 
@@ -9,7 +9,7 @@ on:
     - cron: '14 3 * * 1'  # at 03:14 on Monday.
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -18,63 +18,98 @@ jobs:
         - "3.10"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install package + test extras
         run: |
-          python -m pip install --upgrade pip
-          pip install -r dev-requirements.txt
-      - name: Install package
-        run: |
-          pip install .
+          uv pip install --system -e ".[test]"
       - name: Pytest
         env:
           CUDA_VISIBLE_DEVICES: -1
           TF_CPP_MIN_LOG_LEVEL: 3
-          # this might be really dumb, but we have to suppress libcudart error
         run: |
+          # Coverage is enforced: any drop below the floor fails CI. Raise
+          # ``--fail-under`` as the suite improves.
           coverage run -m pytest
+          coverage report --fail-under=70
       - name: Coveralls
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
           coveralls
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install ruff
+        run: |
+          uv pip install --system ruff
+      - name: Ruff
+        run: |
+          ruff check mdsuite
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install mypy + package
+        run: |
+          uv pip install --system -e ".[dev]"
+      - name: Mypy (baseline, permissive)
+        run: |
+          # Permissive baseline: ignore_missing_imports and silent
+          # follow_imports are set in pyproject.toml. Treat this as an
+          # early-warning step until the hint coverage grows; do not
+          # fail the build on type errors yet.
+          mypy mdsuite || true
+
   nbtest:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-      - name: Install dev requirements
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install package + test extras + nbmake
         run: |
-          pip3 install -r dev-requirements.txt
-          pip3 install nbmake
-      - name: Install package
-        run: |
-          pip3 install .
+          uv pip install --system -e ".[test]"
+          uv pip install --system nbmake
       - name: Notebook test
         run: |
           pytest --nbmake ./examples --nbmake-timeout=7200
 
-  docstest:
+  docs:
     runs-on: ubuntu-latest
     steps:
       - uses: docker://pandoc/core:2.9
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
-      - name: Install package
+          python-version: "3.10"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Install package + docs extras
         run: |
-          sudo apt install pandoc
-          pip3 install -r dev-requirements.txt
-          pip3 install .
+          sudo apt-get install -y pandoc
+          uv pip install --system -e ".[docs]"
       - name: Build documentation
         run: |
           cd ./docs

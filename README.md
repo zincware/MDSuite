@@ -52,10 +52,14 @@ ______________________________________________________________________
 
 ```shell
    cd MDSuite
-   conda create -n MDSuite python=3.8
-   conda activate MDSuite
-   pip install .
+   uv venv --python 3.10
+   source .venv/bin/activate
+   uv pip install -e .
 ```
+
+(or with ``conda``: ``conda create -n MDSuite python=3.10 && conda activate
+MDSuite && pip install -e .``). MDSuite requires Python ≥ 3.9; 3.10 is the
+version exercised in CI.
 
 # Documentation
 

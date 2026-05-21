@@ -129,20 +129,43 @@ class Project(ProjectDatabase):
         # Database Properties
         self.description = description
 
+    # Module-level tracking of attached file handlers so that creating a
+    # second ``mds.Project`` in the same process does not leave the first
+    # project's handler attached -- which previously caused every log line
+    # to be written to *both* projects' ``mdsuite.log`` files.
+    _attached_log_handlers: dict = {}
+
     def attach_file_logger(self):
-        """Attach a file logger for this project."""
+        """Attach a per-project file logger.
+
+        Removes any handler previously attached by another ``Project``
+        instance, then registers a handler that writes to this project's
+        own ``mdsuite.log``. The log format includes the project name as
+        a ``[project=<name>]`` prefix so the active project is obvious
+        from the log alone.
+        """
         logger = logging.getLogger("mdsuite")
+
+        # Detach handlers from previously-created projects so log lines
+        # don't fan out into other projects' log files.
+        for stale_handler in list(Project._attached_log_handlers.values()):
+            try:
+                logger.removeHandler(stale_handler)
+                stale_handler.close()
+            except Exception:
+                pass
+        Project._attached_log_handlers.clear()
+
         formatter = logging.Formatter(
-            "%(asctime)s %(levelname)s (%(module)s): %(message)s"
+            f"%(asctime)s %(levelname)s [project={self.name}] "
+            f"(%(module)s): %(message)s"
         )
-        # TODO this will potentially log two mds.Projects into the same file
-        #   maybe there are some conditional logging Handlers that can check
-        #   project.name, but for now this should be fine.
         channel = logging.FileHandler(self.project_dir / "mdsuite.log")
         channel.setLevel(logging.DEBUG)
         channel.setFormatter(formatter)
 
         logger.addHandler(channel)
+        Project._attached_log_handlers[self.name] = channel
 
     def __str__(self):
         r"""
