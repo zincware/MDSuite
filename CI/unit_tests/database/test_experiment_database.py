@@ -29,9 +29,12 @@ import os
 
 import numpy as np
 import pytest
-from zinchub import DataHub
 
-import mdsuite as mds
+# These tests rely on a real downloaded LAMMPS trajectory; skip cleanly
+# when the (optional) ``zinchub`` data-hub client is not installed.
+DataHub = pytest.importorskip("zinchub").DataHub
+
+import mdsuite as mds  # noqa: E402
 import mdsuite.file_io.lammps_trajectory_files
 from mdsuite.database.simulation_database import MoleculeInfo, SpeciesInfo
 

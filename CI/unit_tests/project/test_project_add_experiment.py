@@ -28,18 +28,22 @@ import os
 import pathlib
 
 import h5py as hf
-import MDAnalysis
 import numpy as np
 import pytest
-from ase import units
-from ase.calculators.emt import EMT
-from ase.io import write
-from ase.lattice.cubic import FaceCenteredCubic
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
-from ase.md.verlet import VelocityVerlet
-from zinchub import DataHub
 
-import mdsuite as mds
+# Skip these tests cleanly when the optional dependencies are not present
+# (they exercise the real LAMMPS file-reading + ASE MD pipeline).
+MDAnalysis = pytest.importorskip("MDAnalysis")
+DataHub = pytest.importorskip("zinchub").DataHub
+
+from ase import units  # noqa: E402
+from ase.calculators.emt import EMT  # noqa: E402
+from ase.io import write  # noqa: E402
+from ase.lattice.cubic import FaceCenteredCubic  # noqa: E402
+from ase.md.velocitydistribution import MaxwellBoltzmannDistribution  # noqa: E402
+from ase.md.verlet import VelocityVerlet  # noqa: E402
+
+import mdsuite as mds  # noqa: E402
 import mdsuite.file_io.chemfiles_read
 import mdsuite.file_io.lammps_flux_files
 

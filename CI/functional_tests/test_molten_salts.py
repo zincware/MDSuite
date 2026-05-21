@@ -28,7 +28,10 @@ Perform a functional test on two molten salts.
 from typing import Tuple
 
 import pytest
-from zinchub import DataHub
+
+# Functional/end-to-end test on a real trajectory; skip cleanly when the
+# optional ``zinchub`` data-hub client is not installed.
+DataHub = pytest.importorskip("zinchub").DataHub
 
 import mdsuite as mds
 

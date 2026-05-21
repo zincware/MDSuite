@@ -11,84 +11,105 @@ SPDX-License-Identifier: EPL-2.0
 
 Copyright Contributors to the Zincwarecode Project.
 
-Contact Information
--------------------
-email: zincwarecode@gmail.com
-github: https://github.com/zincware
-web: https://zincwarecode.com/
-
-Citation
---------
-If you use this module please cite us with:
-
 Summary
 -------
+Synthetic-data validation of the Green-Kubo distinct diffusion
+coefficient calculator.
+
+Two species with statistically independent random velocities have
+
+    <v_i^A(0) . v_j^B(t)> = 0     (i != j, A != B)
+
+so the cross-species GK integral vanishes, and the distinct diffusion
+coefficient ``D_{AB} = 0``. Within finite sampling the recovered value
+should be small compared to the self-diffusion ``D_AA`` of one species.
+
+Replaces the prior DataHub-based test (which only ran the calculator
+without asserting any value).
 """
 import os
 
+import numpy as np
 import pytest
-from zinchub import DataHub
+import tensorflow as tf
 
 import mdsuite as mds
+import mdsuite.utils.units
+from mdsuite.database.mdsuite_properties import mdsuite_properties
+from mdsuite.database.simulation_database import (
+    SpeciesInfo,
+    TrajectoryChunkData,
+    TrajectoryMetadata,
+)
+from mdsuite.file_io.script_input import ScriptInput
 
 
-@pytest.fixture(scope="session")
-def traj_file(tmp_path_factory) -> str:
-    """Download trajectory file into a temporary directory and keep it for all tests."""
-    temporary_path = tmp_path_factory.getbasetemp()
-
-    NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
-    )
-    NaCl.get_file(path=temporary_path)
-
-    return (temporary_path / NaCl.file_raw).as_posix()
+def _independent_random_velocities(
+    n_step: int, n_part: int, sigma: float, seed: int
+) -> np.ndarray:
+    """White-noise velocities (no temporal correlation) for ``n_part`` particles."""
+    rng = np.random.default_rng(seed)
+    return rng.normal(0.0, sigma, size=(n_step, n_part, 3))
 
 
-@pytest.fixture(scope="session")
-def true_values() -> dict:
-    """Example fixture for downloading analysis results from github."""
-    NaCl = DataHub(
-        url="https://github.com/zincware/DataHub/tree/main/NaCl_gk_i_q", tag="v0.1.0"
-    )
-    return NaCl.get_analysis(analysis="RadialDistributionFunction.json")
-
-
-def test_project(traj_file, true_values, tmp_path):
-    """Test the GK distinct diffusion coefficients called from the project class."""
-    os.chdir(tmp_path)
-    project = mds.Project()
-    project.add_experiment(
-        "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
-    )
-
-    project.run.GreenKuboDistinctDiffusionCoefficients(plot=False, correlation_time=100)
-
-    # data_dict = project.load.GreenKuboDistinctDiffusionCoefficients()[0].data_dict
-    #
-    # data = Path(
-    #     r"C:\Users\fabia\Nextcloud\DATA\JupyterProjects\MDSuite\CI\integration_tests"
-    #     r"\calculators\data\green_kubo_distinct_diffusion_coefficients.json"
-    # )
-    #
-    # data.write_text(json.dumps(data_dict))
-
-    # np.testing.assert_array_almost_equal(data_dict["x"], true_values["x"])
-    # np.testing.assert_array_almost_equal(
-    #     data_dict["uncertainty"], true_values["uncertainty"]
-    # )
-
-
-@pytest.mark.parametrize("desired_memory", (None, 0.001))
-def test_experiment(traj_file, true_values, tmp_path, desired_memory):
-    """Test the green_kubo_distinct_diffusion_coefficients."""
+@pytest.mark.parametrize("desired_memory", (None,))
+def test_independent_species(tmp_path, desired_memory):
+    """Independent velocities -> GK distinct diffusion coefficient ~= 0."""
     with mds.utils.helpers.change_memory_fraction(desired_memory=desired_memory):
+        time_step = 0.1
+        sigma = 1.0
+        n_part = 50
+        n_step = 4000
+        data_range = 200
+
         os.chdir(tmp_path)
         project = mds.Project()
-        project.add_experiment(
-            "NaCl", simulation_data=traj_file, timestep=0.002, temperature=1400
+        units = mdsuite.units.SI
+        exp = project.add_experiment(
+            "indep_vels",
+            timestep=time_step,
+            temperature=300.0,
+            units=units,
         )
 
-        project.experiments["NaCl"].run.GreenKuboDistinctDiffusionCoefficients(
-            plot=False, correlation_time=500
+        vel_prop = mdsuite_properties.velocities
+        species = [
+            SpeciesInfo(name="A", n_particles=n_part, properties=[vel_prop]),
+            SpeciesInfo(name="B", n_particles=n_part, properties=[vel_prop]),
+        ]
+        metadata = TrajectoryMetadata(
+            species_list=species,
+            n_configurations=n_step,
+            sample_rate=1,
+        )
+        data = TrajectoryChunkData(species_list=species, chunk_size=n_step)
+        data.add_data(
+            _independent_random_velocities(n_step, n_part, sigma, seed=3003),
+            0,
+            "A",
+            vel_prop.name,
+        )
+        data.add_data(
+            _independent_random_velocities(n_step, n_part, sigma, seed=4004),
+            0,
+            "B",
+            vel_prop.name,
+        )
+        exp.add_data(ScriptInput(data=data, metadata=metadata, name="gk_indep_synth"))
+
+        result = exp.run.GreenKuboDistinctDiffusionCoefficients(
+            plot=False,
+            data_range=data_range,
+            correlation_time=1,
+            species=["A", "B"],
+        )
+
+        d_aa = abs(result.data_dict["A_A"]["diffusion_coefficient"])
+        d_ab = abs(result.data_dict["A_B"]["diffusion_coefficient"])
+
+        # Cross-species correlations should be small relative to the
+        # self-correlation of one species.
+        assert d_ab < 0.5 * d_aa, (
+            f"Cross-species D_AB = {d_ab:.3e} is not small compared to "
+            f"D_AA = {d_aa:.3e} for independent random velocities"
         )

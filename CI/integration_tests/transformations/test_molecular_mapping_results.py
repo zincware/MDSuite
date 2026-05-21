@@ -28,7 +28,10 @@ Test the outcome of molecular mapping.
 from typing import List, Tuple
 
 import pytest
-from zinchub import DataHub
+
+# Skip these tests cleanly when the optional ``zinchub`` data-hub client
+# is not installed (they download a real Gromacs trajectory).
+DataHub = pytest.importorskip("zinchub").DataHub
 
 import mdsuite
 import mdsuite.file_io.chemfiles_read

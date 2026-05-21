@@ -28,7 +28,10 @@ Functional test for the analysis of a GROMACS water simulation.
 from typing import List
 
 import pytest
-from zinchub import DataHub
+
+# Functional/end-to-end test on a real trajectory; skip cleanly when the
+# optional ``zinchub`` data-hub client is not installed.
+DataHub = pytest.importorskip("zinchub").DataHub
 
 import mdsuite as mds
 import mdsuite.file_io.chemfiles_read
