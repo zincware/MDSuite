@@ -32,11 +32,13 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import (
+    fit_einstein_curve,
+    msd_from_reference,
+)
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
@@ -66,17 +68,28 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
                                                                  correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor.
+    def __init__(
+        self,
+        plot=True,
+        data_range=100,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein-Helfand ionic conductivity calculator.
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the tensor_values
+        data_range :
+                Number of configurations to use in each ensemble
+        correlation_time : int
+                Correlation time to use in the analysis.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        # parse to the experiment class
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.translational_dipole_moment
@@ -92,31 +105,11 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
 
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=100,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor.
+        self.plot = plot
 
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the tensor_values
-        data_range :
-                Number of configurations to use in each ensemble
-        correlation_time : int
-                Correlation time to use in the analysis.
-        """
+        # Args is locked in at construction — no experiment access needed.
         if fit_range == -1:
             fit_range = int(data_range - 1)
-
-        # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
@@ -125,7 +118,8 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
             fit_range=fit_range,
         )
 
-        self.plot = plot
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -162,23 +156,17 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """Apply the averaging factor to the msd array."""
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def ensemble_operation(self, ensemble: tf.Tensor):
-        """
-        Calculate and return the msd.
+    def ensemble_operation(self, ensemble):
+        """Accumulate the squared dipole-moment displacement for one window.
 
-        Parameters
-        ----------
-        ensemble
-
-        Returns
-        -------
-        MSD of the tensor_values.
+        Uses the JAX-vmap :func:`msd_from_reference` helper, which produces
+        ``sum_p sum_d (ensemble[p, tau_idx, d] - ensemble[p, 0, d])**2``
+        in one shot. Empty-particles-axis batches (the minibatch path)
+        return zeros cleanly because vmap over a length-0 axis collapses
+        to an empty sum.
         """
-        msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.args.tau_values, axis=1), ensemble[:, 0, :]
-        )
-        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
-        self.msd_array += np.array(msd)[0, :]
+        msd = msd_from_reference(np.asarray(ensemble), self.resolved_tau_values)
+        self.msd_array += self.prefactor * msd
 
     def _post_operation_processes(self):
         """

@@ -31,14 +31,13 @@ from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from bokeh.models import Span
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
+from mdsuite.utils.calculator_helper_methods import auto_correlation
 
 
 @dataclass
@@ -77,28 +76,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
     plot=True, correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Class for the Green-Kubo Thermal conductivity implementation.
-
-        Attributes
-        ----------
-        experiment :  object
-                Experiment class to call from
-        """
-        super().__init__(**kwargs)
-        self.scale_function = {"linear": {"scale_factor": 5}}
-
-        self.loaded_property = mdsuite_properties.thermal_flux
-        self.system_property = True
-
-        self.x_label = r"$$\text{Time} / s$$"
-        self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
-        self.analysis_name = "Green_Kubo_Thermal_Conductivity"
-        self._dtype = tf.float64
-
-    @call
-    def __call__(
+    def __init__(
         self,
         plot=False,
         data_range=500,
@@ -106,8 +84,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         correlation_time: int = 1,
         integration_range: int = None,
     ):
-        """
-        Class for the Green-Kubo Thermal conductivity implementation.
+        """Green-Kubo thermal conductivity calculator.
 
         Parameters
         ----------
@@ -118,17 +95,26 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         correlation_time : int
                 Correlation time to use in the window sampling.
         integration_range : int
-                Range over which the integration should be performed.
+                Range over which the integration should be performed;
+                ``None`` means ``data_range``.
         """
-        self.plot = plot
-        self.jacf: np.ndarray
-        self.prefactor: float
-        self.sigma = []
+        super().__init__()
+        self.scale_function = {"linear": {"scale_factor": 5}}
 
+        self.loaded_property = mdsuite_properties.thermal_flux
+        self.system_property = True
+
+        self.x_label = r"$$\text{Time} / s$$"
+        self.y_label = r"$$\text{JACF} / ($C^{2}\cdot m^{2}/s^{2}$$"
+        self.analysis_name = "Green_Kubo_Thermal_Conductivity"
+        self._dtype = tf.float64
+
+        self.plot = plot
+        self.prefactor: float
+
+        # Args is locked in at construction — no experiment access needed.
         if integration_range is None:
             integration_range = data_range
-
-        # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
@@ -137,8 +123,11 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
             integration_range=integration_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
+        self.sigma = []
 
     def check_input(self):
         """
@@ -163,7 +152,7 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         numerator = 1
         denominator = (
             3
-            * (self.args.data_range - 1)
+            * (self.resolved_data_range - 1)
             * self.experiment.temperature**2
             * self.experiment.units.boltzmann
             * self.experiment.volume
@@ -188,45 +177,42 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
         pass
 
     def ensemble_operation(self, ensemble: tf.Tensor):
-        """
-        Calculate and return the msd.
+        """Accumulate the heat-flux autocorrelation for one window.
 
-        Parameters
-        ----------
-        ensemble : tf.Tenor
-                Ensemble to analyze.
-
-        Returns
-        -------
-        MSD of the tensor_values.
+        ``ensemble`` arrives shaped ``(n_particles, n_timesteps, 3)``. The
+        JAX-vmap :func:`auto_correlation` helper computes the
+        unnormalised ACF along the time axis, summed over particles and
+        Cartesian components, producing a length-``T`` series.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
-            axis=-1,
-        )
+        jacf = auto_correlation(np.asarray(ensemble))
         self.jacf += jacf
         self.sigma.append(
-            np.trapz(
+            np.trapezoid(
                 jacf[: self.args.integration_range],
                 x=self.time[: self.args.integration_range],
             )
         )
 
     def _post_operation_processes(self):
-        """
-        call the post-op processes.
+        """Aggregate per-ensemble integrals into the final thermal conductivity.
 
-        Returns
-        -------
-
+        Each ensemble produced one ``np.trapz`` integral of the heat-flux ACF.
+        Take the mean of those for the conductivity, and the standard error
+        of the mean across ensembles for the uncertainty — same pattern used
+        by the Green-Kubo ionic conductivity calculator.
         """
         result = self.prefactor * np.array(self.sigma)
+        thermal_conductivity = float(np.mean(result))
+        thermal_conductivity_SEM = float(
+            np.std(result) / np.sqrt(len(result))
+        ) if len(result) > 1 else 0.0
 
+        acf_array = np.asarray(self.jacf)
         data = {
-            "computation_results": result[0],
-            "uncertainty": result[1],
+            "thermal_conductivity": [thermal_conductivity],
+            "uncertainty": [thermal_conductivity_SEM],
             "time": self.time.tolist(),
-            "acf": self.jacf.numpy().tolist(),
+            "acf": acf_array.tolist(),
         }
 
         self.queue_data(data=data, subjects=["System"])
@@ -242,8 +228,8 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
             )
             self.run_visualization(
                 x_data=np.array(self.time) * self.experiment.units.time,
-                y_data=self.jacf.numpy(),
-                title=f"{result[0]} +- {result[1]}",
+                y_data=acf_array,
+                title=f"{thermal_conductivity} +- {thermal_conductivity_SEM}",
                 layouts=[span],
             )
 

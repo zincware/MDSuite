@@ -33,11 +33,13 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import (
+    fit_einstein_curve,
+    msd_from_reference,
+)
 
 
 @dataclass
@@ -80,17 +82,28 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
 
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor.
+    def __init__(
+        self,
+        plot=True,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        fit_range: int = -1,
+    ):
+        """Einstein-Helfand thermal conductivity (Kinaci) calculator.
 
         Parameters
         ----------
-        experiment :  object
-            Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        fit_range : int
+                Fit range; ``-1`` means ``data_range - 1``.
         """
-        # parse to the experiment class
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.kinaci_heat_current
@@ -104,33 +117,11 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
 
         self.prefactor = None
+        self.plot = plot
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        fit_range: int = -1,
-    ):
-        """
-        Python constructor.
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        data_range : int
-                Data range to use in the analysis.
-
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        """
+        # Args is locked in at construction — no experiment access needed.
         if fit_range == -1:
             fit_range = int(data_range - 1)
-
-        # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
@@ -139,7 +130,8 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
             fit_range=fit_range,
         )
 
-        self.plot = plot
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -188,21 +180,12 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
     def ensemble_operation(self, ensemble):
+        """Accumulate the squared Kinaci-heat-current displacement.
+
+        Delegates to the JAX-vmap :func:`msd_from_reference` helper.
         """
-        Calculate and return the msd.
-
-        Parameters
-        ----------
-        ensemble
-
-        Returns
-        -------
-        MSD of the tensor_values.
-        """
-        msd = tf.math.squared_difference(ensemble, ensemble[None, 0])
-
-        msd = self.prefactor * tf.reduce_sum(msd, axis=1)
-        self.msd_array += np.array(msd)  # Update the averaged function
+        msd = msd_from_reference(np.asarray(ensemble), self.resolved_tau_values)
+        self.msd_array += self.prefactor * msd
 
     def _post_operation_processes(self):
         """

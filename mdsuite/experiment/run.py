@@ -7,17 +7,33 @@ SPDX-License-Identifier: EPL-2.0.
 
 Copyright Contributors to the Zincware Project.
 
-Description: Collection of calculators / transformations for exp.run
+Description: Dispatch object exposed by ``experiment.run`` / ``project.run``.
+
+This module also implements the back-compat shim that lets the legacy
+``experiment.run.<Calculator>(**kwargs)`` API keep working after the
+calculator refactor:
+
+    # New API (standalone calculator → applied to experiment(s))
+    calc = mds.GreenKuboDiffusionCoefficients(data_range=500, plot=True)
+    result = experiment.run(calc)
+    results = project.run(calc, experiments=[exp1, exp2])
+
+    # Legacy API (still supported via shim)
+    experiment.run.GreenKuboDiffusionCoefficients(data_range=500, plot=True)
 """
 from __future__ import annotations
 
+import concurrent.futures
+import copy
 import functools
 from typing import TYPE_CHECKING, Any, List, Type, Union
 
+import mdsuite.database.scheme as db
 from mdsuite.calculators import (
     AngularDistributionFunction,  # SpatialDistributionFunction,
 )
-from mdsuite.calculators import (  # StructureFactor,
+from mdsuite.calculators import (
+    Calculator,
     CoordinationNumbers,
     EinsteinDiffusionCoefficients,
     EinsteinDistinctDiffusionCoefficients,
@@ -31,9 +47,9 @@ from mdsuite.calculators import (  # StructureFactor,
     GreenKuboViscosity,
     GreenKuboViscosityFlux,
     KirkwoodBuffIntegral,
-    NernstEinsteinIonicConductivity,
     PotentialOfMeanForce,
     RadialDistributionFunction,
+    StructureFactor,
 )
 from mdsuite.transformations import (
     CoordinateUnwrapper,
@@ -56,52 +72,121 @@ if TYPE_CHECKING:
 
 
 class RunComputation:
-    """Collection of all calculators that can be used by an experiment."""
+    """Dispatch object returned by ``experiment.run`` / ``project.run``.
+
+    Supports two call styles:
+
+    1. **New (preferred)** — pass a standalone calculator instance::
+
+           calc = mds.GreenKuboDiffusionCoefficients(data_range=500, plot=True)
+           experiment.run(calc)        # → db.Computation
+           project.run(calc)           # → {exp_name: db.Computation, ...}
+
+    2. **Legacy** — call the property with kwargs, the shim constructs and
+       runs the calculator for you::
+
+           experiment.run.GreenKuboDiffusionCoefficients(data_range=500, plot=True)
+    """
 
     def __init__(
         self, experiment: Experiment = None, experiments: List[Experiment] = None
     ):
-        """Collection of all calculators.
-
+        """
         Parameters
         ----------
         experiment: Experiment
-            Experiment to run the computations for
+            Single experiment to run computations against (used by
+            ``experiment.run``).
         experiments: List[Experiment]
-            A list of experiments passed by running the computation from the project
-            class
+            Experiments to run computations against (used by ``project.run``).
         """
         self.experiment = experiment
         self.experiments = experiments
 
-        self.kwargs = {"experiment": experiment, "experiments": experiments}
+    def _target_experiments(self) -> List[Experiment]:
+        """Return the experiments this dispatcher applies calculators to."""
+        if self.experiments is not None:
+            return list(self.experiments)
+        if self.experiment is not None:
+            return [self.experiment]
+        return []
 
-    def exp_wrapper(self, func):
-        # preparation for https://github.com/zincware/MDSuite/issues/404
-        # currently this does nothing
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            func_instance = func(*args, **kwargs)
-            # self.experiment._run(func_instance)
-            return func_instance
-
-        return wrapper
-
-    def transformation_wrapper(self, func: Union[Type[Transformations], Any]):
-        """Run the transformation for every selected experiment.
+    def __call__(
+        self,
+        calculator: Calculator,
+        parallel: bool = False,
+        max_workers: int = None,
+    ) -> Union[db.Computation, dict]:
+        """Apply a standalone calculator instance to the target experiment(s).
 
         Parameters
         ----------
-        func: a transformation to be attached to the experiment/s
+        calculator : Calculator
+            A configured calculator instance.
+        parallel : bool, default False
+            Run experiments concurrently in a thread pool. Each worker
+            operates on its own ``copy.deepcopy`` of the calculator, so
+            instance state (``self.experiment``, ``self.args``,
+            ``self.jacf``, ...) is isolated. Heavy compute releases the
+            GIL through JAX / TF / NumPy, so threads — not processes —
+            are the right primitive: they avoid the
+            ``Experiment``-with-SQLAlchemy-session pickling problem and
+            still scale across cores for CPU-bound JAX kernels. Has no
+            effect when there is only one target experiment.
+        max_workers : int, optional
+            Override the default thread-pool size (the number of target
+            experiments).
+
+        Returns
+        -------
+        db.Computation or dict[str, db.Computation]
+            A single computation result when called from
+            ``experiment.run(calc)``; a ``{experiment_name: result}`` dict
+            when called from ``project.run(calc)``.
         """
+        targets = self._target_experiments()
+
+        if parallel and len(targets) > 1:
+            results = {}
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=max_workers or len(targets)
+            ) as pool:
+                future_to_name = {
+                    pool.submit(copy.deepcopy(calculator).run, exp): exp.name
+                    for exp in targets
+                }
+                for future in concurrent.futures.as_completed(future_to_name):
+                    results[future_to_name[future]] = future.result()
+        else:
+            results = {exp.name: calculator.run(exp) for exp in targets}
+
+        if self.experiment is not None and self.experiments is None:
+            # Single-experiment dispatch (experiment.run(calc))
+            return results[self.experiment.name]
+        return results
+
+    def _calculator_shim(self, cls: Type[Calculator]):
+        """Build a legacy-API shim for a calculator class.
+
+        The shim accepts the same kwargs the calculator now takes in its
+        ``__init__``, constructs the calculator, and runs it against the
+        target experiment(s).
+        """
+
+        @functools.wraps(cls.__init__)
+        def shim(**kwargs):
+            calc = cls(**kwargs)
+            return self(calc)
+
+        return shim
+
+    def transformation_wrapper(self, func: Union[Type[Transformations], Any]):
+        """Run the transformation for every selected experiment."""
 
         @functools.wraps(func.run_transformation)
         def wrapper(*args, **kwargs):
-            if self.experiments is None:
-                self.experiments = [self.experiment]
-            for experiment in self.experiments:
+            for experiment in self._target_experiments():
                 func_instance = func()
-                # attach the transformation to the experiment
                 experiment.cls_transformation_run(func_instance, *args, **kwargs)
 
         return wrapper
@@ -161,82 +246,71 @@ class RunComputation:
     #####################
     #### Calculators ####
     #####################
-    @property
-    def AngularDistributionFunction(self) -> AngularDistributionFunction:
-        return self.exp_wrapper(AngularDistributionFunction)(**self.kwargs)
 
     @property
-    def CoordinationNumbers(self) -> CoordinationNumbers:
-        return self.exp_wrapper(CoordinationNumbers)(**self.kwargs)
+    def AngularDistributionFunction(self):
+        return self._calculator_shim(AngularDistributionFunction)
 
     @property
-    def EinsteinDiffusionCoefficients(self) -> EinsteinDiffusionCoefficients:
-        return self.exp_wrapper(EinsteinDiffusionCoefficients)(**self.kwargs)
+    def CoordinationNumbers(self):
+        return self._calculator_shim(CoordinationNumbers)
 
     @property
-    def EinsteinDistinctDiffusionCoefficients(
-        self,
-    ) -> EinsteinDistinctDiffusionCoefficients:
-        return self.exp_wrapper(EinsteinDistinctDiffusionCoefficients)(**self.kwargs)
+    def EinsteinDiffusionCoefficients(self):
+        return self._calculator_shim(EinsteinDiffusionCoefficients)
 
     @property
-    def EinsteinHelfandIonicConductivity(self) -> EinsteinHelfandIonicConductivity:
-        return self.exp_wrapper(EinsteinHelfandIonicConductivity)(**self.kwargs)
+    def EinsteinDistinctDiffusionCoefficients(self):
+        return self._calculator_shim(EinsteinDistinctDiffusionCoefficients)
 
     @property
-    def EinsteinHelfandThermalKinaci(self) -> EinsteinHelfandThermalKinaci:
-        return self.exp_wrapper(EinsteinHelfandThermalKinaci)(**self.kwargs)
+    def EinsteinHelfandIonicConductivity(self):
+        return self._calculator_shim(EinsteinHelfandIonicConductivity)
 
     @property
-    def GreenKuboViscosityFlux(self) -> GreenKuboViscosityFlux:
-        return self.exp_wrapper(GreenKuboViscosityFlux)(**self.kwargs)
+    def EinsteinHelfandThermalKinaci(self):
+        return self._calculator_shim(EinsteinHelfandThermalKinaci)
 
     @property
-    def GreenKuboDistinctDiffusionCoefficients(
-        self,
-    ) -> GreenKuboDistinctDiffusionCoefficients:
-        return self.exp_wrapper(GreenKuboDistinctDiffusionCoefficients)(**self.kwargs)
+    def GreenKuboViscosityFlux(self):
+        return self._calculator_shim(GreenKuboViscosityFlux)
 
     @property
-    def GreenKuboIonicConductivity(self) -> GreenKuboIonicConductivity:
-        return self.exp_wrapper(GreenKuboIonicConductivity)(**self.kwargs)
+    def GreenKuboDistinctDiffusionCoefficients(self):
+        return self._calculator_shim(GreenKuboDistinctDiffusionCoefficients)
 
     @property
-    def GreenKuboDiffusionCoefficients(self) -> GreenKuboDiffusionCoefficients:
-        return self.exp_wrapper(GreenKuboDiffusionCoefficients)(**self.kwargs)
+    def GreenKuboIonicConductivity(self):
+        return self._calculator_shim(GreenKuboIonicConductivity)
 
     @property
-    def GreenKuboThermalConductivity(self) -> GreenKuboThermalConductivity:
-        return self.exp_wrapper(GreenKuboThermalConductivity)(**self.kwargs)
+    def GreenKuboDiffusionCoefficients(self):
+        return self._calculator_shim(GreenKuboDiffusionCoefficients)
 
     @property
-    def GreenKuboViscosity(self) -> GreenKuboViscosity:
-        return self.exp_wrapper(GreenKuboViscosity)(**self.kwargs)
+    def GreenKuboThermalConductivity(self):
+        return self._calculator_shim(GreenKuboThermalConductivity)
 
     @property
-    def KirkwoodBuffIntegral(self) -> KirkwoodBuffIntegral:
-        return self.exp_wrapper(KirkwoodBuffIntegral)(**self.kwargs)
+    def GreenKuboViscosity(self):
+        return self._calculator_shim(GreenKuboViscosity)
 
     @property
-    def NernstEinsteinIonicConductivity(self) -> NernstEinsteinIonicConductivity:
-        return self.exp_wrapper(NernstEinsteinIonicConductivity)(**self.kwargs)
+    def KirkwoodBuffIntegral(self):
+        return self._calculator_shim(KirkwoodBuffIntegral)
 
     @property
-    def PotentialOfMeanForce(self) -> PotentialOfMeanForce:
-        return self.exp_wrapper(PotentialOfMeanForce)(**self.kwargs)
+    def PotentialOfMeanForce(self):
+        return self._calculator_shim(PotentialOfMeanForce)
 
     @property
-    def RadialDistributionFunction(self) -> RadialDistributionFunction:
-        return self.exp_wrapper(RadialDistributionFunction)(**self.kwargs)
-
-    # @property
-    # def StructureFactor(self) -> StructureFactor:
-    #     return self.exp_wrapper(StructureFactor)(**self.kwargs)
+    def RadialDistributionFunction(self):
+        return self._calculator_shim(RadialDistributionFunction)
 
     @property
-    def EinsteinHelfandThermalConductivity(self) -> EinsteinHelfandThermalConductivity:
-        return self.exp_wrapper(EinsteinHelfandThermalConductivity)(**self.kwargs)
+    def EinsteinHelfandThermalConductivity(self):
+        return self._calculator_shim(EinsteinHelfandThermalConductivity)
 
-    # @property
-    # def SpatialDistributionFunction(self) -> SpatialDistributionFunction:
-    #     return self.exp_wrapper(SpatialDistributionFunction)(**self.kwargs)
+    @property
+    def StructureFactor(self):
+        return self._calculator_shim(StructureFactor)

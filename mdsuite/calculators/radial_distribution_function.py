@@ -42,7 +42,6 @@ import tensorflow as tf
 # Import user packages
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
@@ -106,37 +105,7 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
 
     """
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the RDF calculator.
-
-        Attributes
-        ----------
-        kwargs: see RunComputation class for all the passed arguments
-        """
-        super().__init__(**kwargs)
-
-        self.scale_function = {
-            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
-        }
-        self.loaded_property = mdsuite_properties.positions
-        self.x_label = r"$$r / nm$$"
-        self.y_label = r"$$g(r)$$"
-        self.analysis_name = "Radial_Distribution_Function"
-        self.result_series_keys = ["x", "y"]
-
-        self._dtype = tf.float32
-
-        self.rdf_minibatch = None
-        self.use_tf_function = None
-        self.override_n_batches = None
-        self.index_list = None
-        self.sample_configurations = None
-        self.key_list = None
-        self.rdf = None
-
-    @call
-    def __call__(
+    def __init__(
         self,
         plot: bool = True,
         number_of_bins: int = None,
@@ -151,102 +120,138 @@ class RadialDistributionFunction(TrajectoryCalculator, ABC):
         molecules: bool = False,
         **kwargs,
     ):
-        """
-        Compute the RDF with the given user parameters.
+        """Radial distribution function calculator.
 
         Parameters
         ----------
         plot: bool
-            Plot the RDF after the computation
+            Plot the RDF after the computation.
         number_of_bins: int
-            The number of bins for the RDF histogram
+            The number of bins for the RDF histogram. Default ``None`` →
+            ``cutoff / 0.01``.
         species : list
-            A list of species to study.
+            A list of species to study. Default ``None`` → all species (or
+            molecules) at run time.
         cutoff: float
-            The cutoff value for the RDF. Default is half the box size
+            The cutoff value for the RDF. Default is half the box size.
         save: bool
-            save the data
+            save the data.
         start: int
-            Starting position in the database. All values before start will be
+            Starting position in the database. All values before start are
             ignored.
         stop: int
-            Stopping position in the database. All values after stop will be
-            ignored.
+            Stopping position in the database. ``None`` → last configuration.
         number_of_configurations: int
-            The number of uniformly sampled configuration between start and
+            The number of uniformly sampled configurations between start and
             stop to be used for the RDF.
         atom_selection : Union[np.s_, dict]
                 Atoms to be used in the analysis.
         minibatch: int
             Size of a minibatch over atoms in the batch over configurations.
-            Decrease this value if you run into memory
-            issues. Increase this value for better performance.
+            Decrease this value if you run into memory issues. Increase for
+            better performance.
         molecules: bool
             If true, the molecules will be analyzed rather than the atoms.
         kwargs:
-            overide_n_batches: int
-                    override the automatic batch size calculation
+            batches: int
+                    override the automatic batch size calculation.
             use_tf_function : bool
                     If true, tf.function is used in the calculation.
+            tqdm : int
+                    tqdm limit (default 10).
         """
-        # set args that will affect the computation result
-        self.args = Args(
-            number_of_bins=number_of_bins,
-            cutoff=cutoff,
-            start=start,
-            stop=stop,
-            atom_selection=atom_selection,
-            data_range=1,
-            correlation_time=1,
-            molecules=molecules,
-            species=species,
-            number_of_configurations=number_of_configurations,
-        )
-        # args parsing that will not affect the computation result
-        # usually performance or plotting
-        self.rdf_minibatch = minibatch
-        self.plot = plot
+        super().__init__()
 
-        # kwargs parsing
+        self.scale_function = {
+            "quadratic": {"outer_scale_factor": 10, "inner_scale_factor": 5}
+        }
+        self.loaded_property = mdsuite_properties.positions
+        self.x_label = r"$$r / nm$$"
+        self.y_label = r"$$g(r)$$"
+        self.analysis_name = "Radial_Distribution_Function"
+        self.result_series_keys = ["x", "y"]
+
+        self._dtype = tf.float32
+
+        self.index_list = None
+        self.sample_configurations = None
+        self.key_list = None
+        self.rdf = None
+
+        self.plot = plot
+        self.rdf_minibatch = minibatch
         self.use_tf_function = kwargs.pop("use_tf_function", False)
         self.override_n_batches = kwargs.get("batches")
         self.tqdm_limit = kwargs.pop("tqdm", 10)
 
-    def check_input(self):
+        # Raw user inputs (defaults resolved at run time in _setup / check_input).
+        self._user_number_of_bins = number_of_bins
+        self._user_cutoff = cutoff
+        self._user_start = start
+        self._user_stop = stop
+        self._user_number_of_configurations = number_of_configurations
+        self._user_atom_selection = atom_selection
+        self._user_species = species
+        self._user_molecules = molecules
+
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args.
+
+        All defaults that depend on ``self.experiment`` are filled in
+        here so that ``self.args`` is fully resolved *before* the
+        database cache lookup in :meth:`Calculator.run`. Previously this
+        defaulting lived in :meth:`check_input` (called from
+        ``run_calculator``), which forced a ``_setup`` re-run after
+        persistence to keep the cache keys consistent.
         """
-        Check the input of the call method and store defaults if needed.
+        stop = self._user_stop
+        if stop is None:
+            stop = self.experiment.number_of_configurations - 1
 
-        Returns
-        -------
-        Updates class attributes if required.
-        """
-        if self.args.stop is None:
-            self.args.stop = self.experiment.number_of_configurations - 1
+        cutoff = self._user_cutoff
+        if cutoff is None:
+            # Half the box, less a small margin.
+            cutoff = self.experiment.box_array[0] / 2 - 0.1
 
-        if self.args.cutoff is None:
-            self.args.cutoff = (
-                self.experiment.box_array[0] / 2 - 0.1
-            )  # set cutoff to half box size if none set
-
-        if self.args.number_of_configurations == -1:
-            self.args.number_of_configurations = (
-                self.experiment.number_of_configurations - 1
-            )
+        number_of_configurations = self._user_number_of_configurations
+        if number_of_configurations == -1:
+            number_of_configurations = self.experiment.number_of_configurations - 1
 
         if self.rdf_minibatch == -1:
-            self.rdf_minibatch = self.args.number_of_configurations
+            self.rdf_minibatch = number_of_configurations
 
-        if self.args.number_of_bins is None:
-            self.args.number_of_bins = int(
-                self.args.cutoff / 0.01
-            )  # default is 1/100th of an angstrom
+        number_of_bins = self._user_number_of_bins
+        if number_of_bins is None:
+            number_of_bins = int(cutoff / 0.01)  # 1/100th of an angstrom
 
-        # Get the correct species out.
-        if self.args.species is None:
-            if self.args.molecules:
-                self.args.species = list(self.experiment.molecules)
-            else:
-                self.args.species = list(self.experiment.species)
+        species = self._user_species
+        if species is None:
+            species = list(
+                self.experiment.molecules
+                if self._user_molecules
+                else self.experiment.species
+            )
+
+        self.args = Args(
+            number_of_bins=number_of_bins,
+            cutoff=cutoff,
+            start=self._user_start,
+            stop=stop,
+            atom_selection=self._user_atom_selection,
+            data_range=1,
+            correlation_time=1,
+            molecules=self._user_molecules,
+            species=species,
+            number_of_configurations=number_of_configurations,
+        )
+
+    def check_input(self):
+        """Initialise per-run computation parameters.
+
+        Defaults that depend on the experiment are already filled in by
+        :meth:`_setup`; this method only prepares the runtime structures
+        (bin range, sample-configuration array, species index lists).
+        """
         self._initialize_rdf_parameters()
 
     def _initialize_rdf_parameters(self):

@@ -150,6 +150,106 @@ def correlate(ds_a: np.ndarray, ds_b: np.ndarray) -> np.ndarray:
     return acf[int(len(acf) / 2) :]
 
 
+def _ac_1d(a: jnp.ndarray) -> jnp.ndarray:
+    """JIT-able one-dimensional autocorrelation via FFT-backed correlate."""
+    return jnp.correlate(a, a, mode="full")
+
+
+# Two-level vmap: components (inner, axis=-1) over particles (outer, axis=0).
+# Jit at this level — shape varies per ensemble window, but XLA still caches
+# per-shape compilations, so repeated identical windows hit the cache.
+_ac_ensemble = jax.jit(
+    jax.vmap(jax.vmap(_ac_1d, in_axes=-1, out_axes=0), in_axes=0, out_axes=0)
+)
+
+
+def auto_correlation(ds: np.ndarray) -> np.ndarray:
+    """JAX-vmap autocorrelation over an ensemble, summed over particles and dims.
+
+    Computes the lag-by-lag unbiased autocorrelation
+
+        acf[k] = (T / (T - k)) * sum_p sum_d sum_i ds[p, i, d] * ds[p, i + k, d]
+
+    via two nested ``jax.vmap`` layers (inner: Cartesian components,
+    outer: particles) wrapped in ``jax.jit`` for kernel reuse. The
+    ``T / (T - k)`` factor reweights each lag so that the result matches
+    ``data_range * tfp.stats.auto_correlation(ds, normalize=False,
+    axis=1, center=False)`` summed over particles and components — i.e.
+    the *unbiased* time-averaged autocorrelation scaled by ``T``. That is
+    the convention every Green-Kubo calculator in this codebase
+    integrates against to get the transport coefficient; the biased
+    estimator (no ``T - k`` reweighting) would systematically
+    underestimate the integral.
+
+    Parameters
+    ----------
+    ds : np.ndarray of shape (n_particles, n_timesteps, n_components)
+        Trajectory data for one ensemble window. ``n_particles`` may be 1
+        for system observables.
+
+    Returns
+    -------
+    acf : np.ndarray of shape (n_timesteps,)
+        Positive-lag part of the rescaled autocorrelation.
+    """
+    ds_jax = jnp.asarray(ds)
+    n_t = ds_jax.shape[1]
+
+    full = _ac_ensemble(ds_jax)
+    summed = jnp.sum(full, axis=(0, 1))           # shape (2 n_t - 1,)
+    positive_lags = summed[n_t - 1 :]             # shape (n_t,) -- lags 0 .. n_t-1
+    rescale = n_t / (n_t - jnp.arange(n_t))       # T / (T - k); unbiased estimator
+    return np.asarray(positive_lags * rescale)
+
+
+def _msd_1d_from_ref(x_1d: jnp.ndarray, tau_idx: jnp.ndarray) -> jnp.ndarray:
+    """One particle, one Cartesian component: squared deviation from x[0]."""
+    return (jnp.take(x_1d, tau_idx) - x_1d[0]) ** 2
+
+
+# Inner vmap over Cartesian components; outer vmap over particles. Both
+# layers broadcast ``tau_idx`` (it's shared across particles + components).
+_msd_ensemble_op = jax.jit(
+    jax.vmap(
+        jax.vmap(_msd_1d_from_ref, in_axes=(-1, None), out_axes=-1),
+        in_axes=(0, None),
+        out_axes=0,
+    )
+)
+
+
+def msd_from_reference(
+    ds: np.ndarray, tau_indices: np.ndarray
+) -> np.ndarray:
+    """JAX-vmap mean-square displacement from a fixed reference frame.
+
+    Replaces the
+        ``tf.math.squared_difference(tf.gather(ensemble, tau_idx, axis=1),
+                                     ensemble[:, 0:1, :])``
+        followed by ``tf.reduce_sum(msd, axis=2)`` + ``tf.reduce_sum(_, axis=0)``
+    idiom used by every Einstein and Einstein-Helfand MSD-based calculator.
+
+    Computes
+
+        msd[k] = sum_p sum_d (ds[p, tau_idx[k], d] - ds[p, 0, d])**2
+
+    via two nested ``jax.vmap`` layers (Cartesian components inner,
+    particles outer) wrapped in ``jax.jit`` for kernel reuse.
+
+    Parameters
+    ----------
+    ds : np.ndarray of shape (n_particles, n_timesteps, n_components)
+    tau_indices : np.ndarray of integer indices into the time axis
+
+    Returns
+    -------
+    msd : np.ndarray of shape (len(tau_indices),)
+    """
+    full = _msd_ensemble_op(jnp.asarray(ds), jnp.asarray(tau_indices))
+    # full shape (n_particles, n_tau, n_comp); reduce over particles + dims.
+    return np.asarray(jnp.sum(full, axis=(0, -1)))
+
+
 def msd_operation(ds_a, ds_b) -> np.ndarray:
     """
     Perform an msd operation between two data sets mapping over spatial dimension.

@@ -36,7 +36,6 @@ import numpy as np
 import tensorflow as tf
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils.linalg import (
@@ -72,33 +71,7 @@ class Args:
 class SpatialDistributionFunction(TrajectoryCalculator):
     """Spatial Distribution Function Calculator based on the r_ij matrix."""
 
-    def __init__(self, experiment: Experiment, experiments=None):
-        """
-        Constructor of the SpatialDistributionFunction.
-
-        Parameters
-        ----------
-        experiment: Experiment
-            managed by RunComputation
-        experiments:
-            list of Experiments, managed by RunComputation
-        load_data: bool
-            managed by RunComputation
-
-        """
-        super().__init__(experiment, experiments=experiments)
-
-        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
-        self.loaded_property = mdsuite_properties.positions
-        self.x_label = r"$$\text{r} /  nm$$"  # None
-        self.y_label = r"$$\text{g(r)}$$"  # None
-        self.analysis_name = "Spatial_Distribution_Function"
-        self.experimental = True
-
-        self._dtype = tf.float32
-
-    @call
-    def __call__(
+    def __init__(
         self,
         molecules: bool = False,
         start: int = 1,
@@ -110,50 +83,75 @@ class SpatialDistributionFunction(TrajectoryCalculator):
         n_bins: int = 100,
         **kwargs,
     ):
-        """
-        User Interface to the Spatial Distribution Function.
+        """Spatial distribution function calculator.
 
         Parameters
         ----------
         molecules : bool
                 If true, load molecules.
         start: int
-            Index of the first configuration
+            Index of the first configuration.
         stop: int
-            Index of the last configuration
+            Index of the last configuration.
         number_of_configurations: int
-            Number of configurations to sample between start and stop
+            Number of configurations to sample between start and stop.
         r_min: float
-            Minimal distance for the SDF
+            Minimal distance for the SDF.
         r_max: float
-            Maximal distance for the SDF
+            Maximal distance for the SDF.
         species: list
-            List of species to use, for computing the SDF,
-            if None a single SDF of all available species will be computed
-        kwargs
+            List of species to use for computing the SDF. If ``None``, a
+            single SDF of all available species is computed at run time.
+        n_bins: int
+            Number of bins.
         """
+        super().__init__()
+
+        self.scale_function = {"quadratic": {"outer_scale_factor": 1}}
+        self.loaded_property = mdsuite_properties.positions
+        self.x_label = r"$$\text{r} /  nm$$"
+        self.y_label = r"$$\text{g(r)}$$"
+        self.analysis_name = "Spatial_Distribution_Function"
+        self.experimental = True
+
+        self._dtype = tf.float32
+        self.plot = False
+
+        self._user_molecules = molecules
+        self._user_start = start
+        self._user_stop = stop
+        self._user_number_of_configurations = number_of_configurations
+        self._user_r_min = r_min
+        self._user_r_max = r_max
+        self._user_species = species
+        self._user_n_bins = n_bins
+
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        species = self._user_species
         if species is None:
-            if molecules:
+            if self._user_molecules:
                 species = list(self.experiment.molecules)
             else:
                 species = list(self.experiment.species)
 
-        # choose sampled configurations
         self.sample_configurations = np.linspace(
-            start, stop, number_of_configurations, dtype=np.int
+            self._user_start,
+            self._user_stop,
+            self._user_number_of_configurations,
+            dtype=np.int,
         )
-        self.plot = False
 
         self.args = Args(
-            molecules=molecules,
+            molecules=self._user_molecules,
             species=species,
-            number_of_configurations=number_of_configurations,
-            r_min=r_min,
+            number_of_configurations=self._user_number_of_configurations,
+            r_min=self._user_r_min,
             atom_selection=np.s_[:],
-            r_max=r_max,
-            data_range=number_of_configurations,
+            r_max=self._user_r_max,
+            data_range=self._user_number_of_configurations,
             correlation_time=1,
-            n_bins=n_bins,
+            n_bins=self._user_n_bins,
         )
 
     def _load_positions(self, indices: list, species: str) -> tf.Tensor:

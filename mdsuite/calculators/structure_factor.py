@@ -25,16 +25,16 @@ Code for the computation of the structure factor.
 """
 import logging
 from dataclasses import dataclass
+from importlib import resources
 
 import numpy as np
 import pandas as pd
-import pkg_resources
 import tensorflow as tf
 from bokeh.models import HoverTool
 from bokeh.plotting import figure
 
 from mdsuite import data, utils
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
 from mdsuite.database.scheme import Computation
 
 log = logging.getLogger(__name__)
@@ -111,16 +111,29 @@ class StructureFactor(Calculator):
     number_of_atoms: int
     total_density: float
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the class.
+    def __init__(
+        self,
+        rdf_data: Computation = None,
+        plot=True,
+        method: str = "Faber-Ziman",
+        resolution: int = 700,
+    ):
+        """Structure factor calculator.
 
         Parameters
         ----------
-        experiment : class object
-                Class object of the experiment.
+        rdf_data : Computation (optional)
+                MDSuite Computation data schema from which to load the RDF data
+                and store relevant SQL meta-data information. If not given, an
+                RDF will be computed using the default RDF arguments.
+        plot : bool (default=True)
+                Decision to plot the analysis.
+        method : str (default=Faber-Ziman)
+                Method used to compute the weight factors.
+        resolution : int (default=700)
+                Resolution of the structure factor.
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.post_generation = True
 
@@ -131,48 +144,37 @@ class StructureFactor(Calculator):
         self.result_series_keys = ["q", "S"]
 
         # Read the data from the file.
-        stream = pkg_resources.resource_stream(data.__name__, "form_fac_coeffs.csv")
-        self.form_factor_data = pd.read_csv(stream)
+        with resources.files(data).joinpath("form_fac_coeffs.csv").open("rb") as stream:
+            self.form_factor_data = pd.read_csv(stream)
 
-    @call
-    def __call__(
-        self,
-        rdf_data: Computation = None,
-        plot=True,
-        method: str = "Faber-Ziman",
-        resolution: int = 700,
-    ):
-        """
-        Parameters
-        ----------
-        rdf_data : Computation (optional)
-                MDSuite Computation data schema from which to load the RDF data and
-                store relevant SQL meta-data information. If not give, an RDF will be
-                computed using the default RDF arguments.
-        plot : bool (default=True)
-                Decision to plot the analysis.
-        method : str (default=Faber-Ziman)
-                Method use to compute the weight factors.
-        resolution : int (default=700)
-                Resolution of the structure factor.
-        """
         self.plot = plot
+        self._user_rdf_data = rdf_data
+        self._user_method = method
+        self._user_resolution = resolution
 
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
+    def _setup(self):
+        """Resolve experiment-dependent state.
+
+        Accept any duck-typed object with ``data_dict`` and
+        ``computation_parameter``; only fall back to computing the RDF if
+        nothing usable was passed in.
+        """
+        if self._user_rdf_data is not None and hasattr(
+            self._user_rdf_data, "data_dict"
+        ):
+            self.rdf_data = self._user_rdf_data
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        # set args that will affect the computation result
         self.args = Args(
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            resolution=resolution,
+            resolution=self._user_resolution,
         )
-        self.q_values = np.linspace(0.5, 12, resolution)
+        self.q_values = np.linspace(0.5, 12, self._user_resolution)
 
         self._compute_angstsrom_volume()  # correct the volume of the system.
         self.number_of_atoms = sum(
@@ -223,14 +225,14 @@ class StructureFactor(Calculator):
         for name, species_data in self.species_dict.items():
             # aff -> atomic form factor
             aff_data = self.form_factor_data.loc[self.form_factor_data["Element"] == name]
-            c = aff_data["c"]
+            # Each ``aff_data[col]`` is a single-element pandas Series.
+            # ``float(series)`` is deprecated; use ``.iloc[0]``.
+            c = float(aff_data["c"].iloc[0])
             form_factor = np.zeros(self.args.resolution)
             for i in range(4):
-                a = aff_data[f"a{i + 1}"]
-                b = aff_data[f"b{i + 1}"]
-                form_factor += float(a) * np.exp(
-                    -1 * float(b) * (self.q_values / (4 * np.pi))
-                ) + float(c)
+                a = float(aff_data[f"a{i + 1}"].iloc[0])
+                b = float(aff_data[f"b{i + 1}"].iloc[0])
+                form_factor += a * np.exp(-b * (self.q_values / (4 * np.pi))) + c
 
             species_data.form_factor = form_factor
 
@@ -257,7 +259,7 @@ class StructureFactor(Calculator):
             rdf = np.array(pair_data["y"][1:])
             radial_multiplier = tf.einsum("i, j -> ij", self.q_values, radii)
             pre_factor = radii**2 * np.sin(radial_multiplier) / radial_multiplier
-            integral = 1 + 4 * np.pi * np.trapz(y=pre_factor * (rdf - 1), x=radii, axis=1)
+            integral = 1 + 4 * np.pi * np.trapezoid(y=pre_factor * (rdf - 1), x=radii, axis=1)
             partial_structure_factors[pair] = integral * 0.5
 
         return partial_structure_factors
@@ -274,16 +276,37 @@ class StructureFactor(Calculator):
                 A dict of weight factors to be used in the SF computation. There is
                 one weight factor for each pair.
         """
+        # Faber-Ziman weighting:
+        #   w_ij(q) = x_i x_j f_i(q) f_j(q) / <f(q)>**2
+        # with the system-average form factor <f(q)> = sum_k x_k f_k(q).
+        # ``np.prod`` / ``np.mean`` over a list of arrays collapses across
+        # the q axis (and overflows for typical form-factor magnitudes);
+        # the products and means must be element-wise along q instead.
+        mean_form_factor = sum(
+            sd.molar_fraction * sd.form_factor
+            for sd in self.species_dict.values()
+        )
+        mean_square_form_factor = mean_form_factor**2
+
         weight_factors = {}
         for pair, pair_data in self.rdf_data.data_dict.items():
             species_names = pair.split("_")
-            form_factors = [self.species_dict[item].form_factor for item in species_names]
-            mean_square_form_factor = np.mean(form_factors) ** 2
-            molar_fraction = np.prod(
-                [self.species_dict[item].molar_fraction for item in species_names]
+            form_factors = [
+                self.species_dict[item].form_factor for item in species_names
+            ]
+            molar_fraction = float(
+                np.prod(
+                    [
+                        self.species_dict[item].molar_fraction
+                        for item in species_names
+                    ]
+                )
             )
             weight_factors[pair] = (
-                molar_fraction * np.prod(form_factors) / mean_square_form_factor
+                molar_fraction
+                * form_factors[0]
+                * form_factors[1]
+                / mean_square_form_factor
             )
 
         return weight_factors
@@ -335,13 +358,15 @@ class StructureFactor(Calculator):
         # Store the total SF data.
         self.queue_data(data=data_dict, subjects=["System"])
 
-        # Store the partial SF data.
+        # Store the partial SF data. The species association is built
+        # from the ``subjects`` list (one entry per species in the pair);
+        # passing the bare pair string would iterate as characters.
         for pair, pair_data in partial_sf.items():
             data_dict = {
                 self.result_series_keys[0]: self.q_values.tolist(),
                 self.result_series_keys[1]: pair_data.tolist(),
             }
-            self.queue_data(data=data_dict, subjects=pair)
+            self.queue_data(data=data_dict, subjects=pair.split("_"))
 
     def plot_data(self, data):
         """

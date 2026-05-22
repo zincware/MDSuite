@@ -31,14 +31,13 @@ from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from bokeh.models import Span
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
+from mdsuite.utils.calculator_helper_methods import auto_correlation
 
 
 @dataclass
@@ -72,16 +71,31 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
                                                       correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor for the experiment class.
+    def __init__(
+        self,
+        plot=False,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        integration_range: int = None,
+    ):
+        """Green-Kubo viscosity (stress flux) calculator.
 
         Parameters
         ----------
-        experiment : object
-                Experiment class to read and write to
+        plot : bool
+                If true, a plot of the analysis is saved.
+        data_range : int
+                Number of configurations to include in each ensemble.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        tau_values : np.s_
+                Selection of tau values to use in the window sliding.
+        integration_range : int
+                Range over which integration should be performed; ``None`` means
+                ``data_range``.
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.stress_viscosity
@@ -92,36 +106,13 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         self.y_label = r"$$\text{JACF} / C^{2}\\cdot m^{2}/s^{2}$$"
 
         self.prefactor: float
-        self.jacf: np.ndarray
-        self.sigma = []
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot=False,
-        data_range=500,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        integration_range: int = None,
-    ):
-        """
-        Python constructor for the experiment class.
-
-        Parameters
-        ----------
-        plot : bool
-                If true, a plot of the analysis is saved.
-        data_range : int
-                Number of configurations to include in each ensemble
-        """
         self.plot = plot
-        self.sigma = []
 
+        # Args is locked in at construction — no experiment access needed.
         if integration_range is None:
             integration_range = data_range
-
-        # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
@@ -130,8 +121,11 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             integration_range=integration_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
+        self.sigma = []
 
     def check_input(self):
         """
@@ -155,7 +149,7 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         numerator = self.experiment.volume
         denominator = (
             3
-            * (self.args.data_range - 1)
+            * (self.resolved_data_range - 1)
             * self.experiment.temperature
             * self.experiment.units.boltzmann
         )
@@ -170,60 +164,46 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
         self.prefactor = (numerator / denominator) * prefactor_units
 
     def _apply_averaging_factor(self):
-        """
-        Apply the averaging factor to the msd array.
-
-        Returns
-        -------
-        -------.
-
-        """
-        self.jacf /= max(self.jacf)
+        """No-op; ACF averaging is handled implicitly by the prefactor."""
+        pass
 
     def ensemble_operation(self, ensemble):
-        """
-        Calculate and return the vacf.
+        """Accumulate the stress-flux autocorrelation for one window.
 
-        Parameters
-        ----------
-        ensemble
-
-        Returns
-        -------
-        updates class vacf with the tensor_values.
+        Uses the JAX-vmap :func:`auto_correlation` helper to compute the
+        unbiased ACF summed over particles and Cartesian components.
         """
-        jacf = self.args.data_range * tf.reduce_sum(
-            tfp.stats.auto_correlation(ensemble, normalize=False, axis=0, center=False),
-            axis=-1,
-        )
-        self.jacf += jacf[int(self.args.data_range - 1) :]
+        jacf = auto_correlation(np.asarray(ensemble))
+        self.jacf += jacf
         self.sigma.append(
-            np.trapz(
+            np.trapezoid(
                 jacf[: self.args.integration_range],
                 x=self.time[: self.args.integration_range],
             )
         )
 
     def _post_operation_processes(self):
-        """
-        call the post-op processes.
+        """Aggregate per-ensemble integrals into the final viscosity.
 
-        Returns
-        -------
-
+        Mean across windows for the value, standard error of the mean for the
+        uncertainty.
         """
         result = self.prefactor * np.array(self.sigma)
+        viscosity = float(np.mean(result))
+        viscosity_SEM = (
+            float(np.std(result) / np.sqrt(len(result))) if len(result) > 1 else 0.0
+        )
 
+        acf_array = np.asarray(self.jacf)
         data = {
-            "viscosity": result[0],
-            "uncertainty": result[1],
+            "viscosity": [viscosity],
+            "uncertainty": [viscosity_SEM],
             "time": self.time.tolist(),
-            "acf": self.jacf.numpy().tolist(),
+            "acf": acf_array.tolist(),
         }
 
         self.queue_data(data=data, subjects=["System"])
 
-        # Update the plot if required
         if self.plot:
             span = Span(
                 location=(np.array(self.time) * self.experiment.units.time)[
@@ -234,8 +214,8 @@ class GreenKuboViscosityFlux(TrajectoryCalculator, ABC):
             )
             self.run_visualization(
                 x_data=np.array(self.time) * self.experiment.units.time,
-                y_data=self.jacf.numpy(),
-                title=f"{result[0]} +- {result[1]}",
+                y_data=acf_array,
+                title=f"{viscosity} +- {viscosity_SEM}",
                 layouts=[span],
             )
 

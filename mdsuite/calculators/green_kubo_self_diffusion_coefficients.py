@@ -31,7 +31,6 @@ from typing import Any, List, Union
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
@@ -39,8 +38,8 @@ from scipy.integrate import cumulative_trapezoid
 from tqdm import tqdm
 
 from mdsuite import utils
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
+from mdsuite.utils.calculator_helper_methods import auto_correlation
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 
 
@@ -86,16 +85,38 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                                                                   correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
-        Constructor for the Green Kubo diffusion coefficients class.
+    def __init__(
+        self,
+        plot: bool = True,
+        species: list = None,
+        data_range: int = 500,
+        correlation_time: int = 1,
+        atom_selection=np.s_[:],
+        molecules: bool = False,
+        tau_values: Union[int, List, Any] = np.s_[:],
+        integration_range: int = None,
+    ):
+        """Green-Kubo self-diffusion coefficient calculator.
 
-        Attributes
+        Parameters
         ----------
-        experiment :  object
-                Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        species : list
+                List of species on which to operate. If ``None``, defaults to
+                all species (or molecules) of the experiment at run time.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        atom_selection : np.s_
+                Selection of atoms to use within the HDF5 database.
+        molecules : bool
+                If true, molecules are used instead of atoms.
+        integration_range : int
+                Range over which to integrate; ``None`` means ``data_range - 1``.
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.loaded_property = mdsuite_properties.velocities
         self.scale_function = {"linear": {"scale_factor": 150}}
@@ -108,61 +129,40 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
 
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot: bool = True,
-        species: list = None,
-        data_range: int = 500,
-        correlation_time: int = 1,
-        atom_selection=np.s_[:],
-        molecules: bool = False,
-        tau_values: Union[int, List, Any] = np.s_[:],
-        integration_range: int = None,
-    ):
-        """
-        Constructor for the Green-Kubo diffusion coefficients class.
+        self.plot = plot
 
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        species : list
-                List of species on which to operate.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        atom_selection : np.s_
-                Selection of atoms to use within the HDF5 database.
-        molecules : bool
-                If true, molecules are used instead of atoms.
-        integration_range : int
-                Range over which to integrate. Default is to integrate over
-                the full data range.
-        """
+        self._user_species = species
+        self._user_data_range = data_range
+        self._user_correlation_time = correlation_time
+        self._user_atom_selection = atom_selection
+        self._user_molecules = molecules
+        self._user_tau_values = tau_values
+        self._user_integration_range = integration_range
+
+    def _setup(self):
+        """Resolve experiment-dependent defaults and build args."""
+        species = self._user_species
         if species is None:
-            if molecules:
+            if self._user_molecules:
                 species = list(self.experiment.molecules)
             else:
                 species = list(self.experiment.species)
-        if integration_range is None:
-            integration_range = data_range - 1
 
-        # set args that will affect the computation result
+        integration_range = self._user_integration_range
+        if integration_range is None:
+            integration_range = self._user_data_range - 1
+
         self.args = Args(
-            data_range=data_range,
-            correlation_time=correlation_time,
-            atom_selection=atom_selection,
-            tau_values=tau_values,
-            molecules=molecules,
+            data_range=self._user_data_range,
+            correlation_time=self._user_correlation_time,
+            atom_selection=self._user_atom_selection,
+            tau_values=self._user_tau_values,
+            molecules=self._user_molecules,
             species=species,
             integration_range=integration_range,
         )
 
-        self.plot = plot
-
-        # Note: The following attributes are in SI units
+        # Note: time is in SI units
         self.time = self._handle_tau_values() * self.experiment.units.time
         self.vacfs = []
 
@@ -177,33 +177,32 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
         self._run_dependency_check()
 
     def ensemble_operation(self, ensemble):
+        """Accumulate the velocity ACF for one ensemble window.
+
+        Uses the JAX-vmap :func:`auto_correlation` helper. The helper
+        returns ``(T/(T-k)) * sum_p sum_d Σ_i v_pd(i) v_pd(i+k)``, so
+        dividing by ``T`` recovers the *unbiased* per-lag autocorrelation
+        ``(1/(T-k)) * Σ_i ...`` — the same convention the original
+        ``tfp.stats.auto_correlation(normalize=False)`` used.
         """
-        Calculate and return the msd.
+        ds = np.asarray(ensemble)
+        n_p = ds.shape[0]
+        if n_p == 0:
+            # Empty minibatch: nothing to accumulate.
+            return np.zeros(self.resolved_data_range, dtype=np.float64)
 
-        Parameters
-        ----------
-        ensemble
+        scale = self.experiment.units.length**2 / self.experiment.units.time**2
+        # ``auto_correlation`` sums over particles and Cartesian components.
+        sum_particles_sum_dims = scale * auto_correlation(ds) / self.resolved_data_range
 
-        Returns
-        -------
-        MSD of the tensor_values.
-        """
-        vacf = (
-            self.experiment.units.length**2
-            / self.experiment.units.time**2
-            * tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
-        )
-        self.count += vacf.shape[0]
-
-        # average particles, sum dimensions
-        return_vacf = tf.reduce_sum(tf.reduce_sum(vacf, axis=0), -1)
+        self.count += n_p
+        # Sigmas tracks the cumulative integral of the per-particle-mean,
+        # dim-summed VACF, used downstream for the SEM of D.
         self.sigmas.append(
-            cumulative_trapezoid(
-                tf.reduce_sum(tf.reduce_mean(vacf, axis=0), -1), x=self.time
-            )
+            cumulative_trapezoid(sum_particles_sum_dims / n_p, x=self.time)
         )
 
-        return np.array(return_vacf)
+        return np.array(sum_particles_sum_dims)
 
     def plot_data(self, data: dict):
         """
@@ -327,7 +326,7 @@ class GreenKuboDiffusionCoefficients(TrajectoryCalculator, ABC):
                 ensemble_ds = self.get_ensemble_dataset(batch, species)
 
                 for ensemble in ensemble_ds:
-                    if not ensemble[dict_ref].shape[1] == self.args.data_range:
+                    if not ensemble[dict_ref].shape[1] == self.resolved_data_range:
                         continue
                     else:
                         self.acf_array += self.ensemble_operation(ensemble[dict_ref])

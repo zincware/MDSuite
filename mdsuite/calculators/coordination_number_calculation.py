@@ -36,7 +36,7 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.signal import find_peaks
 
 from mdsuite import utils
-from mdsuite.calculators.calculator import Calculator, call
+from mdsuite.calculators.calculator import Calculator
 from mdsuite.database.scheme import Computation
 from mdsuite.utils.exceptions import CannotPerformThisAnalysis
 from mdsuite.utils.meta_functions import apply_savgol_filter, golden_section_search
@@ -128,16 +128,32 @@ class CoordinationNumbers(Calculator):
 
     rdf_data: Computation
 
-    def __init__(self, **kwargs):
-        """
-        Python constructor.
+    def __init__(
+        self,
+        rdf_data: Computation = None,
+        plot: bool = True,
+        savgol_order: int = 2,
+        savgol_window_length: int = 17,
+        number_of_shells: int = 1,
+    ):
+        """Python constructor.
 
         Parameters
         ----------
-        experiment : class object
-                        Class object of the experiment.
+        rdf_data : Computation (optional)
+                MDSuite Computation data schema from which to load the RDF data and
+                store relevant SQL meta-data information. If not given, an RDF will be
+                computed using the default RDF arguments.
+        plot : bool (default=True)
+                            Decision to plot the analysis.
+        savgol_order : int
+                Order of the savgol polynomial filter
+        savgol_window_length : int
+                Window length of the savgol filter.
+        number_of_shells : int
+                Number of shells to look for.
         """
-        super().__init__(**kwargs)
+        super().__init__()
         self.file_to_study = None
 
         self.integral_data = None
@@ -153,57 +169,45 @@ class CoordinationNumbers(Calculator):
         self.result_keys = []
         self.result_series_keys = ["r", "cn"]
 
-    @call
-    def __call__(
-        self,
-        rdf_data: Computation = None,
-        plot: bool = True,
-        savgol_order: int = 2,
-        savgol_window_length: int = 17,
-        number_of_shells: int = 1,
-    ):
-        """
+        self.plot = plot
+        self._user_rdf_data = rdf_data
+        self._user_savgol_order = savgol_order
+        self._user_savgol_window_length = savgol_window_length
+        self._user_number_of_shells = number_of_shells
 
-        Parameters
-        ----------
-        rdf_data : Computation (optional)
-                MDSuite Computation data schema from which to load the RDF data and
-                store relevant SQL meta-data information. If not give, an RDF will be
-                computed using the default RDF arguments.
-        plot : bool (default=True)
-                            Decision to plot the analysis.
-        savgol_order : int
-                Order of the savgol polynomial filter
-        savgol_window_length : int
-                Window length of the savgol filter.
-        number_of_shells : int
-                Number of shells to look for.
+    def _setup(self):
+        """Resolve experiment-dependent state.
+
+        If the user did not provide an RDF computation, run one against the
+        current experiment. Accept anything with a ``data_dict`` and a
+        ``computation_parameter`` (duck-typed) so tests can inject a
+        synthetic RDF without going through SQLAlchemy.
         """
-        if isinstance(rdf_data, Computation):
-            self.rdf_data = rdf_data
+        if self._user_rdf_data is not None and hasattr(
+            self._user_rdf_data, "data_dict"
+        ):
+            self.rdf_data = self._user_rdf_data
         else:
             self.rdf_data = self.experiment.run.RadialDistributionFunction(plot=False)
 
-        # set args that will affect the computation result
         self.args = Args(
-            savgol_order=savgol_order,
-            savgol_window_length=savgol_window_length,
+            savgol_order=self._user_savgol_order,
+            savgol_window_length=self._user_savgol_window_length,
             number_of_bins=self.rdf_data.computation_parameter["number_of_bins"],
             cutoff=self.rdf_data.computation_parameter["cutoff"],
             number_of_configurations=self.rdf_data.computation_parameter[
                 "number_of_configurations"
             ],
-            number_of_shells=number_of_shells,
+            number_of_shells=self._user_number_of_shells,
         )
 
-        # Auto-populate the result keys.
+        # Auto-populate the result keys (reset to base each setup so reruns work).
+        self.result_keys = []
         for i in range(self.args.number_of_shells):
             self.result_keys.append(f"CN_{i + 1}")
             self.result_keys.append(f"CN_{i + 1}_error")
 
         self._compute_nm_volume()
-
-        self.plot = plot
 
     def _compute_nm_volume(self):
         """

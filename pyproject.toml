@@ -1,24 +1,131 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "MDSuite"
+version = "0.2.0"
+description = "A postprocessing tool for molecular dynamics simulations."
+readme = "README.md"
+license = { text = "EPL-2.0" }
+requires-python = ">=3.9"
+authors = [{ name = "zincwarecode", email = "zincwarecode@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Eclipse Public License 2.0 (EPL-2.0)",
+    "Operating System :: OS Independent",
+]
+# Runtime dependencies. TensorFlow is pinned to a tested range; the
+# unbounded ``>=2.5`` floor in the old ``requirements.txt`` allowed
+# behaviour-breaking minor-version bumps to slip through.
+dependencies = [
+    "tensorflow>=2.10,<2.20",
+    "h5py",
+    "pysmiles",
+    "matplotlib",
+    "scipy",
+    "tqdm",
+    "psutil>=5.6.6",
+    "numpy",
+    "gputil",
+    "pubchempy",
+    "PyYAML>=5.4",
+    "scooby",
+    "sqlalchemy>=1.4",
+    "pandas>=1.0.0",
+    "colorutils",
+    "bokeh>=3.0.0",
+    "chemfiles",
+    "dot4dict",
+    "jaxlib",
+    "jax",
+]
+
+[project.urls]
+Homepage = "https://zincwarecode.com/"
+Repository = "https://github.com/zincware/MDSuite"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "coverage",
+    "coveralls",
+    "mdanalysis",
+    "ase",
+    "astroid",
+]
+docs = [
+    "Sphinx==7.0.1",
+    "sphinx_rtd_theme",
+    "sphinxcontrib.bibtex",
+    "pybtex",
+    "numpydoc",
+    "docutils==0.19",
+    "nbsphinx",
+    "nbsphinx-link",
+    "sphinx-copybutton",
+    "IPython",
+]
+# Convenience aggregate: ``uv pip install -e ".[dev]"`` to get everything
+# needed for local development (tests, docs build, notebook tooling).
+dev = [
+    "pytest",
+    "coverage",
+    "coveralls",
+    "mdanalysis",
+    "ase",
+    "astroid",
+    "Sphinx==7.0.1",
+    "sphinx_rtd_theme",
+    "sphinxcontrib.bibtex",
+    "pybtex",
+    "numpydoc",
+    "docutils==0.19",
+    "nbsphinx",
+    "nbsphinx-link",
+    "sphinx-copybutton",
+    "IPython",
+    "jupyter",
+    "znvis",
+    "ruff",
+    "mypy",
+]
+
+[tool.setuptools.packages.find]
+include = ["mdsuite*"]
+
+[tool.setuptools.package-data]
+"mdsuite.data" = ["*.csv", "*.json"]
+
 [tool.black]
 line-length = 90
 preview = true
 
 [tool.isort]
-profile = 'black'
+profile = "black"
 multi_line_output = 3
 
 [tool.ruff]
 line-length = 90
+exclude = ["tmp", "docs"]
 
+[tool.ruff.lint]
 select = ["E", "F", "D", "N", "C"]
 extend-ignore = [
     "D102", "D103", "D105", "D107",
     "D205", "D212", "D213", "D203",
     "D401", "D414", "D417",
     "C400",
-    "N802", "N806", "N818"
+    "N802", "N806", "N818",
 ]
 
-exclude = [
-    "tmp",
-    "docs",
-]
+# Permissive baseline. The codebase is sparsely typed today (~38/96
+# files have return-type hints); this enables mypy in CI without
+# breaking on every untyped import.
+[tool.mypy]
+python_version = "3.10"
+warn_unused_configs = true
+ignore_missing_imports = true
+follow_imports = "silent"
+# Start with a per-module override list once the hint coverage grows.
+disable_error_code = ["import-untyped"]

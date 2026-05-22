@@ -33,17 +33,16 @@ from dataclasses import dataclass
 
 import numpy as np
 import tensorflow as tf
-import tensorflow_probability as tfp
 from bokeh.models import HoverTool, LinearAxis, Span
 from bokeh.models.ranges import Range1d
 from bokeh.plotting import figure
 from scipy.integrate import cumulative_trapezoid
 from tqdm import tqdm
 
-from mdsuite.calculators.calculator import call
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
+from mdsuite.utils.calculator_helper_methods import auto_correlation
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
@@ -85,16 +84,29 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
     plot=True, correlation_time=10)
     """
 
-    def __init__(self, **kwargs):
-        """
+    def __init__(
+        self,
+        plot=True,
+        data_range=500,
+        correlation_time=1,
+        tau_values: np.s_ = np.s_[:],
+        integration_range: int = None,
+    ):
+        """Green-Kubo ionic conductivity calculator.
 
-        Attributes
+        Parameters
         ----------
-        experiment :  object
-                Experiment class to call from
+        plot : bool
+                if true, plot the output.
+        data_range : int
+                Data range to use in the analysis.
+        correlation_time : int
+                Correlation time to use in the window sampling.
+        integration_range : int
+                Range over which integration should be performed; ``None`` means
+                ``data_range - 1``.
         """
-        # update experiment class
-        super().__init__(**kwargs)
+        super().__init__()
         self.scale_function = {"linear": {"scale_factor": 5}}
 
         self.loaded_property = mdsuite_properties.ionic_current
@@ -110,36 +122,11 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self.prefactor = None
         self._dtype = tf.float64
 
-    @call
-    def __call__(
-        self,
-        plot=True,
-        data_range=500,
-        correlation_time=1,
-        tau_values: np.s_ = np.s_[:],
-        integration_range: int = None,
-    ):
-        """
-
-        Parameters
-        ----------
-        plot : bool
-                if true, plot the output.
-        data_range : int
-                Data range to use in the analysis.
-        correlation_time : int
-                Correlation time to use in the window sampling.
-        integration_range : int
-                Range over which integration should be performed.
-        """
         self.plot = plot
-        self.jacf: np.ndarray
-        self.sigma = []
 
+        # Args is locked in at construction — no experiment access needed.
         if integration_range is None:
             integration_range = data_range - 1
-
-        # set args that will affect the computation result
         self.args = Args(
             data_range=data_range,
             correlation_time=correlation_time,
@@ -148,9 +135,11 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             integration_range=integration_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
-
+        self.sigma = []
         self.acfs = []
         self.sigmas = []
 
@@ -185,25 +174,20 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         )
         self.prefactor = numerator / denominator
 
-    def ensemble_operation(self, ensemble: tf.Tensor):
-        """
-        Calculate and return the msd.
+    def ensemble_operation(self, ensemble):
+        """Accumulate the ionic-current ACF for one window.
 
-        Parameters
-        ----------
-        ensemble : tf.Tensor
-                Ensemble on which to operate.
-
-        Returns
-        -------
-        ACF of the tensor_values.
+        Uses the JAX-vmap :func:`auto_correlation` helper. Partial-lag
+        sampling via ``resolved_tau_values`` is done in numpy fancy
+        indexing on the converted array. Unlike GK thermal / viscosity
+        this calculator does NOT pre-multiply by ``data_range`` (the
+        prefactor is absorbed elsewhere), so divide out the ``T`` factor
+        introduced by the unbiased rescaling to keep the same convention.
         """
-        ensemble = tf.gather(ensemble, self.args.tau_values, axis=1)
-        jacf = tfp.stats.auto_correlation(ensemble, normalize=False, axis=1, center=False)
-        jacf = tf.squeeze(tf.reduce_sum(jacf, axis=-1), axis=0)
+        ds = np.asarray(ensemble)[:, self.resolved_tau_values, :]
+        jacf = auto_correlation(ds) / ds.shape[1]
         self.sigmas.append(cumulative_trapezoid(jacf, x=self.time))
-
-        return np.array(jacf)
+        return jacf
 
     def _post_operation_processes(self):
         """
@@ -293,7 +277,7 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
             "/".join([DatasetKeys.OBSERVABLES, self.loaded_property.name])
         )
         self.count = 0
-        self.acf_array = np.zeros((self.args.data_range,))
+        self.acf_array = np.zeros((self.resolved_data_range,))
         batch_ds = self.get_batch_dataset([DatasetKeys.OBSERVABLES])
         for batch in tqdm(
             batch_ds,

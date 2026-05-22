@@ -11,7 +11,10 @@ Description:
 """
 
 import pytest
-from zinchub import DataHub
+
+# Skip these tests cleanly when the optional ``zinchub`` data-hub client
+# is not installed (they download a real LAMMPS trajectory).
+DataHub = pytest.importorskip("zinchub").DataHub
 
 import mdsuite
 import mdsuite.transformations
