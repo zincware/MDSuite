@@ -111,25 +111,20 @@ class GreenKuboThermalConductivity(TrajectoryCalculator, ABC):
 
         self.plot = plot
         self.prefactor: float
-        self._user_data_range = data_range
-        self._user_tau_values = tau_values
-        self._user_correlation_time = correlation_time
-        self._user_integration_range = integration_range
 
-    def _setup(self):
-        """Resolve experiment-dependent defaults and build args."""
-        integration_range = self._user_integration_range
+        # Args is locked in at construction — no experiment access needed.
         if integration_range is None:
-            integration_range = self._user_data_range
-
+            integration_range = data_range
         self.args = Args(
-            data_range=self._user_data_range,
-            correlation_time=self._user_correlation_time,
-            tau_values=self._user_tau_values,
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
             atom_selection=np.s_[:],
             integration_range=integration_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
         self.sigma = []

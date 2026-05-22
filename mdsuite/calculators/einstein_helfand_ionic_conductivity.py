@@ -35,7 +35,10 @@ from tqdm import tqdm
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import (
+    fit_einstein_curve,
+    msd_from_reference,
+)
 from mdsuite.utils.units import boltzmann_constant, elementary_charge
 
 
@@ -103,25 +106,20 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
 
         self.plot = plot
-        self._user_data_range = data_range
-        self._user_correlation_time = correlation_time
-        self._user_tau_values = tau_values
-        self._user_fit_range = fit_range
 
-    def _setup(self):
-        """Resolve experiment-dependent defaults and build args."""
-        fit_range = self._user_fit_range
+        # Args is locked in at construction — no experiment access needed.
         if fit_range == -1:
-            fit_range = int(self._user_data_range - 1)
-
+            fit_range = int(data_range - 1)
         self.args = Args(
-            data_range=self._user_data_range,
-            correlation_time=self._user_correlation_time,
-            tau_values=self._user_tau_values,
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
             atom_selection=np.s_[:],
             fit_range=fit_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -158,30 +156,17 @@ class EinsteinHelfandIonicConductivity(TrajectoryCalculator, ABC):
         """Apply the averaging factor to the msd array."""
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
-    def ensemble_operation(self, ensemble: tf.Tensor):
-        """
-        Calculate and return the msd.
+    def ensemble_operation(self, ensemble):
+        """Accumulate the squared dipole-moment displacement for one window.
 
-        Parameters
-        ----------
-        ensemble
-
-        Returns
-        -------
-        MSD of the tensor_values.
+        Uses the JAX-vmap :func:`msd_from_reference` helper, which produces
+        ``sum_p sum_d (ensemble[p, tau_idx, d] - ensemble[p, 0, d])**2``
+        in one shot. Empty-particles-axis batches (the minibatch path)
+        return zeros cleanly because vmap over a length-0 axis collapses
+        to an empty sum.
         """
-        # Keep a singleton time axis on the reference frame so the
-        # broadcasted subtraction is well-defined when the leading
-        # (particles) dim of ``ensemble`` is empty (minibatch path).
-        msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.resolved_tau_values, axis=1),
-            ensemble[:, 0:1, :],
-        )
-        # Sum over Cartesian components, then over particles. Reducing over
-        # the particles axis is safe even on empty batches (gives zeros)
-        # whereas the previous ``msd[0, :]`` indexing crashed.
-        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
-        self.msd_array += np.array(tf.reduce_sum(msd, axis=0))
+        msd = msd_from_reference(np.asarray(ensemble), self.resolved_tau_values)
+        self.msd_array += self.prefactor * msd
 
     def _post_operation_processes(self):
         """

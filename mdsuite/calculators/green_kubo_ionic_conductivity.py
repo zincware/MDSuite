@@ -123,25 +123,20 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         self._dtype = tf.float64
 
         self.plot = plot
-        self._user_data_range = data_range
-        self._user_correlation_time = correlation_time
-        self._user_tau_values = tau_values
-        self._user_integration_range = integration_range
 
-    def _setup(self):
-        """Resolve experiment-dependent defaults and build args."""
-        integration_range = self._user_integration_range
+        # Args is locked in at construction — no experiment access needed.
         if integration_range is None:
-            integration_range = self._user_data_range - 1
-
+            integration_range = data_range - 1
         self.args = Args(
-            data_range=self._user_data_range,
-            correlation_time=self._user_correlation_time,
-            tau_values=self._user_tau_values,
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
             atom_selection=np.s_[:],
             integration_range=integration_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.jacf = np.zeros(self.data_resolution)
         self.sigma = []
@@ -179,23 +174,20 @@ class GreenKuboIonicConductivity(TrajectoryCalculator, ABC):
         )
         self.prefactor = numerator / denominator
 
-    def ensemble_operation(self, ensemble: tf.Tensor):
+    def ensemble_operation(self, ensemble):
         """Accumulate the ionic-current ACF for one window.
 
-        Uses the JAX-vmap :func:`auto_correlation` helper. The original
-        ``tf.gather`` over ``tau_values`` is preserved so partial-lag
-        sampling still works. Unlike the GK thermal / viscosity calculators
-        this one does NOT pre-multiply by ``data_range`` (the prefactor is
-        absorbed elsewhere) — divide out the ``T`` factor introduced by
-        the unbiased rescaling to keep the same numerical convention.
+        Uses the JAX-vmap :func:`auto_correlation` helper. Partial-lag
+        sampling via ``resolved_tau_values`` is done in numpy fancy
+        indexing on the converted array. Unlike GK thermal / viscosity
+        this calculator does NOT pre-multiply by ``data_range`` (the
+        prefactor is absorbed elsewhere), so divide out the ``T`` factor
+        introduced by the unbiased rescaling to keep the same convention.
         """
-        ensemble = tf.gather(ensemble, self.resolved_tau_values, axis=1)
-        ds = np.asarray(ensemble)
-        n_t = ds.shape[1]
-        jacf = auto_correlation(ds) / n_t
+        ds = np.asarray(ensemble)[:, self.resolved_tau_values, :]
+        jacf = auto_correlation(ds) / ds.shape[1]
         self.sigmas.append(cumulative_trapezoid(jacf, x=self.time))
-
-        return np.array(jacf)
+        return jacf
 
     def _post_operation_processes(self):
         """

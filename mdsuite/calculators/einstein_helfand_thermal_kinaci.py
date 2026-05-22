@@ -36,7 +36,10 @@ from tqdm import tqdm
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
 from mdsuite.utils import DatasetKeys
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import (
+    fit_einstein_curve,
+    msd_from_reference,
+)
 
 
 @dataclass
@@ -115,25 +118,20 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
 
         self.prefactor = None
         self.plot = plot
-        self._user_data_range = data_range
-        self._user_correlation_time = correlation_time
-        self._user_tau_values = tau_values
-        self._user_fit_range = fit_range
 
-    def _setup(self):
-        """Resolve experiment-dependent defaults and build args."""
-        fit_range = self._user_fit_range
+        # Args is locked in at construction — no experiment access needed.
         if fit_range == -1:
-            fit_range = int(self._user_data_range - 1)
-
+            fit_range = int(data_range - 1)
         self.args = Args(
-            data_range=self._user_data_range,
-            correlation_time=self._user_correlation_time,
-            tau_values=self._user_tau_values,
+            data_range=data_range,
+            correlation_time=correlation_time,
+            tau_values=tau_values,
             atom_selection=np.s_[:],
             fit_range=fit_range,
         )
 
+    def _setup(self):
+        """Experiment-dependent per-run state."""
         self.time = self._handle_tau_values()
         self.msd_array = np.zeros(self.data_resolution)
 
@@ -182,19 +180,12 @@ class EinsteinHelfandThermalKinaci(TrajectoryCalculator, ABC):
         self.msd_array /= int(self.n_batches) * self.ensemble_loop
 
     def ensemble_operation(self, ensemble):
-        """Accumulate the Kinaci heat-current MSD for one window.
+        """Accumulate the squared Kinaci-heat-current displacement.
 
-        ``ensemble`` arrives shaped ``(n_particles, n_timesteps, 3)``. The
-        reference frame is ``ensemble[:, 0:1, :]`` so broadcasting works on
-        empty minibatches. Reduce over Cartesian and particles axes for a
-        length-``T`` MSD.
+        Delegates to the JAX-vmap :func:`msd_from_reference` helper.
         """
-        msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.resolved_tau_values, axis=1),
-            ensemble[:, 0:1, :],
-        )
-        msd = self.prefactor * tf.reduce_sum(msd, axis=2)
-        self.msd_array += np.array(tf.reduce_sum(msd, axis=0))
+        msd = msd_from_reference(np.asarray(ensemble), self.resolved_tau_values)
+        self.msd_array += self.prefactor * msd
 
     def _post_operation_processes(self):
         """

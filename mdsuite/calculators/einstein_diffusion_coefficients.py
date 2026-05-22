@@ -42,7 +42,10 @@ from tqdm import tqdm
 from mdsuite import utils
 from mdsuite.calculators.trajectory_calculator import TrajectoryCalculator
 from mdsuite.database.mdsuite_properties import mdsuite_properties
-from mdsuite.utils.calculator_helper_methods import fit_einstein_curve
+from mdsuite.utils.calculator_helper_methods import (
+    fit_einstein_curve,
+    msd_from_reference,
+)
 
 log = logging.getLogger(__name__)
 
@@ -167,28 +170,16 @@ class EinsteinDiffusionCoefficients(TrajectoryCalculator, ABC):
         )
 
     def ensemble_operation(self, ensemble):
+        """Compute sum-over-particles-and-dims squared displacement.
+
+        Uses the JAX-vmap :func:`msd_from_reference` helper. ``self.count``
+        accumulates the particle count across ensembles; the final
+        per-particle mean is taken in :meth:`fit_diff_coeff` via
+        ``self.msd_array /= self.count``.
         """
-        Calculate and return the msd.
-
-        Parameters
-        ----------
-        ensemble : tf.Tensor
-                An ensemble of data to be operated on.
-
-        Returns
-        -------
-        MSD of the tensor_values.
-        """
-        msd = tf.math.squared_difference(
-            tf.gather(ensemble, self.resolved_tau_values, axis=1), ensemble[:, None, 0]
-        )
-        self.count += msd.shape[0]
-        # average over particles, sum over dimensions
-        # msd = tf.reduce_sum(tf.reduce_mean(msd, axis=0), axis=-1)
-        msd = tf.reduce_sum(tf.reduce_sum(msd, axis=0), axis=-1)
-
-        # sum up ensembles to average in post processing
-        return np.array(msd)
+        ds = np.asarray(ensemble)
+        self.count += ds.shape[0]
+        return msd_from_reference(ds, self.resolved_tau_values)
 
     def fit_diff_coeff(self):
         """Apply unit conversion, fit line to the data, prepare for database storage."""
